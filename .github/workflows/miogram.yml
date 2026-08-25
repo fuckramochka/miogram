@@ -50,6 +50,10 @@ jobs:
         uses: android-actions/setup-android@v4
         with:
           packages: "build-tools;36.0.0 ndk;27.2.12479018 platforms;android-37.0"
+      - name: Inject Telegram API credentials
+        run: |
+          echo "TELEGRAM_APP_ID=${{ secrets.TELEGRAM_APP_ID }}" >> $GITHUB_ENV
+          echo "TELEGRAM_APP_HASH=${{ secrets.TELEGRAM_APP_HASH }}" >> $GITHUB_ENV
       - name: Configure Android SDK Path
         run: echo "sdk.dir=${ANDROID_HOME}" >> local.properties
       - name: Run unit tests
@@ -92,6 +96,10 @@ jobs:
         uses: android-actions/setup-android@v4
         with:
           packages: "build-tools;36.0.0 ndk;27.2.12479018 platforms;android-37.0"
+      - name: Inject Telegram API credentials
+        run: |
+          echo "TELEGRAM_APP_ID=${{ secrets.TELEGRAM_APP_ID }}" >> $GITHUB_ENV
+          echo "TELEGRAM_APP_HASH=${{ secrets.TELEGRAM_APP_HASH }}" >> $GITHUB_ENV
       - name: Configure Android SDK Path
         run: echo "sdk.dir=${ANDROID_HOME}" >> local.properties
       - name: Assemble debug APK
@@ -167,6 +175,10 @@ jobs:
         uses: android-actions/setup-android@v4
         with:
           packages: "build-tools;36.0.0 platforms;android-37.0"
+      - name: Inject Telegram API credentials
+        run: |
+          echo "TELEGRAM_APP_ID=${{ secrets.TELEGRAM_APP_ID }}" >> $GITHUB_ENV
+          echo "TELEGRAM_APP_HASH=${{ secrets.TELEGRAM_APP_HASH }}" >> $GITHUB_ENV
       - name: Configure Android SDK Path
         run: echo "sdk.dir=${ANDROID_HOME}" >> local.properties
       - name: Build #1

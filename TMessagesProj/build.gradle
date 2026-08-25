@@ -161,13 +161,13 @@ android {
         // so a key taken from another build shows an empty map.
         def mapsKey = 'AIzaSyDE_x6GRKJCSfCY33soBYUQ2piYsgjVpVE'
 
-        if (properties != null) {
-            appId = properties.getProperty('TELEGRAM_APP_ID') ?: System.getenv('TELEGRAM_APP_ID') ?: appId
-            appHash = properties.getProperty('TELEGRAM_APP_HASH') ?: System.getenv('TELEGRAM_APP_HASH') ?: appHash
-            mapsKey = properties.getProperty('MAPS_API_KEY') ?: System.getenv('MAPS_API_KEY') ?: mapsKey
-        } else {
-            mapsKey = System.getenv('MAPS_API_KEY') ?: mapsKey
-        }
+        // Resolution order: local.properties -> environment -> built-in fallback.
+        // NOTE: the env branch must work even when local.properties is absent
+        // (CI runners) — a dead env path silently ships the desktop test key,
+        // which Telegram's servers reject for third-party packages.
+        appId = properties?.getProperty('TELEGRAM_APP_ID') ?: System.getenv('TELEGRAM_APP_ID') ?: appId
+        appHash = properties?.getProperty('TELEGRAM_APP_HASH') ?: System.getenv('TELEGRAM_APP_HASH') ?: appHash
+        mapsKey = properties?.getProperty('MAPS_API_KEY') ?: System.getenv('MAPS_API_KEY') ?: mapsKey
 
         manifestPlaceholders += [MAPS_API_KEY: mapsKey]
 
