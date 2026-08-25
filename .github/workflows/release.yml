@@ -61,11 +61,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends --yes nasm
-      - name: Configure Android SDK Path
       - name: Inject Telegram API credentials
         run: |
           echo "TELEGRAM_APP_ID=${{ secrets.TELEGRAM_APP_ID }}" >> $GITHUB_ENV
           echo "TELEGRAM_APP_HASH=${{ secrets.TELEGRAM_APP_HASH }}" >> $GITHUB_ENV
+      - name: Configure Android SDK Path
         run: |
           echo "sdk.dir=${ANDROID_HOME}" >> local.properties
       - name: Modify Gradle JVM Args
