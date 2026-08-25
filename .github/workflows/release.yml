@@ -28,8 +28,8 @@ jobs:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
       CCACHE_HARDLINK: "true"
       CCACHE_NOHASHDIR: "true"
-      CCACHE_MAXSIZE: "2G"
-      NATIVE_TARGET: "universal"
+      CCACHE_MAXSIZE: "5G"
+      NATIVE_TARGET: "arm64-v8a"
     steps:
       - name: Checkout
         uses: actions/checkout@v7
