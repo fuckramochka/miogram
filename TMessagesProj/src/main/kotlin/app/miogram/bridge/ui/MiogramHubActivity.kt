@@ -15,6 +15,7 @@ import android.widget.TextView
 import android.widget.Toast
 import app.miogram.bridge.MiogramFlags
 import app.miogram.bridge.passcode.MiogramGate
+import app.miogram.bridge.passcode.MiogramLockFacade
 import app.miogram.bridge.plugins.WamrWasmRuntime
 
 /**
@@ -134,7 +135,7 @@ class MiogramHubActivity : Activity() {
 
     private fun vaultStatusLine(): String =
         if (MiogramGate.isConfigured())
-            "сховище активне" + if (MiogramGate.hasDuressProfiles()) " · duress увімкнений" else ""
+            "сховище активне" + if (MiogramLockFacade.hasDuressProfiles()) " · duress увімкнений" else ""
         else "не налаштоване"
 
     private fun gateStatusLine(): String =

@@ -11,7 +11,7 @@ import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
-import app.miogram.bridge.HyperionFlags
+import app.miogram.bridge.MiogramFlags
 
 /**
  * AGSL liquid-glass tuning screen. Sliders persist into the same prefs the
@@ -40,14 +40,13 @@ class MiogramVisualsActivity : Activity() {
         }
 
         val toggle = Button(this).apply {
-            setText(if (HyperionFlags.SPATIAL_DECORATION) "Ефект: увімкнений" else "Ефект: вимкнений")
-            setBackgroundColor(if (HyperionFlags.SPATIAL_DECORATION) 0xFF2E6DA4.toInt() else 0xFF888888.toInt())
+            setText(if (MiogramFlags.SPATIAL_DECORATION) "Ефект: увімкнений" else "Ефект: вимкнений")
+            setBackgroundColor(if (MiogramFlags.SPATIAL_DECORATION) 0xFF2E6DA4.toInt() else 0xFF888888.toInt())
             setTextColor(Color.WHITE)
             setOnClickListener {
-                HyperionFlags.SPATIAL_DECORATION = !HyperionFlags.SPATIAL_DECORATION
-                setText(if (HyperionFlags.SPATIAL_DECORATION) "Ефект: увімкнений" else "Ефект: вимкнений")
-                setBackgroundColor(if (HyperionFlags.SPATIAL_DECORATION) 0xFF2E6DA4.toInt() else 0xFF888888.toInt())
-                persist()
+                MiogramFlags.SPATIAL_DECORATION = !MiogramFlags.SPATIAL_DECORATION
+                setText(if (MiogramFlags.SPATIAL_DECORATION) "Ефект: увімкнений" else "Ефект: вимкнений")
+                setBackgroundColor(if (MiogramFlags.SPATIAL_DECORATION) 0xFF2E6DA4.toInt() else 0xFF888888.toInt())
             }
         }
         root.addView(toggle, margin())
