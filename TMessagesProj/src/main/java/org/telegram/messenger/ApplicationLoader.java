@@ -288,12 +288,13 @@ public class ApplicationLoader extends Application implements CameraXConfig.Prov
         app.exteraless.general.GeneralConfig.init();
         app.exteraless.utils.UtilsConfig.init();
         app.exteraless.plugins.PluginsController.getInstance().init(applicationContext);
+        SharedPrefsHelper.init(applicationContext);
         try {
             FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(AndroidUtil.shouldEnableCrashlytics());
         } catch (Throwable e) {
             FileLog.e(e);
         }
-            UserConfig.getInstance(a).loadConfig();
+        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) { //TODO improve account
             MessagesController.getInstance(a);
             if (a == 0) {
                 SharedConfig.pushStringStatus = "__FIREBASE_GENERATING_SINCE_" + ConnectionsManager.getInstance(a).getCurrentTime() + "__";
