@@ -7,9 +7,10 @@ import android.os.Build
 import android.os.Bundle
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.Button
 import android.widget.LinearLayout
-import android.widget.SeekBar
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import app.miogram.bridge.MiogramFlags
@@ -23,9 +24,6 @@ class MiogramVisualsActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
-
-        val density = resources.displayMetrics.density
-        fun px(v: Int) = (v * density).toInt()
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -58,7 +56,7 @@ class MiogramVisualsActivity : Activity() {
         })
 
         root.addView(title("Примітка"))
-        root.addView(caption("Ефект застосовується до декоративних панелей Miogram після повторного відкриття екрана. Стек пілюль налаштовується в розділі exteraless."))
+        root.addView(caption("Ефект застосовується до декоративних панелей Miogram після повторного відкриття екрана."))
 
         setContentView(ScrollView(this).apply {
             addView(root, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -79,7 +77,6 @@ class MiogramVisualsActivity : Activity() {
         })
     }
 
-
     private fun title(text: String) = TextView(this).apply {
         setText(text)
         setTextColor(Color.BLACK)
@@ -98,6 +95,8 @@ class MiogramVisualsActivity : Activity() {
     private fun margin() = LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
     ).apply { topMargin = px(10) }
+
+    private fun px(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     private fun toast(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
 
