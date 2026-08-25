@@ -43,8 +43,6 @@ class MiogramPluginsActivity : Activity() {
         super.onCreate(savedInstanceState)
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
-        val density = resources.displayMetrics.density
-        fun px(v: Int) = (v * density).toInt()
 
         fun button(text: String, color: Int, action: () -> Unit) = Button(this).apply {
             setText(text)
@@ -130,8 +128,6 @@ class MiogramPluginsActivity : Activity() {
 
     private fun refreshList() {
         listHost.removeAllViews()
-        val density = resources.displayMetrics.density
-        fun px(v: Int) = (v * density).toInt()
 
         for (p in repository.list()) {
             val row = LinearLayout(this).apply {
@@ -220,6 +216,8 @@ class MiogramPluginsActivity : Activity() {
         setTypeface(typeface, Typeface.BOLD)
         setPadding(0, px(16), 0, px(4))
     }
+
+    private fun px(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     private fun toast(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
 
