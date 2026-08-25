@@ -43,6 +43,7 @@ class MiogramDecoyActivity : Activity() {
     }
 
     companion object {
+        @JvmStatic
         fun start(context: android.content.Context) {
             val intent = android.content.Intent(context, MiogramDecoyActivity::class.java)
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or

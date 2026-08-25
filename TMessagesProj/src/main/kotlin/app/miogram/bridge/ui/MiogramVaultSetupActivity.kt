@@ -225,6 +225,7 @@ class MiogramVaultSetupActivity : Activity() {
         private const val MIN_PIN_LENGTH = 4
         private const val WIPE_DISARM_DELAY_MS = 4000L
 
+        @JvmStatic
         fun start(context: android.content.Context) {
             context.startActivity(
                 android.content.Intent(context, MiogramVaultSetupActivity::class.java)

@@ -216,6 +216,7 @@ class MiogramAiSettingsActivity : Activity() {
     }
 
     companion object {
+        @JvmStatic
         fun start(context: android.content.Context) {
             context.startActivity(
                 android.content.Intent(context, MiogramAiSettingsActivity::class.java)
