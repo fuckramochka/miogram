@@ -153,8 +153,8 @@ android {
         }
 
         // obtain your own keys at https://core.telegram.org/api/obtaining_api_id
-        def appId = '6'
-        def appHash = 'eb06d4abfb49dc3eeb1aeb98ae0f581e'
+        def appId = '21724'
+        def appHash = '3e0cb5ab24683510a8da977bc172b161'
 
         // obtain your own key at https://developers.google.com/maps/documentation/android-sdk/get-api-key
         // Android keys are restricted by package name and signing certificate,
