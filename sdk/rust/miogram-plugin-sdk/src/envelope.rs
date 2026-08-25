@@ -104,7 +104,8 @@ mod tests {
 
     #[test]
     fn empty_payload_ok() {
-        let decoded = decode(&encode("ping", &[])).expect("valid");
+        let frame = encode("ping", &[]);
+        let decoded = decode(&frame).expect("valid");
         assert_eq!(decoded.op, "ping");
         assert!(decoded.payload.is_empty());
     }

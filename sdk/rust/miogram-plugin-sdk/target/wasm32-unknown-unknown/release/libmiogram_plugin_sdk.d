@@ -1,0 +1,1 @@
+C:\Users\crime\Documents\Default\ Project\exteraless\sdk\rust\miogram-plugin-sdk\target\wasm32-unknown-unknown\release\libmiogram_plugin_sdk.rlib: C:\Users\crime\Documents\Default\ Project\exteraless\sdk\rust\miogram-plugin-sdk\src\envelope.rs C:\Users\crime\Documents\Default\ Project\exteraless\sdk\rust\miogram-plugin-sdk\src\lib.rs

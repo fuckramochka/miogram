@@ -18,3 +18,8 @@ impl Plugin for Echo {
 }
 
 miogram_plugin_sdk::register!(Echo);
+
+// Host-target stub: real plugins are built as cdylib for wasm32, where the
+// entry point is hyperion_call and a main function is meaningless.
+#[allow(dead_code)]
+fn main() {}
