@@ -147,4 +147,14 @@ class MiogramHubActivity : Activity() {
     private fun px(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     private fun toast(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
+
+    companion object {
+        @JvmStatic
+        fun start(context: android.content.Context) {
+            context.startActivity(
+                Intent(context, MiogramHubActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }
+    }
 }
