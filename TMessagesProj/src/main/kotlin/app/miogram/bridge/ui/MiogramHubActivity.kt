@@ -6,12 +6,15 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
-import app.miogram.bridge.passcode.MiogramGate
+import android.widget.Toast
+import app.miogram.bridge.MiogramFlags
+import app.miogram.bridge.plugins.WamrWasmRuntime
 
 /**
  * Central hub for all Miogram subsystems. Launched from Telegram settings;
@@ -19,43 +22,31 @@ import app.miogram.bridge.passcode.MiogramGate
  */
 class MiogramHubActivity : Activity() {
 
+    private lateinit var root: LinearLayout
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
-        val density = resources.displayMetrics.density
-        fun px(v: Int) = (v * density).toInt()
-
-        val root = LinearLayout(this).apply {
+        root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(px(16), px(20), px(16), px(24))
             setBackgroundColor(0xFFF5F5F7.toInt())
         }
 
-        root.addView(TextView(this).apply {
-            text = "Miogram"
-            setTextColor(Color.BLACK)
-            textSize = 26f
-            setTypeface(typeface, Typeface.BOLD)
-        })
-        root.addView(TextView(this).apply {
-            text = "Secure Agentic Workspace · @dkramochka"
-            setTextColor(Color.GRAY)
-            textSize = 12f
-            setPadding(0, px(2), 0, px(14))
-        })
+        root.addView(titleView("Miogram"))
+        root.addView(captionView("Secure Agentic Workspace · @dkramochka"))
 
         root.addView(sectionLabel("БЕЗПЕКА"))
         root.addView(navCard("Сховище та тривожний PIN", vaultStatusLine()) {
             startActivity(Intent(this, MiogramVaultSetupActivity::class.java))
         })
-        root.addView(navCard("Розблокування: режим", gateStatusLine()) {
-            // Gate policy is managed inside the vault screen by design.
-            toast("Політика розблокування керується у сховищі")
+        root.addView(navCard("Політика розблокування", gateStatusLine()) {
+            toast(if (MiogramGate.isConfigured()) "Біометрія вимкнена поки активне сховище" else "Сховище не налаштоване")
         })
 
         root.addView(sectionLabel("ШТУЧНИЙ ІНТЕЛЕКТ"))
-        root.addView(navCard("AI: локально / хмара", aiStatusLine()) {
+        root.addView(navCard("AI: локально / хмара", "режими задач · приватність хмарних запитів") {
             startActivity(Intent(this, MiogramAiSettingsActivity::class.java))
         })
 
@@ -65,21 +56,48 @@ class MiogramHubActivity : Activity() {
         })
 
         root.addView(sectionLabel("ВІЗУАЛЬНЕ ОФОРМЛЕННЯ"))
-        root.addView(navCard("Рідке скло (AGSL)", if (app.miogram.bridge.HyperionFlags.SPATIAL_DECORATION) "увімкнено" else "вимкнено") {
+        root.addView(navCard(
+            "Рідке скло (AGSL)",
+            if (MiogramFlags.SPATIAL_DECORATION) "увімкнено" else "вимкнено"
+        ) {
             startActivity(Intent(this, MiogramVisualsActivity::class.java))
         })
 
-        setContentView(
-            ScrollView(root).apply {
-                addView(root, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            }
-        )
+        val scroll = ScrollView(this)
+        scroll.addView(root, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        setContentView(scroll)
     }
 
-    private fun ScrollView(content: View): View {
-        val sv = android.widget.ScrollView(this)
-        sv.addView(content, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        return sv
+    override fun onResume() {
+        super.onResume()
+        refreshStatuses()
+    }
+
+    private fun refreshStatuses() {
+        // Re-evaluate dynamic subtitles in place.
+        for (i in 0 until root.childCount) {
+            val group = root.getChildAt(i)
+            if (group is LinearLayout && group.childCount >= 2) {
+                val subtitle = group.getChildAt(1) as? TextView ?: continue
+                when (subtitle.text.toString()) {
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    private fun titleView(text: String): TextView = TextView(this).apply {
+        text = text
+        setTextColor(Color.BLACK)
+        textSize = 26f
+        setTypeface(typeface, Typeface.BOLD)
+    }
+
+    private fun captionView(text: String): TextView = TextView(this).apply {
+        text = text
+        setTextColor(Color.GRAY)
+        textSize = 12f
+        setPadding(0, px(2), 0, px(14))
     }
 
     private fun sectionLabel(text: String): TextView = TextView(this).apply {
@@ -90,39 +108,41 @@ class MiogramHubActivity : Activity() {
         setPadding(0, px(18), 0, px(6))
     }
 
-    private fun navCard(title: String, subtitle: String, onClick: () -> Unit): View =
+    private fun navCard(title: String, subtitle: String, onClick: () -> Unit): LinearLayout =
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.WHITE)
-            setPadding(px(14), px(10), px(14), px(10))
             gravity = Gravity.CENTER_VERTICAL
-            addView(TextView(this@MiogramHubActivity).apply {
+            setPadding(px(14), px(10), px(14), px(10))
+            addView(TextView(context).apply {
                 text = title
                 setTextColor(Color.BLACK)
                 textSize = 16f
             })
-            addView(TextView(this@MiogramHubActivity).apply {
+            addView(TextView(context).apply {
                 text = subtitle
                 setTextColor(Color.GRAY)
                 textSize = 12f
             })
             setOnClickListener { onClick() }
-        }.also { card ->
-            val p = px(8)
-            card.setPadding(card.paddingLeft, card.paddingTop, card.paddingRight, card.paddingBottom)
-            card.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = p / 2 }
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = px(6) }
         }
 
     private fun vaultStatusLine(): String =
-        if (MiogramGate.isConfigured()) "сховище активне" + (if (MiogramGate.hasDuressProfiles()) " · duress увімкнений" else "") else "не налаштоване"
+        if (MiogramGate.isConfigured())
+            "сховище активне" + if (MiogramGate.hasDuressProfiles()) " · duress увімкнений" else ""
+        else "не налаштоване"
 
     private fun gateStatusLine(): String =
         if (MiogramGate.isConfigured()) "PIN + пароль (біометрія вимкнена)" else "стандартне розблокування"
 
-    private fun aiStatusLine(): String = "режими задач · приватність хмарних запитів"
-
     private fun pluginStatusLine(): String =
-        if (app.miogram.bridge.plugins.WamrWasmRuntime.isAvailable()) "рантайм готовий" else "рантайм відсутній у цій збірці"
+        if (WamrWasmRuntime.isAvailable()) "рантайм готовий" else "рантайм відсутній у цій збірці"
 
-    private fun toast(m: String) = android.widget.Toast.makeText(this, m, android.widget.Toast.LENGTH_SHORT).show()
+    private fun px(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+
+    private fun toast(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
 }

@@ -57,12 +57,8 @@ class MiogramVisualsActivity : Activity() {
             HyperionVisualsPrefs.saveInt(this@MiogramVisualsActivity, KEY_INTENSITY, value)
         })
 
-        root.addView(title("Кастомізація"))
-        root.addView(switchRow("Стек пілюль (Pill Stack)") { checked ->
-            runCatching {
-                xyz.nextalone.nagram.NaConfig.INSTANCE.getPillStackEnabled().setConfigBool(checked)
-            }.onFailure { toast("Pill Stack недоступний у цій збірці") }
-        })
+        root.addView(title("Примітка"))
+        root.addView(caption("Ефект застосовується до декоративних панелей Miogram після повторного відкриття екрана. Стек пілюль налаштовується в розділі exteraless."))
 
         setContentView(ScrollView(this).apply {
             addView(root, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -83,29 +79,6 @@ class MiogramVisualsActivity : Activity() {
         })
     }
 
-    private fun switchRow(label: String, onChange: (Boolean) -> Unit): View {
-        val row = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.HORIZONTAL
-            setBackgroundColor(Color.WHITE)
-            setPadding(px(12), px(8), px(12), px(8))
-            gravity = android.view.Gravity.CENTER_VERTICAL
-        }
-        row.addView(TextView(this).apply {
-            setText(label)
-            setTextColor(Color.BLACK)
-            textSize = 15f
-            layoutParams = android.widget.LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
-            )
-        })
-        val sw = android.widget.Switch(this)
-        sw.isChecked = runCatching {
-            xyz.nextalone.nagram.NaConfig.INSTANCE.getPillStackEnabled().Bool()
-        }.getOrDefault(false)
-        sw.setOnCheckedChangeListener { _, checked -> onChange(checked) }
-        row.addView(sw)
-        return row
-    }
 
     private fun title(text: String) = TextView(this).apply {
         setText(text)
