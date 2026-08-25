@@ -1,0 +1,58 @@
+// Miogram plugin host API — FlatBuffers contract between the Android host
+// and WASM plugins (Rust / AssemblyScript SDKs).
+//
+// Marshalling rule (see app.miogram.core.wasm): exactly one CallRequest frame
+// goes into an export invocation, exactly one CallResponse frame comes out.
+// Op-specific structures live inside `payload` so new ops never break the
+// envelope schema.
+//
+// Regenerate bindings with flatc >= 24.x:
+//   flatc --rust   host_api.fbs   (plugin SDKs)
+//   flatc --kotlin host_api.fbs   (host bridge)
+
+namespace miogram.host;
+
+attribute "priority";
+
+// ---- Envelope ---------------------------------------------------------------
+
+table CallRequest {
+  /// Semantic operation name, e.g. "on_message_receive", "render_decorator",
+  /// "storage_get". The host dispatches on this string.
+  op:string (required);
+  /// FlatBuffers-encoded op argument, opaque to the transport layer.
+  payload:[ubyte];
+}
+
+table CallResponse {
+  ok:bool;
+  /// Machine-readable error code when ok == false.
+  error_code:string;
+  /// Human-readable diagnostic; never parsed by the host.
+  error_detail:string;
+  /// FlatBuffers-encoded op result.
+  payload:[ubyte];
+}
+
+// ---- Core op payloads -------------------------------------------------------
+
+/// Argument of op "on_message_receive". Mirrors a minimal, privacy-reduced
+/// projection of a Telegram message: no phone numbers, no raw entities.
+table MessageEvent {
+  chat_id:long;
+  message_id:int;
+  sender_id:long;
+  is_outgoing:bool;
+  unix_time:long;
+  text:string;
+}
+
+/// Result of op "send_message" (requires SEND_MESSAGES capability).
+struct SendAction {
+  chat_id:long;
+}  // placeholder; full struct lands with the send pipeline
+
+union OpArgs { MessageEvent }
+union OpResults { MessageEvent }
+
+root_type CallRequest;

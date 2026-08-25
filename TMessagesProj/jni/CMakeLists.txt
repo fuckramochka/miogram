@@ -231,6 +231,35 @@ target_include_directories(${NATIVE_LIB} PUBLIC
 target_link_options(${NATIVE_LIB} PRIVATE "-Wl,-z,max-page-size=16384")
 target_link_options(${NATIVE_LIB} PRIVATE "-Wl,-z,common-page-size=16384")
 target_link_options(${NATIVE_LIB} PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/exports.map")
+
+# --- Miogram WASM sandbox (optional: requires the submodule) ----------------
+# git submodule add https://github.com/bytecodealliance/wasm-micro-runtime \
+#   third_party/wasm-micro-runtime
+set(WAMR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/wasm-micro-runtime")
+if (EXISTS "${WAMR_DIR}/core/iwasm/include/iwasm.h")
+    set(WAMR_BUILD_INTERP 1)
+    set(WAMR_BUILD_FAST_INTERP 0)
+    set(WAMR_BUILD_JIT 0)
+    set(WAMR_BUILD_AOT 0)
+    set(WAMR_BUILD_SIMD 1)
+    set(EXECUTION_ENV_SHARED_PLATFORM 1)
+    include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
+    add_library(iwasm STATIC ${WAMR_RUNTIME_LIB_SOURCE})
+    target_include_directories(iwasm PUBLIC
+            ${WAMR_DIR}/core/iwasm/include
+            ${WAMR_DIR}/shared/utils)
+    target_compile_definitions(iwasm PRIVATE
+            WASM_ENABLE_INTERP=1
+            WASM_ENABLE_FAST_INTERP=0
+            WASM_ENABLE_MULTI_MODULE=0)
+    # interpreter-only build is large; drop dead code aggressively
+    target_compile_options(iwasm PRIVATE -Os -fno-exceptions -fno-rtti)
+
+    target_sources(${NATIVE_LIB} PRIVATE miogram/miogram_wasm.c)
+    target_include_directories(${NATIVE_LIB} PUBLIC ${WAMR_DIR}/core/iwasm/include)
+    target_link_libraries(${NATIVE_LIB} iwasm)
+endif()
+
 target_link_libraries(${NATIVE_LIB}
         -Wl,--whole-archive rnnoise openh264 voipandroid -Wl,--no-whole-archive
         tgvoip

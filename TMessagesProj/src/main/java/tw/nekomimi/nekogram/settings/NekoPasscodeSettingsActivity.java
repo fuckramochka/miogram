@@ -41,6 +41,8 @@ import tw.nekomimi.nekogram.ui.cells.AccountCell;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import xyz.nextalone.nagram.NaConfig;
 
+import app.miogram.bridge.ui.MiogramVaultSetupActivity;
+
 public class NekoPasscodeSettingsActivity extends BaseNekoSettingsActivity {
 
     private boolean passcodeSet;
@@ -54,6 +56,12 @@ public class NekoPasscodeSettingsActivity extends BaseNekoSettingsActivity {
     private int setPanicCodeRow;
     private int removePanicCodeRow;
     private int panicCode2Row;
+
+    private int miogramVaultRow;
+    private int miogramVault2Row;
+
+    private int miogramAiRow;
+    private int miogramAi2Row;
 
     private int clearPasscodesRow;
     private int clearPasscodes2Row;
@@ -162,6 +170,10 @@ public class NekoPasscodeSettingsActivity extends BaseNekoSettingsActivity {
                     }).create();
             showDialog(alertDialog);
             ((TextView) alertDialog.getButton(Dialog.BUTTON_POSITIVE)).setTextColor(Theme.getColor(Theme.key_dialogTextRed));
+        } else if (position == miogramVaultRow) {
+            MiogramVaultSetupActivity.start(getParentActivity());
+        } else if (position == miogramAiRow) {
+            app.miogram.bridge.ui.MiogramAiSettingsActivity.start(getParentActivity());
         } else if (position == showInSettingsRow) {
             PasscodeHelper.setHideSettings(!PasscodeHelper.isSettingsHidden());
             if (view instanceof TextCheckCell) {
@@ -219,6 +231,12 @@ public class NekoPasscodeSettingsActivity extends BaseNekoSettingsActivity {
         }
         panicCode2Row = rowCount++;
 
+        miogramVaultRow = rowCount++;
+        miogramVault2Row = rowCount++;
+
+        miogramAiRow = rowCount++;
+        miogramAi2Row = rowCount++;
+
         if (BuildConfig.DEBUG) {
             clearPasscodesRow = rowCount++;
             clearPasscodes2Row = rowCount++;
@@ -260,6 +278,11 @@ public class NekoPasscodeSettingsActivity extends BaseNekoSettingsActivity {
                     } else if (position == removePanicCodeRow) {
                         textCell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteRedText3));
                         textCell.setText(getString(R.string.PasscodePanicCodeRemove), false);
+                    } else if (position == miogramVaultRow) {
+                        boolean vaultActive = app.miogram.bridge.passcode.MiogramGate.isConfigured();
+                        textCell.setText(vaultActive ? "Miogram Vault (active)" : "Miogram Vault (Duress PIN)", true);
+                    } else if (position == miogramAiRow) {
+                        textCell.setText("Miogram AI: локально / облако", true);
                     }
                     break;
                 }
@@ -289,6 +312,10 @@ public class NekoPasscodeSettingsActivity extends BaseNekoSettingsActivity {
                         cell.setText(getString(R.string.PasscodeAbout));
                     } else if (position == panicCode2Row) {
                         cell.setText(getString(R.string.PasscodePanicCodeAbout));
+                    } else if (position == miogramVault2Row) {
+                        cell.setText("Zero-knowledge profile vault with duress PIN. While configured, biometric unlock is disabled and the legacy passcode no longer unlocks the app.");
+                    } else if (position == miogramAi2Row) {
+                        cell.setText("Выбор режима для каждой задачи ИИ: расшифровка голосовых — по умолчанию на устройстве; суммаризация и умные ответы — Gemini Flash Lite через ваш ключ AI Studio. Секреты из текста маскируются перед отправкой.");
                     } else if (position == showInSettings2Row) {
                         var link = String.format(Locale.ENGLISH, "https://t.me/nasettings/%s", PasscodeHelper.getSettingsKey());
                         var stringBuilder = new SpannableStringBuilder(AndroidUtilities.replaceTags(getString(R.string.PasscodeShowInSettingsAbout)));

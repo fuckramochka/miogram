@@ -21,3 +21,4 @@ __pycache__/
 # Ключ подписи
 TMessagesProj/release.keystore
 tests/local/
+hs_err_*

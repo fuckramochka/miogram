@@ -18,8 +18,11 @@ import android.database.sqlite.SQLiteDatabase;
 import android.system.Os;
 
 import androidx.room.Room;
+import androidx.room.RoomDatabase;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
+
+import app.miogram.bridge.storage.MiogramRoomAdapter;
 
 import com.radolyn.ayugram.AyuConstants;
 import com.radolyn.ayugram.database.dao.DeletedMessageDao;
@@ -120,12 +123,14 @@ public class AyuData {
         lastSeenDao = database.lastSeenDao();
     }
 
-    private static AyuDatabase createDatabase(String name) {
-        return Room.databaseBuilder(ApplicationLoader.applicationContext, AyuDatabase.class, name)
+    private static AyuDatabase createDatabase(String requestedName) {
+        String name = MiogramRoomAdapter.resolveName(requestedName);
+        RoomDatabase.Builder<AyuDatabase> builder = Room.databaseBuilder(ApplicationLoader.applicationContext, AyuDatabase.class, name)
                 .allowMainThreadQueries()
                 .fallbackToDestructiveMigrationOnDowngrade()
-                .addMigrations(MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26)
-                .build();
+                .addMigrations(MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26);
+        MiogramRoomAdapter.applyOpenHelperFactory(builder, name);
+        return builder.build();
     }
 
     public static AyuDatabase getDatabase() {
@@ -153,7 +158,7 @@ public class AyuData {
             }
         }
         clearReferences();
-        ApplicationLoader.applicationContext.deleteDatabase(AyuConstants.AYU_DATABASE);
+        MiogramRoomAdapter.deleteVariants(ApplicationLoader.applicationContext, AyuConstants.AYU_DATABASE);
     }
 
     private static void clearReferences() {
@@ -165,6 +170,12 @@ public class AyuData {
 
     public static void importAyuDatabase(BaseFragment fragment, File importFile) {
         if (fragment.getParentActivity() == null) {
+            return;
+        }
+        if (MiogramRoomAdapter.isSecureHistoryActive()) {
+            // File-swap import is incompatible with the encrypted variant;
+            // migration-aware import lands with Этап 1.5.
+            BulletinFactory.of(fragment).createSimpleBulletin(R.raw.error, getString(R.string.ErrorOccurred)).show();
             return;
         }
         AlertDialog progressDialog = new AlertDialog(fragment.getParentActivity(), AlertDialog.ALERT_TYPE_SPINNER, fragment.getResourceProvider());

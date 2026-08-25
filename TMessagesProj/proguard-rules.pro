@@ -251,9 +251,9 @@
 -dontoptimize
 -dontobfuscate
 
-# --- Движок плагинов -------------------------------------------------------
-# Всё ниже достижимо только из Python через рефлексию Chaquopy, для статического
-# анализатора это мёртвый код. minifyEnabled в релизе вырезал бы его целиком.
+# --- Р”РІРёР¶РѕРє РїР»Р°РіРёРЅРѕРІ -------------------------------------------------------
+# Р’СЃС‘ РЅРёР¶Рµ РґРѕСЃС‚РёР¶РёРјРѕ С‚РѕР»СЊРєРѕ РёР· Python С‡РµСЂРµР· СЂРµС„Р»РµРєСЃРёСЋ Chaquopy, РґР»СЏ СЃС‚Р°С‚РёС‡РµСЃРєРѕРіРѕ
+# Р°РЅР°Р»РёР·Р°С‚РѕСЂР° СЌС‚Рѕ РјС‘СЂС‚РІС‹Р№ РєРѕРґ. minifyEnabled РІ СЂРµР»РёР·Рµ РІС‹СЂРµР·Р°Р» Р±С‹ РµРіРѕ С†РµР»РёРєРѕРј.
 -keep class app.exteraless.plugins.** { *; }
 -keep class com.exteragram.messenger.** { *; }
 -keep class de.robv.android.xposed.** { *; }
@@ -266,8 +266,15 @@
 -dontwarn com.android.dx.**
 -dontwarn org.mvel2.**
 
-# Классы Telegram, к которым плагины обращаются по имени: обфускация выключена
-# (-dontobfuscate), но шринкер всё равно убирает недостижимые члены.
+# РљР»Р°СЃСЃС‹ Telegram, Рє РєРѕС‚РѕСЂС‹Рј РїР»Р°РіРёРЅС‹ РѕР±СЂР°С‰Р°СЋС‚СЃСЏ РїРѕ РёРјРµРЅРё: РѕР±С„СѓСЃРєР°С†РёСЏ РІС‹РєР»СЋС‡РµРЅР°
+# (-dontobfuscate), РЅРѕ С€СЂРёРЅРєРµСЂ РІСЃС‘ СЂР°РІРЅРѕ СѓР±РёСЂР°РµС‚ РЅРµРґРѕСЃС‚РёР¶РёРјС‹Рµ С‡Р»РµРЅС‹.
 -keepclassmembers class org.telegram.tgnet.** { *; }
 -keepclassmembers class org.telegram.messenger.MessageObject { *; }
 -keepclassmembers class org.telegram.messenger.SendMessagesHelper { *; }
+
+# --- MIOGRAM (app.miogram.*) ---
+# BouncyCastle: опциональные ссылки на JDK-классы (sun.*, jce) отсутствуют на Android
+-dontwarn org.bouncycastle.**
+# SQLCipher: JNI-биндинги резолвят классы по имени из нативного кода
+-keep class net.zetetic.database.** { *; }
+-dontwarn net.zetetic.database.**

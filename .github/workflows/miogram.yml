@@ -1,0 +1,190 @@
+name: Miogram verification
+
+# Dedicated pipeline for the app.miogram.* subsystems (security core, WASM
+# trust layer, AI routing) plus platform-level guarantees that upstream
+# workflows do not cover: JVM unit tests, 16 KB ELF alignment, and
+# intra-runner reproducible builds.
+
+on:
+  pull_request:
+    paths:
+      - 'TMessagesProj/src/main/kotlin/app/miogram/**'
+      - 'TMessagesProj/src/test/**'
+      - 'TMessagesProj/jni/miogram/**'
+      - 'TMessagesProj/build.gradle'
+      - '.github/workflows/miogram.yml'
+      - '.github/scripts/**'
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: JVM unit tests (miogram core)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          submodules: recursive
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: gradle/actions/setup-gradle@v6
+      # NDK is required even for unit tests: the Chaquopy plugin resolves
+      # ndk.abiFilters during configuration.
+      - name: Set up Android SDK Tools
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "build-tools;36.0.0 ndk;27.2.12479018 platforms;android-37.0"
+      - name: Configure Android SDK Path
+        run: echo "sdk.dir=${ANDROID_HOME}" >> local.properties
+      - name: Run unit tests
+        run: ./gradlew :TMessagesProj:testReleaseUnitTest --stacktrace --continue
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-test-reports
+          path: TMessagesProj/build/reports/tests/
+          if-no-files-found: ignore
+
+  native-build:
+    name: arm64 build + 16KB ELF check
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
+      CCACHE_HARDLINK: "true"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_MAXSIZE: "2G"
+      NATIVE_TARGET: "arm64-v8a"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          submodules: recursive
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: echo "CHAQUOPY_BUILD_PYTHON=$(which python3.11 || which python)" >> $GITHUB_ENV
+      - uses: hendrikmuhs/ccache-action@v1.2.23
+        with:
+          key: miogram-ndk
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Set up Android SDK Tools
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "build-tools;36.0.0 ndk;27.2.12479018 platforms;android-37.0"
+      - name: Configure Android SDK Path
+        run: echo "sdk.dir=${ANDROID_HOME}" >> local.properties
+      - name: Assemble debug APK
+        run: |
+          export DEBUG_BUILD=true
+          sed -i 's/signingConfig = signingConfigs.release//g' TMessagesProj/build.gradle
+          ./gradlew TMessagesProj:assembleDebug --stacktrace
+      - name: Verify 16 KB ELF page alignment
+        run: |
+          READELF="${ANDROID_HOME}/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          SO_FILES=$(find TMessagesProj/build/intermediates -name 'libtmessages*.so' -path '*arm64-v8a*' 2>/dev/null | sort -u)
+          if [[ -z "$SO_FILES" ]]; then
+            echo "no libtmessages*.so found"; exit 1
+          fi
+          chmod +x .github/scripts/check_elf_alignment.sh
+          # shellcheck disable=SC2086
+          .github/scripts/check_elf_alignment.sh "$READELF" $SO_FILES
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: miogram-debug-arm64
+          path: TMessagesProj/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+  rust-sdk:
+    name: Plugin SDK (Rust, wasm32)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sdk/rust/miogram-plugin-sdk
+      - name: Host-side unit tests (envelope)
+        run: cargo test --manifest-path sdk/rust/miogram-plugin-sdk/Cargo.toml --locked
+      - name: Build wasm32 release
+        run: |
+          cargo build \
+            --manifest-path sdk/rust/miogram-plugin-sdk/Cargo.toml \
+            --target wasm32-unknown-unknown --release --locked
+
+  reproducible-build:
+    name: Reproducible build (double compile, content hash)
+    runs-on: ubuntu-latest
+    # Not on PRs: two full builds burn ~an hour of runner time.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    env:
+      NATIVE_TARGET: "SKIP"   # java-only artifact keeps this job affordable;
+                              # native determinism is tracked separately
+      BUILD_TIMESTAMP: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          submodules: recursive
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: echo "CHAQUOPY_BUILD_PYTHON=$(which python3.11 || which python)" >> $GITHUB_ENV
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Set up Android SDK Tools
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "build-tools;36.0.0 platforms;android-37.0"
+      - name: Configure Android SDK Path
+        run: echo "sdk.dir=${ANDROID_HOME}" >> local.properties
+      - name: Build #1
+        run: |
+          export DEBUG_BUILD=true
+          sed -i 's/signingConfig = signingConfigs.release//g' TMessagesProj/build.gradle
+          ./gradlew TMessagesProj:assembleDebug --stacktrace
+          find TMessagesProj/build/outputs/apk/debug -name '*.apk' -exec cp {} "$RUNNER_TEMP/build-1.apk" \;
+      - name: Clean between builds
+        run: ./gradlew clean
+      - name: Build #2
+        run: |
+          ./gradlew TMessagesProj:assembleDebug --stacktrace
+          find TMessagesProj/build/outputs/apk/debug -name '*.apk' -exec cp {} "$RUNNER_TEMP/build-2.apk" \;
+      - name: Compare deterministic content hashes
+        run: |
+          python3 Tools/reproducible_apk_hash.py "$RUNNER_TEMP/build-1.apk" "$RUNNER_TEMP/build-2.apk"
+          H1=$(python3 Tools/reproducible_apk_hash.py "$RUNNER_TEMP/build-1.apk" | awk '{print $1}')
+          H2=$(python3 Tools/reproducible_apk_hash.py "$RUNNER_TEMP/build-2.apk" | awk '{print $1}')
+          if [[ "$H1" != "$H2" ]]; then
+            echo "::error::Builds are not reproducible: $H1 != $H2"
+            exit 1
+          fi
+          echo "Reproducible: $H1"

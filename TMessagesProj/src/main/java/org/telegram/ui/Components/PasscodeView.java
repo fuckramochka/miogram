@@ -79,6 +79,9 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 import tw.nekomimi.nekogram.NekoConfig;
+
+import app.miogram.bridge.passcode.MiogramGate;
+import app.miogram.bridge.ui.MiogramDecoyActivity;
 import tw.nekomimi.nekogram.helpers.PasscodeHelper;
 
 public class PasscodeView extends FrameLayout implements NotificationCenter.NotificationCenterDelegate {
@@ -950,27 +953,49 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 onPasscodeError();
                 return;
             }
+            if (MiogramGate.isConfigured()) {
+                MiogramGate.interceptUnlockAsync(password, verdict -> {
+                    if (verdict == MiogramGate.VERDICT_REAL_UNLOCKED) {
+                        finishUnlock(false);
+                    } else if (verdict == MiogramGate.VERDICT_DECOY_UNLOCKED) {
+                        passwordEditText.setText("");
+                        passwordEditText2.eraseAllCharacters(true);
+                        MiogramDecoyActivity.start(getContext());
+                    } else {
+                        handleLegacyPasscodeError();
+                    }
+                });
+                return;
+            }
             if (!PasscodeHelper.checkPasscode((Activity) getContext(), password) && !SharedConfig.checkPasscode(password)) {
-                SharedConfig.increaseBadPasscodeTries();
-                if (SharedConfig.passcodeRetryInMs > 0) {
-                    checkRetryTextView();
-                }
-                passwordEditText.setText("");
-                passwordEditText2.eraseAllCharacters(true);
-                onPasscodeError();
-                if (backgroundDrawable instanceof MotionBackgroundDrawable) {
-                    MotionBackgroundDrawable motionBackgroundDrawable = (MotionBackgroundDrawable) backgroundDrawable;
-                    if (backgroundAnimationSpring != null) {
-                        backgroundAnimationSpring.cancel();
-                        motionBackgroundDrawable.setPosAnimationProgress(1f);
-                    }
-                    if (motionBackgroundDrawable.getPosAnimationProgress() >= 1f) {
-                        motionBackgroundDrawable.rotatePreview(true);
-                    }
-                }
+                handleLegacyPasscodeError();
                 return;
             }
         }
+        finishUnlock(fingerprint);
+    }
+
+    private void handleLegacyPasscodeError() {
+        SharedConfig.increaseBadPasscodeTries();
+        if (SharedConfig.passcodeRetryInMs > 0) {
+            checkRetryTextView();
+        }
+        passwordEditText.setText("");
+        passwordEditText2.eraseAllCharacters(true);
+        onPasscodeError();
+        if (backgroundDrawable instanceof MotionBackgroundDrawable) {
+            MotionBackgroundDrawable motionBackgroundDrawable = (MotionBackgroundDrawable) backgroundDrawable;
+            if (backgroundAnimationSpring != null) {
+                backgroundAnimationSpring.cancel();
+                motionBackgroundDrawable.setPosAnimationProgress(1f);
+            }
+            if (motionBackgroundDrawable.getPosAnimationProgress() >= 1f) {
+                motionBackgroundDrawable.rotatePreview(true);
+            }
+        }
+    }
+
+    private void finishUnlock(boolean fingerprint) {
         SharedConfig.badPasscodeTries = 0;
         passwordEditText.clearFocus();
         AndroidUtilities.hideKeyboard(passwordEditText);
@@ -1186,6 +1211,9 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         if (Build.VERSION.SDK_INT < 23) {
             return;
         }
+        if (!biometricAllowedWithMiogram()) {
+            return;
+        }
         Activity parentActivity = AndroidUtilities.findActivity(getContext());
         if (parentActivity != null && fingerprintView.getVisibility() == VISIBLE && !ApplicationLoader.mainInterfacePaused && (!(parentActivity instanceof LaunchActivity) || ((LaunchActivity) parentActivity).allowShowFingerprintDialog(this))) {
             try {
@@ -1230,7 +1258,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
 
     private boolean hasFingerprint() {
         Activity parentActivity = AndroidUtilities.findActivity(getContext());
-        if (Build.VERSION.SDK_INT >= 23 && parentActivity != null && SharedConfig.useFingerprintLock) {
+        if (Build.VERSION.SDK_INT >= 23 && parentActivity != null && SharedConfig.useFingerprintLock && biometricAllowedWithMiogram()) {
             try {
                 return BiometricManager.from(getContext()).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS && FingerprintController.isKeyReady() && !FingerprintController.checkDeviceFingerprintsChanged();
             } catch (Throwable e) {
@@ -1243,7 +1271,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
     private void checkFingerprintButton() {
         boolean hasFingerprint = false;
         Activity parentActivity = AndroidUtilities.findActivity(getContext());
-        if (Build.VERSION.SDK_INT >= 23 && parentActivity != null && SharedConfig.useFingerprintLock) {
+        if (Build.VERSION.SDK_INT >= 23 && parentActivity != null && SharedConfig.useFingerprintLock && biometricAllowedWithMiogram()) {
             try {
                 if (BiometricManager.from(getContext()).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS && FingerprintController.isKeyReady() && !FingerprintController.checkDeviceFingerprintsChanged()) {
                     hasFingerprint = true;
@@ -1264,7 +1292,18 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         subtitleView.setText(LocaleController.getString(hasFingerprint ? R.string.EnterPINorFingerprint : R.string.EnterPIN));
     }
 
+    /**
+     * Biometric unlock would bypass the duress PIN (a finger cannot be
+     * distinguished from a coerced finger), so it is disabled while a
+     * Miogram vault is configured. Proper CryptoObject binding — Этап 2.
+     */
+    private static boolean biometricAllowedWithMiogram() {
+        return !MiogramGate.isConfigured();
+    }
+
     public void onShow(boolean fingerprint, boolean animated, int x, int y, Runnable onShow, Runnable onStart) {
+        // Lock screen surfaced: any RAM-held vault keys are stale by definition.
+        MiogramGate.onHostPaused();
         checkFingerprintButton();
         checkRetryTextView();
         Activity parentActivity = AndroidUtilities.findActivity(getContext());

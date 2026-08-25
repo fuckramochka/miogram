@@ -1,0 +1,22 @@
+[package]
+name = "miogram-plugin-sdk"
+version = "0.1.0"
+edition = "2021"
+description = "Rust SDK for Miogram WASM plugins (Secure Agentic Workspace)"
+license = "GPL-3.0"
+authors = ["@dkramochka"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# wasm32-unknown-unknown: no std features beyond alloc are required, but we
+# keep std for Vec/String convenience inside the plugin heap.
+[dependencies]
+
+[profile.release]
+opt-level = "z"
+# Panics must never unwind across the FFI boundary; abort surfaces as a WAMR
+# trap which the host quarantines like any other fault.
+panic = "abort"
+strip = true
+overflow-checks = true
