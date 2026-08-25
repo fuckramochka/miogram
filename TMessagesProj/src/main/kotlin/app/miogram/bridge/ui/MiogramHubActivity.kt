@@ -14,6 +14,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import app.miogram.bridge.MiogramFlags
+import app.miogram.bridge.passcode.MiogramGate
 import app.miogram.bridge.plugins.WamrWasmRuntime
 
 /**
@@ -86,22 +87,22 @@ class MiogramHubActivity : Activity() {
         }
     }
 
-    private fun titleView(text: String): TextView = TextView(this).apply {
-        text = text
+    private fun titleView(label: String): TextView = TextView(this).apply {
+        text = label
         setTextColor(Color.BLACK)
         textSize = 26f
         setTypeface(typeface, Typeface.BOLD)
     }
 
-    private fun captionView(text: String): TextView = TextView(this).apply {
-        text = text
+    private fun captionView(label: String): TextView = TextView(this).apply {
+        text = label
         setTextColor(Color.GRAY)
         textSize = 12f
         setPadding(0, px(2), 0, px(14))
     }
 
-    private fun sectionLabel(text: String): TextView = TextView(this).apply {
-        text = text
+    private fun sectionLabel(label: String): TextView = TextView(this).apply {
+        text = label
         setTextColor(0xFF2E6DA4.toInt())
         textSize = 13f
         setTypeface(typeface, Typeface.BOLD)

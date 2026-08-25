@@ -14,7 +14,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import app.miogram.bridge.plugins.WamrWasmRuntime
-import app.miogram.core.plugins.HyperionPluginEngine
+import app.miogram.core.plugins.MiogramPluginEngine
 import app.miogram.core.plugins.InMemoryPluginRepository
 import app.miogram.core.plugins.InMemoryTrustAnchors
 import app.miogram.core.plugins.PluginState
@@ -31,7 +31,7 @@ import app.miogram.core.plugins.PluginState
 class MiogramPluginsActivity : Activity() {
 
     private val repository = InMemoryPluginRepository()
-    private val engine = HyperionPluginEngine(repository, WamrWasmRuntime, InMemoryTrustAnchors())
+    private val engine = MiogramPluginEngine(repository, WamrWasmRuntime, InMemoryTrustAnchors())
 
     private var pendingCode: Pair<Uri, ByteArray>? = null
     private var pendingManifest: Pair<Uri, ByteArray>? = null
@@ -117,11 +117,11 @@ class MiogramPluginsActivity : Activity() {
         }
         val verdict = engine.install(manifestPart.second, codePart.second)
         when (verdict) {
-            is HyperionPluginEngine.InstallResult.Installed -> {
+            is MiogramPluginEngine.InstallResult.Installed -> {
                 toast("Встановлено: ${verdict.pluginId}")
                 refreshList()
             }
-            is HyperionPluginEngine.InstallResult.Rejected ->
+            is MiogramPluginEngine.InstallResult.Rejected ->
                 toast("Відмовлено: ${verdict.reason}${verdict.detail?.let { " ($it)" } ?: ""}")
         }
     }
@@ -168,7 +168,7 @@ class MiogramPluginsActivity : Activity() {
                 PluginState.INSTALLED, PluginState.DISABLED, PluginState.QUARANTINED ->
                     actions.addView(small("Увімкнути", 0xFF2E6DA4.toInt()) {
                         when (engine.enable(p.pluginId)) {
-                            HyperionPluginEngine.EnableResult.Enabled -> {}
+                            MiogramPluginEngine.EnableResult.Enabled -> {}
                             else -> toast("Не вдалося увімкнути (див. аудит)")
                         }
                         refreshList()
@@ -197,11 +197,11 @@ class MiogramPluginsActivity : Activity() {
         val outcome = engine.dispatch(pluginId, "ping", null)
         val elapsedUs = (System.nanoTime() - started) / 1000
         when (outcome) {
-            is HyperionPluginEngine.DispatchOutcome.Ok ->
+            is MiogramPluginEngine.DispatchOutcome.Ok ->
                 toast("Pong за $elapsedUs мкс")
-            is HyperionPluginEngine.DispatchOutcome.Denied ->
+            is MiogramPluginEngine.DispatchOutcome.Denied ->
                 toast("Відмовлено: ${outcome.reason}")
-            is HyperionPluginEngine.DispatchOutcome.Failed ->
+            is MiogramPluginEngine.DispatchOutcome.Failed ->
                 toast("Збій: ${outcome.reason.take(80)}")
         }
     }
