@@ -216,16 +216,31 @@ android {
     // с этим файлом и пропиши KEYSTORE_PASS / ALIAS_NAME / ALIAS_PASS в
     // local.properties; без него сборка подписывается отладочным ключом Android.
     def releaseKeystore = project.file('release.keystore')
-    def hasReleaseKeystore = releaseKeystore.exists() && keystorePwd != null && alias != null
+    def hasCustomKeystore = releaseKeystore.exists() && keystorePwd != null && alias != null
 
     signingConfigs {
         release {
-            if (hasReleaseKeystore) {
+            v1SigningEnabled true
+            v2SigningEnabled true
+            v3SigningEnabled true
+            if (hasCustomKeystore) {
                 storeFile releaseKeystore
                 storePassword keystorePwd
                 keyAlias alias
                 keyPassword pwd
+            } else if (releaseKeystore.exists()) {
+                storeFile releaseKeystore
+                storePassword 'miogram'
+                keyAlias 'miogram'
+                keyPassword 'miogram'
+            } else {
+                v1SigningEnabled true
+                v2SigningEnabled true
             }
+        }
+        debug {
+            v1SigningEnabled true
+            v2SigningEnabled true
         }
     }
 
@@ -235,29 +250,27 @@ android {
             debuggable = true
             jniDebuggable = true
             multiDexEnabled = true
-            signingConfig = hasReleaseKeystore ? signingConfigs.release : signingConfigs.debug
+            signingConfig = signingConfigs.debug
         }
 
         staging {
             debuggable = false
             jniDebuggable = false
-            minifyEnabled = true
-            shrinkResources = true
+            minifyEnabled = false
+            shrinkResources = false
             multiDexEnabled = true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             matchingFallbacks = ['release', 'staging', 'debug']
-            signingConfig = hasReleaseKeystore ? signingConfigs.release : signingConfigs.debug
+            signingConfig = signingConfigs.release
         }
 
         release {
             debuggable = false
             jniDebuggable = false
-            minifyEnabled = true
-            shrinkResources = true
+            minifyEnabled = false
+            shrinkResources = false
             multiDexEnabled = true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             matchingFallbacks = ['release', 'staging', 'debug']
-            signingConfig = hasReleaseKeystore ? signingConfigs.release : signingConfigs.debug
+            signingConfig = signingConfigs.release
         }
     }
 
