@@ -59,10 +59,15 @@ object MiogramLockFacade {
         }
     }
 
-    fun isConfigured(): Boolean = runCatching { requireVault().isInitialized() }.getOrDefault(false)
+    fun isConfigured(): Boolean {
+        val ctx = org.telegram.messenger.ApplicationLoader.applicationContext ?: return false
+        return runCatching { obtainVault { FileBlobRepository(ctx, VAULT_FILE) }.isInitialized() }.getOrDefault(false)
+    }
 
-
-    fun hasDuressProfiles(): Boolean = runCatching { requireVault().hasDecoyProfiles() }.getOrDefault(false)
+    fun hasDuressProfiles(): Boolean {
+        val ctx = org.telegram.messenger.ApplicationLoader.applicationContext ?: return false
+        return runCatching { obtainVault { FileBlobRepository(ctx, VAULT_FILE) }.hasDecoyProfiles() }.getOrDefault(false)
+    }
 
     /**
      * Non-blocking consistency-tolerant snapshot of session state for
@@ -174,7 +179,9 @@ object MiogramLockFacade {
      * ApplicationLoader here is sanctioned: the bridge layer is the only place
      * where host dependencies are allowed.
      */
-    private fun requireVault(): ProfileVault = obtainVault {
-        FileBlobRepository(org.telegram.messenger.ApplicationLoader.applicationContext, VAULT_FILE)
+    private fun requireVault(): ProfileVault {
+        val ctx = org.telegram.messenger.ApplicationLoader.applicationContext
+            ?: error("ApplicationLoader.applicationContext is null")
+        return obtainVault { FileBlobRepository(ctx, VAULT_FILE) }
     }
 }

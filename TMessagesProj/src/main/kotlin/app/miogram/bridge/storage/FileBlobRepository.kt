@@ -10,7 +10,11 @@ import java.io.File
  */
 class FileBlobRepository(context: Context, private val fileName: String) : BlobRepository {
 
-    private val baseFile: File = File(context.applicationInfo.dataDir, fileName)
+    private val baseFile: File = if (fileName.startsWith("/") || fileName.startsWith("files/")) {
+        File(context.filesDir, fileName.removePrefix("files/").removePrefix("/"))
+    } else {
+        File(context.filesDir, fileName)
+    }
 
     override fun read(): ByteArray? {
         if (!baseFile.exists()) return null
@@ -18,11 +22,11 @@ class FileBlobRepository(context: Context, private val fileName: String) : BlobR
     }
 
     override fun write(blob: ByteArray) {
-        val parent = baseFile.parentFile
+        val parent = baseFile.parentFile ?: baseFile.absoluteFile.parentFile
         check(parent != null && (parent.isDirectory || parent.mkdirs())) {
             "cannot create vault directory: ${parent?.absolutePath}"
         }
-        val temp = File(parent, "$fileName.tmp")
+        val temp = File(parent, "${baseFile.name}.tmp")
         temp.writeBytes(blob)
         if (!temp.renameTo(baseFile)) {
             baseFile.delete()

@@ -118,9 +118,17 @@ mod tests {
     }
 
     #[test]
+    fn too_short_rejected() {
+        let frame = encode("some_op", b"data");
+        assert!(matches!(decode(&frame[..8]), Err(EnvelopeError::TooShort)));
+    }
+
+    #[test]
     fn truncated_rejected() {
         let frame = encode("some_op", b"data");
-        assert!(matches!(decode(&frame[..8]), Err(EnvelopeError::Truncated)));
+        // HEADER_LEN is 12, "some_op" is 7 bytes -> op_end is 19.
+        // Slice of length 15 is >= HEADER_LEN but < op_end, so it must return Truncated.
+        assert!(matches!(decode(&frame[..15]), Err(EnvelopeError::Truncated)));
     }
 
     #[test]

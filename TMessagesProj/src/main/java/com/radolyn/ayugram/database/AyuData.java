@@ -112,18 +112,27 @@ public class AyuData {
     };
 
     static {
-        create();
+        if (ApplicationLoader.applicationContext != null) {
+            create();
+        }
     }
 
     public static synchronized void create() {
+        if (ApplicationLoader.applicationContext == null) {
+            return;
+        }
         database = createDatabase(AyuConstants.AYU_DATABASE);
-
-        editedMessageDao = database.editedMessageDao();
-        deletedMessageDao = database.deletedMessageDao();
-        lastSeenDao = database.lastSeenDao();
+        if (database != null) {
+            editedMessageDao = database.editedMessageDao();
+            deletedMessageDao = database.deletedMessageDao();
+            lastSeenDao = database.lastSeenDao();
+        }
     }
 
     private static AyuDatabase createDatabase(String requestedName) {
+        if (ApplicationLoader.applicationContext == null) {
+            return null;
+        }
         String name = MiogramRoomAdapter.resolveName(requestedName);
         RoomDatabase.Builder<AyuDatabase> builder = Room.databaseBuilder(ApplicationLoader.applicationContext, AyuDatabase.class, name)
                 .allowMainThreadQueries()
@@ -133,19 +142,31 @@ public class AyuData {
         return builder.build();
     }
 
-    public static AyuDatabase getDatabase() {
+    public static synchronized AyuDatabase getDatabase() {
+        if (database == null && ApplicationLoader.applicationContext != null) {
+            create();
+        }
         return database;
     }
 
-    public static EditedMessageDao getEditedMessageDao() {
+    public static synchronized EditedMessageDao getEditedMessageDao() {
+        if (editedMessageDao == null && ApplicationLoader.applicationContext != null) {
+            create();
+        }
         return editedMessageDao;
     }
 
-    public static DeletedMessageDao getDeletedMessageDao() {
+    public static synchronized DeletedMessageDao getDeletedMessageDao() {
+        if (deletedMessageDao == null && ApplicationLoader.applicationContext != null) {
+            create();
+        }
         return deletedMessageDao;
     }
 
-    public static LastSeenDao getLastSeenDao() {
+    public static synchronized LastSeenDao getLastSeenDao() {
+        if (lastSeenDao == null && ApplicationLoader.applicationContext != null) {
+            create();
+        }
         return lastSeenDao;
     }
 
