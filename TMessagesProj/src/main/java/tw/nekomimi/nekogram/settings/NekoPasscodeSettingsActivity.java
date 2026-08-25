@@ -171,7 +171,7 @@ public class NekoPasscodeSettingsActivity extends BaseNekoSettingsActivity {
             showDialog(alertDialog);
             ((TextView) alertDialog.getButton(Dialog.BUTTON_POSITIVE)).setTextColor(Theme.getColor(Theme.key_dialogTextRed));
         } else if (position == miogramVaultRow) {
-            MiogramVaultSetupActivity.start(getParentActivity());
+            app.miogram.bridge.ui.MiogramHubActivity.start(getParentActivity());
         } else if (position == miogramAiRow) {
             app.miogram.bridge.ui.MiogramAiSettingsActivity.start(getParentActivity());
         } else if (position == showInSettingsRow) {
@@ -279,8 +279,8 @@ public class NekoPasscodeSettingsActivity extends BaseNekoSettingsActivity {
                         textCell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteRedText3));
                         textCell.setText(getString(R.string.PasscodePanicCodeRemove), false);
                     } else if (position == miogramVaultRow) {
-                        boolean vaultActive = app.miogram.bridge.passcode.MiogramGate.isConfigured();
-                        textCell.setText(vaultActive ? "Miogram Vault (active)" : "Miogram Vault (Duress PIN)", true);
+                        
+                        textCell.setText("Miogram Settings", true);
                     } else if (position == miogramAiRow) {
                         textCell.setText("Miogram AI: локально / облако", true);
                     }

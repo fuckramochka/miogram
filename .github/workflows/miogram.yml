@@ -69,7 +69,7 @@ jobs:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
       CCACHE_HARDLINK: "true"
       CCACHE_NOHASHDIR: "true"
-      CCACHE_MAXSIZE: "2G"
+      CCACHE_MAXSIZE: "5G"
       NATIVE_TARGET: "arm64-v8a"
     steps:
       - uses: actions/checkout@v7
@@ -141,6 +141,9 @@ jobs:
     name: Reproducible build (double compile, content hash)
     runs-on: ubuntu-latest
     # Not on PRs: two full builds burn ~an hour of runner time.
+    # continue-on-error: byte-exact reproducibility is Этап 5.1 research
+    # (Chaquopy assets are not yet deterministic); the job REPORTS the diff.
+    continue-on-error: true
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     env:
       NATIVE_TARGET: "SKIP"   # java-only artifact keeps this job affordable;

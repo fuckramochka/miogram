@@ -465,6 +465,15 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize"/>
         <activity
+            android:name="app.miogram.bridge.ui.MiogramHubActivity"
+            android:exported="false"/>
+        <activity
+            android:name="app.miogram.bridge.ui.MiogramPluginsActivity"
+            android:exported="false"/>
+        <activity
+            android:name="app.miogram.bridge.ui.MiogramVisualsActivity"
+            android:exported="false"/>
+        <activity
             android:name="org.telegram.ui.ShareActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode"
             android:hardwareAccelerated="true"

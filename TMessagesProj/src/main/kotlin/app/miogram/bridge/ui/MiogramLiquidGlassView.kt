@@ -36,8 +36,8 @@ class MiogramLiquidGlassView @JvmOverloads constructor(
     }
     private val boundsRect = RectF()
 
-    /** 0..1 visual strength of the effect. */
-    var intensity: Float = 0.6f
+    /** 0..1 visual strength of the effect; persisted across inflations. */
+    var intensity: Float = HyperionVisualsPrefs.loadInt(context, KEY_INTENSITY, DEFAULT_INTENSITY_PERCENT) / 100f
         set(value) {
             field = value.coerceIn(0f, 1f)
             invalidate()
@@ -87,6 +87,8 @@ class MiogramLiquidGlassView @JvmOverloads constructor(
 
     private companion object {
         const val CORNER_RADIUS_PX = 48f
+        const val KEY_INTENSITY = "liquid_glass_intensity"
+        const val DEFAULT_INTENSITY_PERCENT = 60
 
         /**
          * AGSL source: frosted glass with pseudo-refraction along edges and
