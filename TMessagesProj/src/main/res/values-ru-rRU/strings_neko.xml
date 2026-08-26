@@ -269,4 +269,13 @@
     <string name="EmojiUseDefault">Использовать системные эмодзи</string>
     <string name="Chat">Чаты</string>
     <string name="Appearance">Внешний вид</string>
+    <string name="MiogramSettingsRow">Миограм</string>
+    <string name="MiogramVaultTitle">Хранилище и тревожный PIN</string>
+    <string name="MiogramAITitle">ИИ: локально / облако</string>
+    <string name="MiogramPluginsTitle">WASM-плагины</string>
+    <string name="MiogramPluginsNoRuntime">WASM-плагины (рантайм отсутствует в сборке)</string>
+    <string name="MiogramVisualsTitle">Жидкое стекло (AGSL)</string>
+    <string name="MiogramToggleExtera">Возможности exteraless</string>
+    <string name="MiogramToggleNagram">Настройки Nagram</string>
+    <string name="MiogramToggleAyu">Быстрый доступ AyuMoments</string>
 </resources>

@@ -11227,4 +11227,13 @@
     <string name="UnsupportedMessageTitle">Unsupported Message</string>
     <string name="UnsupportedMessageMessage">Update Telegram to view this message</string>
     <string name="UnsupportedUpdate">Update</string>
+    <string name="MiogramSettingsRow">Miogram</string>
+    <string name="MiogramVaultTitle">Vault &amp; Duress PIN</string>
+    <string name="MiogramAITitle">AI: local / cloud</string>
+    <string name="MiogramPluginsTitle">WASM plugins</string>
+    <string name="MiogramPluginsNoRuntime">WASM plugins (runtime missing in this build)</string>
+    <string name="MiogramVisualsTitle">Liquid glass (AGSL)</string>
+    <string name="MiogramToggleExtera">exteraless features</string>
+    <string name="MiogramToggleNagram">Nagram settings</string>
+    <string name="MiogramToggleAyu">AyuMoments quick access</string>
 </resources>

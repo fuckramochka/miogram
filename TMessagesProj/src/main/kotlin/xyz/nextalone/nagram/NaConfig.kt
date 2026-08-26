@@ -154,7 +154,7 @@ object NaConfig {
         addConfig(
             "DoubleTapAction",
             ConfigItem.configTypeInt,
-            3
+            1
         )
     val doubleTapActionOut =
         addConfig(

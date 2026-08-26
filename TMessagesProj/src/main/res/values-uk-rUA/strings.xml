@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MiogramSettingsRow">Міограм</string>
+    <string name="MiogramVaultTitle">Сховище та тривожний PIN</string>
+    <string name="MiogramAITitle">ШІ: локально / хмара</string>
+    <string name="MiogramPluginsTitle">WASM-плагіни</string>
+    <string name="MiogramPluginsNoRuntime">WASM-плагіни (рантайм відсутній у збірці)</string>
+    <string name="MiogramVisualsTitle">Рідке скло (AGSL)</string>
+    <string name="MiogramToggleExtera">Можливості exteraless</string>
+    <string name="MiogramToggleNagram">Налаштування Nagram</string>
+    <string name="MiogramToggleAyu">Швидкий доступ AyuMoments</string>
+</resources>

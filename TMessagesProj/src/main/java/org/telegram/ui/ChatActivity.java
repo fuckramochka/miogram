@@ -47648,6 +47648,14 @@ public class ChatActivity extends BaseFragment implements
             }
             case nkbtn_forward_nocaption:
             case nkbtn_forward_noquote: {
+                // Miogram: single-selection «No quote» now opens a plain REPLY
+                // instead of forwarding with hidden header (user-requested).
+                if (id == nkbtn_forward_noquote && selectedObject != null
+                        && (selectedMessages == null || selectedMessages.size() <= 1)) {
+                    showFieldPanelForReply(selectedObject);
+                    hideActionMode();
+                    break;
+                }
                 noForwardQuote = true;
                 noForwardCaption = id == nkbtn_forward_nocaption;
                 if (messagePreviewParams != null) {

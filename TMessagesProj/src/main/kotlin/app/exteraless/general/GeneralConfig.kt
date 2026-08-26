@@ -63,6 +63,16 @@ object GeneralConfig {
         return showNagramSettings.Bool()
     }
 
+    /** Miogram: master switch for exteraless feature surfaces. */
+    @JvmField
+    val showExteraFeatures = addConfig("MiogramShowExteraFeatures", ConfigItem.configTypeBool, true)
+
+    @JvmStatic
+    fun showExteraFeatures(): Boolean {
+        loadConfig(false)
+        return showExteraFeatures.Bool()
+    }
+
     /**
      * Быстрый доступ к AyuMoments. Секция живёт внутри «Экспериментального» у NagramX,
      * а с этим флагом её выносит отдельной строкой туда же, где появляется вход
