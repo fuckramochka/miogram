@@ -1772,6 +1772,10 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
 
         if (!stopUpdate) {
             for (int k = 0; k < array.size(); k++) {
+                TLRPC.Dialog dialog = array.get(k) instanceof TLRPC.Dialog ? (TLRPC.Dialog) array.get(k) : null;
+                if (dialog != null && !app.miogram.bridge.passcode.MiogramDuressConfig.isDialogAllowedInDuress(dialog.id)) {
+                    continue;
+                }
                 if (dialogsType == DialogsActivity.DIALOGS_TYPE_ADD_USERS_TO && array.get(k) instanceof DialogsActivity.DialogsHeader) {
                     itemInternals.add(new ItemInternal(VIEW_TYPE_HEADER_2, array.get(k)));
                 } else {

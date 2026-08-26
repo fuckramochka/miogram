@@ -67,23 +67,37 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     public boolean onFragmentCreate() {
-        facade = MiogramAiRuntime.get(getParentActivity() != null ? getParentActivity() : null);
-        if (facade == null) {
-            // parent activity can be null only in exotic previews; retry later
-            return super.onFragmentCreate();
+        super.onFragmentCreate();
+        Context ctx = org.telegram.messenger.ApplicationLoader.applicationContext;
+        try {
+            facade = MiogramAiRuntime.get(ctx);
+            stt = MiogramAiRuntime.stt(ctx);
+            client = new GeminiCloudClient();
+            registerDownloadReceiver();
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
         }
-        stt = MiogramAiRuntime.stt(getParentActivity());
-        client = new GeminiCloudClient();
+        return true;
+    }
 
-        registerDownloadReceiver();
-        return super.onFragmentCreate();
+    @Override
+    public void onFragmentDestroy() {
+        super.onFragmentDestroy();
+        try {
+            if (downloadReceiver != null) {
+                org.telegram.messenger.ApplicationLoader.applicationContext.unregisterReceiver(downloadReceiver);
+                downloadReceiver = null;
+            }
+        } catch (Exception ignored) {
+        }
     }
 
 
     // --- prefs ---------------------------------------------------------------
 
     private android.content.SharedPreferences prefs() {
-        return getParentActivity().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        Context ctx = getParentActivity() != null ? getParentActivity() : org.telegram.messenger.ApplicationLoader.applicationContext;
+        return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
     private String savedKey() {
@@ -302,15 +316,28 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
     }
 
     private void registerDownloadReceiver() {
-        downloadReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-                handleDownloadCompleted(id);
+        try {
+            downloadReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+                    handleDownloadCompleted(id);
+                }
+            };
+            Context ctx = org.telegram.messenger.ApplicationLoader.applicationContext;
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                ctx.registerReceiver(
+                        downloadReceiver,
+                        new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                        Context.RECEIVER_EXPORTED);
+            } else {
+                ctx.registerReceiver(
+                        downloadReceiver,
+                        new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
             }
-        };
-        getParentActivity().registerReceiver(
-                downloadReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
     }
 
     // --- rows ------------------------------------------------------------------

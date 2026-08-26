@@ -9,38 +9,44 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.Theme;
+import tw.nekomimi.nekogram.settings.NekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import org.telegram.ui.Cells.TextCheckCell;
 import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.BulletinFactory;
 
 import app.miogram.bridge.ui.MiogramAiSettingsActivity;
-import app.miogram.bridge.plugins.WamrWasmRuntime;
-import app.miogram.bridge.ui.MiogramPluginsActivity;
-import app.miogram.bridge.ui.MiogramVaultSetupActivity;
+import app.miogram.bridge.ui.MiogramVaultActivity;
 import app.miogram.bridge.ui.MiogramVisualsActivity;
+import app.miogram.bridge.updater.MiogramUpdater;
 
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import xyz.nextalone.nagram.NaConfig;
 
 /**
- * Etalon Telegram-style settings screen (BaseNekoSettingsActivity skeleton:
- * HeaderCell / TextSettingsCell / TextCheckCell / grey info rows).
- *
- * Entry point: SettingsActivity row 102 («Miogram»), replacing the old
- * exteraless Preferences entry — which now lives inside this screen.
+ * Main Miogram Settings Hub:
+ * - Zero-knowledge Vault & Duress Profiles
+ * - Miogram AI (Gemini + Local Whisper)
+ * - Authentic exteraGram Plugins Manager
+ * - AGSL Liquid Glass Shaders
+ * - In-app Miogram Updater (KPM style)
+ * - Direct access to exteraless & Nagram feature suites
  */
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
-    private int headerRow;
+    private int headerCoreRow;
     private int vaultRow;
     private int aiRow;
     private int pluginsRow;
     private int visualsRow;
+    private int updaterRow;
+
+    private int headerFeaturesRow;
+    private int exteraPrefsRow;
+    private int nagramPrefsRow;
     private int exteraToggleRow;
     private int nagramToggleRow;
     private int ayuToggleRow;
-    private int exteraPrefsRow;
 
     @Override
     protected String getActionBarTitle() {
@@ -51,29 +57,38 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     protected void updateRows() {
         super.updateRows();
 
-        headerRow = addRow();
+        headerCoreRow = addRow();
         vaultRow = addRow();
         aiRow = addRow();
         pluginsRow = addRow();
         visualsRow = addRow();
+        updaterRow = addRow();
+
+        headerFeaturesRow = addRow();
+        exteraPrefsRow = addRow();
+        nagramPrefsRow = addRow();
 
         exteraToggleRow = addRow();
         nagramToggleRow = addRow();
         ayuToggleRow = addRow();
-
-        exteraPrefsRow = addRow();
     }
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
         if (position == vaultRow) {
-            MiogramVaultSetupActivity.start(getParentActivity());
+            presentFragment(new MiogramVaultActivity());
         } else if (position == aiRow) {
             presentFragment(new MiogramAiSettingsActivity());
         } else if (position == pluginsRow) {
-            presentFragment(new MiogramPluginsActivity());
+            presentFragment(new app.exteraless.plugins.ui.PluginsActivity());
         } else if (position == visualsRow) {
             presentFragment(new MiogramVisualsActivity());
+        } else if (position == updaterRow) {
+            MiogramUpdater.checkAndShowUpdate(this, true);
+        } else if (position == exteraPrefsRow) {
+            presentFragment(new app.exteraless.settings.OpenExteraSettingsActivity());
+        } else if (position == nagramPrefsRow) {
+            presentFragment(new NekoSettingsActivity());
         } else if (position == exteraToggleRow) {
             boolean value = !app.exteraless.general.GeneralConfig.showExteraFeatures();
             app.exteraless.general.GeneralConfig.setExteraFeatures(value);
@@ -94,8 +109,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
             if (view instanceof TextCheckCell) {
                 ((TextCheckCell) view).setChecked(value);
             }
-        } else if (position == exteraPrefsRow) {
-            presentFragment(new app.exteraless.settings.OpenExteraSettingsActivity());
         }
     }
 
@@ -111,11 +124,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == headerRow) {
+            if (position == headerCoreRow || position == headerFeaturesRow) {
                 return TYPE_HEADER;
-            } else if (position == vaultRow || position == aiRow || position == pluginsRow
-                    || position == visualsRow || position == exteraPrefsRow) {
-                return TYPE_SETTINGS;
             } else if (position == exteraToggleRow || position == nagramToggleRow || position == ayuToggleRow) {
                 return TYPE_CHECK;
             }
@@ -133,11 +143,15 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     } else if (position == aiRow) {
                         cell.setText(LocaleController.getString(R.string.MiogramAITitle), true);
                     } else if (position == pluginsRow) {
-                        cell.setText(WamrWasmRuntime.isAvailable() ? LocaleController.getString(R.string.MiogramPluginsTitle) : LocaleController.getString(R.string.MiogramPluginsNoRuntime), true);
+                        cell.setText("Плагіни (exteraGram Plugins)", true);
                     } else if (position == visualsRow) {
-                        cell.setText(LocaleController.getString(R.string.MiogramVisualsTitle), false);
+                        cell.setText("Рідке скло (AGSL Shaders)", true);
+                    } else if (position == updaterRow) {
+                        cell.setText("Перевірити оновлення Miogram", false);
                     } else if (position == exteraPrefsRow) {
-                        cell.setText("exteraless Preferences", false);
+                        cell.setText("Налаштування exteraless", true);
+                    } else if (position == nagramPrefsRow) {
+                        cell.setText("Налаштування Nagram", false);
                     }
                     break;
                 }
@@ -157,8 +171,10 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
-                    if (position == headerRow) {
-                        cell.setText("Miogram");
+                    if (position == headerCoreRow) {
+                        cell.setText("ФУНКЦІЇ MIOGRAM");
+                    } else if (position == headerFeaturesRow) {
+                        cell.setText("ДОДАТКОВІ МОЖЛИВОСТІ");
                     }
                     break;
                 }
