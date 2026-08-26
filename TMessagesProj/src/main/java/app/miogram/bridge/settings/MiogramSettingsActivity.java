@@ -112,8 +112,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == vaultRow) {
-                        cell.setText(LocaleController.getString(R.string.MiogramVaultTitle),
-                                LocaleController.getString(R.string.MiogramVaultStatus), true);
+                        cell.setText(LocaleController.getString(R.string.MiogramVaultTitle), true);
                     } else if (position == aiRow) {
                         cell.setText(LocaleController.getString(R.string.MiogramAITitle), true);
                     } else if (position == pluginsRow) {
