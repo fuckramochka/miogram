@@ -458,15 +458,4 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
             android.widget.Toast.makeText(getParentActivity(), message, android.widget.Toast.LENGTH_SHORT).show();
         }
     }
-
-    @Override
-    public void onFragmentDestroy() {
-        if (downloadReceiver != null && getParentActivity() != null) {
-            try {
-                getParentActivity().unregisterReceiver(downloadReceiver);
-            } catch (Exception ignored) {}
-            downloadReceiver = null;
-        }
-        super.onFragmentDestroy();
-    }
 }

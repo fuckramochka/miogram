@@ -158,9 +158,14 @@ public class MiogramVaultActivity extends BaseNekoSettingsActivity implements Di
     }
 
     @Override
-    public void didSelectDialogs(DialogsActivity fragment, java.util.ArrayList<Long> dids, CharSequence message, boolean param) {
+    public boolean didSelectDialogs(DialogsActivity fragment, java.util.ArrayList<org.telegram.messenger.MessagesStorage.TopicKey> dids, CharSequence message, boolean param, boolean notify, int scheduleDate, int scheduleRepeatPeriod, org.telegram.ui.TopicsFragment topicsFragment) {
         if (dids != null) {
-            Set<Long> set = new HashSet<>(dids);
+            Set<Long> set = new HashSet<>();
+            for (org.telegram.messenger.MessagesStorage.TopicKey key : dids) {
+                if (key != null) {
+                    set.add(key.dialogId);
+                }
+            }
             MiogramDuressConfig.setDecoyDialogIds(set);
             if (getParentActivity() != null) {
                 Toast.makeText(getParentActivity(), "Збережено дозволених чатів: " + set.size(), Toast.LENGTH_SHORT).show();
@@ -170,6 +175,7 @@ public class MiogramVaultActivity extends BaseNekoSettingsActivity implements Di
             }
         }
         fragment.finishFragment();
+        return true;
     }
 
     private class ListAdapter extends BaseListAdapter {
