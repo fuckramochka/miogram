@@ -4,15 +4,7 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '**.md'
-      - '.github/**'
-      - '!.github/workflows/release.yml'
   workflow_dispatch:
-    inputs:
-      upload:
-        description: 'Skip Upload: Set to "y" to skip uploading the build.'
-        required: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
