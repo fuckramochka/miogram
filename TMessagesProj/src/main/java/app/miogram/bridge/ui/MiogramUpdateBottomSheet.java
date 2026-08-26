@@ -135,6 +135,8 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
         installButton.setAlpha(0.6f);
         statusTextView.setVisibility(View.VISIBLE);
         statusTextView.setText("Завантаження APK у фоні...");
+        app.miogram.bridge.updater.MiogramUpdater.markTagInstalled("v" + versionName);
+        app.miogram.bridge.updater.MiogramUpdater.markTagInstalled(versionName);
 
         try {
             DownloadManager dm = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
