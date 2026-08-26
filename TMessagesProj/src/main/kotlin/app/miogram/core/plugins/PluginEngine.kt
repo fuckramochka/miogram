@@ -82,6 +82,12 @@ class MiogramPluginEngine(
         repository: PluginRepository,
         runtime: app.miogram.core.wasm.WasmRuntime,
         anchors: TrustAnchors,
+    ) : this(repository, runtime, anchors, null, DEFAULT_MAX_PLUGINS, DEFAULT_FAULT_LIMIT)
+
+    constructor(
+        repository: PluginRepository,
+        runtime: app.miogram.core.wasm.WasmRuntime,
+        anchors: TrustAnchors,
         auditSink: PluginAuditSink?,
     ) : this(repository, runtime, anchors, auditSink, DEFAULT_MAX_PLUGINS, DEFAULT_FAULT_LIMIT)
 
