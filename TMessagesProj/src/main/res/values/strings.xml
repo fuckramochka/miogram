@@ -11236,4 +11236,24 @@
     <string name="MiogramToggleExtera">exteraless features</string>
     <string name="MiogramToggleNagram">Nagram settings</string>
     <string name="MiogramToggleAyu">AyuMoments quick access</string>
+    <string name="MiogramKeyDialogTitle">Gemini API key</string>
+    <string name="MiogramPingTest">Save &amp; ping test</string>
+    <string name="MiogramPingNoKey">Enter the key first</string>
+    <string name="MiogramPingRunning">Checking connection…</string>
+    <string name="MiogramModelDialogTitle">Text generation model</string>
+    <string name="MiogramModelFlash">Gemini 2.5 Flash (fast &amp; smart · recommended)</string>
+    <string name="MiogramModelFlashLite">Gemini 3.5 Flash Lite (lowest quota usage)</string>
+    <string name="MiogramModelPro">Gemini 2.5 Pro (deep analysis of long texts)</string>
+    <string name="MiogramModelCustom">Custom OpenAI-compatible endpoint</string>
+    <string name="MiogramModelCustomTitle">Custom model identifier</string>
+    <string name="MiogramKeyRow">Google AI Studio / Gemini API key</string>
+    <string name="MiogramKeyNotSet">Not set (tap to enter)</string>
+    <string name="MiogramModelRow">Generation model</string>
+    <string name="MiogramPiiMask">PII masking (phones, cards, email)</string>
+    <string name="MiogramMeteredGuard">Cloud on metered network</string>
+    <string name="MiogramOfflineOnly">Offline-only Whisper (no internet)</string>
+    <string name="MiogramWhisperPickerTitle">Whisper model</string>
+    <string name="MiogramWhisperDownload">Download selected model</string>
+    <string name="MiogramWhisperReady">Model downloaded ✓</string>
+    <string name="MiogramWhisperInvalid">Downloaded file failed validation</string>
 </resources>

@@ -171,7 +171,7 @@ public class NekoPasscodeSettingsActivity extends BaseNekoSettingsActivity {
             showDialog(alertDialog);
             ((TextView) alertDialog.getButton(Dialog.BUTTON_POSITIVE)).setTextColor(Theme.getColor(Theme.key_dialogTextRed));
         } else if (position == miogramVaultRow) {
-            app.miogram.bridge.ui.MiogramHubActivity.start(getParentActivity());
+            presentFragment(new app.miogram.bridge.settings.MiogramSettingsActivity());
         } else if (position == miogramAiRow) {
             app.miogram.bridge.ui.MiogramAiSettingsActivity.start(getParentActivity());
         } else if (position == showInSettingsRow) {

@@ -278,4 +278,24 @@
     <string name="MiogramToggleExtera">Возможности exteraless</string>
     <string name="MiogramToggleNagram">Настройки Nagram</string>
     <string name="MiogramToggleAyu">Быстрый доступ AyuMoments</string>
+    <string name="MiogramKeyDialogTitle">Ключ Gemini API</string>
+    <string name="MiogramPingTest">Сохранить и пингануть</string>
+    <string name="MiogramPingNoKey">Сначала введите ключ</string>
+    <string name="MiogramPingRunning">Проверяю соединение…</string>
+    <string name="MiogramModelDialogTitle">Модель генерации текста</string>
+    <string name="MiogramModelFlash">Gemini 2.5 Flash (быстрая и умная · рекомендуется)</string>
+    <string name="MiogramModelFlashLite">Gemini 3.5 Flash Lite (минимум квоты)</string>
+    <string name="MiogramModelPro">Gemini 2.5 Pro (глубокий анализ)</string>
+    <string name="MiogramModelCustom">Свой OpenAI-совместимый сервер</string>
+    <string name="MiogramModelCustomTitle">Идентификатор своей модели</string>
+    <string name="MiogramKeyRow">Ключ Google AI Studio / Gemini</string>
+    <string name="MiogramKeyNotSet">Не задан (нажмите для ввода)</string>
+    <string name="MiogramModelRow">Модель генерации</string>
+    <string name="MiogramPiiMask">Маскировка PII (телефоны, карты, email)</string>
+    <string name="MiogramMeteredGuard">Облако в мобильной сети</string>
+    <string name="MiogramOfflineOnly">Только офлайн Whisper (без интернета)</string>
+    <string name="MiogramWhisperPickerTitle">Модель Whisper</string>
+    <string name="MiogramWhisperDownload">Скачать выбранную модель</string>
+    <string name="MiogramWhisperReady">Модель загружена ✓</string>
+    <string name="MiogramWhisperInvalid">Файл не прошёл проверку</string>
 </resources>

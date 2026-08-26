@@ -44,6 +44,9 @@ data class AiPreferences(
     val cloudAllowedOnMeteredNetwork: Boolean = false,
 ) {
     fun modeFor(task: AiTask): ExecutionMode = overrides[task] ?: task.defaultMode
+
+    fun withCloudMetered(allowed: Boolean): AiPreferences =
+        copy(cloudAllowedOnMeteredNetwork = allowed)
 }
 
 /** What the environment can currently offer to the router. */

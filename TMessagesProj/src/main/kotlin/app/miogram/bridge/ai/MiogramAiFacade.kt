@@ -24,7 +24,7 @@ import kotlinx.coroutines.withContext
  */
 class MiogramAiFacade(
     private val context: Context,
-    private val localStt: LocalSttEngine,
+    val sttEngine: LocalSttEngine,
     private val gemini: GeminiCloudClient = GeminiCloudClient(),
     /** Supplied by the bridge wiring; nullable key from existing app settings. */
     private val hostKeySupplier: () -> String? = { null },
@@ -44,7 +44,7 @@ class MiogramAiFacade(
     suspend fun environmentSnapshot(): AiEnvironment {
         val online = connectivityOnline()
         return AiEnvironment(
-            localModelReady = localStt.isDownloaded(),
+            localModelReady = sttEngine.isDownloaded(),
             cloudKeyConfigured = resolveCloudKey().isNotBlank(),
             networkOnline = online,
             networkMetered = online && isMetered(),
@@ -69,7 +69,7 @@ class MiogramAiFacade(
 
             is RouteDecision.UseLocal -> when (task) {
                 AiTask.TRANSCRIBE_AUDIO -> try {
-                    Outcome.LocalText(localStt.transcribe(input))
+                    Outcome.LocalText(sttEngine.transcribe(input))
                 } catch (e: LocalSttEngine.SttException) {
                     Outcome.Failed("stt: ${e.code}")
                 }

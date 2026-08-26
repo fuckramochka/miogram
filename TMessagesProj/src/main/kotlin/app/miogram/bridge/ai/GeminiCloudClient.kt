@@ -79,6 +79,19 @@ class GeminiCloudClient(
         }
     }
 
+    /**
+     * Java-friendly blocking variant for settings screens (Ping test).
+     * MUST be called off the main thread.
+     */
+    fun completeBlocking(
+        config: Config,
+        systemPrompt: String,
+        userInput: String,
+        maxOutputTokens: Int = 16,
+    ): Result = kotlinx.coroutines.runBlocking {
+        complete(config, systemPrompt, userInput, maxOutputTokens, redactRequest = false)
+    }
+
     companion object {
         const val DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
         const val DEFAULT_MODEL = "gemini-3.5-flash-lite"

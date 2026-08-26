@@ -128,7 +128,21 @@ class LocalSttEngine(
             sizeBytes = 262_144_000L,
             sha256 = null,
         )
-        val ALL = listOf(DEFAULT)
+        val TINY = ModelInfo(
+            id = "whisper-tiny-int8",
+            displayName = "Whisper Tiny Quantized (INT8, ~39 MB)",
+            downloadUrl = "https://github.com/miogram-ai/models/releases/whisper-tiny-int8.onnx",
+            sizeBytes = 40_894_464L,
+            sha256 = null,
+        )
+        val BASE = ModelInfo(
+            id = "whisper-base-int8",
+            displayName = "Whisper Base Quantized (INT8, ~74 MB)",
+            downloadUrl = "https://github.com/miogram-ai/models/releases/whisper-base-int8.onnx",
+            sizeBytes = 77_594_624L,
+            sha256 = null,
+        )
+        val ALL = listOf(TINY, BASE, DEFAULT)
     }
 
     companion object {

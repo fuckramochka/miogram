@@ -69,11 +69,11 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         if (position == vaultRow) {
             MiogramVaultSetupActivity.start(getParentActivity());
         } else if (position == aiRow) {
-            MiogramAiSettingsActivity.start(getParentActivity());
+            presentFragment(new MiogramAiSettingsActivity());
         } else if (position == pluginsRow) {
-            MiogramPluginsActivity.start(getParentActivity());
+            presentFragment(new MiogramPluginsActivity());
         } else if (position == visualsRow) {
-            MiogramVisualsActivity.start(getParentActivity());
+            presentFragment(new MiogramVisualsActivity());
         } else if (position == exteraToggleRow) {
             boolean value = !app.exteraless.general.GeneralConfig.showExteraFeatures();
             app.exteraless.general.GeneralConfig.setExteraFeatures(value);
@@ -101,14 +101,31 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     private class ListAdapter extends BaseListAdapter {
 
+        private final int TYPE_HEADER = 4;
+        private final int TYPE_SETTINGS = 2;
+        private final int TYPE_CHECK = 3;
+
         public ListAdapter(Context context) {
             super(context);
         }
 
         @Override
+        public int getItemViewType(int position) {
+            if (position == headerRow) {
+                return TYPE_HEADER;
+            } else if (position == vaultRow || position == aiRow || position == pluginsRow
+                    || position == visualsRow || position == exteraPrefsRow) {
+                return TYPE_SETTINGS;
+            } else if (position == exteraToggleRow || position == nagramToggleRow || position == ayuToggleRow) {
+                return TYPE_CHECK;
+            }
+            return TYPE_SETTINGS;
+        }
+
+        @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             switch (holder.getItemViewType()) {
-                case 2: {
+                case TYPE_SETTINGS: {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == vaultRow) {
@@ -124,7 +141,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     }
                     break;
                 }
-                case 3: {
+                case TYPE_CHECK: {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
                     if (position == exteraToggleRow) {
                         cell.setTextAndCheck(LocaleController.getString(R.string.MiogramToggleExtera),
@@ -138,7 +155,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     }
                     break;
                 }
-                case 4: {
+                case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerRow) {
                         cell.setText("Miogram");
