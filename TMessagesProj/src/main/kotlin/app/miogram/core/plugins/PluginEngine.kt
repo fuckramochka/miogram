@@ -78,6 +78,13 @@ class MiogramPluginEngine(
         }
     }
 
+    constructor(
+        repository: PluginRepository,
+        runtime: WamrRuntime,
+        anchors: TrustAnchors,
+        auditSink: PluginAuditSink?,
+    ) : this(repository, runtime, anchors, auditSink, DEFAULT_MAX_PLUGINS, DEFAULT_FAULT_LIMIT)
+
     fun install(manifestBytes: ByteArray, codeBytes: ByteArray): InstallResult {
         val verdict = PluginSignatures.verifyAndAudit(manifestBytes, codeBytes, anchors, auditSink)
         val manifest = (verdict as? PluginSignatures.Verdict.Valid)?.manifest

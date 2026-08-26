@@ -83,6 +83,7 @@ class GeminiCloudClient(
      * Java-friendly blocking variant for settings screens (Ping test).
      * MUST be called off the main thread.
      */
+    @JvmOverloads
     fun completeBlocking(
         config: Config,
         systemPrompt: String,

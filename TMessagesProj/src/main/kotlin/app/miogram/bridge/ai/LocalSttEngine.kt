@@ -58,6 +58,7 @@ class LocalSttEngine(
 
     fun modelFile(): File = File(modelDir, "$selectedModelId.onnx")
 
+    @JvmOverloads
     fun isDownloaded(modelId: String = selectedModelId): Boolean =
         modelFile().takeIf { it.isFile }?.length() ?: 0L > MIN_VALID_FILE_BYTES
 

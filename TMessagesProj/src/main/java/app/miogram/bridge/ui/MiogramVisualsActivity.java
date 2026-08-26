@@ -70,9 +70,10 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
             persistDecoration(enabled);
             listAdapter.notifyItemChanged(decorationToggleRow);
             listAdapter.notifyItemChanged(intensityRow);
-            toast(enabled
+            String msg = enabled
                     ? LocaleController.getString(R.string.MiogramEnabled)
-                    : LocaleController.getString(R.string.MiogramDisabled));
+                    : LocaleController.getString(R.string.MiogramDisabled);
+            toast(msg);
         } else if (position == intensityRow) {
             int next = ((intensityPercent() + 20) % 120);
             if (next == 0) next = 20;
@@ -130,11 +131,11 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == decorationToggleRow) {
-                        cell.setText(LocaleController.getString(R.string.MiogramAgslToggle),
-                                decorationEnabled()
-                                        ? LocaleController.getString(R.string.MiogramEnabled)
-                                        : LocaleController.getString(R.string.MiogramDisabled),
-                                false);
+                        String stateText = decorationEnabled()
+                                ? LocaleController.getString(R.string.MiogramEnabled)
+                                : LocaleController.getString(R.string.MiogramDisabled);
+                        cell.setText(LocaleController.getString(R.string.MiogramAgslToggle)
+                                + ": " + stateText, false);
                         if (Build.VERSION.SDK_INT < 33) {
                             cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
                         }
