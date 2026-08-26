@@ -223,14 +223,16 @@ android {
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
-            storeFile releaseKeystore
-            storePassword 'miogram'
-            keyAlias 'miogram'
-            keyPassword 'miogram'
             if (hasCustomKeystore) {
+                storeFile releaseKeystore
                 storePassword keystorePwd
                 keyAlias alias
                 keyPassword pwd
+            } else if (releaseKeystore.exists()) {
+                storeFile releaseKeystore
+                storePassword 'miogram'
+                keyAlias 'miogram'
+                keyPassword 'miogram'
             }
         }
         debug {
@@ -297,9 +299,9 @@ configurations.configureEach {
 
 dependencies {
     // official
-    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation 'androidx.core:core-ktx:1.19.0'
     implementation 'androidx.palette:palette-ktx:1.0.0'
-    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'com.google.android.material:material:1.13.0'
     implementation 'androidx.exifinterface:exifinterface:1.4.2'
     implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
     implementation 'androidx.mediarouter:mediarouter:1.8.1'
@@ -307,8 +309,11 @@ dependencies {
     implementation 'androidx.sharetarget:sharetarget:1.2.0'
     implementation 'androidx.interpolator:interpolator:1.0.0'
     implementation 'androidx.biometric:biometric:1.1.0'
-    implementation 'androidx.car.app:app:1.4.0'
-    implementation 'androidx.car.app:app-projected:1.4.0'
+    implementation 'androidx.car.app:app:1.7.0'
+    implementation 'androidx.car.app:app-projected:1.7.0'
+    // CameraX для круглых видеосообщений (app.exteraless.camera.CameraXSession).
+    // Версия 1.6.1 — как в exteraGram 12.9.0: раньше 1.5 нет SessionConfig,
+    // setPreviewStabilizationEnabled и параллельной привязки двух камер.
     implementation 'androidx.camera:camera-core:1.6.1'
     implementation 'androidx.camera:camera-camera2:1.6.1'
     implementation 'androidx.camera:camera-lifecycle:1.6.1'
