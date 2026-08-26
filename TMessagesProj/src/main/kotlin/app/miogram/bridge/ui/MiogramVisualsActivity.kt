@@ -102,6 +102,14 @@ class MiogramVisualsActivity : Activity() {
 
     private companion object {
         const val KEY_INTENSITY = "liquid_glass_intensity"
+
+        @JvmStatic
+        fun start(context: android.content.Context) {
+            context.startActivity(
+                android.content.Intent(context, MiogramVisualsActivity::class.java)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }
     }
 }
 

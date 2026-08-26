@@ -224,5 +224,13 @@ class MiogramPluginsActivity : Activity() {
     companion object {
         private const val FILE_CODE = 41
         private const val FILE_MANIFEST = 42
+
+        @JvmStatic
+        fun start(context: android.content.Context) {
+            context.startActivity(
+                android.content.Intent(context, MiogramPluginsActivity::class.java)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }
     }
 }

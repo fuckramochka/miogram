@@ -47651,7 +47651,7 @@ public class ChatActivity extends BaseFragment implements
                 // Miogram: single-selection «No quote» now opens a plain REPLY
                 // instead of forwarding with hidden header (user-requested).
                 if (id == nkbtn_forward_noquote && selectedObject != null
-                        && (selectedMessages == null || selectedMessages.size() <= 1)) {
+                        && selectedMessagesIds[currentAccount].size() <= 1) {
                     showFieldPanelForReply(selectedObject);
                     hideActionMode();
                     break;

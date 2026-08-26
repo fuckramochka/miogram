@@ -76,21 +76,21 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
             MiogramVisualsActivity.start(getParentActivity());
         } else if (position == exteraToggleRow) {
             boolean value = !app.exteraless.general.GeneralConfig.showExteraFeatures();
-            app.exteraless.general.GeneralConfig.INSTANCE.getShowExteraFeatures().setConfigBool(value);
+            app.exteraless.general.GeneralConfig.setExteraFeatures(value);
             if (view instanceof TextCheckCell) {
                 ((TextCheckCell) view).setChecked(value);
             }
             listAdapter.notifyItemChanged(exteraPrefsRow);
         } else if (position == nagramToggleRow) {
             boolean value = !app.exteraless.general.GeneralConfig.showNagramSettings();
-            app.exteraless.general.GeneralConfig.INSTANCE.getShowNagramSettings().setConfigBool(value);
+            app.exteraless.general.GeneralConfig.setNagramSettingsVisible(value);
             if (view instanceof TextCheckCell) {
                 ((TextCheckCell) view).setChecked(value);
             }
             getNotificationCenter().postNotificationName(NotificationCenter.mainUserInfoChanged);
         } else if (position == ayuToggleRow) {
             boolean value = !app.exteraless.general.GeneralConfig.showAyuMoments();
-            app.exteraless.general.GeneralConfig.INSTANCE.getShowAyuMoments().setConfigBool(value);
+            app.exteraless.general.GeneralConfig.setAyuMomentsVisible(value);
             if (view instanceof TextCheckCell) {
                 ((TextCheckCell) view).setChecked(value);
             }

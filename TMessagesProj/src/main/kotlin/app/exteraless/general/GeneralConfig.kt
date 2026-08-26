@@ -73,6 +73,15 @@ object GeneralConfig {
         return showExteraFeatures.Bool()
     }
 
+    @JvmStatic
+    fun setExteraFeatures(value: Boolean) = showExteraFeatures.setConfigBool(value)
+
+    @JvmStatic
+    fun setNagramSettingsVisible(value: Boolean) = showNagramSettings.setConfigBool(value)
+
+    @JvmStatic
+    fun setAyuMomentsVisible(value: Boolean) = showAyuMoments.setConfigBool(value)
+
     /**
      * Быстрый доступ к AyuMoments. Секция живёт внутри «Экспериментального» у NagramX,
      * а с этим флагом её выносит отдельной строкой туда же, где появляется вход
