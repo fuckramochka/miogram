@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import app.miogram.core.plugins.HyperionPluginEngine;
+import app.miogram.core.plugins.MiogramPluginEngine;
 import app.miogram.core.plugins.InMemoryPluginRepository;
 import app.miogram.core.plugins.InMemoryTrustAnchors;
 import app.miogram.core.plugins.InstalledPlugin;
@@ -45,7 +45,7 @@ public class MiogramPluginsActivity extends BaseNekoSettingsActivity {
     private static final int PICK_MANIFEST = 62;
 
     private final InMemoryPluginRepository repository = new InMemoryPluginRepository();
-    private final HyperionPluginEngine engine = new HyperionPluginEngine(
+    private final MiogramPluginEngine engine = new MiogramPluginEngine(
             repository, WamrWasmRuntime, new InMemoryTrustAnchors());
 
     private byte[] pendingCode;
@@ -127,7 +127,7 @@ public class MiogramPluginsActivity extends BaseNekoSettingsActivity {
                     engine.disable(pluginId);
                 } else {
                     var res = engine.enable(pluginId);
-                    if (res instanceof HyperionPluginEngine.EnableResult.Failed failed) {
+                    if (res instanceof MiogramPluginEngine.EnableResult.Failed failed) {
                         toast(failed.getReason());
                     }
                 }
@@ -145,9 +145,9 @@ public class MiogramPluginsActivity extends BaseNekoSettingsActivity {
         long t0 = System.nanoTime();
         var outcome = engine.dispatch(pluginId, "ping", null);
         long us = (System.nanoTime() - t0) / 1000;
-        if (outcome instanceof HyperionPluginEngine.DispatchOutcome.Ok) {
+        if (outcome instanceof MiogramPluginEngine.DispatchOutcome.Ok) {
             toast("pong · " + us + " µs");
-        } else if (outcome instanceof HyperionPluginEngine.DispatchOutcome.Denied denied) {
+        } else if (outcome instanceof MiogramPluginEngine.DispatchOutcome.Denied denied) {
             toast("denied: " + denied.getReason());
         } else {
             toast("fault");
@@ -188,10 +188,10 @@ public class MiogramPluginsActivity extends BaseNekoSettingsActivity {
             return;
         }
         var verdict = engine.install(pendingManifest, pendingCode);
-        if (verdict instanceof HyperionPluginEngine.InstallResult.Installed installed) {
+        if (verdict instanceof MiogramPluginEngine.InstallResult.Installed installed) {
             toast(LocaleController.getString(R.string.MiogramInstalled));
             reload();
-        } else if (verdict instanceof HyperionPluginEngine.InstallResult.Rejected rejected) {
+        } else if (verdict instanceof MiogramPluginEngine.InstallResult.Rejected rejected) {
             toast(rejected.getReason() + (rejected.getDetail() != null ? ": " + rejected.getDetail() : ""));
         }
     }

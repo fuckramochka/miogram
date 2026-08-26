@@ -78,21 +78,6 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
         return super.onFragmentCreate();
     }
 
-    @Override
-    protected void updateRows() {
-        super.updateRows();
-
-        headerRow = addRow();
-        keyRow = addRow();
-        modelRow = addRow();
-        piiRow = addRow();
-        meteredRow = addRow();
-        whisperHeaderRow = addRow();
-        whisperModelRow = addRow();
-        whisperDownloadRow = addRow();
-        offlineRow = addRow();
-        shadowRow = addRow();
-    }
 
     // --- prefs ---------------------------------------------------------------
 

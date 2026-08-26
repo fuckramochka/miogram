@@ -30,7 +30,7 @@ import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
  * flag flips instantly and the choice persists into miogram_visuals prefs so
  * the decoration view restores it on next inflation.
  */
-class MiogramVisualsActivity extends BaseNekoSettingsActivity {
+public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
 
     private int decorationHeaderRow;
     private int decorationToggleRow;
