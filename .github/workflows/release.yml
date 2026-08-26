@@ -14,6 +14,8 @@ jobs:
   build:
     name: Gradle Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       build_timestamp: ${{ steps.release_build_step.outputs.build_timestamp }}
     env:
@@ -105,6 +107,21 @@ jobs:
           name: Release
           path: |
             TMessagesProj/build/outputs/apk/release/*.apk
+      - name: Create and Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: v12.10.${{ github.run_number }}
+          name: "Miogram v12.10.${{ github.run_number }}"
+          body: |
+            ## 🚀 Miogram Release v12.10.${{ github.run_number }}
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false
+          files: |
+            TMessagesProj/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Send APK to Telegram
         if: ${{ github.event.inputs.upload != 'y' }}
         env:
