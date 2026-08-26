@@ -43,6 +43,12 @@ public final class PluginCapabilityScan {
         if (file == null) {
             return result;
         }
+        String name = file.getName().toLowerCase();
+        if (name.endsWith(".wasm") || name.endsWith(".so") || name.endsWith(".mioplugin")) {
+            result.put("READ_MESSAGE_EVENTS", java.util.Collections.singletonList("Native WASM message listener"));
+            result.put("NOTIFICATIONS", java.util.Collections.singletonList("Native in-app bulletin alert"));
+            return result;
+        }
         try {
             String json = PythonPluginsEngine.getInstance()
                     .scanCapabilitiesJson(file.getAbsolutePath());

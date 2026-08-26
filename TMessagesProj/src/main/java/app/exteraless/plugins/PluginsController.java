@@ -339,6 +339,20 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
     }
 
     private Plugin readPluginMetadata(File f) {
+        if (f == null) return null;
+        String lowerName = f.getName().toLowerCase();
+        if (lowerName.endsWith(".wasm") || lowerName.endsWith(".so") || lowerName.endsWith(".mioplugin")) {
+            Plugin p = new Plugin();
+            p.id = f.getName().replace(".", "_");
+            p.name = f.getName().replace(".wasm", "").replace(".mioplugin", "").replace("_", " ");
+            p.path = f.getAbsolutePath();
+            p.version = "2.0.0 (Rust WASM)";
+            p.author = "@Miogram";
+            p.description = "Native Rust WebAssembly compiled module for Miogram.";
+            p.icon = "msg_notifications";
+            p.enabled = true;
+            return p;
+        }
         String json = PythonPluginsEngine.getInstance().readMetadataJson(f.getAbsolutePath());
         if (json == null) {
             Plugin p = new Plugin();
@@ -692,6 +706,31 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
      */
     public void installPlugin(File source, InstallCallback callback) {
         fileExecutor.execute(() -> {
+            if (source == null) {
+                deliver(callback, false, "file is null", null);
+                return;
+            }
+            String srcName = source.getName().toLowerCase();
+            if (srcName.endsWith(".wasm") || srcName.endsWith(".so") || srcName.endsWith(".mioplugin")) {
+                try {
+                    String id = source.getName().replace(".", "_");
+                    File dest = new File(getPluginsDir(), source.getName());
+                    copyFile(source, dest);
+                    Plugin p = readPluginMetadata(dest);
+                    if (p != null) {
+                        p.enabled = true;
+                        preferences.edit().putBoolean(PluginsConstants.KEY_PLUGIN_ENABLED_PREFIX + id, true).apply();
+                        synchronized (this) {
+                            plugins.put(id, p);
+                        }
+                    }
+                    deliver(callback, true, null, p);
+                } catch (Exception e) {
+                    FileLog.e(e);
+                    deliver(callback, false, e.getMessage(), null);
+                }
+                return;
+            }
             PythonPluginsEngine engine = PythonPluginsEngine.getInstance();
             if (!awaitEngineStarted()) {
                 deliver(callback, false, "Python engine failed to start", null);
