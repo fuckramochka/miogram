@@ -153,7 +153,19 @@ public class MiogramVaultActivity extends BaseNekoSettingsActivity implements Di
             } else {
                 MiogramDuressConfig.setRealPin(p1);
                 if (SharedConfig.passcodeHash.isEmpty()) {
-                    SharedConfig.setPasscode(p1);
+                    try {
+                        SharedConfig.passcodeSalt = new byte[16];
+                        org.telegram.messenger.Utilities.random.nextBytes(SharedConfig.passcodeSalt);
+                        byte[] passcodeBytes = p1.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                        byte[] bytes = new byte[32 + passcodeBytes.length];
+                        System.arraycopy(SharedConfig.passcodeSalt, 0, bytes, 0, 16);
+                        System.arraycopy(passcodeBytes, 0, bytes, 16, passcodeBytes.length);
+                        System.arraycopy(SharedConfig.passcodeSalt, 0, bytes, passcodeBytes.length + 16, 16);
+                        SharedConfig.passcodeHash = org.telegram.messenger.Utilities.bytesToHex(org.telegram.messenger.Utilities.computeSHA256(bytes, 0, bytes.length));
+                        SharedConfig.saveConfig();
+                    } catch (Exception e) {
+                        org.telegram.messenger.FileLog.e(e);
+                    }
                 }
                 Toast.makeText(ctx, "Реальний PIN збережено", Toast.LENGTH_SHORT).show();
             }
