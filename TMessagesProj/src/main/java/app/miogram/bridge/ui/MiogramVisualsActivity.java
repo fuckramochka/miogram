@@ -55,7 +55,7 @@ class MiogramVisualsActivity extends BaseNekoSettingsActivity {
     }
 
     private boolean decorationEnabled() {
-        return MiogramFlags.SPATIAL_DECORATION
+        return MiogramFlags.isSpatialDecoration()
                 || MiogramVisualsPrefs.loadBool(getParentActivity(), "agsl_enabled", false);
     }
 
@@ -82,7 +82,7 @@ class MiogramVisualsActivity extends BaseNekoSettingsActivity {
     }
 
     private void persistDecoration(boolean enabled) {
-        MiogramFlags.SPATIAL_DECORATION = enabled;
+        MiogramFlags.isSpatialDecoration() = enabled;
         MiogramVisualsPrefs.saveBool(getParentActivity(), "agsl_enabled", enabled);
     }
 
