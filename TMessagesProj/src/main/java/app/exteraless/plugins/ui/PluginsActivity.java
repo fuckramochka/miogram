@@ -75,8 +75,7 @@ public class PluginsActivity extends BaseFragment {
     @Override
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle(getString(R.string.OpenExteraPlugins));
+        actionBar.setTitle("Плагіни");
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -552,7 +551,7 @@ public class PluginsActivity extends BaseFragment {
         // .elyx/.eaf (ZIP-архивы) от обычного .py-модуля.
         String name = resolveFileName(activity, uri);
         String ext = ".py";
-        for (String candidate : new String[]{".elyx", ".eaf", ".plugin", ".py"}) {
+        for (String candidate : new String[]{".elyx", ".eaf", ".plugin", ".py", ".wasm", ".zip"}) {
             if (name != null && name.toLowerCase(Locale.ROOT).endsWith(candidate)) {
                 ext = candidate;
                 break;
