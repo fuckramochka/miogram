@@ -48,7 +48,7 @@ jobs:
       - name: Set up Android SDK Tools
         uses: android-actions/setup-android@v4
         with:
-          packages: "build-tools;35.0.0 ndk;27.2.12479018 platforms;android-35"
+          packages: "build-tools;36.0.0 ndk;27.2.12479018"
       - name: Install Native Build Dependencies
         run: |
           sudo apt-get update
