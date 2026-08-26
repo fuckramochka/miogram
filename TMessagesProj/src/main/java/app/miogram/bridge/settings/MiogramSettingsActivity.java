@@ -3,6 +3,7 @@ package app.miogram.bridge.settings;
 import android.content.Context;
 import android.view.View;
 import androidx.annotation.NonNull;
+import androidx.annotation.SuppressLint;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.LocaleController;
