@@ -173,7 +173,7 @@ public class NekoPasscodeSettingsActivity extends BaseNekoSettingsActivity {
         } else if (position == miogramVaultRow) {
             presentFragment(new app.miogram.bridge.settings.MiogramSettingsActivity());
         } else if (position == miogramAiRow) {
-            app.miogram.bridge.ui.MiogramAiSettingsActivity.start(getParentActivity());
+            presentFragment(new app.miogram.bridge.ui.MiogramAiSettingsActivity());
         } else if (position == showInSettingsRow) {
             PasscodeHelper.setHideSettings(!PasscodeHelper.isSettingsHidden());
             if (view instanceof TextCheckCell) {
