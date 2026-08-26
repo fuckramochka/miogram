@@ -140,13 +140,8 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
     }
 
     private void toast(String message) {
-        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
-    }
-
-    public static void start(android.content.Context context) {
-        context.startActivity(
-            new android.content.Intent(context, MiogramVisualsActivity.class)
-                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-        );
+        if (getParentActivity() != null) {
+            android.widget.Toast.makeText(getParentActivity(), message, android.widget.Toast.LENGTH_SHORT).show();
+        }
     }
 }
