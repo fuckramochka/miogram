@@ -360,16 +360,6 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
     }
 
     @Override
-    public int getItemViewType(int position) {
-        if (position == headerRow || position == whisperHeaderRow) {
-            return 4;
-        } else if (position == piiRow || position == meteredRow || position == offlineRow) {
-            return 3;
-        }
-        return 2;
-    }
-
-    @Override
     protected BaseListAdapter createAdapter(Context context) {
         return new ListAdapter(context);
     }
@@ -378,6 +368,13 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
 
         public ListAdapter(Context context) {
             super(context);
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            if (position == headerRow || position == whisperHeaderRow) return 4;
+            if (position == piiRow || position == meteredRow || position == offlineRow) return 3;
+            return 2;
         }
 
         @Override
@@ -408,16 +405,18 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == keyRow) {
-                        cell.setText(LocaleController.getString(R.string.MiogramKeyRow),
-                                maskKey(savedKey()), true);
+                        cell.setText(LocaleController.getString(R.string.MiogramKeyRow)
+                                + " · " + maskKey(savedKey()), false);
+                        cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     } else if (position == modelRow) {
-                        cell.setText(LocaleController.getString(R.string.MiogramModelRow),
-                                savedModel(), true);
+                        cell.setText(LocaleController.getString(R.string.MiogramModelRow)
+                                + " · " + savedModel(), false);
                     } else if (position == whisperModelRow) {
-                        cell.setText(LocaleController.getString(R.string.MiogramWhisperModelRow),
-                                stt.isDownloaded()
-                                        ? stt.getSelectedModelId() + " ✓"
-                                        : stt.getSelectedModelId() + " — не завантажена", true);
+                        String wStatus = stt.isDownloaded()
+                                ? stt.getSelectedModelId() + " ✓"
+                                : stt.getSelectedModelId() + " (не завантажена)";
+                        cell.setText(LocaleController.getString(R.string.MiogramWhisperModelRow)
+                                + ": " + wStatus, false);
                     } else if (position == whisperDownloadRow) {
                         cell.setText(LocaleController.getString(R.string.MiogramWhisperDownload), false);
                     }

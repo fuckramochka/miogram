@@ -72,7 +72,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
             listAdapter.notifyItemChanged(intensityRow);
             toast(enabled
                     ? LocaleController.getString(R.string.MiogramEnabled)
-                    : LocaleController.getString(R.string.Disabled));
+                    : LocaleController.getString(R.string.MiogramDisabled));
         } else if (position == intensityRow) {
             int next = ((intensityPercent() + 20) % 120);
             if (next == 0) next = 20;
@@ -133,7 +133,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                         cell.setText(LocaleController.getString(R.string.MiogramAgslToggle),
                                 decorationEnabled()
                                         ? LocaleController.getString(R.string.MiogramEnabled)
-                                        : LocaleController.getString(R.string.Disabled),
+                                        : LocaleController.getString(R.string.MiogramDisabled),
                                 false);
                         if (Build.VERSION.SDK_INT < 33) {
                             cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
