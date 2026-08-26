@@ -720,7 +720,7 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".RefererReceiver" android:exported="true" android:permission="android.permission.INSTALL_PACKAGES">
+        <receiver android:name=".RefererReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="com.android.vending.INSTALL_REFERRER" />
             </intent-filter>
