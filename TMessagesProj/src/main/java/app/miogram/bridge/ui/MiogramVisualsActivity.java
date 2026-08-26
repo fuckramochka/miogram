@@ -67,28 +67,19 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
     public void onItemClick(View view, int position, float x, float y) {
         if (position == decorationToggleRow) {
             boolean enabled = !decorationEnabled();
-            persistDecoration(enabled);
+            MiogramFlags.setSpatialDecoration(enabled);
+            MiogramVisualsPrefs.saveBool(getParentActivity(), "agsl_enabled", enabled);
             listAdapter.notifyItemChanged(decorationToggleRow);
             listAdapter.notifyItemChanged(intensityRow);
-            String msg = enabled
+            toast(enabled
                     ? LocaleController.getString(R.string.MiogramEnabled)
-                    : LocaleController.getString(R.string.MiogramDisabled);
-            toast(msg);
+                    : LocaleController.getString(R.string.MiogramDisabled));
         } else if (position == intensityRow) {
             int next = ((intensityPercent() + 20) % 120);
             if (next == 0) next = 20;
-            persistIntensity(next);
+            MiogramVisualsPrefs.saveInt(getParentActivity(), "liquid_glass_intensity", next);
             listAdapter.notifyItemChanged(intensityRow);
         }
-    }
-
-    private void persistDecoration(boolean enabled) {
-        MiogramFlags.setSpatialDecoration(enabled);
-        MiogramVisualsPrefs.saveBool(getParentActivity(), "agsl_enabled", enabled);
-    }
-
-    private void persistIntensity(int percent) {
-        MiogramVisualsPrefs.saveInt(getParentActivity(), "liquid_glass_intensity", percent);
     }
 
     @Override
@@ -146,6 +137,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                 }
             }
         }
+    }
 
     private void toast(String message) {
         android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
@@ -157,5 +149,4 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
         );
     }
-}
 }
