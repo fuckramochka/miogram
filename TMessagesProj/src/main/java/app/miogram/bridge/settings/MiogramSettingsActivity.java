@@ -3,7 +3,6 @@ package app.miogram.bridge.settings;
 import android.content.Context;
 import android.view.View;
 import androidx.annotation.NonNull;
-import androidx.annotation.SuppressLint;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.LocaleController;
@@ -15,7 +14,7 @@ import org.telegram.ui.Cells.TextCheckCell;
 import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.BulletinFactory;
 
-import app.miogram.bridge.ai.MiogramAiSettingsActivity;
+import app.miogram.bridge.ui.MiogramAiSettingsActivity;
 import app.miogram.bridge.plugins.WamrWasmRuntime;
 import app.miogram.bridge.ui.MiogramPluginsActivity;
 import app.miogram.bridge.ui.MiogramVaultSetupActivity;
@@ -107,7 +106,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         }
 
         @Override
-        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, @SuppressLint("RecyclerView") int position) {
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             switch (holder.getItemViewType()) {
                 case 2: {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
