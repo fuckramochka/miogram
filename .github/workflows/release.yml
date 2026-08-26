@@ -79,18 +79,12 @@ jobs:
           if [ -n "$RELEASE_KEYSTORE" ]; then
             echo "$RELEASE_KEYSTORE" | base64 -d > TMessagesProj/release.keystore
             echo "signing key restored from secret"
+          elif [ -f "TMessagesProj/release.keystore" ]; then
+            echo "Using committed TMessagesProj/release.keystore"
           else
-            echo "Generating stable release keystore for reproducible installation..."
-            keytool -genkeypair -v \
-              -keystore TMessagesProj/release.keystore \
-              -alias miogram \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -storepass miogram \
-              -keypass miogram \
-              -dname "CN=Miogram, OU=Miogram, O=Miogram, L=Kyiv, S=Kyiv, C=UA"
-            echo "Stable release.keystore created."
+            echo "Restoring permanent stable release.keystore..."
+            echo "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" | base64 -d > TMessagesProj/release.keystore
+            echo "Permanent stable release.keystore restored."
           fi
       - name: Build arm64-v8a Release
         id: release_build_step

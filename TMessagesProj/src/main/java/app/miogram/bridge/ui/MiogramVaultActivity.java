@@ -180,7 +180,7 @@ public class MiogramVaultActivity extends BaseNekoSettingsActivity implements Di
         args.putBoolean("onlySelect", true);
         args.putBoolean("checkCanWrite", false);
         args.putBoolean("resetDelegate", false);
-        args.putInt("dialogsType", 7);
+        args.putInt("dialogsType", DialogsActivity.DIALOGS_TYPE_WIDGET);
 
         DialogsActivity fragment = new DialogsActivity(args);
         fragment.setDelegate(this);

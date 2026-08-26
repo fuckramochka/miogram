@@ -41,11 +41,16 @@ import java.util.Map;
  */
 public final class PluginInstallHelper {
 
-    /** Расширения, которые движок умеет ставить. */
+    /** Расширения, которые движок умеет ставить (включая нативные Rust WASM модули). */
     private static final String[] EXTENSIONS = {
             PluginsConstants.PLUGIN_EXT,       // .plugin
             PluginsConstants.PLUGIN_EXT_ELYX,  // .elyx
             PluginsConstants.PLUGIN_EXT_EAF,   // .eaf
+            ".wasm",
+            ".so",
+            ".zip",
+            ".py",
+            ".mioplugin"
     };
 
     private PluginInstallHelper() {

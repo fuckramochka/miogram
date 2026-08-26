@@ -2064,6 +2064,9 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         super.onAttachedToWindow();
         attached = true;
         updateAttachState();
+        if (app.miogram.bridge.ui.MiogramGlassEffect.isEnabled()) {
+            app.miogram.bridge.ui.MiogramGlassEffect.applyGlass(this);
+        }
         if (actionModeVisible) {
             final int color = actionModeColor == 0 ? actionBarColor : actionModeColor;
             if (color == 0 || glassMode) {

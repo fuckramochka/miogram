@@ -143,7 +143,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     } else if (position == aiRow) {
                         cell.setText(LocaleController.getString(R.string.MiogramAITitle), true);
                     } else if (position == pluginsRow) {
-                        cell.setText("Плагіни (exteraGram Plugins)", true);
+                        cell.setText("Плагіни Miogram (Rust / WASM / Py)", true);
                     } else if (position == visualsRow) {
                         cell.setText("Рідке скло (AGSL Shaders)", true);
                     } else if (position == updaterRow) {

@@ -188,6 +188,17 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
 
     private void promptInstallApk(Context ctx, File file) {
         try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!ctx.getPackageManager().canRequestPackageInstalls()) {
+                    Intent permIntent = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                    permIntent.setData(Uri.parse("package:" + ctx.getPackageName()));
+                    permIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    ctx.startActivity(permIntent);
+                    Toast.makeText(ctx, "Увімкніть дозвіл на встановлення додатків для Miogram", Toast.LENGTH_LONG).show();
+                    return;
+                }
+            }
+
             Intent intent = new Intent(Intent.ACTION_VIEW);
             Uri uri;
             if (Build.VERSION.SDK_INT >= 24) {
