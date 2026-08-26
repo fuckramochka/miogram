@@ -10,24 +10,24 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.R;
+import org.telegram.messenger.SharedConfig;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.Cells.TextCheckCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
 import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.DialogsActivity;
+import org.telegram.ui.PasscodeActivity;
+import org.telegram.ui.TopicsFragment;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import app.miogram.bridge.passcode.MiogramDuressConfig;
-import app.miogram.bridge.passcode.MiogramLockFacade;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 
@@ -42,6 +42,7 @@ public class MiogramVaultActivity extends BaseNekoSettingsActivity implements Di
     private int duressPinRow;
     private int decoyChatsRow;
     private int headerActionsRow;
+    private int passcodeSettingsRow;
     private int lockNowRow;
     private int wipeVaultRow;
     private int infoRow;
@@ -65,6 +66,7 @@ public class MiogramVaultActivity extends BaseNekoSettingsActivity implements Di
         decoyChatsRow = addRow();
 
         headerActionsRow = addRow();
+        passcodeSettingsRow = addRow();
         lockNowRow = addRow();
         wipeVaultRow = addRow();
 
@@ -79,8 +81,13 @@ public class MiogramVaultActivity extends BaseNekoSettingsActivity implements Di
             showPinDialog(true);
         } else if (position == decoyChatsRow) {
             openDecoyChatsPicker();
+        } else if (position == passcodeSettingsRow) {
+            presentFragment(new PasscodeActivity(SharedConfig.passcodeHash.length() > 0 ? 2 : 0));
         } else if (position == lockNowRow) {
             MiogramDuressConfig.setDuressActive(false);
+            if (SharedConfig.passcodeHash.length() > 0) {
+                SharedConfig.appLocked = true;
+            }
             if (getParentActivity() != null) {
                 BulletinFactory.of(this).createSimpleBulletin(R.raw.chats_infotip, "Сховище заблоковано. Ключі стерті з пам'яті.").show();
             }
@@ -92,6 +99,8 @@ public class MiogramVaultActivity extends BaseNekoSettingsActivity implements Di
                 }
             } else {
                 wipeArmed = false;
+                MiogramDuressConfig.setRealPin("");
+                MiogramDuressConfig.setDuressPin("");
                 MiogramDuressConfig.setDecoyDialogIds(new HashSet<>());
                 MiogramDuressConfig.setDuressActive(false);
                 if (getParentActivity() != null) {
@@ -138,7 +147,16 @@ public class MiogramVaultActivity extends BaseNekoSettingsActivity implements Di
                 Toast.makeText(ctx, "Введені PIN-коди не збігаються", Toast.LENGTH_SHORT).show();
                 return;
             }
-            Toast.makeText(ctx, isDuress ? "Тривожний PIN збережено" : "Реальний PIN збережено", Toast.LENGTH_SHORT).show();
+            if (isDuress) {
+                MiogramDuressConfig.setDuressPin(p1);
+                Toast.makeText(ctx, "Тривожний PIN збережено", Toast.LENGTH_SHORT).show();
+            } else {
+                MiogramDuressConfig.setRealPin(p1);
+                if (SharedConfig.passcodeHash.isEmpty()) {
+                    SharedConfig.setPasscode(p1);
+                }
+                Toast.makeText(ctx, "Реальний PIN збережено", Toast.LENGTH_SHORT).show();
+            }
             listAdapter.notifyDataSetChanged();
         });
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
@@ -158,10 +176,10 @@ public class MiogramVaultActivity extends BaseNekoSettingsActivity implements Di
     }
 
     @Override
-    public boolean didSelectDialogs(DialogsActivity fragment, java.util.ArrayList<org.telegram.messenger.MessagesStorage.TopicKey> dids, CharSequence message, boolean param, boolean notify, int scheduleDate, int scheduleRepeatPeriod, org.telegram.ui.TopicsFragment topicsFragment) {
+    public boolean didSelectDialogs(DialogsActivity fragment, java.util.ArrayList<MessagesStorage.TopicKey> dids, CharSequence message, boolean param, boolean notify, int scheduleDate, int scheduleRepeatPeriod, TopicsFragment topicsFragment) {
         if (dids != null) {
             Set<Long> set = new HashSet<>();
-            for (org.telegram.messenger.MessagesStorage.TopicKey key : dids) {
+            for (MessagesStorage.TopicKey key : dids) {
                 if (key != null) {
                     set.add(key.dialogId);
                 }
@@ -203,21 +221,25 @@ public class MiogramVaultActivity extends BaseNekoSettingsActivity implements Di
                 case 7 -> {
                     holder.itemView.setBackground(Theme.getThemedDrawable(mContext, R.drawable.greydivider_bottom, Theme.key_windowBackgroundGrayShadow));
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
-                    cell.setText("При введенні тривожного PIN-коду замість звичайного, Miogram відкриває аварійний безпечний простір, показуючи лише обрані чати та повністю приховуючи конфіденційні діалоги.");
+                    cell.setText("При введенні тривожного PIN-коду на екрані блокування Telegram, додаток відкриває аварійний безпечний простір, відображаючи лише вибрані нейтральні чати та повністю приховуючи конфіденційні переписки.");
                 }
                 default -> {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == realPinRow) {
-                        cell.setText("Встановити / Змінити реальний PIN", true);
+                        String status = MiogramDuressConfig.hasRealPin() ? "Встановлено ✓" : "Не встановлено";
+                        cell.setText("Реальний PIN-код · " + status, true);
                     } else if (position == duressPinRow) {
-                        cell.setText("Встановити / Змінити тривожний PIN", true);
+                        String status = MiogramDuressConfig.hasDuressPin() ? "Встановлено ✓" : "Не встановлено";
+                        cell.setText("Тривожний PIN-код · " + status, true);
                     } else if (position == decoyChatsRow) {
                         int count = MiogramDuressConfig.getDecoyDialogIds().size();
                         String countText = count > 0 ? "Вибрано: " + count : "Не вибрано (показувати всі)";
                         cell.setText("Чати тривожного режиму · " + countText, false);
+                    } else if (position == passcodeSettingsRow) {
+                        cell.setText("Налаштування блокування Telegram", true);
                     } else if (position == lockNowRow) {
-                        cell.setText("Заблокувати зараз", true);
+                        cell.setText("Заблокувати додаток зараз", true);
                     } else if (position == wipeVaultRow) {
                         cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteRedText3));
                         cell.setText("Знищити сховище", false);

@@ -953,24 +953,29 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 onPasscodeError();
                 return;
             }
-            if (MiogramGate.isConfigured()) {
-                MiogramGate.interceptUnlockAsync(password, verdict -> {
-                    if (verdict == MiogramGate.VERDICT_REAL_UNLOCKED) {
-                        finishUnlock(false);
-                    } else if (verdict == MiogramGate.VERDICT_DECOY_UNLOCKED) {
-                        passwordEditText.setText("");
-                        passwordEditText2.eraseAllCharacters(true);
-                        MiogramDecoyActivity.start(getContext());
-                    } else {
-                        handleLegacyPasscodeError();
-                    }
-                });
+            if (app.miogram.bridge.passcode.MiogramDuressConfig.hasDuressPin() && app.miogram.bridge.passcode.MiogramDuressConfig.checkDuressPin(password)) {
+                app.miogram.bridge.passcode.MiogramDuressConfig.setDuressActive(true);
+                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
+                finishUnlock(false);
                 return;
             }
-            if (!PasscodeHelper.checkPasscode((Activity) getContext(), password) && !SharedConfig.checkPasscode(password)) {
+            if (app.miogram.bridge.passcode.MiogramDuressConfig.hasRealPin() && app.miogram.bridge.passcode.MiogramDuressConfig.checkRealPin(password)) {
+                app.miogram.bridge.passcode.MiogramDuressConfig.setDuressActive(false);
+                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
+                finishUnlock(false);
+                return;
+            }
+            if (PasscodeHelper.checkPasscode((Activity) getContext(), password)) {
+                app.miogram.bridge.passcode.MiogramDuressConfig.setDuressActive(false);
+                finishUnlock(false);
+                return;
+            }
+            if (!SharedConfig.checkPasscode(password)) {
                 handleLegacyPasscodeError();
                 return;
             }
+            app.miogram.bridge.passcode.MiogramDuressConfig.setDuressActive(false);
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
         }
         finishUnlock(fingerprint);
     }
