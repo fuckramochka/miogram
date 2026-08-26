@@ -1,27 +1,27 @@
 package app.miogram.bridge.ui
 
-import android.app.Activity
-import android.content.Context
-import android.graphics.Color
-import android.graphics.Typeface
-import android.os.Build
-import android.os.Bundle
-import android.view.View
+import android.app.Activity;
+import android.content.Context;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.os.Build;
+import android.os.Bundle;
+import android.view.View;
 
-import androidx.annotation.NonNull
-import androidx.recyclerview.widget.RecyclerView
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
 
-import org.telegram.messenger.LocaleController
-import org.telegram.messenger.R
-import org.telegram.ui.Cells.HeaderCell
-import org.telegram.ui.Cells.TextCheckCell
-import org.telegram.ui.Cells.TextInfoPrivacyCell
-import org.telegram.ui.Cells.TextSettingsCell
-import org.telegram.ui.ActionBar.Theme
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.R;
+import org.telegram.ui.Cells.HeaderCell;
+import org.telegram.ui.Cells.TextCheckCell;
+import org.telegram.ui.Cells.TextInfoPrivacyCell;
+import org.telegram.ui.Cells.TextSettingsCell;
+import org.telegram.ui.ActionBar.Theme;
 
-import app.miogram.bridge.MiogramFlags
+import app.miogram.bridge.MiogramFlags;
 
-import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity
+import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 
 /**
  * Native Telegram-style AGSL liquid-glass tuning.
