@@ -62,15 +62,15 @@ jobs:
       - name: Configure Android SDK Path
         run: |
           echo "sdk.dir=${ANDROID_HOME}" >> local.properties
-      - name: Modify Gradle JVM Args
+      - name: Modify Gradle JVM Args and Speedup
         run: |
-          MEMORY_KB=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
-          MEMORY_GB=$((MEMORY_KB / 1024 / 1024))
-          echo "Detected memory size: ${MEMORY_GB}GB"
-          if [ $MEMORY_GB -ge 12 ]; then
-            sed -i '/^org\.gradle\.jvmargs=/d' gradle.properties
-            echo "org.gradle.jvmargs=-Xmx8G -XX:MaxMetaspaceSize=2G -XX:+UseParallelGC -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" >> gradle.properties
-          fi
+          sed -i '/^org\.gradle\.jvmargs=/d' gradle.properties
+          echo "org.gradle.jvmargs=-Xmx6G -XX:MaxMetaspaceSize=1G -XX:+UseParallelGC -Dfile.encoding=UTF-8" >> gradle.properties
+          echo "org.gradle.parallel=true" >> gradle.properties
+          echo "org.gradle.caching=true" >> gradle.properties
+          echo "org.gradle.vfs.watch=false" >> gradle.properties
+          echo "kotlin.incremental=false" >> gradle.properties
+          echo "android.enableR8.fullMode=false" >> gradle.properties
           cat gradle.properties
       - name: Restore or generate signing key
         env:
@@ -94,7 +94,7 @@ jobs:
           BUILD_TIMESTAMP=$(date +%s)
           echo "BUILD_TIMESTAMP=$BUILD_TIMESTAMP" >> $GITHUB_ENV
           echo "build_timestamp=$BUILD_TIMESTAMP" >> "$GITHUB_OUTPUT"
-          ./gradlew TMessagesProj:assembleRelease
+          ./gradlew TMessagesProj:assembleRelease --parallel --build-cache --configure-on-demand -x lint -x test -x mockableAndroidJar
       - name: Upload arm64-v8a Artifact
         uses: actions/upload-artifact@v4
         with:

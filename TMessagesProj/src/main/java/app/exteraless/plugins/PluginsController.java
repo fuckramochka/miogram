@@ -750,7 +750,6 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
                 String id = root.getJSONObject("meta").optString("id");
                 // Сохраняем исходное расширение: .elyx/.eaf — ZIP-архивы, их нельзя
                 // переименовывать в .py.
-                String srcName = source.getName().toLowerCase();
                 String ext = PluginsConstants.PLUGIN_EXT_PY;
                 if (srcName.endsWith(PluginsConstants.PLUGIN_EXT_ELYX)) {
                     ext = PluginsConstants.PLUGIN_EXT_ELYX;
