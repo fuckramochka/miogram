@@ -13,6 +13,7 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -331,7 +332,7 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
                 prefs().edit().putBoolean("pii_mask", v).apply();
                 if (cell != null) cell.setChecked(v);
             } else if (position == meteredRow) {
-                boolean v = !facade.getPreferences().cloudAllowedOnMeteredNetwork;
+                boolean v = !facade.getPreferences().getCloudAllowedOnMeteredNetwork();
                 facade.setPreferences(facade.getPreferences().withCloudMetered(v));
                 if (cell != null) cell.setChecked(v);
             } else {
@@ -396,7 +397,7 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
                                 prefs().getBoolean("pii_mask", true), false);
                     } else if (position == meteredRow) {
                         cell.setTextAndCheck(LocaleController.getString(R.string.MiogramMeteredGuard),
-                                facade.getPreferences().cloudAllowedOnMeteredNetwork, false);
+                                facade.getPreferences().getCloudAllowedOnMeteredNetwork(), false);
                     } else if (position == offlineRow) {
                         cell.setTextAndCheck(LocaleController.getString(R.string.MiogramOfflineOnly),
                                 prefs().getBoolean("stt_offline_only", false), false);

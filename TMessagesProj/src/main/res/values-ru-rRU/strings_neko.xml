@@ -314,4 +314,7 @@
     <string name="MiogramFileLoaded">Файл загружен</string>
     <string name="MiogramInstalled">Плагин установлен</string>
     <string name="MiogramEnable">Включить</string>
+    <string name="MiogramRuntimeReady">Рантайм WAMR готов</string>
+    <string name="MiogramRuntimeMissing">Рантайма WAMR нет в этой сборке</string>
+    <string name="MiogramWhisperModelRow">Модель Whisper</string>
 </resources>

@@ -45,4 +45,7 @@
     <string name="MiogramFileLoaded">Файл завантажено</string>
     <string name="MiogramInstalled">Плагін встановлено</string>
     <string name="MiogramEnable">Увімкнути</string>
+    <string name="MiogramRuntimeReady">Рантайм WAMR готовий</string>
+    <string name="MiogramRuntimeMissing">Рантайму WAMR немає у цій збірці</string>
+    <string name="MiogramWhisperModelRow">Модель Whisper</string>
 </resources>

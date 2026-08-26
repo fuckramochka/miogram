@@ -11272,4 +11272,7 @@
     <string name="MiogramFileLoaded">File loaded</string>
     <string name="MiogramInstalled">Plugin installed</string>
     <string name="MiogramEnable">Enable</string>
+    <string name="MiogramRuntimeReady">WAMR runtime ready</string>
+    <string name="MiogramRuntimeMissing">WAMR runtime missing in this build</string>
+    <string name="MiogramWhisperModelRow">Whisper model</string>
 </resources>

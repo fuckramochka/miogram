@@ -46,7 +46,7 @@ public class MiogramPluginsActivity extends BaseNekoSettingsActivity {
 
     private final InMemoryPluginRepository repository = new InMemoryPluginRepository();
     private final MiogramPluginEngine engine = new MiogramPluginEngine(
-            repository, WamrWasmRuntime, new InMemoryTrustAnchors());
+            repository, WamrWasmRuntime.INSTANCE, new InMemoryTrustAnchors());
 
     private byte[] pendingCode;
     private byte[] pendingManifest;
@@ -205,6 +205,13 @@ public class MiogramPluginsActivity extends BaseNekoSettingsActivity {
 
     // --- adapter ---------------------------------------------------------------
 
+    private void toast(String message) {
+        if (getParentActivity() != null) {
+            android.widget.Toast.makeText(getParentActivity(), message,
+                    android.widget.Toast.LENGTH_SHORT).show();
+        }
+    }
+
     @Override
     protected BaseListAdapter createAdapter(Context context) {
         return new ListAdapter(context);
@@ -231,7 +238,7 @@ public class MiogramPluginsActivity extends BaseNekoSettingsActivity {
                             mContext, R.drawable.greydivider_bottom,
                             Theme.key_windowBackgroundGrayShadow));
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
-                    cell.setText(WamrWasmRuntime.isAvailable()
+                    cell.setText(WamrWasmRuntime.INSTANCE.isAvailable()
                             ? LocaleController.getString(R.string.MiogramRuntimeReady)
                             : LocaleController.getString(R.string.MiogramRuntimeMissing));
                 }

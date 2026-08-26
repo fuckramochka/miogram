@@ -97,6 +97,7 @@ class LocalSttEngine(
      * @throws SttException with MODEL_NOT_DOWNLOADED / BACKEND_NOT_READY /
      *         BUSY depending on what is missing; AUDIO_INVALID for empty input.
      */
+    @JvmOverloads
     fun transcribe(wavPcm16: ByteArray, sampleRate: Int = 16_000, onProgress: (Float) -> Unit = {}): String {
         if (!isDownloaded()) throw SttException(ErrorCode.MODEL_NOT_DOWNLOADED)
         val activeBackend = backend ?: throw SttException(ErrorCode.BACKEND_NOT_READY)
