@@ -11256,4 +11256,20 @@
     <string name="MiogramWhisperDownload">Download selected model</string>
     <string name="MiogramWhisperReady">Model downloaded ✓</string>
     <string name="MiogramWhisperInvalid">Downloaded file failed validation</string>
+    <string name="MiogramAgslToggle">Liquid glass (AGSL refraction)</string>
+    <string name="MiogramIntensity">Effect intensity</string>
+    <string name="MiogramCustomization">Customization</string>
+    <string name="MiogramPillStack">Pill Stack</string>
+    <string name="MiogramVisualsNote">Applies to Miogram decorative panels after the screen is reopened. Requires Android 13+; older devices get a simplified fallback.</string>
+    <string name="MiogramEnabled">Enabled</string>
+    <string name="MiogramDisabled">Disabled</string>
+    <string name="MiogramInstallHeader">Install</string>
+    <string name="MiogramInstalledHeader">Installed plugins</string>
+    <string name="MiogramPickCode">1. Pick code (.wasm)</string>
+    <string name="MiogramPickManifest">2. Pick signed manifest (.manifest)</string>
+    <string name="MiogramInstall">Install plugin</string>
+    <string name="MiogramPickBothFirst">Pick both files first</string>
+    <string name="MiogramFileLoaded">File loaded</string>
+    <string name="MiogramInstalled">Plugin installed</string>
+    <string name="MiogramEnable">Enable</string>
 </resources>

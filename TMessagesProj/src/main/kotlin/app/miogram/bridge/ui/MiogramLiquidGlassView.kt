@@ -37,7 +37,7 @@ class MiogramLiquidGlassView @JvmOverloads constructor(
     private val boundsRect = RectF()
 
     /** 0..1 visual strength of the effect; persisted across inflations. */
-    var intensity: Float = HyperionVisualsPrefs.loadInt(context, KEY_INTENSITY, DEFAULT_INTENSITY_PERCENT) / 100f
+    var intensity: Float = MiogramVisualsPrefs.loadInt(context, KEY_INTENSITY, DEFAULT_INTENSITY_PERCENT) / 100f
         set(value) {
             field = value.coerceIn(0f, 1f)
             invalidate()

@@ -29,4 +29,20 @@
     <string name="MiogramWhisperDownload">Завантажити обрану модель</string>
     <string name="MiogramWhisperReady">Модель завантажена ✓</string>
     <string name="MiogramWhisperInvalid">Файл не пройшов перевірку</string>
+    <string name="MiogramAgslToggle">Рідке скло (заломлення AGSL)</string>
+    <string name="MiogramIntensity">Інтенсивність ефекту</string>
+    <string name="MiogramCustomization">Кастомізація</string>
+    <string name="MiogramPillStack">Стек пілюль</string>
+    <string name="MiogramVisualsNote">Застосовується до декоративних панелей Miogram після повторного відкриття екрана. Потрібен Android 13+; на старіших — спрощений вигляд.</string>
+    <string name="MiogramEnabled">Увімкнено</string>
+    <string name="MiogramDisabled">Вимкнено</string>
+    <string name="MiogramInstallHeader">Встановлення</string>
+    <string name="MiogramInstalledHeader">Встановлені плагіни</string>
+    <string name="MiogramPickCode">1. Обрати код (.wasm)</string>
+    <string name="MiogramPickManifest">2. Обрати підписаний манифест (.manifest)</string>
+    <string name="MiogramInstall">Встановити плагін</string>
+    <string name="MiogramPickBothFirst">Спочатку обидва файли</string>
+    <string name="MiogramFileLoaded">Файл завантажено</string>
+    <string name="MiogramInstalled">Плагін встановлено</string>
+    <string name="MiogramEnable">Увімкнути</string>
 </resources>

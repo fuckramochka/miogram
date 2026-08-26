@@ -298,4 +298,20 @@
     <string name="MiogramWhisperDownload">Скачать выбранную модель</string>
     <string name="MiogramWhisperReady">Модель загружена ✓</string>
     <string name="MiogramWhisperInvalid">Файл не прошёл проверку</string>
+    <string name="MiogramAgslToggle">Жидкое стекло (преломление AGSL)</string>
+    <string name="MiogramIntensity">Интенсивность эффекта</string>
+    <string name="MiogramCustomization">Кастомизация</string>
+    <string name="MiogramPillStack">Стек пилюль</string>
+    <string name="MiogramVisualsNote">Применяется к декоративным панелям Miogram после повторного открытия экрана. Нужен Android 13+; на старых — упрощённый вид.</string>
+    <string name="MiogramEnabled">Включено</string>
+    <string name="MiogramDisabled">Выключено</string>
+    <string name="MiogramInstallHeader">Установка</string>
+    <string name="MiogramInstalledHeader">Установленные плагины</string>
+    <string name="MiogramPickCode">1. Выбрать код (.wasm)</string>
+    <string name="MiogramPickManifest">2. Выбрать подписанный манифест (.manifest)</string>
+    <string name="MiogramInstall">Установить плагин</string>
+    <string name="MiogramPickBothFirst">Сначала выберите оба файла</string>
+    <string name="MiogramFileLoaded">Файл загружен</string>
+    <string name="MiogramInstalled">Плагин установлен</string>
+    <string name="MiogramEnable">Включить</string>
 </resources>
