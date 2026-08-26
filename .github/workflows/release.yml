@@ -48,7 +48,7 @@ jobs:
       - name: Set up Android SDK Tools
         uses: android-actions/setup-android@v4
         with:
-          packages: "build-tools;36.0.0 ndk;27.2.12479018"
+          packages: "build-tools;36.0.0 ndk;27.2.12479018 platforms;android-37.0"
       - name: Install Native Build Dependencies
         run: |
           sudo apt-get update
@@ -99,6 +99,12 @@ jobs:
           export BUILD_TIMESTAMP=$(date +%s)
           echo "build_timestamp=$BUILD_TIMESTAMP" >> "$GITHUB_OUTPUT"
           ./gradlew TMessagesProj:assembleRelease
+      - name: Verify APK Signature
+        run: |
+          for apk in TMessagesProj/build/outputs/apk/release/*.apk; do
+            echo "=== Verifying signature for $apk ==="
+            ${ANDROID_HOME}/build-tools/36.0.0/apksigner verify --verbose "$apk" || true
+          done
       - name: Upload arm64-v8a Artifact
         uses: actions/upload-artifact@v7
         with:

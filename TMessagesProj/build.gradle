@@ -223,16 +223,14 @@ android {
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
+            storeFile releaseKeystore
+            storePassword 'miogram'
+            keyAlias 'miogram'
+            keyPassword 'miogram'
             if (hasCustomKeystore) {
-                storeFile releaseKeystore
                 storePassword keystorePwd
                 keyAlias alias
                 keyPassword pwd
-            } else if (releaseKeystore.exists()) {
-                storeFile releaseKeystore
-                storePassword 'miogram'
-                keyAlias 'miogram'
-                keyPassword 'miogram'
             }
         }
         debug {
