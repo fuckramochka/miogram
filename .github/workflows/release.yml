@@ -24,12 +24,12 @@ jobs:
       NATIVE_TARGET: "arm64-v8a"
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
           submodules: recursive
       - name: Set up JDK
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -40,13 +40,13 @@ jobs:
       - name: Point Chaquopy at that Python
         run: echo "CHAQUOPY_BUILD_PYTHON=$(which python3.11 || which python)" >> $GITHUB_ENV
       - name: Set up Ccache
-        uses: hendrikmuhs/ccache-action@v1.2.23
+        uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: android-ndk
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v3
       - name: Set up Android SDK Tools
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@v3
         with:
           packages: "build-tools;36.0.0 ndk;27.2.12479018 platforms;android-37.0"
       - name: Install Native Build Dependencies
@@ -90,17 +90,17 @@ jobs:
               -dname "CN=Miogram, OU=Miogram, O=Miogram, L=Kyiv, S=Kyiv, C=UA"
             echo "Stable release.keystore created."
           fi
-      - name: Release Build
+      - name: Build arm64-v8a Release
         id: release_build_step
         env:
-          COMMIT_ID: ${{ github.event.head_commit.id }}
+          COMMIT_ID: ${{ github.sha }}
         run: |
-          export LOCAL_PROPERTIES="${{ secrets.LOCAL_PROPERTIES }}"
-          export BUILD_TIMESTAMP=$(date +%s)
+          BUILD_TIMESTAMP=$(date +%s)
+          echo "BUILD_TIMESTAMP=$BUILD_TIMESTAMP" >> $GITHUB_ENV
           echo "build_timestamp=$BUILD_TIMESTAMP" >> "$GITHUB_OUTPUT"
           ./gradlew TMessagesProj:assembleRelease
       - name: Upload arm64-v8a Artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: Release
           path: |
