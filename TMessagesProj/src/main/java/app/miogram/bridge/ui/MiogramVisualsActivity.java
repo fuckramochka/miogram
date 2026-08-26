@@ -82,7 +82,7 @@ class MiogramVisualsActivity extends BaseNekoSettingsActivity {
     }
 
     private void persistDecoration(boolean enabled) {
-        MiogramFlags.isSpatialDecoration() = enabled;
+        MiogramFlags.setSpatialDecoration(enabled);
         MiogramVisualsPrefs.saveBool(getParentActivity(), "agsl_enabled", enabled);
     }
 
