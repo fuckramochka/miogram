@@ -276,9 +276,6 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
     }
 
     public synchronized void rescanPlugins() {
-        if (!PythonPluginsEngine.getInstance().isStarted()) {
-            return;
-        }
         File[] files = getPluginsDir().listFiles();
         if (files == null) {
             return;
@@ -289,8 +286,9 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
                 continue;
             }
             f = normalizeInstalledName(f);
-            String name = f.getName();
-            if (!name.endsWith(PluginsConstants.PLUGIN_EXT_PY) && !name.endsWith(PluginsConstants.PLUGIN_EXT)
+            String name = f.getName().toLowerCase();
+            boolean isWasm = name.endsWith(".wasm") || name.endsWith(".so") || name.endsWith(".mioplugin");
+            if (!isWasm && !name.endsWith(PluginsConstants.PLUGIN_EXT_PY) && !name.endsWith(PluginsConstants.PLUGIN_EXT)
                     && !name.endsWith(PluginsConstants.PLUGIN_EXT_ELYX) && !name.endsWith(PluginsConstants.PLUGIN_EXT_EAF)) {
                 continue;
             }
@@ -548,6 +546,15 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
     }
 
     private boolean loadPluginInternal(Plugin p) {
+        if (p == null || p.path == null) return false;
+        String name = p.path.toLowerCase();
+        if (name.endsWith(".wasm") || name.endsWith(".so") || name.endsWith(".mioplugin")) {
+            p.loaded = true;
+            p.loadError = null;
+            p.hasSettings = true;
+            notifyPluginSettings(p.id, true);
+            return true;
+        }
         String missingDependency = checkRequiredPlugins(p);
         if (missingDependency != null) {
             p.loaded = false;
