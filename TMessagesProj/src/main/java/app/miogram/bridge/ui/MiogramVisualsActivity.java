@@ -1,4 +1,4 @@
-package app.miogram.bridge.ui
+package app.miogram.bridge.ui;
 
 import android.app.Activity;
 import android.content.Context;
