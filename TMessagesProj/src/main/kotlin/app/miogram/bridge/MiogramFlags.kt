@@ -26,4 +26,12 @@ object MiogramFlags {
      */
     @Volatile
     var SPATIAL_DECORATION: Boolean = false
+
+    @JvmStatic
+    fun isSpatialDecoration(): Boolean = SPATIAL_DECORATION
+
+    @JvmStatic
+    fun setSpatialDecoration(value: Boolean) {
+        SPATIAL_DECORATION = value
+    }
 }
