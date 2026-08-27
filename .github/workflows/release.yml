@@ -90,6 +90,7 @@ jobs:
         id: release_build_step
         env:
           COMMIT_ID: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
           BUILD_TIMESTAMP=$(date +%s)
           echo "BUILD_TIMESTAMP=$BUILD_TIMESTAMP" >> $GITHUB_ENV

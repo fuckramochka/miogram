@@ -1,11 +1,6 @@
 package app.miogram.bridge.ui;
 
-import android.app.DownloadManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -14,9 +9,6 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
@@ -29,12 +21,10 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.core.content.FileProvider;
 import androidx.core.widget.NestedScrollView;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
-import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -46,17 +36,17 @@ import org.telegram.ui.Components.LayoutHelper;
 import java.io.File;
 
 import app.miogram.bridge.MiogramLocale;
+import app.miogram.bridge.updater.MiogramDownloadManager;
 
 /**
  * Premium 16:9 Anime Art In-App Update Dialog for Miogram.
  * Features:
- * - 16:9 smooth anti-aliased banner artwork (Happy Kangel on update / Sad Ame-chan on latest)
- * - Modern typography and pill badges
+ * - 16:9 smooth anti-aliased banner artwork (Happy Ame-chan on update / Sad Ame-chan on latest)
  * - Soft rounded translucent card for changelog
- * - Smooth horizontal download progress bar
+ * - Connects directly to singleton MiogramDownloadManager (no duplicate downloads)
  * - Multilingual support (Ukrainian, Russian, English)
  */
-public class MiogramUpdateBottomSheet extends BottomSheet {
+public class MiogramUpdateBottomSheet extends BottomSheet implements MiogramDownloadManager.DownloadListener {
 
     private final boolean hasUpdate;
     private final String versionName;
@@ -68,11 +58,6 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
     private LinearLayout progressContainer;
     private ProgressBar progressBar;
     private TextView progressTextView;
-
-    private long downloadId = -1;
-    private BroadcastReceiver downloadReceiver;
-    private Handler progressHandler;
-    private Runnable progressRunnable;
 
     public MiogramUpdateBottomSheet(BaseFragment fragment, boolean hasUpdate, String versionName, String changelog, String apkDownloadUrl) {
         super(fragment.getParentActivity(), false, fragment.getResourceProvider());
@@ -123,7 +108,6 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
         try {
             Bitmap raw = BitmapFactory.decodeResource(ctx.getResources(), imageRes);
             if (raw != null) {
-                // Draw 16:9 smooth rounded image
                 illustrationView.setImageBitmap(getSmoothRounded16by9Bitmap(raw, AndroidUtilities.dp(16)));
             } else {
                 illustrationView.setImageResource(imageRes);
@@ -131,8 +115,7 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
         } catch (Throwable t) {
             illustrationView.setImageResource(imageRes);
         }
-        // 16:9 Ratio: Match Parent width, ~146dp height
-        root.addView(illustrationView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 146, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 14));
+        root.addView(illustrationView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 150, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 14));
 
         // 4. Soft Card Container for Changelog & Description
         LinearLayout cardLayout = new LinearLayout(ctx);
@@ -145,8 +128,8 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
             String noteText = (!TextUtils.isEmpty(changelog))
                     ? changelog.trim()
                     : MiogramLocale.get("• Оновлено Miogram AI (Gemini 3.5 Flash Lite)\n• Нативна розшифровка голосових повідомлень\n• Оптимізація та прискорення роботи",
-                                        "• Обновлен Miogram AI (Gemini 3.5 Flash Lite)\n• Нативная расшифровка голосовых сообщений\n• Оптимизация и ускорение работы",
-                                        "• Updated Miogram AI (Gemini 3.5 Flash Lite)\n• Native voice message transcription\n• Performance optimizations");
+                    "• Обновлен Miogram AI (Gemini 3.5 Flash Lite)\n• Нативная расшифровка голосовых сообщений\n• Оптимизация и ускорение работы",
+                    "• Updated Miogram AI (Gemini 3.5 Flash Lite)\n• Native voice message transcription\n• Performance optimizations");
             descriptionView.setText(MiogramLocale.get("Що нового:\n", "Что нового:\n", "What's new:\n") + noteText + "\n\n" + MiogramLocale.get("Бажаєте встановити оновлення?", "Желаете установить обновление?", "Would you like to install the update?"));
         } else {
             descriptionView.setText(MiogramLocale.get("У вас вже встановлено найновішу збірку Miogram. Нових оновлень поки немає.",
@@ -190,7 +173,7 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
         installButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(12), Theme.getColor(Theme.key_featuredStickers_addButton), Theme.getColor(Theme.key_featuredStickers_addButton)));
         installButton.setTextColor(0xFFFFFFFF);
         if (hasUpdate) {
-            installButton.setOnClickListener(v -> startDownloadAndInstall(fragment));
+            installButton.setOnClickListener(v -> startDownload(fragment));
         } else {
             installButton.setOnClickListener(v -> dismiss());
         }
@@ -213,6 +196,31 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
         NestedScrollView sv = new NestedScrollView(ctx);
         sv.addView(fl);
         setCustomView(sv);
+
+        MiogramDownloadManager dm = MiogramDownloadManager.getInstance();
+        if (dm.isDownloading()) {
+            dm.addListener(this);
+            showProgressUI();
+        }
+    }
+
+    private void showProgressUI() {
+        if (installButton != null) {
+            installButton.setEnabled(false);
+            installButton.setAlpha(0.6f);
+        }
+        if (cancelButton != null) cancelButton.setVisibility(View.GONE);
+        if (progressContainer != null) progressContainer.setVisibility(View.VISIBLE);
+    }
+
+    private void startDownload(BaseFragment fragment) {
+        Context ctx = fragment.getParentActivity();
+        if (ctx == null) ctx = ApplicationLoader.applicationContext;
+
+        MiogramDownloadManager dm = MiogramDownloadManager.getInstance();
+        dm.addListener(this);
+        showProgressUI();
+        dm.startDownload(ctx, apkDownloadUrl, versionName, changelog);
     }
 
     private Bitmap getSmoothRounded16by9Bitmap(Bitmap bitmap, int pixels) {
@@ -239,151 +247,39 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
         return output;
     }
 
-    private void startDownloadAndInstall(BaseFragment fragment) {
-        Context ctx = fragment.getParentActivity();
-        if (ctx == null) ctx = ApplicationLoader.applicationContext;
-
-        if (apkDownloadUrl == null || apkDownloadUrl.isEmpty()) {
-            Toast.makeText(ctx, MiogramLocale.get("Посилання для завантаження недоступне", "Ссылка для загрузки недоступна", "Download link is not available"), Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        installButton.setEnabled(false);
-        installButton.setAlpha(0.6f);
-        if (cancelButton != null) cancelButton.setVisibility(View.GONE);
-        progressContainer.setVisibility(View.VISIBLE);
-        progressTextView.setText(MiogramLocale.get("Завантаження: 0%...", "Загрузка: 0%...", "Downloading: 0%..."));
-
-        try {
-            DownloadManager dm = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
-            if (dm == null) {
-                Toast.makeText(ctx, "DownloadManager error", Toast.LENGTH_SHORT).show();
-                return;
+    @Override
+    public void onProgress(int percent, long downloadedBytes, long totalBytes) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            showProgressUI();
+            if (progressBar != null) progressBar.setProgress(percent);
+            if (progressTextView != null) {
+                long dlMb = downloadedBytes / (1024 * 1024);
+                long totalMb = totalBytes / (1024 * 1024);
+                progressTextView.setText(MiogramLocale.format("Завантаження: %d%% (%dMB / %dMB)", "Загрузка: %d%% (%dMB / %dMB)", "Downloading: %d%% (%dMB / %dMB)", percent, dlMb, totalMb));
             }
+        });
+    }
 
-            File dir = ctx.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
-            if (dir == null) dir = ctx.getFilesDir();
-            File apkFile = new File(dir, "miogram_update_" + versionName + ".apk");
-            if (apkFile.exists()) apkFile.delete();
+    @Override
+    public void onComplete(File apkFile) {
+        new Handler(Looper.getMainLooper()).post(this::dismiss);
+    }
 
-            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(apkDownloadUrl));
-            request.setTitle("Miogram v" + versionName);
-            request.setDescription(MiogramLocale.get("Завантаження оновлення...", "Загрузка обновления...", "Downloading update..."));
-            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            request.setDestinationUri(Uri.fromFile(apkFile));
-
-            final Context finalCtx = ctx;
-            final File finalApk = apkFile;
-
-            downloadReceiver = new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-                    if (id == downloadId) {
-                        stopProgressPolling();
-                        try {
-                            finalCtx.unregisterReceiver(this);
-                        } catch (Exception ignored) {}
-                        dismiss();
-                        promptInstallApk(finalCtx, finalApk);
-                    }
-                }
-            };
-
-            if (Build.VERSION.SDK_INT >= 33) {
-                ctx.registerReceiver(downloadReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), Context.RECEIVER_EXPORTED);
-            } else {
-                ctx.registerReceiver(downloadReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+    @Override
+    public void onError(String error) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (installButton != null) {
+                installButton.setEnabled(true);
+                installButton.setAlpha(1f);
             }
-
-            downloadId = dm.enqueue(request);
-            startProgressPolling(dm, downloadId);
-        } catch (Exception e) {
-            FileLog.e(e);
-            Toast.makeText(ctx, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            installButton.setEnabled(true);
-            installButton.setAlpha(1f);
             if (cancelButton != null) cancelButton.setVisibility(View.VISIBLE);
-            progressContainer.setVisibility(View.GONE);
-        }
-    }
-
-    private void startProgressPolling(DownloadManager dm, long id) {
-        progressHandler = new Handler(Looper.getMainLooper());
-        progressRunnable = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    DownloadManager.Query q = new DownloadManager.Query();
-                    q.setFilterById(id);
-                    Cursor cursor = dm.query(q);
-                    if (cursor != null && cursor.moveToFirst()) {
-                        int bytesDownloaded = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
-                        int bytesTotal = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
-                        if (bytesTotal > 0) {
-                            int percent = (int) ((bytesDownloaded * 100L) / bytesTotal);
-                            progressBar.setProgress(percent);
-                            long dlMb = bytesDownloaded / (1024 * 1024);
-                            long totalMb = bytesTotal / (1024 * 1024);
-                            progressTextView.setText(MiogramLocale.format("Завантаження: %d%% (%dMB / %dMB)", "Загрузка: %d%% (%dMB / %dMB)", "Downloading: %d%% (%dMB / %dMB)", percent, dlMb, totalMb));
-                        }
-                        cursor.close();
-                    }
-                } catch (Exception ignored) {}
-                if (progressHandler != null) {
-                    progressHandler.postDelayed(this, 500);
-                }
-            }
-        };
-        progressHandler.post(progressRunnable);
-    }
-
-    private void stopProgressPolling() {
-        if (progressHandler != null && progressRunnable != null) {
-            progressHandler.removeCallbacks(progressRunnable);
-            progressHandler = null;
-        }
-    }
-
-    private void promptInstallApk(Context ctx, File file) {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                if (!ctx.getPackageManager().canRequestPackageInstalls()) {
-                    Intent permIntent = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
-                    permIntent.setData(Uri.parse("package:" + ctx.getPackageName()));
-                    permIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    ctx.startActivity(permIntent);
-                    Toast.makeText(ctx, MiogramLocale.get("Увімкніть дозвіл на встановлення додатків для Miogram", "Включите разрешение на установку приложений для Miogram", "Enable install unknown apps permission for Miogram"), Toast.LENGTH_LONG).show();
-                    return;
-                }
-            }
-
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            Uri uri;
-            if (Build.VERSION.SDK_INT >= 24) {
-                uri = FileProvider.getUriForFile(ctx, ctx.getPackageName() + ".provider", file);
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            } else {
-                uri = Uri.fromFile(file);
-            }
-            intent.setDataAndType(uri, "application/vnd.android.package-archive");
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            ctx.startActivity(intent);
-        } catch (Exception e) {
-            FileLog.e(e);
-            Toast.makeText(ctx, "Install Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
+            if (progressContainer != null) progressContainer.setVisibility(View.GONE);
+        });
     }
 
     @Override
     public void dismiss() {
-        stopProgressPolling();
-        try {
-            if (downloadReceiver != null) {
-                ApplicationLoader.applicationContext.unregisterReceiver(downloadReceiver);
-                downloadReceiver = null;
-            }
-        } catch (Exception ignored) {}
+        MiogramDownloadManager.getInstance().removeListener(this);
         super.dismiss();
     }
 }

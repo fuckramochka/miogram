@@ -47646,24 +47646,30 @@ public class ChatActivity extends BaseFragment implements
                 repeatMessage(false, true);
                 break;
             }
-            case nkbtn_forward_nocaption:
-            case nkbtn_forward_noquote: {
-                // Miogram: single-selection «No quote» now opens a plain REPLY
-                // instead of forwarding with hidden header (user-requested).
-                if (id == nkbtn_forward_noquote && selectedObject != null
-                        && selectedMessagesIds[currentAccount].size() <= 1) {
-                    showFieldPanelForReply(selectedObject);
-                    hideActionMode();
-                    break;
-                }
-                noForwardQuote = true;
-                noForwardCaption = id == nkbtn_forward_nocaption;
+            case nkbtn_forward_nocaption: {
+                noForwardQuote = false;
+                noForwardCaption = true;
                 if (messagePreviewParams != null) {
                     messagePreviewParams.setHideForwardSendersName(noForwardQuote);
                     messagePreviewParams.hideCaption = noForwardCaption;
                 }
                 forwardingMessage = selectedObject;
                 forwardingMessageGroup = selectedObjectGroup;
+                openForward(false);
+                break;
+            }
+            case nkbtn_forward_noquote: {
+                MessageObject targetMsg = selectedObject;
+                if (targetMsg == null && selectedMessagesIds != null && selectedMessagesIds[currentAccount].size() > 0) {
+                    int msgId = selectedMessagesIds[currentAccount].keyAt(0);
+                    targetMsg = getMessageObject(msgId);
+                }
+                if (targetMsg != null) {
+                    showFieldPanelForReply(targetMsg);
+                    hideActionMode();
+                    clearSelectionMode();
+                    break;
+                }
                 openForward(false);
                 break;
             }
