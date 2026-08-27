@@ -103,8 +103,8 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(v);
             getNotificationCenter().postNotificationName(NotificationCenter.mainUserInfoChanged);
         } else if (position == allowScreenshotRow) {
-            boolean v = !NekoConfig.allowScreenshot.Bool();
-            NekoConfig.allowScreenshot.setConfigBool(v);
+            boolean v = !NekoConfig.ignoreContentRestrictions.Bool();
+            NekoConfig.ignoreContentRestrictions.setConfigBool(v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(v);
         }
     }
@@ -162,7 +162,7 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
                     } else if (position == hidePhoneRow) {
                         cell.setTextAndCheck("Приховати номер телефону в меню та налаштуваннях", NekoConfig.hidePhone.Bool(), true);
                     } else if (position == allowScreenshotRow) {
-                        cell.setTextAndCheck("Дозволити знімки екрана в секретних чатах", NekoConfig.allowScreenshot.Bool(), false);
+                        cell.setTextAndCheck("Дозволити знімки екрана та копіювання в обмежених чатах", NekoConfig.ignoreContentRestrictions.Bool(), false);
                     }
                     break;
                 }

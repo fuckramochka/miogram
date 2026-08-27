@@ -40,7 +40,7 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
     private int motionInfoRow;
 
     private int headerMediaRow;
-    private int autoPauseMusicRow;
+    private int autoPauseVideoRow;
     private int disableVibrationRow;
     private int mediaInfoRow;
 
@@ -63,7 +63,7 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
         motionInfoRow = addRow();
 
         headerMediaRow = addRow();
-        autoPauseMusicRow = addRow();
+        autoPauseVideoRow = addRow();
         disableVibrationRow = addRow();
         mediaInfoRow = addRow();
     }
@@ -79,9 +79,9 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(next == 1);
         } else if (position == backSensitivityRow) {
             showSensitivityDialog();
-        } else if (position == autoPauseMusicRow) {
-            boolean v = !NekoConfig.pauseMusicOnRecord.Bool();
-            NekoConfig.pauseMusicOnRecord.setConfigBool(v);
+        } else if (position == autoPauseVideoRow) {
+            boolean v = !NekoConfig.autoPauseVideo.Bool();
+            NekoConfig.autoPauseVideo.setConfigBool(v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(v);
         } else if (position == disableVibrationRow) {
             boolean v = !NekoConfig.disableVibration.Bool();
@@ -154,7 +154,7 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
         public int getItemViewType(int position) {
             if (position == headerNetworkRow || position == headerMotionRow || position == headerMediaRow) {
                 return TYPE_HEADER;
-            } else if (position == springAnimationRow || position == autoPauseMusicRow || position == disableVibrationRow) {
+            } else if (position == springAnimationRow || position == autoPauseVideoRow || position == disableVibrationRow) {
                 return TYPE_CHECK;
             } else if (position == networkInfoRow || position == motionInfoRow || position == mediaInfoRow) {
                 return TYPE_INFO_PRIVACY;
@@ -180,8 +180,8 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
                     if (position == springAnimationRow) {
                         cell.setTextAndCheck("Пружинний плавний перехід екранів", NaConfig.INSTANCE.getBackAnimationStyle().Int() == 1, true);
-                    } else if (position == autoPauseMusicRow) {
-                        cell.setTextAndCheck("Ставити музику на паузу при записі голосу", NekoConfig.pauseMusicOnRecord.Bool(), true);
+                    } else if (position == autoPauseVideoRow) {
+                        cell.setTextAndCheck("Ставити відео на паузу при згортанні", NekoConfig.autoPauseVideo.Bool(), true);
                     } else if (position == disableVibrationRow) {
                         cell.setTextAndCheck("Вимкнути всі системні вібрації в додатку", NekoConfig.disableVibration.Bool(), false);
                     }
@@ -206,7 +206,7 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
                     } else if (position == motionInfoRow) {
                         cell.setText("Керування фізикою пружинних переходів та жестом повернення назад.");
                     } else if (position == mediaInfoRow) {
-                        cell.setText("Параметри взаємодії з аудіоплеєром та тактильним відгуком.");
+                        cell.setText("Параметри взаємодії з відеоплеєром та тактильним відгуком.");
                     }
                     break;
                 }

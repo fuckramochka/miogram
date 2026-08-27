@@ -129,7 +129,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     } else if (position == pluginsRow) {
                         cell.setTextAndIcon("Плагіни Miogram (Rust / WASM / Py)", R.drawable.msg_folders, true);
                     } else if (position == updaterRow) {
-                        cell.setTextAndIcon("Перевірити оновлення Miogram", R.drawable.msg_update, false);
+                        cell.setTextAndIcon("Перевірити оновлення Miogram", R.drawable.msg_retry, false);
                     }
                     break;
                 }
