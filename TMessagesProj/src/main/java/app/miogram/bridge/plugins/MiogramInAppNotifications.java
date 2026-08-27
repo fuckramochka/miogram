@@ -18,6 +18,7 @@ import org.telegram.ui.LaunchActivity;
 
 import java.util.ArrayList;
 
+import app.exteraless.plugins.Plugin;
 import app.exteraless.plugins.PluginsController;
 
 /**
@@ -58,8 +59,12 @@ public class MiogramInAppNotifications implements NotificationCenter.Notificatio
     }
 
     private boolean isPluginActive(String id) {
-        Plugin p = PluginsController.getInstance().getPlugin(id);
-        return p != null && p.enabled;
+        try {
+            Plugin p = PluginsController.getInstance().getPlugin(id);
+            return p != null && p.enabled;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     @Override

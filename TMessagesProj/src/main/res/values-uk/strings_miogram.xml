@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Miogram Core & Settings -->
+    <string name="MiogramSettingsRow">Налаштування Miogram</string>
+    <string name="MiogramSettingsSummary">Усі функції, дизайн, конфіденційність та інструменти</string>
+    <string name="MiogramVisualsTitle">Зовнішній вигляд</string>
+    <string name="MiogramChatsTitle">Чати та Медіа</string>
+    <string name="MiogramPrivacyTitle">Конфіденційність та Захист</string>
+    <string name="MiogramPerformanceTitle">Продуктивність та Мережа</string>
+    <string name="MiogramAiTitle">Miogram AI</string>
+    <string name="MiogramPluginsTitle">Плагіни Miogram</string>
+    <string name="MiogramCheckUpdate">Перевірити оновлення</string>
+
+    <!-- Updater -->
+    <string name="MiogramUpdateAvailableTitle">Вийшло нове оновлення!</string>
+    <string name="MiogramUpdateLatestTitle">Встановлена остання версія</string>
+    <string name="MiogramUpdateVersionBadge">Доступна версія: v%1$s</string>
+    <string name="MiogramUpdateLatestBadge">Версія: v%1$s (Актуальна)</string>
+    <string name="MiogramUpdateLatestDesc">У вас вже встановлено найновішу збірку Miogram. Нових оновлень поки немає.</string>
+    <string name="MiogramUpdateInstallNow">Оновити зараз</string>
+    <string name="MiogramUpdateLater">Пізніше</string>
+    <string name="MiogramUpdateGreat">Чудово</string>
+    <string name="MiogramDownloading">Завантаження: %1$d%% (%2$dMB / %3$dMB)</string>
+
+    <!-- AI & Voice -->
+    <string name="MiogramAiKeyTitle">Google Gemini API Key</string>
+    <string name="MiogramAiModelTitle">Модель ШІ</string>
+    <string name="MiogramAiTranscribeTitle">Розшифровка аудіо та кружечків</string>
+    <string name="MiogramAiTranscribeDesc">Миттєва розшифровка голосових повідомлень через Gemini 3.5 Flash Lite за 0.3 секунди.</string>
+    <string name="MiogramAiPiiShield">Приховувати персональні дані (PII Shield)</string>
+    <string name="MiogramAiGetFreeKey">Отримати безкоштовний ключ на Google AI Studio</string>
+
+    <!-- In-App Notifications -->
+    <string name="MiogramInAppNotification">Сповіщення в додатку</string>
+    <string name="MiogramInAppNotificationDesc">Відображає плаваючі банери нових повідомлень при перегляді інших чатів або налаштувань.</string>
+    <string name="MiogramOpenChat">Відкрити</string>
+</resources>
