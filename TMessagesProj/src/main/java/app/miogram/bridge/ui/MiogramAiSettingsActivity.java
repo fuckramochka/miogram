@@ -1,64 +1,48 @@
 package app.miogram.bridge.ui;
 
-import android.app.DownloadManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.database.Cursor;
 import android.net.Uri;
-import android.os.Environment;
 import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.Theme;
-import tw.nekomimi.nekogram.ui.cells.HeaderCell;
+import org.telegram.ui.Cells.TextCell;
 import org.telegram.ui.Cells.TextCheckCell;
+import org.telegram.ui.Cells.TextInfoPrivacyCell;
 import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.EditTextBoldCursor;
 
-import java.io.File;
-
-import app.miogram.bridge.ai.GeminiCloudClient;
-import app.miogram.bridge.ai.MiogramAiFacade;
-import app.miogram.bridge.ai.MiogramAiRuntime;
-import app.miogram.bridge.ai.LocalSttEngine;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
+import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import xyz.nextalone.nagram.NaConfig;
 
 /**
- * Native Telegram-style AI settings: BYOK key vault, cloud model picker,
- * privacy shield, metered guard and on-device Whisper STT manager.
+ * Unified Miogram AI Settings:
+ * - Direct connection for Voice-to-Text Transcription (Gemini 2.5 Flash)
+ * - BYOK API Key Vault (single key activates transcription, summarization, and chat assistant)
+ * - Privacy Protection (PII redaction)
+ * - Model Selector (Gemini 2.5 Flash, Gemini 2.5 Pro)
  */
 public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
 
     private static final String PREFS = "miogram_ai_prefs";
-    private static final int PICK_WHISPER_FILE = 77;
 
-    private int headerRow;
+    private int headerAiRow;
     private int keyRow;
     private int modelRow;
-    private int piiRow;
-    private int meteredRow;
-    private int whisperHeaderRow;
-    private int whisperModelRow;
-    private int whisperDownloadRow;
-    private int offlineRow;
-    private int shadowRow;
+    private int getKeyRow;
+    private int aiInfoRow;
 
-    private MiogramAiFacade facade;
-    private LocalSttEngine stt;
-    private GeminiCloudClient client;
-
-    private long activeDownloadId = -1;
-    private String activeDownloadModelId;
-    private BroadcastReceiver downloadReceiver;
+    private int headerFeaturesRow;
+    private int voiceTranscribeInfoRow;
+    private int piiMaskRow;
+    private int featuresInfoRow;
 
     @Override
     protected String getActionBarTitle() {
@@ -66,34 +50,20 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
     }
 
     @Override
-    public boolean onFragmentCreate() {
-        super.onFragmentCreate();
-        Context ctx = org.telegram.messenger.ApplicationLoader.applicationContext;
-        try {
-            facade = MiogramAiRuntime.get(ctx);
-            stt = MiogramAiRuntime.stt(ctx);
-            client = new GeminiCloudClient();
-            registerDownloadReceiver();
-        } catch (Exception e) {
-            org.telegram.messenger.FileLog.e(e);
-        }
-        return true;
+    protected void updateRows() {
+        super.updateRows();
+
+        headerAiRow = addRow();
+        keyRow = addRow();
+        modelRow = addRow();
+        getKeyRow = addRow();
+        aiInfoRow = addRow();
+
+        headerFeaturesRow = addRow();
+        voiceTranscribeInfoRow = addRow();
+        piiMaskRow = addRow();
+        featuresInfoRow = addRow();
     }
-
-    @Override
-    public void onFragmentDestroy() {
-        super.onFragmentDestroy();
-        try {
-            if (downloadReceiver != null) {
-                org.telegram.messenger.ApplicationLoader.applicationContext.unregisterReceiver(downloadReceiver);
-                downloadReceiver = null;
-            }
-        } catch (Exception ignored) {
-        }
-    }
-
-
-    // --- prefs ---------------------------------------------------------------
 
     private android.content.SharedPreferences prefs() {
         Context ctx = getParentActivity() != null ? getParentActivity() : org.telegram.messenger.ApplicationLoader.applicationContext;
@@ -101,11 +71,18 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
     }
 
     private String savedKey() {
-        return prefs().getString("gemini_api_key", "");
+        String k = prefs().getString("gemini_api_key", "");
+        if (k.isEmpty()) {
+            k = prefs().getString("gemini_key", "");
+        }
+        if (k.isEmpty()) {
+            k = NaConfig.INSTANCE.getTranscribeProviderGeminiApiKey().String();
+        }
+        return k;
     }
 
     private String savedModel() {
-        return prefs().getString("gen_model", GeminiCloudClient.DEFAULT_MODEL);
+        return prefs().getString("gen_model", "gemini-2.5-flash");
     }
 
     private boolean piiMaskEnabled() {
@@ -113,7 +90,13 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
     }
 
     private void saveKey(String key) {
-        prefs().edit().putString("gemini_api_key", key.trim()).apply();
+        String trimmed = key.trim();
+        prefs().edit()
+                .putString("gemini_api_key", trimmed)
+                .putString("gemini_key", trimmed)
+                .apply();
+        NaConfig.INSTANCE.getTranscribeProviderGeminiApiKey().setConfigString(trimmed);
+        NaConfig.INSTANCE.getLlmProviderGeminiKey().setConfigString(trimmed);
         listAdapter.notifyItemChanged(keyRow);
     }
 
@@ -124,271 +107,70 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
 
     private static String maskKey(String key) {
         if (key == null || key.isEmpty()) {
-            return LocaleController.getString(R.string.MiogramKeyNotSet);
+            return "Не встановлено";
         }
         return key.substring(0, Math.min(6, key.length())) + "…••••";
     }
-
-    // --- dialogs ---------------------------------------------------------------
-
-    private void showKeyDialog() {
-        Context ctx = getParentActivity();
-        AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-
-        EditTextBoldCursor input = new EditTextBoldCursor(ctx);
-        input.setText(savedKey());
-        input.setHint("AIzaSy…");
-        input.setTextSize(16);
-
-        android.widget.LinearLayout container = new android.widget.LinearLayout(ctx);
-        container.setOrientation(android.widget.LinearLayout.VERTICAL);
-        int pad = (int) (16 * ctx.getResources().getDisplayMetrics().density);
-        container.setPadding(pad, pad / 2, pad, 0);
-        container.addView(input, new android.widget.LinearLayout.LayoutParams(
-                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        builder.setTitle(LocaleController.getString(R.string.MiogramKeyDialogTitle));
-        builder.setView(container);
-        builder.setPositiveButton(LocaleController.getString(R.string.Save), (d, w) -> saveKey(input.getText().toString()));
-        builder.setNeutralButton(LocaleController.getString(R.string.MiogramPingTest), (d, w) -> {
-            saveKey(input.getText().toString());
-            runPingTest(input.getText().toString().trim());
-        });
-        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
-        showDialog(builder.create());
-    }
-
-    private void showModelDialog() {
-        Context ctx = getParentActivity();
-        final String[] ids = {
-                "gemini-2.5-flash",
-                "gemini-3.5-flash-lite",
-                "gemini-2.5-pro",
-        };
-        final String[] labels = {
-                LocaleController.getString(R.string.MiogramModelFlash),
-                LocaleController.getString(R.string.MiogramModelFlashLite),
-                LocaleController.getString(R.string.MiogramModelPro),
-        };
-        final String customLabel = LocaleController.getString(R.string.MiogramModelCustom);
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle(LocaleController.getString(R.string.MiogramModelDialogTitle));
-
-        builder.setItems(concat(labels, new String[]{customLabel}), (d, which) -> {
-            if (which < labels.length) {
-                saveModel(ids[which]);
-            } else {
-                showCustomModelDialog();
-            }
-        });
-        showDialog(builder.create());
-    }
-
-    private static String[] concat(String[] a, String[] b) {
-        String[] out = new String[a.length + b.length];
-        System.arraycopy(a, 0, out, 0, a.length);
-        System.arraycopy(b, 0, out, a.length, b.length);
-        return out;
-    }
-
-    private void showCustomModelDialog() {
-        Context ctx = getParentActivity();
-        AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle(LocaleController.getString(R.string.MiogramModelCustomTitle));
-
-        EditTextBoldCursor input = new EditTextBoldCursor(ctx);
-        input.setText(savedModel());
-        input.setTextSize(16);
-        android.widget.LinearLayout container = new android.widget.LinearLayout(ctx);
-        container.setOrientation(android.widget.LinearLayout.VERTICAL);
-        int pad = (int) (14 * ctx.getResources().getDisplayMetrics().density);
-        container.setPadding(pad, pad / 2, pad, 0);
-        container.addView(input, new android.widget.LinearLayout.LayoutParams(
-                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
-        builder.setView(container);
-        builder.setPositiveButton(LocaleController.getString(R.string.Save), (d, w) -> saveModel(input.getText().toString().trim()));
-        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
-        showDialog(builder.create());
-    }
-
-    // --- ping ------------------------------------------------------------------
-
-    private void runPingTest(String apiKey) {
-        if (apiKey.isEmpty()) {
-            toast(LocaleController.getString(R.string.MiogramPingNoKey));
-            return;
-        }
-        toast(LocaleController.getString(R.string.MiogramPingRunning));
-        new Thread(() -> {
-            GeminiCloudClient.Result result = client.completeBlocking(
-                    new GeminiCloudClient.Config(GeminiCloudClient.DEFAULT_MODEL, apiKey),
-                    "You are a connectivity probe.",
-                    "Reply with exactly: OK");
-            String ui;
-            if (result instanceof GeminiCloudClient.Result.Success) {
-                ui = "✓ " + ((GeminiCloudClient.Result.Success) result).getText();
-            } else if (result instanceof GeminiCloudClient.Result.ApiError) {
-                ui = "✗ " + ((GeminiCloudClient.Result.ApiError) result).getCode() + ": "
-                        + ((GeminiCloudClient.Result.ApiError) result).getMessage();
-            } else if (result instanceof GeminiCloudClient.Result.Blocked) {
-                ui = "✗ blocked";
-            } else {
-                ui = "✗ network";
-            }
-            final String text = ui;
-            AndroidUtilities.runOnUIThread(() -> toast(text));
-        }, "miogram-ping").start();
-    }
-
-    // --- Whisper ---------------------------------------------------------------
-
-    private File modelsDir() {
-        File dir = new File(getParentActivity().getFilesDir(), "models");
-        dir.mkdirs();
-        return dir;
-    }
-
-    private LocalSttEngine.ModelInfo selectedWhisperModel() {
-        for (LocalSttEngine.ModelInfo info : stt.models()) {
-            if (info.getId().equals(stt.getSelectedModelId())) return info;
-        }
-        return stt.models().get(0);
-    }
-
-    private void showWhisperModelDialog() {
-        Context ctx = getParentActivity();
-        var models = stt.models().toArray(new LocalSttEngine.ModelInfo[0]);
-        String[] labels = new String[models.length];
-        for (int i = 0; i < models.length; i++) {
-            labels[i] = models[i].getDisplayName();
-        }
-        AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle(LocaleController.getString(R.string.MiogramWhisperPickerTitle));
-        builder.setItems(labels, (d, which) -> {
-            stt.selectModel(models[which].getId());
-            listAdapter.notifyItemChanged(whisperModelRow);
-            listAdapter.notifyItemChanged(whisperDownloadRow);
-        });
-        showDialog(builder.create());
-    }
-
-    private void startWhisperDownload() {
-        LocalSttEngine.ModelInfo model = selectedWhisperModel();
-        DownloadManager dm = (DownloadManager) getParentActivity().getSystemService(Context.DOWNLOAD_SERVICE);
-        if (dm == null) {
-            toast("DownloadManager unavailable");
-            return;
-        }
-        File part = new File(modelsDir(), model.getId() + ".part");
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(model.getDownloadUrl()));
-        request.setTitle("Miogram · " + model.getDisplayName());
-        request.setDestinationUri(Uri.fromFile(part));
-        activeDownloadId = dm.enqueue(request);
-        activeDownloadModelId = model.getId();
-        listAdapter.notifyItemChanged(whisperDownloadRow);
-    }
-
-    private void handleDownloadCompleted(long finishedId) {
-        if (activeDownloadId != finishedId || activeDownloadModelId == null) return;
-        LocalSttEngine.ModelInfo expected = null;
-        for (LocalSttEngine.ModelInfo info : stt.models()) {
-            if (info.getId().equals(activeDownloadModelId)) expected = info;
-        }
-        if (expected == null) return;
-
-        File part = new File(modelsDir(), activeDownloadModelId + ".part");
-        File target = new File(modelsDir(), activeDownloadModelId + ".onnx");
-        if (part.renameTo(target)) {
-            boolean ok = stt.registerDownloadedFile(expected);
-            toast(ok
-                    ? LocaleController.getString(R.string.MiogramWhisperReady)
-                    : LocaleController.getString(R.string.MiogramWhisperInvalid));
-        } else {
-            toast("rename failed");
-        }
-        listAdapter.notifyItemChanged(whisperModelRow);
-        listAdapter.notifyItemChanged(whisperDownloadRow);
-        activeDownloadId = -1;
-        activeDownloadModelId = null;
-    }
-
-    private void registerDownloadReceiver() {
-        try {
-            downloadReceiver = new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-                    handleDownloadCompleted(id);
-                }
-            };
-            Context ctx = org.telegram.messenger.ApplicationLoader.applicationContext;
-            if (android.os.Build.VERSION.SDK_INT >= 33) {
-                ctx.registerReceiver(
-                        downloadReceiver,
-                        new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                        Context.RECEIVER_EXPORTED);
-            } else {
-                ctx.registerReceiver(
-                        downloadReceiver,
-                        new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
-            }
-        } catch (Exception e) {
-            org.telegram.messenger.FileLog.e(e);
-        }
-    }
-
-    // --- rows ------------------------------------------------------------------
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
         if (position == keyRow) {
             showKeyDialog();
         } else if (position == modelRow) {
-            showModelDialog();
-        } else if (position == whisperModelRow) {
-            showWhisperModelDialog();
-        } else if (position == whisperDownloadRow) {
-            startWhisperDownload();
-        } else if (position == piiRow || position == meteredRow || position == offlineRow) {
-            TextCheckCell cell = view instanceof TextCheckCell ? (TextCheckCell) view : null;
-            if (position == piiRow) {
-                boolean v = !prefs().getBoolean("pii_mask", true);
-                prefs().edit().putBoolean("pii_mask", v).apply();
-                if (cell != null) cell.setChecked(v);
-            } else if (position == meteredRow) {
-                boolean v = !facade.getPreferences().getCloudAllowedOnMeteredNetwork();
-                facade.setPreferences(facade.getPreferences().withCloudMetered(v));
-                if (cell != null) cell.setChecked(v);
-            } else {
-                boolean v = !prefs().getBoolean("stt_offline_only", false);
-                prefs().edit().putBoolean("stt_offline_only", v).apply();
-                if (cell != null) cell.setChecked(v);
+            showModelPicker();
+        } else if (position == getKeyRow) {
+            try {
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://aistudio.google.com/app/apikey"));
+                getParentActivity().startActivity(browserIntent);
+            } catch (Exception ignored) {}
+        } else if (position == piiMaskRow) {
+            boolean next = !piiMaskEnabled();
+            prefs().edit().putBoolean("pii_mask", next).apply();
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(next);
             }
         }
     }
 
-    @Override
-    protected void updateRows() {
-        super.updateRows();
+    private void showKeyDialog() {
+        Context ctx = getParentActivity();
+        if (ctx == null) return;
 
-        headerRow = addRow();
-        keyRow = addRow();
-        modelRow = addRow();
-        piiRow = addRow();
-        meteredRow = addRow();
-        whisperHeaderRow = addRow();
-        whisperModelRow = addRow();
-        whisperDownloadRow = addRow();
-        offlineRow = addRow();
-        shadowRow = addRow();
+        AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
+        builder.setTitle("Google Gemini API Key");
+
+        EditTextBoldCursor input = new EditTextBoldCursor(ctx);
+        input.setText(savedKey());
+        input.setHint("AIzaSy…");
+        input.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        input.setHintColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
+        input.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(12), AndroidUtilities.dp(24), AndroidUtilities.dp(12));
+
+        builder.setView(input);
+        builder.setPositiveButton(LocaleController.getString(R.string.Save), (dialog, which) -> {
+            saveKey(input.getText().toString());
+        });
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        builder.setNeutralButton("Очистити", (dialog, which) -> {
+            saveKey("");
+        });
+        showDialog(builder.create());
     }
 
-    @Override
-    protected BaseListAdapter createAdapter(Context context) {
-        return new ListAdapter(context);
+    private void showModelPicker() {
+        Context ctx = getParentActivity();
+        if (ctx == null) return;
+
+        String[] models = {"gemini-2.5-flash (Рекомендовано, 0.3с)", "gemini-2.5-pro (Глибокий аналіз)", "gemini-2.0-flash"};
+        String[] modelKeys = {"gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
+        builder.setTitle("Модель Miogram AI");
+        builder.setItems(models, (dialog, which) -> {
+            saveModel(modelKeys[which]);
+        });
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(builder.create());
     }
 
     private class ListAdapter extends BaseListAdapter {
@@ -399,53 +181,64 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == headerRow || position == whisperHeaderRow) return 4;
-            if (position == piiRow || position == meteredRow || position == offlineRow) return 3;
-            return 2;
+            if (position == headerAiRow || position == headerFeaturesRow) {
+                return TYPE_HEADER;
+            } else if (position == keyRow || position == modelRow || position == voiceTranscribeInfoRow) {
+                return TYPE_SETTINGS;
+            } else if (position == getKeyRow) {
+                return TYPE_TEXT;
+            } else if (position == piiMaskRow) {
+                return TYPE_CHECK;
+            } else if (position == aiInfoRow || position == featuresInfoRow) {
+                return TYPE_INFO_PRIVACY;
+            }
+            return TYPE_SETTINGS;
         }
 
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position, boolean partial) {
-            switch (getItemViewType(position)) {
-                case 4: {
+            switch (holder.getItemViewType()) {
+                case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
-                    cell.setText(position == headerRow
-                            ? "ХМАРА (GEMINI)"
-                            : "ЛОКАЛЬНИЙ WHISPER STT");
-                    break;
-                }
-                case 3: {
-                    TextCheckCell cell = (TextCheckCell) holder.itemView;
-                    if (position == piiRow) {
-                        cell.setTextAndCheck(LocaleController.getString(R.string.MiogramPiiMask),
-                                prefs().getBoolean("pii_mask", true), false);
-                    } else if (position == meteredRow) {
-                        cell.setTextAndCheck(LocaleController.getString(R.string.MiogramMeteredGuard),
-                                facade.getPreferences().getCloudAllowedOnMeteredNetwork(), false);
-                    } else if (position == offlineRow) {
-                        cell.setTextAndCheck(LocaleController.getString(R.string.MiogramOfflineOnly),
-                                prefs().getBoolean("stt_offline_only", false), false);
+                    if (position == headerAiRow) {
+                        cell.setText("Конфігурація Gemini AI");
+                    } else if (position == headerFeaturesRow) {
+                        cell.setText("Застосування Miogram AI");
                     }
                     break;
                 }
-                default: {
+                case TYPE_SETTINGS: {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == keyRow) {
-                        cell.setText(LocaleController.getString(R.string.MiogramKeyRow)
-                                + " · " + maskKey(savedKey()), false);
-                        cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                        cell.setTextAndValue("API Ключ Gemini", maskKey(savedKey()), true);
                     } else if (position == modelRow) {
-                        cell.setText(LocaleController.getString(R.string.MiogramModelRow)
-                                + " · " + savedModel(), false);
-                    } else if (position == whisperModelRow) {
-                        String wStatus = stt.isDownloaded()
-                                ? stt.getSelectedModelId() + " ✓"
-                                : stt.getSelectedModelId() + " (не завантажена)";
-                        cell.setText(LocaleController.getString(R.string.MiogramWhisperModelRow)
-                                + ": " + wStatus, false);
-                    } else if (position == whisperDownloadRow) {
-                        cell.setText(LocaleController.getString(R.string.MiogramWhisperDownload), false);
+                        cell.setTextAndValue("Модель ШІ", savedModel(), true);
+                    } else if (position == voiceTranscribeInfoRow) {
+                        cell.setTextAndValue("Розшифровка аудіо та кружечків", "Увімкнено (Gemini Multimodal)", false);
+                    }
+                    break;
+                }
+                case TYPE_TEXT: {
+                    TextCell cell = (TextCell) holder.itemView;
+                    if (position == getKeyRow) {
+                        cell.setTextAndIcon("Отримати безкоштовний ключ на Google AI Studio", R.drawable.msg_bot, false);
+                    }
+                    break;
+                }
+                case TYPE_CHECK: {
+                    TextCheckCell cell = (TextCheckCell) holder.itemView;
+                    if (position == piiMaskRow) {
+                        cell.setTextAndCheck("Приховувати персональні дані (PII Shield)", piiMaskEnabled(), false);
+                    }
+                    break;
+                }
+                case TYPE_INFO_PRIVACY: {
+                    TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
+                    if (position == aiInfoRow) {
+                        cell.setText("Один ключ Gemini активує всі функції штучного інтелекту: миттєву розшифровку голосових, переклад та помічника.");
+                    } else if (position == featuresInfoRow) {
+                        cell.setText("Натисніть кнопку розшифровки на будь-якому голосовому повідомленні або кружечку в чаті для отримання тексту за 0.3 секунди.");
                     }
                     break;
                 }
@@ -453,9 +246,8 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
         }
     }
 
-    private void toast(String message) {
-        if (getParentActivity() != null) {
-            android.widget.Toast.makeText(getParentActivity(), message, android.widget.Toast.LENGTH_SHORT).show();
-        }
+    @Override
+    protected BaseListAdapter createAdapter(Context context) {
+        return new ListAdapter(context);
     }
 }
