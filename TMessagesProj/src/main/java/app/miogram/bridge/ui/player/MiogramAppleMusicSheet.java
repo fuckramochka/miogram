@@ -1,13 +1,7 @@
 package app.miogram.bridge.ui.player;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
-import android.graphics.drawable.GradientDrawable;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -19,16 +13,13 @@ import android.widget.TextView;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLoader;
-import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ImageLocation;
-import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
-import org.telegram.messenger.audioinfo.AudioInfo;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.BottomSheet;
@@ -41,7 +32,7 @@ import app.miogram.bridge.MiogramLocale;
 
 /**
  * Apple Music 1:1 Design + Spotify Ergonomics Music Player:
- * - Dynamic blurred album art backdrop gradient
+ * - Dynamic blurred album art backdrop
  * - Apple Music high-contrast typography and scrubber
  * - Spotify playlist controls, heart toggle, shuffle, repeat, and swipe minimization
  * - Built-in live mini-bass visualizer
@@ -146,7 +137,7 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
                 if (fromUser) {
                     MessageObject playing = MediaController.getInstance().getPlayingMessageObject();
                     if (playing != null) {
-                        int dur = playing.getDuration();
+                        int dur = (int) Math.round(playing.getDuration());
                         float frac = progress / 1000.0f;
                         timeElapsedView.setText(AndroidUtilities.formatShortDuration((int) (dur * frac)));
                         timeRemainingView.setText("-" + AndroidUtilities.formatShortDuration((int) (dur * (1.0f - frac))));
@@ -193,7 +184,7 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         shuffleBtn.setImageResource(R.drawable.player_new_shuffle);
         shuffleBtn.setColorFilter(SharedConfig.shuffleMusic ? 0xFFFF4081 : 0x88FFFFFF);
         shuffleBtn.setOnClickListener(v -> {
-            MediaController.getInstance().toggleShuffleMusic();
+            MediaController.getInstance().setPlaybackOrderType(SharedConfig.shuffleMusic ? 0 : 2);
             shuffleBtn.setColorFilter(SharedConfig.shuffleMusic ? 0xFFFF4081 : 0x88FFFFFF);
         });
         controls.addView(shuffleBtn, LayoutHelper.createLinear(36, 36, Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
@@ -238,7 +229,7 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         repeatBtn.setImageResource(R.drawable.player_new_repeatall);
         repeatBtn.setColorFilter(SharedConfig.repeatMode > 0 ? 0xFFFF4081 : 0x88FFFFFF);
         repeatBtn.setOnClickListener(v -> {
-            MediaController.getInstance().toggleRepeatMode();
+            SharedConfig.setRepeatMode((SharedConfig.repeatMode + 1) % 3);
             repeatBtn.setColorFilter(SharedConfig.repeatMode > 0 ? 0xFFFF4081 : 0x88FFFFFF);
         });
         controls.addView(repeatBtn, LayoutHelper.createLinear(36, 36, Gravity.CENTER_VERTICAL, 0, 0, 0, 0));
@@ -297,7 +288,7 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
                     float progress = playing.audioProgress;
                     progressBar.setProgress((int) (progress * 1000));
 
-                    int total = playing.getDuration();
+                    int total = (int) Math.round(playing.getDuration());
                     int cur = (int) (total * progress);
                     timeElapsedView.setText(AndroidUtilities.formatShortDuration(cur));
                     timeRemainingView.setText("-" + AndroidUtilities.formatShortDuration(Math.max(0, total - cur)));
