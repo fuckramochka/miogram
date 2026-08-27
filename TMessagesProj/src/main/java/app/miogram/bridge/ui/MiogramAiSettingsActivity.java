@@ -83,7 +83,7 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
     }
 
     private String savedModel() {
-        return prefs().getString("gen_model", "gemini-2.5-flash");
+        return prefs().getString("gen_model", "gemini-3.5-flash-lite");
     }
 
     private boolean piiMaskEnabled() {
@@ -162,8 +162,8 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
         Context ctx = getParentActivity();
         if (ctx == null) return;
 
-        String[] models = {"gemini-2.5-flash (Рекомендовано, 0.3с)", "gemini-2.5-pro (Глибокий аналіз)", "gemini-2.0-flash"};
-        String[] modelKeys = {"gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"};
+        String[] models = {"gemini-3.5-flash-lite (Рекомендовано, 0.3с)", "gemini-3.5-flash", "gemini-2.5-flash"};
+        String[] modelKeys = {"gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-2.5-flash"};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
         builder.setTitle("Модель Miogram AI");

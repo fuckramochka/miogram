@@ -442,6 +442,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         AndroidUtilities.checkDisplaySize(this, getResources().getConfiguration());
         currentAccount = UserConfig.selectedAccount;
         app.miogram.bridge.updater.MiogramUpdater.initAutoUpdate(this);
+        app.miogram.bridge.plugins.MiogramInAppNotifications.getInstance().register();
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if (!UserConfig.getInstance(currentAccount).isClientActivated()) {
             Intent intent = getIntent();
