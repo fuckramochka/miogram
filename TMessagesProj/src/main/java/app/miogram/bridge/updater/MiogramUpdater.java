@@ -1,5 +1,6 @@
 package app.miogram.bridge.updater;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
@@ -13,25 +14,82 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.FileLog;
 import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.LaunchActivity;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import app.miogram.bridge.ui.MiogramUpdateBottomSheet;
 
 /**
  * Robust in-app updater for Miogram:
  * - Checks GitHub Releases API
- * - Semantic version and build code comparison (prevents false update prompts)
- * - Safe download and installation
+ * - Semantic version and build code comparison
+ * - Automatic background check every 5 minutes and on launch
+ * - Compact anime reaction dialog (Happy on update / Sad on latest)
  */
 public class MiogramUpdater {
 
     private static final String GITHUB_API_LATEST = "https://api.github.com/repos/fuckramochka/miogram/releases/latest";
     private static final String PREFS_NAME = "miogram_updater_prefs";
-    private static final String KEY_LAST_INSTALLED_TAG = "last_installed_tag";
+    private static final String KEY_LAST_SEEN_TAG = "last_seen_tag";
+
+    private static ScheduledExecutorService scheduler;
+    private static volatile boolean autoUpdateStarted = false;
+
+    /**
+     * Initializes background update checking:
+     * - Initial check 5 seconds after startup
+     * - Periodic check every 5 minutes
+     */
+    public static synchronized void initAutoUpdate(Context context) {
+        if (autoUpdateStarted) return;
+        autoUpdateStarted = true;
+
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleWithFixedDelay(() -> {
+            try {
+                performBackgroundCheck();
+            } catch (Exception e) {
+                FileLog.e(e);
+            }
+        }, 5, 300, TimeUnit.SECONDS);
+    }
+
+    private static void performBackgroundCheck() {
+        LaunchActivity act = LaunchActivity.instance;
+        if (act == null || act.isFinishing()) return;
+
+        BaseFragment fragment = act.getSafeLastFragment();
+        if (fragment == null) return;
+
+        fetchLatestRelease((hasUpdate, version, changelog, apkUrl) -> {
+            if (hasUpdate) {
+                SharedPreferences prefs = ApplicationLoader.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                String lastSeen = prefs.getString(KEY_LAST_SEEN_TAG, "");
+                if (version != null && version.equalsIgnoreCase(lastSeen)) {
+                    return; // Already notified the user about this specific release
+                }
+                prefs.edit().putString(KEY_LAST_SEEN_TAG, version).apply();
+
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    LaunchActivity currentAct = LaunchActivity.instance;
+                    if (currentAct != null && !currentAct.isFinishing()) {
+                        BaseFragment currentFrag = currentAct.getSafeLastFragment();
+                        if (currentFrag != null) {
+                            MiogramUpdateBottomSheet sheet = new MiogramUpdateBottomSheet(currentFrag, true, version, changelog, apkUrl);
+                            sheet.show();
+                        }
+                    }
+                });
+            }
+        });
+    }
 
     public static void checkAndShowUpdate(BaseFragment fragment, boolean manualCheck) {
         if (fragment == null || fragment.getParentActivity() == null) return;
@@ -40,6 +98,23 @@ public class MiogramUpdater {
             Toast.makeText(fragment.getParentActivity(), "Перевірка оновлень Miogram...", Toast.LENGTH_SHORT).show();
         }
 
+        fetchLatestRelease((hasUpdate, version, changelog, apkUrl) -> {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (fragment.getParentActivity() == null || fragment.getParentActivity().isFinishing()) {
+                    return;
+                }
+                final String finalVer = (version != null && !version.isEmpty()) ? version : getCurrentAppVersion();
+                MiogramUpdateBottomSheet sheet = new MiogramUpdateBottomSheet(fragment, hasUpdate, finalVer, changelog, apkUrl);
+                sheet.show();
+            });
+        });
+    }
+
+    private interface UpdateCallback {
+        void onResult(boolean hasUpdate, String version, String changelog, String apkUrl);
+    }
+
+    private static void fetchLatestRelease(UpdateCallback callback) {
         new Thread(() -> {
             try {
                 URL url = new URL(GITHUB_API_LATEST);
@@ -77,39 +152,16 @@ public class MiogramUpdater {
                     }
 
                     final String finalVersion = tag.replace("v", "").replace("V", "").trim();
-                    final String finalChangelog = body;
-                    final String finalApkUrl = apkUrl;
                     final String currentVersion = getCurrentAppVersion();
-
                     boolean isNewer = isNewerVersion(currentVersion, finalVersion, tag);
 
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        if (fragment.getParentActivity() == null || fragment.getParentActivity().isFinishing()) {
-                            return;
-                        }
-                        if (isNewer) {
-                            MiogramUpdateBottomSheet sheet = new MiogramUpdateBottomSheet(fragment, finalVersion, finalChangelog, finalApkUrl);
-                            sheet.show();
-                        } else if (manualCheck) {
-                            Toast.makeText(fragment.getParentActivity(), "У вас встановлена найновіша версія Miogram (v" + currentVersion + ")", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } else if (manualCheck) {
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        if (fragment.getParentActivity() != null) {
-                            Toast.makeText(fragment.getParentActivity(), "Оновлень не знайдено (використовується актуальна версія)", Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                    callback.onResult(isNewer, finalVersion, body, apkUrl);
+                } else {
+                    callback.onResult(false, getCurrentAppVersion(), null, null);
                 }
             } catch (Exception e) {
                 FileLog.e(e);
-                if (manualCheck) {
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        if (fragment.getParentActivity() != null) {
-                            Toast.makeText(fragment.getParentActivity(), "Перевірка завершена: актуальна версія встановлена", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                }
+                callback.onResult(false, getCurrentAppVersion(), null, null);
             }
         }).start();
     }
@@ -126,12 +178,6 @@ public class MiogramUpdater {
 
     public static boolean isNewerVersion(String currentVersion, String remoteVersion, String remoteTag) {
         if (remoteVersion == null || remoteVersion.isEmpty()) return false;
-
-        SharedPreferences prefs = ApplicationLoader.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String lastInstalledTag = prefs.getString(KEY_LAST_INSTALLED_TAG, "");
-        if (remoteTag != null && remoteTag.equalsIgnoreCase(lastInstalledTag)) {
-            return false;
-        }
 
         String c = currentVersion != null ? currentVersion.replace("v", "").replace("V", "").trim() : "";
         String r = remoteVersion.trim();
@@ -153,11 +199,5 @@ public class MiogramUpdater {
             if (rVal < cVal) return false;
         }
         return false;
-    }
-
-    public static void markTagInstalled(String tag) {
-        if (tag == null) return;
-        ApplicationLoader.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit().putString(KEY_LAST_INSTALLED_TAG, tag).apply();
     }
 }
