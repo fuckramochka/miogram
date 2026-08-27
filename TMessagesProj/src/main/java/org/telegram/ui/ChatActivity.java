@@ -47660,9 +47660,13 @@ public class ChatActivity extends BaseFragment implements
             }
             case nkbtn_forward_noquote: {
                 MessageObject targetMsg = selectedObject;
-                if (targetMsg == null && selectedMessagesIds != null && selectedMessagesIds[currentAccount].size() > 0) {
-                    int msgId = selectedMessagesIds[currentAccount].keyAt(0);
-                    targetMsg = getMessageObject(msgId);
+                if (targetMsg == null) {
+                    for (int a = 0; a < 2; a++) {
+                        if (selectedMessagesIds[a] != null && selectedMessagesIds[a].size() > 0 && messagesDict[a] != null) {
+                            targetMsg = messagesDict[a].get(selectedMessagesIds[a].keyAt(0));
+                            if (targetMsg != null) break;
+                        }
+                    }
                 }
                 if (targetMsg != null) {
                     showFieldPanelForReply(targetMsg);
