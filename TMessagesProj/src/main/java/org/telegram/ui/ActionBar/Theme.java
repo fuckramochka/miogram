@@ -9191,6 +9191,8 @@ public class Theme {
             }
         }
         if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            if (key == Theme.key_chats_name) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
+            if (key == Theme.key_chats_message || key == Theme.key_chats_message_threeLines) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
             if (key == Theme.key_windowBackgroundWhite) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHAT_BG;
             if (key == Theme.key_windowBackgroundGray) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_RAIL_BG;
             if (key == Theme.key_windowBackgroundWhiteBlackText) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
