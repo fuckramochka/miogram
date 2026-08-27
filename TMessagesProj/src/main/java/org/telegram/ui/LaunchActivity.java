@@ -3253,11 +3253,14 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 pushOpened = false;
                 isNew = false;
             } else if (showPlayer) {
+                if (!actionBarLayout.getFragmentStack().isEmpty()) {
+                    BaseFragment fragment = actionBarLayout.getFragmentStack().get(0);
                     if (app.miogram.bridge.ui.MiogramVisualsPrefs.loadBool(this, "apple_music_player", true)) {
                         new app.miogram.bridge.ui.player.MiogramAppleMusicSheet(fragment).show();
                     } else {
                         fragment.showDialog(new AudioPlayerAlert(this, null));
                     }
+                }
                 pushOpened = false;
             } else if (showLocations) {
                 if (!actionBarLayout.getFragmentStack().isEmpty()) {

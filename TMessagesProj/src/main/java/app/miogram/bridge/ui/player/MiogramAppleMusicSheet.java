@@ -3,6 +3,8 @@ package app.miogram.bridge.ui.player;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
@@ -19,12 +21,12 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ImageLocation;
-import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
+import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.audioinfo.AudioInfo;
 import org.telegram.tgnet.TLRPC;
@@ -33,7 +35,7 @@ import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.LayoutHelper;
-import org.telegram.ui.Components.VideoPlayer;
+import org.telegram.ui.Components.PlayPauseDrawable;
 
 import app.miogram.bridge.MiogramLocale;
 
@@ -41,7 +43,7 @@ import app.miogram.bridge.MiogramLocale;
  * Apple Music 1:1 Design + Spotify Ergonomics Music Player:
  * - Dynamic blurred album art backdrop gradient
  * - Apple Music high-contrast typography and scrubber
- * - Spotify playlist controls, heart toggle, and swipe minimization
+ * - Spotify playlist controls, heart toggle, shuffle, repeat, and swipe minimization
  * - Built-in live mini-bass visualizer
  */
 public class MiogramAppleMusicSheet extends BottomSheet implements NotificationCenter.NotificationCenterDelegate {
@@ -53,7 +55,10 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
     private TextView timeElapsedView;
     private TextView timeRemainingView;
     private ImageView playPauseBtn;
+    private PlayPauseDrawable playPauseDrawable;
     private ImageView heartBtn;
+    private ImageView shuffleBtn;
+    private ImageView repeatBtn;
     private MiogramBassVisualizer bassVisualizer;
 
     private boolean isSeeking = false;
@@ -69,7 +74,8 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         if (ctx == null) ctx = ApplicationLoader.applicationContext;
 
         initUi(ctx);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingPlay);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingDidStart);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingDidReset);
         updateTrackInfo();
@@ -81,19 +87,19 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
 
         LinearLayout content = new LinearLayout(ctx);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(24), AndroidUtilities.dp(24), AndroidUtilities.dp(28));
+        content.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(20), AndroidUtilities.dp(24), AndroidUtilities.dp(28));
         content.setGravity(Gravity.CENTER_HORIZONTAL);
 
         // Top drag handle
         View handle = new View(ctx);
         handle.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(3), 0x55FFFFFF));
-        content.addView(handle, LayoutHelper.createLinear(36, 5, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 20));
+        content.addView(handle, LayoutHelper.createLinear(36, 5, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 18));
 
         // 1. Giant Rounded Album Art (Apple Music 1:1 with soft shadow)
         albumArtView = new BackupImageView(ctx);
         albumArtView.setRoundRadius(AndroidUtilities.dp(20));
         albumArtView.setElevation(AndroidUtilities.dp(16));
-        content.addView(albumArtView, LayoutHelper.createLinear(260, 260, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 24));
+        content.addView(albumArtView, LayoutHelper.createLinear(260, 260, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 22));
 
         // 2. Track Title & Artist (Apple Music Bold Typography)
         LinearLayout titleBox = new LinearLayout(ctx);
@@ -175,12 +181,22 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         timeRemainingView.setGravity(Gravity.RIGHT);
         timeBox.addView(timeRemainingView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
 
-        content.addView(timeBox, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 20));
+        content.addView(timeBox, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 16));
 
         // 4. Apple Music / Spotify Ergonomic Playback Controls
         LinearLayout controls = new LinearLayout(ctx);
         controls.setOrientation(LinearLayout.HORIZONTAL);
         controls.setGravity(Gravity.CENTER_VERTICAL);
+
+        // Shuffle
+        shuffleBtn = new ImageView(ctx);
+        shuffleBtn.setImageResource(R.drawable.player_new_shuffle);
+        shuffleBtn.setColorFilter(SharedConfig.shuffleMusic ? 0xFFFF4081 : 0x88FFFFFF);
+        shuffleBtn.setOnClickListener(v -> {
+            MediaController.getInstance().toggleShuffleMusic();
+            shuffleBtn.setColorFilter(SharedConfig.shuffleMusic ? 0xFFFF4081 : 0x88FFFFFF);
+        });
+        controls.addView(shuffleBtn, LayoutHelper.createLinear(36, 36, Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
 
         // Previous
         ImageView prevBtn = new ImageView(ctx);
@@ -188,12 +204,13 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         prevBtn.setColorFilter(0xFFFFFFFF);
         prevBtn.setRotation(180);
         prevBtn.setOnClickListener(v -> MediaController.getInstance().playPreviousMessage());
-        controls.addView(prevBtn, LayoutHelper.createLinear(44, 44, Gravity.CENTER_VERTICAL, 0, 0, 24, 0));
+        controls.addView(prevBtn, LayoutHelper.createLinear(44, 44, Gravity.CENTER_VERTICAL, 0, 0, 18, 0));
 
         // Play/Pause Big Center Button
         playPauseBtn = new ImageView(ctx);
-        playPauseBtn.setImageResource(R.drawable.msg_round_pause);
-        playPauseBtn.setColorFilter(0xFFFFFFFF);
+        playPauseDrawable = new PlayPauseDrawable(28);
+        playPauseDrawable.setColor(Color.WHITE);
+        playPauseBtn.setImageDrawable(playPauseDrawable);
         playPauseBtn.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(32), 0x22FFFFFF));
         playPauseBtn.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
         playPauseBtn.setOnClickListener(v -> {
@@ -207,20 +224,30 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
                 updatePlayPauseState();
             }
         });
-        controls.addView(playPauseBtn, LayoutHelper.createLinear(64, 64, Gravity.CENTER_VERTICAL, 0, 0, 24, 0));
+        controls.addView(playPauseBtn, LayoutHelper.createLinear(64, 64, Gravity.CENTER_VERTICAL, 0, 0, 18, 0));
 
         // Next
         ImageView nextBtn = new ImageView(ctx);
         nextBtn.setImageResource(R.drawable.msg_retry);
         nextBtn.setColorFilter(0xFFFFFFFF);
         nextBtn.setOnClickListener(v -> MediaController.getInstance().playNextMessage());
-        controls.addView(nextBtn, LayoutHelper.createLinear(44, 44, Gravity.CENTER_VERTICAL, 0, 0, 0, 0));
+        controls.addView(nextBtn, LayoutHelper.createLinear(44, 44, Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
 
-        content.addView(controls, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 16));
+        // Repeat
+        repeatBtn = new ImageView(ctx);
+        repeatBtn.setImageResource(R.drawable.player_new_repeatall);
+        repeatBtn.setColorFilter(SharedConfig.repeatMode > 0 ? 0xFFFF4081 : 0x88FFFFFF);
+        repeatBtn.setOnClickListener(v -> {
+            MediaController.getInstance().toggleRepeatMode();
+            repeatBtn.setColorFilter(SharedConfig.repeatMode > 0 ? 0xFFFF4081 : 0x88FFFFFF);
+        });
+        controls.addView(repeatBtn, LayoutHelper.createLinear(36, 36, Gravity.CENTER_VERTICAL, 0, 0, 0, 0));
+
+        content.addView(controls, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 14));
 
         // 5. Subtle Mini-Bass Visualizer at bottom of player
         bassVisualizer = new MiogramBassVisualizer(ctx);
-        content.addView(bassVisualizer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 24, 0, 8, 0, 0));
+        content.addView(bassVisualizer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 24, 0, 6, 0, 0));
 
         root.addView(content);
         setCustomView(root);
@@ -234,7 +261,6 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
             return;
         }
 
-        AudioInfo info = MediaController.getInstance().getAudioInfo();
         String title = playing.getMusicTitle();
         String artist = playing.getMusicAuthor();
 
@@ -248,23 +274,21 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
             if (size != null) {
                 albumArtView.setImage(ImageLocation.getForDocument(size, doc), "260_260", null, null, playing);
             }
-        } else {
-            albumArtView.setImageResource(R.drawable.msg_round_pause);
         }
 
         updatePlayPauseState();
     }
 
     private void updatePlayPauseState() {
-        boolean paused = MediaController.getInstance().isMessagePaused();
-        if (playPauseBtn != null) {
-            playPauseBtn.setImageResource(paused ? R.drawable.msg_round_play : R.drawable.msg_round_pause);
+        boolean isPaused = MediaController.getInstance().isMessagePaused();
+        if (playPauseDrawable != null) {
+            playPauseDrawable.setPause(!isPaused, true);
         }
     }
 
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {
-        if (id == NotificationCenter.messagePlayingPlay || id == NotificationCenter.messagePlayingDidReset) {
+        if (id == NotificationCenter.messagePlayingDidStart || id == NotificationCenter.messagePlayingPlayStateChanged || id == NotificationCenter.messagePlayingDidReset) {
             updateTrackInfo();
         } else if (id == NotificationCenter.messagePlayingProgressDidChanged) {
             if (!isSeeking && progressBar != null) {
@@ -284,7 +308,8 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
 
     @Override
     public void dismiss() {
-        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingPlay);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidStart);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidReset);
         super.dismiss();
