@@ -57,15 +57,22 @@ public class MiogramInAppNotifications implements NotificationCenter.Notificatio
         }
     }
 
+    private boolean isPluginActive(String id) {
+        Plugin p = PluginsController.getInstance().getPlugin(id);
+        return p != null && p.enabled;
+    }
+
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {
         if (id != NotificationCenter.didReceiveNewMessages) return;
         if (args == null || args.length < 2) return;
 
-        // Check if in-app notifications are enabled in plugin settings
-        boolean pluginEnabled = PluginsController.getInstance().isPluginEnabled("in_app_notifications")
-                || PluginsController.getInstance().isPluginEnabled("miogram_in_app_notifications")
-                || PluginsController.getInstance().isPluginEnabled("in_app_notifications_rust");
+        // Check if in-app notifications plugin is active or installed
+        boolean pluginEnabled = isPluginActive("in_app_notifications")
+                || isPluginActive("miogram_in_app_notifications")
+                || isPluginActive("in_app_notifications_rust")
+                || isPluginActive("miogram_in_app_notifications_wasm")
+                || isPluginActive("miogram_in_app_notifications_mioplugin");
 
         if (!pluginEnabled) {
             return;
