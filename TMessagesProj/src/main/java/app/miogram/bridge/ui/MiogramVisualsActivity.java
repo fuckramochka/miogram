@@ -23,13 +23,26 @@ import org.telegram.ui.Cells.TextSettingsCell;
 import app.exteraless.appearance.AppearanceConfig;
 import app.miogram.bridge.MiogramFlags;
 import app.miogram.bridge.MiogramLocale;
+import app.miogram.bridge.ui.discord.MiogramDiscordLayout;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 
 /**
  * Clean & unified Miogram Appearance Settings with dynamic multilingual localization.
+ * Features:
+ * - Interface Mode (Telegram Classic vs Discord Style)
+ * - Needy Streamer Overload / Ame-chan Aesthetic
+ * - Apple Music 1:1 Player & Live Mini-Bass Visualizer
+ * - Liquid Frosted Glass (AGSL) & Avatar Geometry
  */
 public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
+
+    private int headerModeRow;
+    private int discordUiRow;
+    private int ameVibeRow;
+    private int appleMusicRow;
+    private int miniBassRow;
+    private int modeInfoRow;
 
     private int headerGlassRow;
     private int glassToggleRow;
@@ -56,6 +69,13 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
     @Override
     protected void updateRows() {
         super.updateRows();
+
+        headerModeRow = addRow();
+        discordUiRow = addRow();
+        ameVibeRow = addRow();
+        appleMusicRow = addRow();
+        miniBassRow = addRow();
+        modeInfoRow = addRow();
 
         headerGlassRow = addRow();
         glassToggleRow = addRow();
@@ -88,9 +108,35 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         return MiogramVisualsPrefs.loadInt(getSafeContext(), "liquid_glass_intensity", 60);
     }
 
+    private boolean ameVibeEnabled() {
+        return MiogramVisualsPrefs.loadBool(getSafeContext(), "ame_vibe_enabled", true);
+    }
+
+    private boolean appleMusicEnabled() {
+        return MiogramVisualsPrefs.loadBool(getSafeContext(), "apple_music_player", true);
+    }
+
+    private boolean miniBassEnabled() {
+        return MiogramVisualsPrefs.loadBool(getSafeContext(), "mini_bass_glow", true);
+    }
+
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == glassToggleRow) {
+        if (position == discordUiRow) {
+            showLayoutModeDialog();
+        } else if (position == ameVibeRow) {
+            boolean next = !ameVibeEnabled();
+            MiogramVisualsPrefs.saveBool(getSafeContext(), "ame_vibe_enabled", next);
+            if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(next);
+        } else if (position == appleMusicRow) {
+            boolean next = !appleMusicEnabled();
+            MiogramVisualsPrefs.saveBool(getSafeContext(), "apple_music_player", next);
+            if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(next);
+        } else if (position == miniBassRow) {
+            boolean next = !miniBassEnabled();
+            MiogramVisualsPrefs.saveBool(getSafeContext(), "mini_bass_glow", next);
+            if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(next);
+        } else if (position == glassToggleRow) {
             boolean enabled = !decorationEnabled();
             MiogramFlags.setSpatialDecoration(enabled);
             MiogramVisualsPrefs.saveBool(getSafeContext(), "agsl_enabled", enabled);
@@ -135,6 +181,27 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         }
     }
 
+    private void showLayoutModeDialog() {
+        Context ctx = getParentActivity();
+        if (ctx == null) return;
+
+        String[] options = new String[]{
+                MiogramLocale.get("Telegram Класичний", "Telegram Классический", "Telegram Classic"),
+                MiogramLocale.get("Discord Стиль (Сервери, Папки та Канали)", "Discord Стиль (Сервера, Папки и Каналы)", "Discord Style (Servers & Channels)")
+        };
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
+        builder.setTitle(MiogramLocale.get("Режим інтерфейсу", "Режим интерфейса", "Interface Layout Mode"));
+        builder.setItems(options, (dialog, which) -> {
+            MiogramDiscordLayout.setUiMode(which);
+            listAdapter.notifyItemChanged(discordUiRow);
+            getNotificationCenter().postNotificationName(NotificationCenter.mainUserInfoChanged);
+            getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
+        });
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(builder.create());
+    }
+
     private void showIntensityDialog() {
         Context ctx = getParentActivity();
         if (ctx == null) return;
@@ -146,15 +213,16 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         container.setOrientation(LinearLayout.VERTICAL);
         container.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(12), AndroidUtilities.dp(24), AndroidUtilities.dp(12));
 
+        int current = intensityPercent();
         TextView valueLabel = new TextView(ctx);
-        valueLabel.setText(intensityPercent() + "%");
+        valueLabel.setText(current + "%");
         valueLabel.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         valueLabel.setTextSize(16);
         valueLabel.setPadding(0, 0, 0, AndroidUtilities.dp(8));
 
         SeekBar seekBar = new SeekBar(ctx);
         seekBar.setMax(100);
-        seekBar.setProgress(intensityPercent());
+        seekBar.setProgress(current);
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar sb, int progress, boolean fromUser) {
@@ -179,45 +247,22 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         Context ctx = getParentActivity();
         if (ctx == null) return;
 
+        String[] options = new String[]{
+                MiogramLocale.get("Круглі (За замовчуванням)", "Круглые (По умолчанию)", "Round (Default)"),
+                MiogramLocale.get("Скруглений квадрат (14 dp)", "Скругленный квадрат (14 dp)", "Rounded Squircle (14 dp)"),
+                MiogramLocale.get("М'який квадрат (8 dp)", "Мягкий квадрат (8 dp)", "Soft Square (8 dp)"),
+                MiogramLocale.get("Квадратні (0 dp)", "Квадратные (0 dp)", "Sharp Square (0 dp)")
+        };
+        int[] values = new int[]{AppearanceConfig.AVATAR_CORNERS_MAX, 14, 8, 0};
+
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle(MiogramLocale.get("Скруглення аватарок", "Скругление аватарок", "Avatar Corner Radius"));
-
-        LinearLayout container = new LinearLayout(ctx);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(12), AndroidUtilities.dp(24), AndroidUtilities.dp(12));
-
-        int cur = AppearanceConfig.avatarCorners.Int();
-        TextView valueLabel = new TextView(ctx);
-        String label = cur == AppearanceConfig.AVATAR_CORNERS_MAX
-                ? MiogramLocale.get("Круглі", "Круглые", "Round")
-                : (cur == 0 ? MiogramLocale.get("Квадратні", "Квадратные", "Square") : cur + " dp");
-        valueLabel.setText(label);
-        valueLabel.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        valueLabel.setTextSize(16);
-        valueLabel.setPadding(0, 0, 0, AndroidUtilities.dp(8));
-
-        SeekBar seekBar = new SeekBar(ctx);
-        seekBar.setMax(AppearanceConfig.AVATAR_CORNERS_MAX);
-        seekBar.setProgress(cur);
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar sb, int progress, boolean fromUser) {
-                valueLabel.setText(progress == AppearanceConfig.AVATAR_CORNERS_MAX
-                        ? MiogramLocale.get("Круглі", "Круглые", "Round")
-                        : (progress == 0 ? MiogramLocale.get("Квадратні", "Квадратные", "Square") : progress + " dp"));
-                AppearanceConfig.avatarCorners.setConfigInt(progress);
-            }
-            @Override public void onStartTrackingTouch(SeekBar sb) {}
-            @Override public void onStopTrackingTouch(SeekBar sb) {}
-        });
-
-        container.addView(valueLabel);
-        container.addView(seekBar);
-        builder.setView(container);
-        builder.setPositiveButton(LocaleController.getString(R.string.OK), (dialog, which) -> {
+        builder.setTitle(MiogramLocale.get("Форма аватарок", "Форма аватарок", "Avatar Shape"));
+        builder.setItems(options, (dialog, which) -> {
+            AppearanceConfig.avatarCorners.setConfigInt(values[which]);
             listAdapter.notifyItemChanged(avatarCornersRow);
             getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
         });
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         showDialog(builder.create());
     }
 
@@ -250,12 +295,13 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == headerGlassRow || position == headerAvatarsRow || position == headerUiRow) {
+            if (position == headerModeRow || position == headerGlassRow || position == headerAvatarsRow || position == headerUiRow) {
                 return TYPE_HEADER;
-            } else if (position == glassToggleRow || position == singleCornerRadiusRow
+            } else if (position == ameVibeRow || position == appleMusicRow || position == miniBassRow
+                    || position == glassToggleRow || position == singleCornerRadiusRow
                     || position == senderMiniAvatarsRow || position == squareFabRow) {
                 return TYPE_CHECK;
-            } else if (position == glassInfoRow || position == avatarsInfoRow || position == uiInfoRow) {
+            } else if (position == modeInfoRow || position == glassInfoRow || position == avatarsInfoRow || position == uiInfoRow) {
                 return TYPE_INFO_PRIVACY;
             }
             return TYPE_SETTINGS;
@@ -266,7 +312,9 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
             switch (holder.getItemViewType()) {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
-                    if (position == headerGlassRow) {
+                    if (position == headerModeRow) {
+                        cell.setText(MiogramLocale.get("Стиль інтерфейсу та Вайб", "Стиль интерфейса и Вайб", "Interface Style & Aesthetics"));
+                    } else if (position == headerGlassRow) {
                         cell.setText(MiogramLocale.get("Рідке скло (Liquid Frosted Glass)", "Жидкое стекло (Liquid Frosted Glass)", "Liquid Frosted Glass (AGSL)"));
                     } else if (position == headerAvatarsRow) {
                         cell.setText(MiogramLocale.get("Аватарки та список чатів", "Аватарки и список чатов", "Avatars & Chat List"));
@@ -277,7 +325,13 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_CHECK: {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
-                    if (position == glassToggleRow) {
+                    if (position == ameVibeRow) {
+                        cell.setTextAndCheck(MiogramLocale.get("Вайб Needy Streamer Overload (Ame-chan)", "Вайб Needy Streamer Overload (Ame-chan)", "Needy Streamer Overload Aesthetic (Ame-chan)"), ameVibeEnabled(), true);
+                    } else if (position == appleMusicRow) {
+                        cell.setTextAndCheck(MiogramLocale.get("Музичний плеєр Apple Music + Spotify", "Музыкальный плеер Apple Music + Spotify", "Apple Music Design + Spotify Ergonomics"), appleMusicEnabled(), true);
+                    } else if (position == miniBassRow) {
+                        cell.setTextAndCheck(MiogramLocale.get("Живий візуалізатор та міні-баси інтерфейсу", "Живой визуализатор и мини-басы интерфейса", "Live Mini-Bass UI Visualizer"), miniBassEnabled(), false);
+                    } else if (position == glassToggleRow) {
                         cell.setTextAndCheck(MiogramLocale.get("Ефект рідкого скла на AGSL", "Эффект жидкого стекла на AGSL", "Liquid glass effect via AGSL"), decorationEnabled(), true);
                     } else if (position == singleCornerRadiusRow) {
                         cell.setTextAndCheck(MiogramLocale.get("Єдине скруглення для форумів", "Единое скругление для форумов", "Uniform forum corner radius"), AppearanceConfig.singleCornerRadius.Bool(), true);
@@ -291,7 +345,10 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                 case TYPE_SETTINGS: {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-                    if (position == glassIntensityRow) {
+                    if (position == discordUiRow) {
+                        String val = MiogramDiscordLayout.getUiMode() == MiogramDiscordLayout.UI_MODE_DISCORD ? "Discord" : "Telegram";
+                        cell.setTextAndValue(MiogramLocale.get("Варіант інтерфейсу", "Вариант интерфейса", "Interface Layout Mode"), val, true);
+                    } else if (position == glassIntensityRow) {
                         cell.setTextAndValue(MiogramLocale.get("Інтенсивність скла", "Интенсивность стекла", "Glass Intensity"), intensityPercent() + "%", false);
                     } else if (position == avatarCornersRow) {
                         int current = AppearanceConfig.avatarCorners.Int();
@@ -313,7 +370,11 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
-                    if (position == glassInfoRow) {
+                    if (position == modeInfoRow) {
+                        cell.setText(MiogramLocale.get("Перемикання між Telegram та Discord структурою (ліва панель гільдій, канали та естетика Ame-chan).",
+                                "Переключение между Telegram и Discord структурой (левая панель гильдий, каналы и эстетика Ame-chan).",
+                                "Switch between Telegram Classic and Discord layouts with Needy Streamer Overload aesthetic."));
+                    } else if (position == glassInfoRow) {
                         cell.setText(MiogramLocale.get("Рідке скло накладає матовий світловий блік та люмінесцентну грань на панель заголовка.",
                                 "Жидкое стекло накладывает матовый световой блик и люминесцентную грань на панель заголовка.",
                                 "Liquid glass applies a frosted highlight and luminescent edge to top navigation bars."));

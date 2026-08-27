@@ -21,15 +21,23 @@ import org.telegram.ui.Cells.TextSettingsCell;
 import app.exteraless.general.GeneralConfig;
 import app.exteraless.utils.UtilsConfig;
 import app.miogram.bridge.MiogramLocale;
+import app.miogram.bridge.performance.MiogramFpsController;
 import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import xyz.nextalone.nagram.NaConfig;
 
 /**
- * Unified Miogram Performance & Network Settings with dynamic multilingual localization.
+ * Unified Miogram Performance & Network Settings with dynamic multilingual localization:
+ * - 90 / 120 FPS High Refresh Rate Display Optimizer
+ * - Multi-threaded Download Acceleration (12 streams)
+ * - Spring animation physics and predictive back gesture sensitivity
  */
 public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
+
+    private int headerFpsRow;
+    private int fpsModeRow;
+    private int fpsInfoRow;
 
     private int headerNetworkRow;
     private int downloadBoostRow;
@@ -54,6 +62,10 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
     protected void updateRows() {
         super.updateRows();
 
+        headerFpsRow = addRow();
+        fpsModeRow = addRow();
+        fpsInfoRow = addRow();
+
         headerNetworkRow = addRow();
         downloadBoostRow = addRow();
         networkInfoRow = addRow();
@@ -71,7 +83,9 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == downloadBoostRow) {
+        if (position == fpsModeRow) {
+            showFpsModeDialog();
+        } else if (position == downloadBoostRow) {
             showDownloadBoostDialog();
         } else if (position == springAnimationRow) {
             int cur = NaConfig.INSTANCE.getBackAnimationStyle().Int();
@@ -89,6 +103,28 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
             NekoConfig.disableVibration.setConfigBool(v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(v);
         }
+    }
+
+    private void showFpsModeDialog() {
+        Context ctx = getParentActivity();
+        if (ctx == null) return;
+
+        String[] options = new String[]{
+                MiogramLocale.get("Автоматично (Системна)", "Автоматически (Системная)", "Auto (System Default)"),
+                "90 FPS / 90 Hz (" + MiogramLocale.get("Плавний", "Плавный", "Smooth") + ")",
+                "120 FPS / 120 Hz (" + MiogramLocale.get("Максимальна плавність", "Максимальная плавность", "Ultra Smooth") + ")",
+                MiogramLocale.get("Максимум екрану (Max Refresh Rate)", "Максимум экрана (Max Refresh Rate)", "Screen Maximum (Max Refresh Rate)")
+        };
+
+        AlertDialog.Builder b = new AlertDialog.Builder(ctx);
+        b.setTitle(MiogramLocale.get("Частота оновлення дисплея", "Частота обновления дисплея", "Display Refresh Rate"));
+        b.setItems(options, (dialog, which) -> {
+            MiogramFpsController.setRefreshRateMode(which);
+            MiogramFpsController.applyToWindow(getParentActivity());
+            listAdapter.notifyItemChanged(fpsModeRow);
+        });
+        b.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(b.create());
     }
 
     private void showDownloadBoostDialog() {
@@ -157,11 +193,11 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == headerNetworkRow || position == headerMotionRow || position == headerMediaRow) {
+            if (position == headerFpsRow || position == headerNetworkRow || position == headerMotionRow || position == headerMediaRow) {
                 return TYPE_HEADER;
             } else if (position == springAnimationRow || position == autoPauseVideoRow || position == disableVibrationRow) {
                 return TYPE_CHECK;
-            } else if (position == networkInfoRow || position == motionInfoRow || position == mediaInfoRow) {
+            } else if (position == fpsInfoRow || position == networkInfoRow || position == motionInfoRow || position == mediaInfoRow) {
                 return TYPE_INFO_PRIVACY;
             }
             return TYPE_SETTINGS;
@@ -172,7 +208,9 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
             switch (holder.getItemViewType()) {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
-                    if (position == headerNetworkRow) {
+                    if (position == headerFpsRow) {
+                        cell.setText(MiogramLocale.get("Частота оновлення (90 / 120 FPS)", "Частота обновления (90 / 120 FPS)", "Refresh Rate (90 / 120 FPS)"));
+                    } else if (position == headerNetworkRow) {
                         cell.setText(MiogramLocale.get("Швидкість завантаження файлів", "Скорость загрузки файлов", "Download Speed"));
                     } else if (position == headerMotionRow) {
                         cell.setText(MiogramLocale.get("Пружинні анімації та жести", "Пружинные анимации и жесты", "Spring Animations & Gestures"));
@@ -195,7 +233,11 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
                 case TYPE_SETTINGS: {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-                    if (position == downloadBoostRow) {
+                    if (position == fpsModeRow) {
+                        int m = MiogramFpsController.getRefreshRateMode();
+                        String val = m == MiogramFpsController.REFRESH_MODE_120HZ ? "120 FPS" : (m == MiogramFpsController.REFRESH_MODE_90HZ ? "90 FPS" : (m == MiogramFpsController.REFRESH_MODE_MAX ? "Max" : "Auto"));
+                        cell.setTextAndValue(MiogramLocale.get("Режим FPS дисплея", "Режим FPS дисплея", "Display FPS Mode"), val, true);
+                    } else if (position == downloadBoostRow) {
                         int b = GeneralConfig.downloadSpeedBoost.Int();
                         String val = b == 2 ? MiogramLocale.get("Максимальний (12 потоків)", "Максимальный (12 потоков)", "Maximum (12 Threads)") : (b == 1 ? MiogramLocale.get("Швидкий", "Быстрый", "Fast") : MiogramLocale.get("Звичайний", "Обычный", "Normal"));
                         cell.setTextAndValue(MiogramLocale.get("Режим завантаження", "Режим загрузки", "Download Boost Mode"), val, false);
@@ -206,7 +248,11 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
-                    if (position == networkInfoRow) {
+                    if (position == fpsInfoRow) {
+                        cell.setText(MiogramLocale.get("Примусово оптимізує інтерфейс під 90 або 120 Гц для максимальної плавності анімацій та скролу.",
+                                "Принудительно оптимизирует интерфейс под 90 или 120 Гц для максимальной плавности анимаций и скролла.",
+                                "Locks display refresh rate to 90Hz or 120Hz for ultra-smooth animations and fluid list scrolling."));
+                    } else if (position == networkInfoRow) {
                         cell.setText(MiogramLocale.get("Багатопотоковий завантажувач використовує максимальну пропускну здатність вашого інтернет-з'єднання.",
                                 "Многопоточный загрузчик использует максимальную пропускную способность вашего интернет-соединения.",
                                 "Multi-threaded downloader utilizes maximum bandwidth of your connection."));

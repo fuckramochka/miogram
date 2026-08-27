@@ -771,11 +771,15 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
                 MessageObject messageObject = MediaController.getInstance().getPlayingMessageObject();
                 if (fragment != null && messageObject != null) {
                     if (messageObject.isMusic() || messageObject.isVoice()) {
-                        final Activity activity = AndroidUtilities.findActivity(getContext());
-                        if (activity instanceof LaunchActivity) {
-                            new AudioPlayerAlert(activity, resourcesProvider).show();
-                        } else if (AndroidUtilities.isContextSafe(LaunchActivity.instance)) {
-                            new AudioPlayerAlert(LaunchActivity.instance, resourcesProvider).show();
+                        if (app.miogram.bridge.ui.MiogramVisualsPrefs.loadBool(getContext(), "apple_music_player", true)) {
+                            new app.miogram.bridge.ui.player.MiogramAppleMusicSheet(fragment).show();
+                        } else {
+                            final Activity activity = AndroidUtilities.findActivity(getContext());
+                            if (activity instanceof LaunchActivity) {
+                                new AudioPlayerAlert(activity, resourcesProvider).show();
+                            } else if (AndroidUtilities.isContextSafe(LaunchActivity.instance)) {
+                                new AudioPlayerAlert(LaunchActivity.instance, resourcesProvider).show();
+                            }
                         }
                     } else {
                         long dialogId = 0;

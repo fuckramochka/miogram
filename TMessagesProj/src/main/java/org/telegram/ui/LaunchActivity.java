@@ -443,6 +443,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         currentAccount = UserConfig.selectedAccount;
         app.miogram.bridge.updater.MiogramUpdater.initAutoUpdate(this);
         app.miogram.bridge.plugins.MiogramInAppNotifications.getInstance().register();
+        app.miogram.bridge.performance.MiogramFpsController.applyToWindow(this);
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if (!UserConfig.getInstance(currentAccount).isClientActivated()) {
             Intent intent = getIntent();
@@ -3252,10 +3253,11 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 pushOpened = false;
                 isNew = false;
             } else if (showPlayer) {
-                if (!actionBarLayout.getFragmentStack().isEmpty()) {
-                    BaseFragment fragment = actionBarLayout.getFragmentStack().get(0);
-                    fragment.showDialog(new AudioPlayerAlert(this, null));
-                }
+                    if (app.miogram.bridge.ui.MiogramVisualsPrefs.loadBool(this, "apple_music_player", true)) {
+                        new app.miogram.bridge.ui.player.MiogramAppleMusicSheet(fragment).show();
+                    } else {
+                        fragment.showDialog(new AudioPlayerAlert(this, null));
+                    }
                 pushOpened = false;
             } else if (showLocations) {
                 if (!actionBarLayout.getFragmentStack().isEmpty()) {
