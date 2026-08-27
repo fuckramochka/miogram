@@ -13385,6 +13385,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && scrollableViewNoiseSuppressor != null) {
                     blur3_InvalidateBlur();
                 }
+            }
+        };
         ((ContentView) fragmentView).addView(searchViewPager, searchViewPagerIndex);
 
         if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
