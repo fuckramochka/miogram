@@ -20,13 +20,14 @@ import org.telegram.ui.Cells.TextSettingsCell;
 
 import app.exteraless.general.GeneralConfig;
 import app.exteraless.utils.UtilsConfig;
+import app.miogram.bridge.MiogramLocale;
 import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import xyz.nextalone.nagram.NaConfig;
 
 /**
- * Unified Miogram Performance & Network Settings.
+ * Unified Miogram Performance & Network Settings with dynamic multilingual localization.
  */
 public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
 
@@ -46,7 +47,7 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
 
     @Override
     protected String getActionBarTitle() {
-        return "Продуктивність та Мережа";
+        return MiogramLocale.get("Продуктивність та Мережа", "Производительность и Сеть", "Performance & Network");
     }
 
     @Override
@@ -93,9 +94,13 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
     private void showDownloadBoostDialog() {
         Context ctx = getParentActivity();
         if (ctx == null) return;
-        String[] options = new String[]{"Звичайний", "Швидкий (покращений завантажувач)", "Максимальний (12 потоків, 1 MB чанки)"};
+        String[] options = new String[]{
+                MiogramLocale.get("Звичайний", "Обычный", "Normal"),
+                MiogramLocale.get("Швидкий (покращений завантажувач)", "Быстрый (улучшенный загрузчик)", "Fast (Enhanced Downloader)"),
+                MiogramLocale.get("Максимальний (12 потоків, 1 MB чанки)", "Максимальный (12 потоков, 1 MB чанки)", "Maximum (12 Threads, 1 MB Chunks)")
+        };
         AlertDialog.Builder b = new AlertDialog.Builder(ctx);
-        b.setTitle("Прискорення завантаження файлів");
+        b.setTitle(MiogramLocale.get("Прискорення завантаження файлів", "Ускорение загрузки файлов", "Download Speed Boost"));
         b.setItems(options, (dialog, which) -> {
             GeneralConfig.downloadSpeedBoost.setConfigInt(which);
             listAdapter.notifyItemChanged(downloadBoostRow);
@@ -109,22 +114,22 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
         if (ctx == null) return;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle("Чутливість жесту «Назад»");
+        builder.setTitle(MiogramLocale.get("Чутливість жесту «Назад»", "Чувствительность жеста «Назад»", "Back Gesture Sensitivity"));
 
         LinearLayout container = new LinearLayout(ctx);
         container.setOrientation(LinearLayout.VERTICAL);
-        int pad = AndroidUtilities.dp(18);
-        container.setPadding(pad, pad / 2, pad, pad / 2);
+        container.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(12), AndroidUtilities.dp(24), AndroidUtilities.dp(12));
 
-        int current = UtilsConfig.predictiveBackIntensity.Int();
+        int cur = UtilsConfig.predictiveBackIntensity.Int();
         TextView valueLabel = new TextView(ctx);
-        valueLabel.setText(current + "%");
-        valueLabel.setTextSize(16);
+        valueLabel.setText(cur + "%");
         valueLabel.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        valueLabel.setTextSize(16);
+        valueLabel.setPadding(0, 0, 0, AndroidUtilities.dp(8));
 
         SeekBar seekBar = new SeekBar(ctx);
-        seekBar.setMax(200);
-        seekBar.setProgress(current);
+        seekBar.setMax(100);
+        seekBar.setProgress(cur);
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar sb, int progress, boolean fromUser) {
@@ -168,22 +173,22 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerNetworkRow) {
-                        cell.setText("Швидкість завантаження файлів");
+                        cell.setText(MiogramLocale.get("Швидкість завантаження файлів", "Скорость загрузки файлов", "Download Speed"));
                     } else if (position == headerMotionRow) {
-                        cell.setText("Пружинні анімації та жести");
+                        cell.setText(MiogramLocale.get("Пружинні анімації та жести", "Пружинные анимации и жесты", "Spring Animations & Gestures"));
                     } else if (position == headerMediaRow) {
-                        cell.setText("Медіа та вібровідгук");
+                        cell.setText(MiogramLocale.get("Медіа та вібровідгук", "Медиа и виброотклик", "Media & Haptics"));
                     }
                     break;
                 }
                 case TYPE_CHECK: {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
                     if (position == springAnimationRow) {
-                        cell.setTextAndCheck("Пружинний плавний перехід екранів", NaConfig.INSTANCE.getBackAnimationStyle().Int() == 1, true);
+                        cell.setTextAndCheck(MiogramLocale.get("Пружинний плавний перехід екранів", "Пружинный плавный переход экранов", "Physics-based spring transition"), NaConfig.INSTANCE.getBackAnimationStyle().Int() == 1, true);
                     } else if (position == autoPauseVideoRow) {
-                        cell.setTextAndCheck("Ставити відео на паузу при згортанні", NekoConfig.autoPauseVideo.Bool(), true);
+                        cell.setTextAndCheck(MiogramLocale.get("Ставити відео на паузу при згортанні", "Ставить видео на паузу при сворачивании", "Pause video when minimized"), NekoConfig.autoPauseVideo.Bool(), true);
                     } else if (position == disableVibrationRow) {
-                        cell.setTextAndCheck("Вимкнути всі системні вібрації в додатку", NekoConfig.disableVibration.Bool(), false);
+                        cell.setTextAndCheck(MiogramLocale.get("Вимкнути всі системні вібрації в додатку", "Выключить все системные вибрации в приложении", "Disable all in-app vibrations"), NekoConfig.disableVibration.Bool(), false);
                     }
                     break;
                 }
@@ -192,21 +197,27 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == downloadBoostRow) {
                         int b = GeneralConfig.downloadSpeedBoost.Int();
-                        String val = b == 2 ? "Максимальний (12 потоків)" : (b == 1 ? "Швидкий" : "Звичайний");
-                        cell.setTextAndValue("Режим завантаження", val, false);
+                        String val = b == 2 ? MiogramLocale.get("Максимальний (12 потоків)", "Максимальный (12 потоков)", "Maximum (12 Threads)") : (b == 1 ? MiogramLocale.get("Швидкий", "Быстрый", "Fast") : MiogramLocale.get("Звичайний", "Обычный", "Normal"));
+                        cell.setTextAndValue(MiogramLocale.get("Режим завантаження", "Режим загрузки", "Download Boost Mode"), val, false);
                     } else if (position == backSensitivityRow) {
-                        cell.setTextAndValue("Чутливість жесту «Назад»", UtilsConfig.predictiveBackIntensity.Int() + "%", false);
+                        cell.setTextAndValue(MiogramLocale.get("Чутливість жесту «Назад»", "Чувствительность жеста «Назад»", "Back Gesture Sensitivity"), UtilsConfig.predictiveBackIntensity.Int() + "%", false);
                     }
                     break;
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == networkInfoRow) {
-                        cell.setText("Багатопотоковий завантажувач використовує максимальну пропускну здатність вашого інтернет-з'єднання.");
+                        cell.setText(MiogramLocale.get("Багатопотоковий завантажувач використовує максимальну пропускну здатність вашого інтернет-з'єднання.",
+                                "Многопоточный загрузчик использует максимальную пропускную способность вашего интернет-соединения.",
+                                "Multi-threaded downloader utilizes maximum bandwidth of your connection."));
                     } else if (position == motionInfoRow) {
-                        cell.setText("Керування фізикою пружинних переходів та жестом повернення назад.");
+                        cell.setText(MiogramLocale.get("Керування фізикою пружинних переходів та жестом повернення назад.",
+                                "Управление физикой пружинных переходов и жестом возврата назад.",
+                                "Controls spring animation physics and predictive back gestures."));
                     } else if (position == mediaInfoRow) {
-                        cell.setText("Параметри взаємодії з відеоплеєром та тактильним відгуком.");
+                        cell.setText(MiogramLocale.get("Параметри взаємодії з відеоплеєром та тактильним відгуком.",
+                                "Параметры взаимодействия с видеоплеером и тактильным откликом.",
+                                "Settings for video player auto-pause and haptic vibration feedback."));
                     }
                     break;
                 }

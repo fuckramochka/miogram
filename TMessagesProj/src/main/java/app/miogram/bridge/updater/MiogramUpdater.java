@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -24,6 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import app.miogram.bridge.MiogramLocale;
 import app.miogram.bridge.ui.MiogramUpdateBottomSheet;
 
 /**
@@ -31,7 +33,7 @@ import app.miogram.bridge.ui.MiogramUpdateBottomSheet;
  * - Checks GitHub Releases API
  * - Semantic version and build code comparison
  * - Automatic background check every 5 minutes and on launch
- * - Compact anime reaction dialog (Happy on update / Sad on latest)
+ * - 16:9 Anime reaction dialog (Happy on update / Sad on latest)
  */
 public class MiogramUpdater {
 
@@ -95,7 +97,7 @@ public class MiogramUpdater {
         if (fragment == null || fragment.getParentActivity() == null) return;
 
         if (manualCheck) {
-            Toast.makeText(fragment.getParentActivity(), "Перевірка оновлень Miogram...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(fragment.getParentActivity(), MiogramLocale.get("Перевірка оновлень Miogram...", "Проверка обновлений Miogram...", "Checking for Miogram updates..."), Toast.LENGTH_SHORT).show();
         }
 
         fetchLatestRelease((hasUpdate, version, changelog, apkUrl) -> {
@@ -135,7 +137,7 @@ public class MiogramUpdater {
                     reader.close();
 
                     JSONObject json = new JSONObject(sb.toString());
-                    String tag = json.optString("tag_name", "v12.10.0");
+                    String tag = json.optString("tag_name", "v12.10.1");
                     String body = json.optString("body", "");
                     String apkUrl = "";
 
@@ -153,7 +155,7 @@ public class MiogramUpdater {
 
                     final String finalVersion = tag.replace("v", "").replace("V", "").trim();
                     final String currentVersion = getCurrentAppVersion();
-                    boolean isNewer = isNewerVersion(currentVersion, finalVersion, tag);
+                    boolean isNewer = isNewerVersion(currentVersion, finalVersion, tag, body);
 
                     callback.onResult(isNewer, finalVersion, body, apkUrl);
                 } else {
@@ -176,24 +178,45 @@ public class MiogramUpdater {
         }
     }
 
-    public static boolean isNewerVersion(String currentVersion, String remoteVersion, String remoteTag) {
-        if (remoteVersion == null || remoteVersion.isEmpty()) return false;
+    public static boolean isNewerVersion(String currentVersion, String remoteVersion, String remoteTag, String changelog) {
+        if (TextUtils.isEmpty(remoteVersion)) return false;
 
         String c = currentVersion != null ? currentVersion.replace("v", "").replace("V", "").trim() : "";
         String r = remoteVersion.trim();
-        if (c.equalsIgnoreCase(r)) return false;
 
-        String[] cParts = c.split("[.-]");
-        String[] rParts = r.split("[.-]");
+        // 1. Exact match or prefix match
+        if (c.equalsIgnoreCase(r)) return false;
+        if (!c.isEmpty() && !r.isEmpty()) {
+            if (c.startsWith(r) || r.startsWith(c)) {
+                // If it's the exact same base release with a commit hash (e.g. 12.10.1-83b6b68 vs 12.10.1), it is up to date
+                return false;
+            }
+        }
+
+        // 2. If changelog or remote tag contains commit hash that matches installed app
+        if (!TextUtils.isEmpty(changelog) && !TextUtils.isEmpty(c)) {
+            String[] parts = c.split("-");
+            if (parts.length > 1) {
+                String currentHash = parts[parts.length - 1].trim();
+                if (currentHash.length() >= 4 && changelog.contains(currentHash)) {
+                    return false; // Same commit already running!
+                }
+            }
+        }
+
+        // 3. Compare numeric version components
+        String[] cParts = c.split("[^0-9]+");
+        String[] rParts = r.split("[^0-9]+");
+
         int len = Math.max(cParts.length, rParts.length);
         for (int i = 0; i < len; i++) {
             int cVal = 0;
             int rVal = 0;
-            if (i < cParts.length) {
-                try { cVal = Integer.parseInt(cParts[i].replaceAll("\\D+", "")); } catch (Exception ignored) {}
+            if (i < cParts.length && !cParts[i].isEmpty()) {
+                try { cVal = Integer.parseInt(cParts[i]); } catch (Exception ignored) {}
             }
-            if (i < rParts.length) {
-                try { rVal = Integer.parseInt(rParts[i].replaceAll("\\D+", "")); } catch (Exception ignored) {}
+            if (i < rParts.length && !rParts[i].isEmpty()) {
+                try { rVal = Integer.parseInt(rParts[i]); } catch (Exception ignored) {}
             }
             if (rVal > cVal) return true;
             if (rVal < cVal) return false;

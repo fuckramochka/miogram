@@ -19,16 +19,17 @@ import org.telegram.ui.Cells.TextInfoPrivacyCell;
 import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.EditTextBoldCursor;
 
+import app.miogram.bridge.MiogramLocale;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import xyz.nextalone.nagram.NaConfig;
 
 /**
- * Unified Miogram AI Settings:
- * - Direct connection for Voice-to-Text Transcription (Gemini 2.5 Flash)
+ * Unified Miogram AI Settings with dynamic multilingual localization:
+ * - Direct connection for Voice-to-Text Transcription (Gemini 3.5 Flash Lite)
  * - BYOK API Key Vault (single key activates transcription, summarization, and chat assistant)
  * - Privacy Protection (PII redaction)
- * - Model Selector (Gemini 2.5 Flash, Gemini 2.5 Pro)
+ * - Model Selector (Gemini 3.5 Flash Lite, Gemini 3.5 Flash, Gemini 2.5 Flash)
  */
 public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
 
@@ -108,7 +109,7 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
 
     private static String maskKey(String key) {
         if (key == null || key.isEmpty()) {
-            return "Не встановлено";
+            return MiogramLocale.get("Не встановлено", "Не установлено", "Not set");
         }
         return key.substring(0, Math.min(6, key.length())) + "…••••";
     }
@@ -152,7 +153,7 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
             saveKey(input.getText().toString());
         });
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
-        builder.setNeutralButton("Очистити", (dialog, which) -> {
+        builder.setNeutralButton(MiogramLocale.get("Очистити", "Очистить", "Clear"), (dialog, which) -> {
             saveKey("");
         });
         showDialog(builder.create());
@@ -162,11 +163,15 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
         Context ctx = getParentActivity();
         if (ctx == null) return;
 
-        String[] models = {"gemini-3.5-flash-lite (Рекомендовано, 0.3с)", "gemini-3.5-flash", "gemini-2.5-flash"};
+        String[] models = {
+                "gemini-3.5-flash-lite (" + MiogramLocale.get("Рекомендовано, 0.3с", "Рекомендовано, 0.3с", "Recommended, 0.3s") + ")",
+                "gemini-3.5-flash",
+                "gemini-2.5-flash"
+        };
         String[] modelKeys = {"gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-2.5-flash"};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle("Модель Miogram AI");
+        builder.setTitle(MiogramLocale.get("Модель Miogram AI", "Модель Miogram AI", "Miogram AI Model"));
         builder.setItems(models, (dialog, which) -> {
             saveModel(modelKeys[which]);
         });
@@ -202,9 +207,9 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerAiRow) {
-                        cell.setText("Конфігурація Gemini AI");
+                        cell.setText(MiogramLocale.get("Конфігурація Gemini AI", "Конфигурация Gemini AI", "Gemini AI Configuration"));
                     } else if (position == headerFeaturesRow) {
-                        cell.setText("Застосування Miogram AI");
+                        cell.setText(MiogramLocale.get("Застосування Miogram AI", "Применение Miogram AI", "Miogram AI Applications"));
                     }
                     break;
                 }
@@ -212,34 +217,39 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == keyRow) {
-                        cell.setTextAndValue("API Ключ Gemini", maskKey(savedKey()), true);
+                        cell.setTextAndValue(MiogramLocale.get("API Ключ Gemini", "API Ключ Gemini", "Gemini API Key"), maskKey(savedKey()), true);
                     } else if (position == modelRow) {
-                        cell.setTextAndValue("Модель ШІ", savedModel(), true);
+                        cell.setTextAndValue(MiogramLocale.get("Модель ШІ", "Модель ИИ", "AI Model"), savedModel(), true);
                     } else if (position == voiceTranscribeInfoRow) {
-                        cell.setTextAndValue("Розшифровка аудіо та кружечків", "Увімкнено (Gemini Multimodal)", false);
+                        cell.setTextAndValue(MiogramLocale.get("Розшифровка аудіо та кружечків", "Расшифровка аудио и кружочков", "Voice & Video Notes"),
+                                MiogramLocale.get("Увімкнено (Gemini Multimodal)", "Включено (Gemini Multimodal)", "Enabled (Gemini Multimodal)"), false);
                     }
                     break;
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
                     if (position == getKeyRow) {
-                        cell.setTextAndIcon("Отримати безкоштовний ключ на Google AI Studio", R.drawable.msg_bot, false);
+                        cell.setTextAndIcon(MiogramLocale.get("Отримати безкоштовний ключ на Google AI Studio", "Получить бесплатный ключ на Google AI Studio", "Get free API key on Google AI Studio"), R.drawable.msg_bot, false);
                     }
                     break;
                 }
                 case TYPE_CHECK: {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
                     if (position == piiMaskRow) {
-                        cell.setTextAndCheck("Приховувати персональні дані (PII Shield)", piiMaskEnabled(), false);
+                        cell.setTextAndCheck(MiogramLocale.get("Приховувати персональні дані (PII Shield)", "Скрывать личные данные (PII Shield)", "Protect Personal Data (PII Shield)"), piiMaskEnabled(), false);
                     }
                     break;
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == aiInfoRow) {
-                        cell.setText("Один ключ Gemini активує всі функції штучного інтелекту: миттєву розшифровку голосових, переклад та помічника.");
+                        cell.setText(MiogramLocale.get("Один ключ Gemini активує всі функції штучного інтелекту: миттєву розшифровку голосових, переклад та помічника.",
+                                "Один ключ Gemini активирует все функции искусственного интеллекта: мгновенную расшифровку голосовых, перевод и помощника.",
+                                "A single Gemini key powers multimodal voice-to-text, message summarization, and AI assistant."));
                     } else if (position == featuresInfoRow) {
-                        cell.setText("Натисніть кнопку розшифровки на будь-якому голосовому повідомленні або кружечку в чаті для отримання тексту за 0.3 секунди.");
+                        cell.setText(MiogramLocale.get("Натисніть кнопку розшифровки на будь-якому голосовому повідомленні або кружечку в чаті для отримання тексту за 0.3 секунди.",
+                                "Нажмите кнопку расшифровки на любом голосовом сообщении или кружочке в чате для получения текста за 0.3 секунды.",
+                                "Tap the transcribe icon on any voice message or video note to get verbatim text in 0.3 seconds."));
                     }
                     break;
                 }

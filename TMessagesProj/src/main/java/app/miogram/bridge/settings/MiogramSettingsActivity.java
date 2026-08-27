@@ -10,6 +10,7 @@ import org.telegram.messenger.R;
 import org.telegram.ui.Cells.TextCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
 
+import app.miogram.bridge.MiogramLocale;
 import app.miogram.bridge.ui.MiogramAiSettingsActivity;
 import app.miogram.bridge.ui.MiogramChatsSettingsActivity;
 import app.miogram.bridge.ui.MiogramPerformanceActivity;
@@ -21,7 +22,7 @@ import tw.nekomimi.nekogram.settings.NekoTranslatorSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 
 /**
- * Unified Main Miogram Settings Hub.
+ * Unified Main Miogram Settings Hub with dynamic multilingual localization.
  */
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
@@ -41,7 +42,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     protected String getActionBarTitle() {
-        return "Налаштування Miogram";
+        return MiogramLocale.get("Налаштування Miogram", "Настройки Miogram", "Miogram Settings");
     }
 
     @Override
@@ -106,39 +107,39 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerCategoriesRow) {
-                        cell.setText("Основні розділи");
+                        cell.setText(MiogramLocale.get("Основні розділи", "Основные разделы", "Main Sections"));
                     } else if (position == headerAdvancedRow) {
-                        cell.setText("Інтелект та Інструменти");
+                        cell.setText(MiogramLocale.get("Інтелект та Інструменти", "Интеллект и Инструменты", "AI & Developer Tools"));
                     }
                     break;
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
                     if (position == visualsRow) {
-                        cell.setTextAndIcon("Зовнішній вигляд (Рідке скло, Аватарки, Теми)", R.drawable.msg_theme, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Зовнішній вигляд (Рідке скло, Аватарки, Теми)", "Внешний вид (Жидкое стекло, Аватарки, Темы)", "Appearance (Liquid Glass, Avatars, Themes)"), R.drawable.msg_theme, true);
                     } else if (position == chatsRow) {
-                        cell.setTextAndIcon("Чати та Медіа (CameraX, Дабл-тап, Стікери)", R.drawable.msg_camera, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Чати та Медіа (CameraX, Дабл-тап, Стікери)", "Чаты и Медиа (CameraX, Дабл-тап, Стикеры)", "Chats & Media (CameraX, Double-tap, Stickers)"), R.drawable.msg_camera, true);
                     } else if (position == privacyRow) {
-                        cell.setTextAndIcon("Конфіденційність та Ghost Mode (AyuGram, Сховок)", R.drawable.msg_secret, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Конфіденційність та Ghost Mode (AyuGram, Сховок)", "Конфиденциальность и Ghost Mode (AyuGram, Сейф)", "Privacy & Ghost Mode (AyuGram, Vault)"), R.drawable.msg_secret, true);
                     } else if (position == translatorRow) {
-                        cell.setTextAndIcon("Перекладач (Google, DeepL, Yandex)", R.drawable.msg_translate, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Перекладач (Google, DeepL, Yandex)", "Переводчик (Google, DeepL, Yandex)", "Translator (Google, DeepL, Yandex)"), R.drawable.msg_translate, true);
                     } else if (position == performanceRow) {
-                        cell.setTextAndIcon("Продуктивність (Download Boost 12x, Анімації)", R.drawable.msg_speed, false);
+                        cell.setTextAndIcon(MiogramLocale.get("Продуктивність (Download Boost 12x, Анімації)", "Производительность (Download Boost 12x, Анимации)", "Performance (Download Boost 12x, Animations)"), R.drawable.msg_speed, false);
                     } else if (position == aiRow) {
-                        cell.setTextAndIcon("Miogram AI (Gemini 2.5 + Whisper Voice)", R.drawable.msg_bot, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Miogram AI (Gemini 3.5 Flash Lite + Голосові)", "Miogram AI (Gemini 3.5 Flash Lite + Голосовые)", "Miogram AI (Gemini 3.5 Flash Lite + Voice)"), R.drawable.msg_bot, true);
                     } else if (position == pluginsRow) {
-                        cell.setTextAndIcon("Плагіни Miogram (Rust / WASM / Py)", R.drawable.msg_folders, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Плагіни Miogram (Rust / WASM / Py)", "Плагины Miogram (Rust / WASM / Py)", "Plugins Manager (Rust / WASM / Py)"), R.drawable.msg_folders, true);
                     } else if (position == updaterRow) {
-                        cell.setTextAndIcon("Перевірити оновлення Miogram", R.drawable.msg_retry, false);
+                        cell.setTextAndIcon(MiogramLocale.get("Перевірити оновлення Miogram", "Проверить обновления Miogram", "Check for Updates"), R.drawable.msg_retry, false);
                     }
                     break;
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == categoriesInfoRow) {
-                        cell.setText("Повний набір функцій exteraless та Nagram, оптимізований та об'єднаний у Miogram.");
+                        cell.setText(MiogramLocale.get("Повний набір функцій exteraless та Nagram, оптимізований та об'єднаний у Miogram.", "Полный набор функций exteraless и Nagram, оптимизированный и объединённый в Miogram.", "Full suite of exteraless and Nagram features, unified and optimized for Miogram."));
                     } else if (position == advancedInfoRow) {
-                        cell.setText("Нативні розширення на WebAssembly, голосовий ШІ та система безшовних оновлень.");
+                        cell.setText(MiogramLocale.get("Нативні розширення на WebAssembly, голосовий ШІ та система безшовних оновлень.", "Нативные расширения на WebAssembly, голосовой ИИ и система бесшовных обновлений.", "Native WebAssembly extensions, Gemini multimodal voice AI, and seamless in-app updater."));
                     }
                     break;
                 }

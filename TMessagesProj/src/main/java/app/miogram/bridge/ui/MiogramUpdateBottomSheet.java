@@ -19,6 +19,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -44,13 +45,16 @@ import org.telegram.ui.Components.LayoutHelper;
 
 import java.io.File;
 
+import app.miogram.bridge.MiogramLocale;
+
 /**
- * Compact and stylish Miogram Update Dialog with anime state reaction illustrations:
- * - Top title & version badge
- * - State illustration (Happy Kangel on update / Sad Ame-chan on latest)
- * - Changelog & Question
- * - Compact horizontal progress bar during download
- * - Action buttons
+ * Premium 16:9 Anime Art In-App Update Dialog for Miogram.
+ * Features:
+ * - 16:9 smooth anti-aliased banner artwork (Happy Kangel on update / Sad Ame-chan on latest)
+ * - Modern typography and pill badges
+ * - Soft rounded translucent card for changelog
+ * - Smooth horizontal download progress bar
+ * - Multilingual support (Ukrainian, Russian, English)
  */
 public class MiogramUpdateBottomSheet extends BottomSheet {
 
@@ -88,57 +92,75 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setClickable(true);
         root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        root.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(16));
+        root.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(16), AndroidUtilities.dp(22), AndroidUtilities.dp(20));
 
         // 1. Title
         SimpleTextView title = new SimpleTextView(ctx);
         title.setTypeface(AndroidUtilities.bold());
-        title.setTextSize(18);
+        title.setTextSize(19);
         title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
-        title.setText(hasUpdate ? "Вийшло нове оновлення!" : "Встановлена остання версія");
+        title.setText(hasUpdate
+                ? MiogramLocale.get("Вийшло нове оновлення!", "Вышло новое обновление!", "New Update Available!")
+                : MiogramLocale.get("Встановлена остання версія", "Установлена последняя версия", "Latest Version Installed"));
         title.setGravity(Gravity.CENTER);
-        root.addView(title, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 4, 0, 2));
+        root.addView(title, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 4, 0, 4));
 
-        // 2. Version badge
+        // 2. Version Pill Badge
         TextView versionBadge = new TextView(ctx);
-        versionBadge.setText(hasUpdate ? "Доступна версія: v" + versionName : "Версія: v" + versionName + " (Актуальна)");
+        versionBadge.setText(hasUpdate
+                ? MiogramLocale.format("Доступна версія: v%s", "Доступная версия: v%s", "Available version: v%s", versionName)
+                : MiogramLocale.format("Версія: v%s (Актуальна)", "Версия: v%s (Актуальная)", "Version: v%s (Up to date)", versionName));
         versionBadge.setTextSize(13);
+        versionBadge.setTypeface(AndroidUtilities.bold());
         versionBadge.setTextColor(hasUpdate ? Theme.getColor(Theme.key_windowBackgroundWhiteBlueText) : Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
         versionBadge.setGravity(Gravity.CENTER);
-        root.addView(versionBadge, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
+        root.addView(versionBadge, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
 
-        // 3. Illustration (Happy on update / Sad on latest)
+        // 3. 16:9 Banner Illustration (Smooth rounded corners 16dp)
         ImageView illustrationView = new ImageView(ctx);
         illustrationView.setScaleType(ImageView.ScaleType.CENTER_CROP);
         int imageRes = hasUpdate ? R.drawable.img_update_available : R.drawable.img_update_none;
         try {
             Bitmap raw = BitmapFactory.decodeResource(ctx.getResources(), imageRes);
             if (raw != null) {
-                illustrationView.setImageBitmap(getRoundedCornerBitmap(raw, AndroidUtilities.dp(14)));
+                // Draw 16:9 smooth rounded image
+                illustrationView.setImageBitmap(getSmoothRounded16by9Bitmap(raw, AndroidUtilities.dp(16)));
             } else {
                 illustrationView.setImageResource(imageRes);
             }
         } catch (Throwable t) {
             illustrationView.setImageResource(imageRes);
         }
-        root.addView(illustrationView, LayoutHelper.createLinear(110, 110, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 12));
+        // 16:9 Ratio: Match Parent width, ~146dp height
+        root.addView(illustrationView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 146, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 14));
 
-        // 4. Description / Changelog
+        // 4. Soft Card Container for Changelog & Description
+        LinearLayout cardLayout = new LinearLayout(ctx);
+        cardLayout.setOrientation(LinearLayout.VERTICAL);
+        cardLayout.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(12), Theme.getColor(Theme.key_windowBackgroundGray)));
+        cardLayout.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
+
         TextView descriptionView = new TextView(ctx);
         if (hasUpdate) {
-            String noteText = (changelog != null && !changelog.trim().isEmpty())
+            String noteText = (!TextUtils.isEmpty(changelog))
                     ? changelog.trim()
-                    : "• Оновлено Miogram AI (Gemini 2.5/3.5 Flash Lite)\n• Нативна розшифровка голосових повідомлень\n• Оптимізація та прискорення роботи додатку";
-            descriptionView.setText("Що нового:\n" + noteText + "\n\nБажаєте встановити оновлення?");
+                    : MiogramLocale.get("• Оновлено Miogram AI (Gemini 3.5 Flash Lite)\n• Нативна розшифровка голосових повідомлень\n• Оптимізація та прискорення роботи",
+                                        "• Обновлен Miogram AI (Gemini 3.5 Flash Lite)\n• Нативная расшифровка голосовых сообщений\n• Оптимизация и ускорение работы",
+                                        "• Updated Miogram AI (Gemini 3.5 Flash Lite)\n• Native voice message transcription\n• Performance optimizations");
+            descriptionView.setText(MiogramLocale.get("Що нового:\n", "Что нового:\n", "What's new:\n") + noteText + "\n\n" + MiogramLocale.get("Бажаєте встановити оновлення?", "Желаете установить обновление?", "Would you like to install the update?"));
         } else {
-            descriptionView.setText("У вас вже встановлено найновішу збірку Miogram. Нових оновлень поки немає.");
+            descriptionView.setText(MiogramLocale.get("У вас вже встановлено найновішу збірку Miogram. Нових оновлень поки немає.",
+                    "У вас уже установлена самая новая сборка Miogram. Новых обновлений пока нет.",
+                    "You already have the latest build of Miogram installed. No new updates found."));
         }
-        descriptionView.setTextSize(13);
-        descriptionView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
-        descriptionView.setLineSpacing(AndroidUtilities.dp(2), 1f);
-        root.addView(descriptionView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 4, 0, 4, 12));
+        descriptionView.setTextSize(13.5f);
+        descriptionView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        descriptionView.setLineSpacing(AndroidUtilities.dp(3), 1.15f);
+        cardLayout.addView(descriptionView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        // 5. Progress Container (Hidden by default)
+        root.addView(cardLayout, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 14));
+
+        // 5. Progress Container
         progressContainer = new LinearLayout(ctx);
         progressContainer.setOrientation(LinearLayout.VERTICAL);
         progressContainer.setVisibility(View.GONE);
@@ -149,7 +171,7 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
         progressContainer.addView(progressBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 8, 0, 0, 0, 4));
 
         progressTextView = new TextView(ctx);
-        progressTextView.setText("Завантаження: 0%");
+        progressTextView.setText(MiogramLocale.get("Завантаження: 0%", "Загрузка: 0%", "Downloading: 0%"));
         progressTextView.setTextSize(12);
         progressTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText));
         progressTextView.setGravity(Gravity.CENTER);
@@ -159,22 +181,24 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
 
         // 6. Action Buttons
         installButton = new TextView(ctx);
-        installButton.setText(hasUpdate ? "Оновити зараз" : "Чудово");
+        installButton.setText(hasUpdate
+                ? MiogramLocale.get("Оновити зараз", "Обновить сейчас", "Update Now")
+                : MiogramLocale.get("Чудово", "Отлично", "Great"));
         installButton.setTextSize(15);
         installButton.setTypeface(AndroidUtilities.bold());
         installButton.setGravity(Gravity.CENTER);
-        installButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(8), Theme.getColor(Theme.key_featuredStickers_addButton), Theme.getColor(Theme.key_featuredStickers_addButton)));
+        installButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(12), Theme.getColor(Theme.key_featuredStickers_addButton), Theme.getColor(Theme.key_featuredStickers_addButton)));
         installButton.setTextColor(0xFFFFFFFF);
         if (hasUpdate) {
             installButton.setOnClickListener(v -> startDownloadAndInstall(fragment));
         } else {
             installButton.setOnClickListener(v -> dismiss());
         }
-        root.addView(installButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 44, Gravity.TOP, 0, 0, 0, hasUpdate ? 6 : 0));
+        root.addView(installButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 46, Gravity.TOP, 0, 0, 0, hasUpdate ? 8 : 0));
 
         if (hasUpdate) {
             cancelButton = new TextView(ctx);
-            cancelButton.setText("Пізніше");
+            cancelButton.setText(MiogramLocale.get("Пізніше", "Позже", "Later"));
             cancelButton.setTextSize(14);
             cancelButton.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
             cancelButton.setGravity(Gravity.CENTER);
@@ -191,23 +215,26 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
         setCustomView(sv);
     }
 
-    private Bitmap getRoundedCornerBitmap(Bitmap bitmap, int pixels) {
-        Bitmap output = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
+    private Bitmap getSmoothRounded16by9Bitmap(Bitmap bitmap, int pixels) {
+        int width = bitmap.getWidth();
+        int targetHeight = (width * 9) / 16;
+        if (targetHeight > bitmap.getHeight()) {
+            targetHeight = bitmap.getHeight();
+        }
+
+        Bitmap cropped = Bitmap.createBitmap(bitmap, 0, Math.max(0, (bitmap.getHeight() - targetHeight) / 2), width, targetHeight);
+        Bitmap output = Bitmap.createBitmap(cropped.getWidth(), cropped.getHeight(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(output);
 
-        final int color = 0xff424242;
-        final Paint paint = new Paint();
-        final Rect rect = new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight());
+        final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        final Rect rect = new Rect(0, 0, cropped.getWidth(), cropped.getHeight());
         final RectF rectF = new RectF(rect);
-        final float roundPx = pixels;
 
-        paint.setAntiAlias(true);
-        canvas.drawARGB(0, 0, 0, 0);
-        paint.setColor(color);
-        canvas.drawRoundRect(rectF, roundPx, roundPx, paint);
+        paint.setColor(0xff424242);
+        canvas.drawRoundRect(rectF, pixels, pixels, paint);
 
         paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
-        canvas.drawBitmap(bitmap, rect, rect, paint);
+        canvas.drawBitmap(cropped, rect, rect, paint);
 
         return output;
     }
@@ -217,7 +244,7 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
         if (ctx == null) ctx = ApplicationLoader.applicationContext;
 
         if (apkDownloadUrl == null || apkDownloadUrl.isEmpty()) {
-            Toast.makeText(ctx, "Посилання для завантаження недоступне", Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, MiogramLocale.get("Посилання для завантаження недоступне", "Ссылка для загрузки недоступна", "Download link is not available"), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -225,12 +252,12 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
         installButton.setAlpha(0.6f);
         if (cancelButton != null) cancelButton.setVisibility(View.GONE);
         progressContainer.setVisibility(View.VISIBLE);
-        progressTextView.setText("Завантаження: 0%...");
+        progressTextView.setText(MiogramLocale.get("Завантаження: 0%...", "Загрузка: 0%...", "Downloading: 0%..."));
 
         try {
             DownloadManager dm = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
             if (dm == null) {
-                Toast.makeText(ctx, "DownloadManager недоступний", Toast.LENGTH_SHORT).show();
+                Toast.makeText(ctx, "DownloadManager error", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -241,7 +268,7 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
 
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(apkDownloadUrl));
             request.setTitle("Miogram v" + versionName);
-            request.setDescription("Завантаження оновлення...");
+            request.setDescription(MiogramLocale.get("Завантаження оновлення...", "Загрузка обновления...", "Downloading update..."));
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             request.setDestinationUri(Uri.fromFile(apkFile));
 
@@ -273,7 +300,7 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
             startProgressPolling(dm, downloadId);
         } catch (Exception e) {
             FileLog.e(e);
-            Toast.makeText(ctx, "Помилка завантаження: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             installButton.setEnabled(true);
             installButton.setAlpha(1f);
             if (cancelButton != null) cancelButton.setVisibility(View.VISIBLE);
@@ -298,7 +325,7 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
                             progressBar.setProgress(percent);
                             long dlMb = bytesDownloaded / (1024 * 1024);
                             long totalMb = bytesTotal / (1024 * 1024);
-                            progressTextView.setText("Завантаження: " + percent + "% (" + dlMb + "MB / " + totalMb + "MB)");
+                            progressTextView.setText(MiogramLocale.format("Завантаження: %d%% (%dMB / %dMB)", "Загрузка: %d%% (%dMB / %dMB)", "Downloading: %d%% (%dMB / %dMB)", percent, dlMb, totalMb));
                         }
                         cursor.close();
                     }
@@ -326,7 +353,7 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
                     permIntent.setData(Uri.parse("package:" + ctx.getPackageName()));
                     permIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     ctx.startActivity(permIntent);
-                    Toast.makeText(ctx, "Увімкніть дозвіл на встановлення додатків для Miogram", Toast.LENGTH_LONG).show();
+                    Toast.makeText(ctx, MiogramLocale.get("Увімкніть дозвіл на встановлення додатків для Miogram", "Включите разрешение на установку приложений для Miogram", "Enable install unknown apps permission for Miogram"), Toast.LENGTH_LONG).show();
                     return;
                 }
             }
@@ -344,7 +371,7 @@ public class MiogramUpdateBottomSheet extends BottomSheet {
             ctx.startActivity(intent);
         } catch (Exception e) {
             FileLog.e(e);
-            Toast.makeText(ctx, "Помилка відкриття інсталятора: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(ctx, "Install Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 

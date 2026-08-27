@@ -22,11 +22,12 @@ import org.telegram.ui.Cells.TextSettingsCell;
 
 import app.exteraless.appearance.AppearanceConfig;
 import app.miogram.bridge.MiogramFlags;
+import app.miogram.bridge.MiogramLocale;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 
 /**
- * Clean & unified Miogram Appearance Settings.
+ * Clean & unified Miogram Appearance Settings with dynamic multilingual localization.
  */
 public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
 
@@ -49,7 +50,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
 
     @Override
     protected String getActionBarTitle() {
-        return "Зовнішній вигляд";
+        return MiogramLocale.get("Зовнішній вигляд", "Внешний вид", "Appearance & Design");
     }
 
     @Override
@@ -99,59 +100,57 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
             listAdapter.notifyItemChanged(glassIntensityRow);
             getNotificationCenter().postNotificationName(NotificationCenter.needSetDayNightTheme);
         } else if (position == glassIntensityRow) {
-            showIntensitySliderDialog();
+            showIntensityDialog();
         } else if (position == avatarCornersRow) {
-            showAvatarCornerDialog();
+            showAvatarCornersDialog();
         } else if (position == singleCornerRadiusRow) {
-            boolean value = !AppearanceConfig.singleCornerRadius.Bool();
-            AppearanceConfig.singleCornerRadius.setConfigBool(value);
+            boolean next = !AppearanceConfig.singleCornerRadius.Bool();
+            AppearanceConfig.singleCornerRadius.setConfigBool(next);
             if (view instanceof TextCheckCell) {
-                ((TextCheckCell) view).setChecked(value);
+                ((TextCheckCell) view).setChecked(next);
             }
             getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
         } else if (position == senderMiniAvatarsRow) {
-            boolean value = !AppearanceConfig.senderMiniAvatars.Bool();
-            AppearanceConfig.senderMiniAvatars.setConfigBool(value);
+            boolean next = !AppearanceConfig.senderMiniAvatars.Bool();
+            AppearanceConfig.senderMiniAvatars.setConfigBool(next);
             if (view instanceof TextCheckCell) {
-                ((TextCheckCell) view).setChecked(value);
+                ((TextCheckCell) view).setChecked(next);
             }
             getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
         } else if (position == squareFabRow) {
-            boolean value = !AppearanceConfig.squareFab.Bool();
-            AppearanceConfig.squareFab.setConfigBool(value);
+            boolean next = !AppearanceConfig.squareFab.Bool();
+            AppearanceConfig.squareFab.setConfigBool(next);
             if (view instanceof TextCheckCell) {
-                ((TextCheckCell) view).setChecked(value);
+                ((TextCheckCell) view).setChecked(next);
             }
             getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
         } else if (position == titleTextRow) {
             showTitleTextDialog();
         } else if (position == monetStyleRow) {
             int cur = AppearanceConfig.monetStyle.Int();
-            int next = (cur == AppearanceConfig.MONET_STYLE_TELEMONE)
-                    ? AppearanceConfig.MONET_STYLE_CLASSIC
-                    : AppearanceConfig.MONET_STYLE_TELEMONE;
+            int next = cur == AppearanceConfig.MONET_STYLE_TELEMONE ? AppearanceConfig.MONET_STYLE_ACCENT : AppearanceConfig.MONET_STYLE_TELEMONE;
             AppearanceConfig.monetStyle.setConfigInt(next);
             listAdapter.notifyItemChanged(monetStyleRow);
             getNotificationCenter().postNotificationName(NotificationCenter.needSetDayNightTheme);
         }
     }
 
-    private void showIntensitySliderDialog() {
+    private void showIntensityDialog() {
         Context ctx = getParentActivity();
         if (ctx == null) return;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle("Інтенсивність рідкого скла");
+        builder.setTitle(MiogramLocale.get("Інтенсивність рідкого скла", "Интенсивность жидкого стекла", "Liquid Glass Intensity"));
 
         LinearLayout container = new LinearLayout(ctx);
         container.setOrientation(LinearLayout.VERTICAL);
-        int pad = AndroidUtilities.dp(18);
-        container.setPadding(pad, pad / 2, pad, pad / 2);
+        container.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(12), AndroidUtilities.dp(24), AndroidUtilities.dp(12));
 
         TextView valueLabel = new TextView(ctx);
         valueLabel.setText(intensityPercent() + "%");
-        valueLabel.setTextSize(16);
         valueLabel.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        valueLabel.setTextSize(16);
+        valueLabel.setPadding(0, 0, 0, AndroidUtilities.dp(8));
 
         SeekBar seekBar = new SeekBar(ctx);
         seekBar.setMax(100);
@@ -176,31 +175,36 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         showDialog(builder.create());
     }
 
-    private void showAvatarCornerDialog() {
+    private void showAvatarCornersDialog() {
         Context ctx = getParentActivity();
         if (ctx == null) return;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle("Закруглення аватарок");
+        builder.setTitle(MiogramLocale.get("Скруглення аватарок", "Скругление аватарок", "Avatar Corner Radius"));
 
         LinearLayout container = new LinearLayout(ctx);
         container.setOrientation(LinearLayout.VERTICAL);
-        int pad = AndroidUtilities.dp(18);
-        container.setPadding(pad, pad / 2, pad, pad / 2);
+        container.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(12), AndroidUtilities.dp(24), AndroidUtilities.dp(12));
 
-        int current = AppearanceConfig.avatarCorners.Int();
+        int cur = AppearanceConfig.avatarCorners.Int();
         TextView valueLabel = new TextView(ctx);
-        valueLabel.setText(current == AppearanceConfig.AVATAR_CORNERS_MAX ? "Круглі (за замовчуванням)" : (current == 0 ? "Квадратні" : current + " dp"));
-        valueLabel.setTextSize(16);
+        String label = cur == AppearanceConfig.AVATAR_CORNERS_MAX
+                ? MiogramLocale.get("Круглі", "Круглые", "Round")
+                : (cur == 0 ? MiogramLocale.get("Квадратні", "Квадратные", "Square") : cur + " dp");
+        valueLabel.setText(label);
         valueLabel.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        valueLabel.setTextSize(16);
+        valueLabel.setPadding(0, 0, 0, AndroidUtilities.dp(8));
 
         SeekBar seekBar = new SeekBar(ctx);
         seekBar.setMax(AppearanceConfig.AVATAR_CORNERS_MAX);
-        seekBar.setProgress(current);
+        seekBar.setProgress(cur);
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar sb, int progress, boolean fromUser) {
-                valueLabel.setText(progress == AppearanceConfig.AVATAR_CORNERS_MAX ? "Круглі" : (progress == 0 ? "Квадратні" : progress + " dp"));
+                valueLabel.setText(progress == AppearanceConfig.AVATAR_CORNERS_MAX
+                        ? MiogramLocale.get("Круглі", "Круглые", "Round")
+                        : (progress == 0 ? MiogramLocale.get("Квадратні", "Квадратные", "Square") : progress + " dp"));
                 AppearanceConfig.avatarCorners.setConfigInt(progress);
             }
             @Override public void onStartTrackingTouch(SeekBar sb) {}
@@ -223,12 +227,12 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
 
         String[] options = new String[]{
                 "Miogram",
-                "Ім'я користувача (@username)",
-                "Ваше ім'я",
-                "Чати"
+                MiogramLocale.get("Ім'я користувача (@username)", "Имя пользователя (@username)", "Username (@username)"),
+                MiogramLocale.get("Ваше ім'я", "Ваше имя", "Your Name"),
+                MiogramLocale.get("Чати", "Чаты", "Chats")
         };
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle("Заголовок списку чатів");
+        builder.setTitle(MiogramLocale.get("Заголовок списку чатів", "Заголовок списка чатов", "Chat List Header"));
         builder.setItems(options, (dialog, which) -> {
             AppearanceConfig.titleText.setConfigInt(which);
             listAdapter.notifyItemChanged(titleTextRow);
@@ -263,24 +267,24 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerGlassRow) {
-                        cell.setText("Рідке скло (Liquid Frosted Glass)");
+                        cell.setText(MiogramLocale.get("Рідке скло (Liquid Frosted Glass)", "Жидкое стекло (Liquid Frosted Glass)", "Liquid Frosted Glass (AGSL)"));
                     } else if (position == headerAvatarsRow) {
-                        cell.setText("Аватарки та список чатів");
+                        cell.setText(MiogramLocale.get("Аватарки та список чатів", "Аватарки и список чатов", "Avatars & Chat List"));
                     } else if (position == headerUiRow) {
-                        cell.setText("Елементи інтерфейсу та Теми");
+                        cell.setText(MiogramLocale.get("Елементи інтерфейсу та Теми", "Элементы интерфейса и Темы", "UI & Themes"));
                     }
                     break;
                 }
                 case TYPE_CHECK: {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
                     if (position == glassToggleRow) {
-                        cell.setTextAndCheck("Ефект рідкого скла на AGSL", decorationEnabled(), true);
+                        cell.setTextAndCheck(MiogramLocale.get("Ефект рідкого скла на AGSL", "Эффект жидкого стекла на AGSL", "Liquid glass effect via AGSL"), decorationEnabled(), true);
                     } else if (position == singleCornerRadiusRow) {
-                        cell.setTextAndCheck("Єдине скруглення для форумів", AppearanceConfig.singleCornerRadius.Bool(), true);
+                        cell.setTextAndCheck(MiogramLocale.get("Єдине скруглення для форумів", "Единое скругление для форумов", "Uniform forum corner radius"), AppearanceConfig.singleCornerRadius.Bool(), true);
                     } else if (position == senderMiniAvatarsRow) {
-                        cell.setTextAndCheck("Міні-аватарки відправників у чатах", AppearanceConfig.senderMiniAvatars.Bool(), false);
+                        cell.setTextAndCheck(MiogramLocale.get("Міні-аватарки відправників у чатах", "Мини-аватарки отправителей в чатах", "Mini-avatars of message senders"), AppearanceConfig.senderMiniAvatars.Bool(), false);
                     } else if (position == squareFabRow) {
-                        cell.setTextAndCheck("Квадратна («Squircle») плаваюча кнопка", AppearanceConfig.squareFab.Bool(), true);
+                        cell.setTextAndCheck(MiogramLocale.get("Квадратна («Squircle») плаваюча кнопка", "Квадратная («Squircle») плавающая кнопка", "Squircle Floating Action Button"), AppearanceConfig.squareFab.Bool(), true);
                     }
                     break;
                 }
@@ -288,29 +292,39 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == glassIntensityRow) {
-                        cell.setTextAndValue("Інтенсивність скла", intensityPercent() + "%", false);
+                        cell.setTextAndValue(MiogramLocale.get("Інтенсивність скла", "Интенсивность стекла", "Glass Intensity"), intensityPercent() + "%", false);
                     } else if (position == avatarCornersRow) {
                         int current = AppearanceConfig.avatarCorners.Int();
-                        String val = current == AppearanceConfig.AVATAR_CORNERS_MAX ? "Круглі" : (current == 0 ? "Квадратні" : current + " dp");
-                        cell.setTextAndValue("Форма та скруглення аватарок", val, true);
+                        String val = current == AppearanceConfig.AVATAR_CORNERS_MAX
+                                ? MiogramLocale.get("Круглі", "Круглые", "Round")
+                                : (current == 0 ? MiogramLocale.get("Квадратні", "Квадратные", "Square") : current + " dp");
+                        cell.setTextAndValue(MiogramLocale.get("Форма та скруглення аватарок", "Форма и скругление аватарок", "Avatar Shape & Radius"), val, true);
                     } else if (position == titleTextRow) {
                         int t = AppearanceConfig.titleText.Int();
-                        String val = t == 1 ? "@username" : (t == 2 ? "Ім'я" : (t == 3 ? "Чати" : "Miogram"));
-                        cell.setTextAndValue("Заголовок головного екрана", val, true);
+                        String val = t == 1 ? "@username" : (t == 2 ? MiogramLocale.get("Ім'я", "Имя", "Name") : (t == 3 ? MiogramLocale.get("Чати", "Чаты", "Chats") : "Miogram"));
+                        cell.setTextAndValue(MiogramLocale.get("Заголовок головного екрана", "Заголовок главного экрана", "Main Screen Title"), val, true);
                     } else if (position == monetStyleRow) {
-                        String val = AppearanceConfig.monetStyle.Int() == AppearanceConfig.MONET_STYLE_TELEMONE ? "Telemone (Material 3)" : "Класичний";
-                        cell.setTextAndValue("Стиль Monet теми", val, false);
+                        String val = AppearanceConfig.monetStyle.Int() == AppearanceConfig.MONET_STYLE_TELEMONE
+                                ? "Telemone (Material 3)"
+                                : MiogramLocale.get("Класичний", "Классический", "Classic");
+                        cell.setTextAndValue(MiogramLocale.get("Стиль Monet теми", "Стиль Monet темы", "Monet Theme Style"), val, false);
                     }
                     break;
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == glassInfoRow) {
-                        cell.setText("Рідке скло накладає матовий світловий блік та люмінесцентну грань на панель заголовка.");
+                        cell.setText(MiogramLocale.get("Рідке скло накладає матовий світловий блік та люмінесцентну грань на панель заголовка.",
+                                "Жидкое стекло накладывает матовый световой блик и люминесцентную грань на панель заголовка.",
+                                "Liquid glass applies a frosted highlight and luminescent edge to top navigation bars."));
                     } else if (position == avatarsInfoRow) {
-                        cell.setText("Налаштовує геометрію аватарок користувачів та каналів у всіх списках додатку.");
+                        cell.setText(MiogramLocale.get("Налаштовує геометрію аватарок користувачів та каналів у всіх списках додатку.",
+                                "Настраивает геометрию аватарок пользователей и каналов во всех списках приложения.",
+                                "Configures avatar corner geometry for chats and channels across the entire app."));
                     } else if (position == uiInfoRow) {
-                        cell.setText("Керує динамічним кольоровим оформленням Material You та кнопками дії.");
+                        cell.setText(MiogramLocale.get("Керує динамічним кольоровим оформленням Material You та кнопками дії.",
+                                "Управляет динамическим цветовым оформлением Material You и кнопками действия.",
+                                "Controls dynamic Material You coloring and action buttons."));
                     }
                     break;
                 }

@@ -12,13 +12,14 @@ import org.telegram.ui.Cells.TextCell;
 import org.telegram.ui.Cells.TextCheckCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
 
+import app.miogram.bridge.MiogramLocale;
 import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import xyz.nextalone.nagram.NaConfig;
 
 /**
- * Unified Miogram Privacy & Security Settings.
+ * Unified Miogram Privacy & Security Settings with dynamic multilingual localization.
  */
 public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
 
@@ -44,7 +45,7 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     protected String getActionBarTitle() {
-        return "Конфіденційність та Захист";
+        return MiogramLocale.get("Конфіденційність та Захист", "Конфиденциальность и Защита", "Privacy & Security");
     }
 
     @Override
@@ -137,52 +138,60 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerVaultRow) {
-                        cell.setText("Секретний сховок (Zero-Knowledge Vault)");
+                        cell.setText(MiogramLocale.get("Секретний сховок (Zero-Knowledge Vault)", "Секретный сейф (Zero-Knowledge Vault)", "Zero-Knowledge Vault"));
                     } else if (position == headerGhostRow) {
-                        cell.setText("Режим невидимки (Ghost Mode)");
+                        cell.setText(MiogramLocale.get("Режим невидимки (Ghost Mode)", "Режим невидимки (Ghost Mode)", "Ghost Mode"));
                     } else if (position == headerHistoryRow) {
-                        cell.setText("Історія та збереження повідомлень");
+                        cell.setText(MiogramLocale.get("Історія та збереження повідомлень", "История и сохранение сообщений", "Message History & Anti-Delete"));
                     } else if (position == headerGeneralPrivacyRow) {
-                        cell.setText("Загальна конфіденційність");
+                        cell.setText(MiogramLocale.get("Загальна конфіденційність", "Общая конфиденциальность", "General Privacy"));
                     }
                     break;
                 }
                 case TYPE_CHECK: {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
                     if (position == ghostReadRow) {
-                        cell.setTextAndCheck("Не надсилати звіт про прочитання", !NekoConfig.sendReadMessagePackets.Bool(), true);
+                        cell.setTextAndCheck(MiogramLocale.get("Не надсилати звіт про прочитання", "Не отправлять отчет о прочтении", "Don't send read receipts"), !NekoConfig.sendReadMessagePackets.Bool(), true);
                     } else if (position == ghostOnlineRow) {
-                        cell.setTextAndCheck("Приховувати статус «В мережі»", !NekoConfig.sendOnlinePackets.Bool(), true);
+                        cell.setTextAndCheck(MiogramLocale.get("Приховувати статус «В мережі»", "Скрывать статус «В сети»", "Hide 'Online' status"), !NekoConfig.sendOnlinePackets.Bool(), true);
                     } else if (position == ghostTypingRow) {
-                        cell.setTextAndCheck("Приховувати статус «Друкує / записує»", !NekoConfig.sendUploadProgress.Bool(), false);
+                        cell.setTextAndCheck(MiogramLocale.get("Приховувати статус «Друкує / записує»", "Скрывать статус «Печатает / записывает»", "Hide 'Typing / recording' action"), !NekoConfig.sendUploadProgress.Bool(), false);
                     } else if (position == saveDeletedMessagesRow) {
-                        cell.setTextAndCheck("Зберігати видалені та відредаговані повідомлення", NaConfig.INSTANCE.getEnableSaveDeletedMessages().Bool(), true);
+                        cell.setTextAndCheck(MiogramLocale.get("Зберігати видалені та відредаговані повідомлення", "Сохранять удаленные и отредактированные сообщения", "Save deleted and edited messages"), NaConfig.INSTANCE.getEnableSaveDeletedMessages().Bool(), true);
                     } else if (position == saveDeletedMediaRow) {
-                        cell.setTextAndCheck("Зберігати медіафайли видалених повідомлень", NaConfig.INSTANCE.getMessageSavingSaveMedia().Bool(), false);
+                        cell.setTextAndCheck(MiogramLocale.get("Зберігати медіафайли видалених повідомлень", "Сохранять медиафайлы удаленных сообщений", "Save media from deleted messages"), NaConfig.INSTANCE.getMessageSavingSaveMedia().Bool(), false);
                     } else if (position == hidePhoneRow) {
-                        cell.setTextAndCheck("Приховати номер телефону в меню та налаштуваннях", NekoConfig.hidePhone.Bool(), true);
+                        cell.setTextAndCheck(MiogramLocale.get("Приховати номер телефону в меню та налаштуваннях", "Скрыть номер телефона в меню и настройках", "Hide phone number in menu & settings"), NekoConfig.hidePhone.Bool(), true);
                     } else if (position == allowScreenshotRow) {
-                        cell.setTextAndCheck("Дозволити знімки екрана та копіювання в обмежених чатах", NekoConfig.ignoreContentRestrictions.Bool(), false);
+                        cell.setTextAndCheck(MiogramLocale.get("Дозволити знімки екрана та копіювання в обмежених чатах", "Разрешить снимки экрана и копирование в ограниченных чатах", "Allow screenshots in protected content chats"), NekoConfig.ignoreContentRestrictions.Bool(), false);
                     }
                     break;
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
                     if (position == vaultManageRow) {
-                        cell.setTextAndIcon("Налаштування сховку та PIN під примусом", R.drawable.msg_fave, false);
+                        cell.setTextAndIcon(MiogramLocale.get("Налаштування сховку та PIN під примусом", "Настройки сейфа и PIN под принуждением", "Vault setup & Duress PIN"), R.drawable.msg_fave, false);
                     }
                     break;
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == vaultInfoRow) {
-                        cell.setText("Криптографічний захист чатів: при введенні фейкового PIN-коду під примусом відображаються лише безпечні чати.");
+                        cell.setText(MiogramLocale.get("Криптографічний захист чатів: при введенні фейкового PIN-коду під примусом відображаються лише безпечні чати.",
+                                "Криптографическая защита чатов: при вводе фейкового PIN-кода под принуждением отображаются только безопасные чаты.",
+                                "Cryptographic chat protection: entering a duress PIN reveals only innocuous chats."));
                     } else if (position == ghostInfoRow) {
-                        cell.setText("Дозволяє читати повідомлення непомітно для співрозмовника.");
+                        cell.setText(MiogramLocale.get("Дозволяє читати повідомлення непомітно для співрозмовника.",
+                                "Позволяет читать сообщения незаметно для собеседника.",
+                                "Enables stealth message viewing without notifying the other party."));
                     } else if (position == historyInfoRow) {
-                        cell.setText("Зберігає копію оригінального тексту навіть після того, як співрозмовник його видалив або змінив.");
+                        cell.setText(MiogramLocale.get("Зберігає копію оригінального тексту навіть після того, як співрозмовник його видалив або змінив.",
+                                "Сохраняет копию оригинального текста даже после того, как собеседник его удалил или изменил.",
+                                "Preserves original messages and media even if edited or retracted."));
                     } else if (position == generalPrivacyInfoRow) {
-                        cell.setText("Додатковий захист персональних даних та екрану.");
+                        cell.setText(MiogramLocale.get("Додатковий захист персональних даних та екрану.",
+                                "Дополнительная защита персональных данных и экрана.",
+                                "Additional protection for personal identity and screen captures."));
                     }
                     break;
                 }

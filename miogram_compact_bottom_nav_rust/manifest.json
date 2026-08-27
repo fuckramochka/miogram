@@ -1,0 +1,10 @@
+{
+  "id": "compact_bottom_nav",
+  "name": "CompactBottomNav",
+  "version": "1.0.0",
+  "author": "@YouRooni",
+  "description": "Компактная нижняя панель без подписей и с плавающей кнопкой поиска.",
+  "icon": "RnDev/18",
+  "app_version": ">=12.6.4",
+  "sdk_version": ">=1.4.3.3"
+}
