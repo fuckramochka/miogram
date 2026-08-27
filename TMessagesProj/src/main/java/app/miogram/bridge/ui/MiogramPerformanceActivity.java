@@ -17,20 +17,16 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Cells.TextCheckCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
 import org.telegram.ui.Cells.TextSettingsCell;
-import org.telegram.ui.Components.RecyclerListView;
 
 import app.exteraless.general.GeneralConfig;
 import app.exteraless.utils.UtilsConfig;
+import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import xyz.nextalone.nagram.NaConfig;
 
 /**
- * Unified Miogram Performance & Network Settings:
- * - Multi-threaded Download Speed Boost (12 streams)
- * - Predictive Back Gesture sensitivity & Spring physics
- * - Audio playback auto-pause during recording
- * - Tactile vibration feedback
+ * Unified Miogram Performance & Network Settings.
  */
 public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
 
@@ -84,12 +80,12 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
         } else if (position == backSensitivityRow) {
             showSensitivityDialog();
         } else if (position == autoPauseMusicRow) {
-            boolean v = !NaConfig.INSTANCE.getPauseMusicOnRecord().Bool();
-            NaConfig.INSTANCE.getPauseMusicOnRecord().setConfigBool(v);
+            boolean v = !NekoConfig.pauseMusicOnRecord.Bool();
+            NekoConfig.pauseMusicOnRecord.setConfigBool(v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(v);
         } else if (position == disableVibrationRow) {
-            boolean v = !NaConfig.INSTANCE.getDisableVibration().Bool();
-            NaConfig.INSTANCE.getDisableVibration().setConfigBool(v);
+            boolean v = !NekoConfig.disableVibration.Bool();
+            NekoConfig.disableVibration.setConfigBool(v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(v);
         }
     }
@@ -150,11 +146,6 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
 
     private class ListAdapter extends BaseListAdapter {
 
-        private static final int TYPE_HEADER = 0;
-        private static final int TYPE_CHECK = 1;
-        private static final int TYPE_SETTINGS = 2;
-        private static final int TYPE_INFO = 3;
-
         public ListAdapter(Context context) {
             super(context);
         }
@@ -166,7 +157,7 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
             } else if (position == springAnimationRow || position == autoPauseMusicRow || position == disableVibrationRow) {
                 return TYPE_CHECK;
             } else if (position == networkInfoRow || position == motionInfoRow || position == mediaInfoRow) {
-                return TYPE_INFO;
+                return TYPE_INFO_PRIVACY;
             }
             return TYPE_SETTINGS;
         }
@@ -190,9 +181,9 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
                     if (position == springAnimationRow) {
                         cell.setTextAndCheck("Пружинний плавний перехід екранів", NaConfig.INSTANCE.getBackAnimationStyle().Int() == 1, true);
                     } else if (position == autoPauseMusicRow) {
-                        cell.setTextAndCheck("Ставити музику на паузу при записі голосу", NaConfig.INSTANCE.getPauseMusicOnRecord().Bool(), true);
+                        cell.setTextAndCheck("Ставити музику на паузу при записі голосу", NekoConfig.pauseMusicOnRecord.Bool(), true);
                     } else if (position == disableVibrationRow) {
-                        cell.setTextAndCheck("Вимкнути всі системні вібрації в додатку", NaConfig.INSTANCE.getDisableVibration().Bool(), false);
+                        cell.setTextAndCheck("Вимкнути всі системні вібрації в додатку", NekoConfig.disableVibration.Bool(), false);
                     }
                     break;
                 }
@@ -208,7 +199,7 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
                     }
                     break;
                 }
-                case TYPE_INFO: {
+                case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == networkInfoRow) {
                         cell.setText("Багатопотоковий завантажувач використовує максимальну пропускну здатність вашого інтернет-з'єднання.");
@@ -220,19 +211,6 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
                     break;
                 }
             }
-        }
-
-        @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
-            View view;
-            switch (viewType) {
-                case TYPE_HEADER: view = new HeaderCell(mContext); break;
-                case TYPE_CHECK: view = new TextCheckCell(mContext); break;
-                case TYPE_SETTINGS: view = new TextSettingsCell(mContext); break;
-                case TYPE_INFO: default: view = new TextInfoPrivacyCell(mContext); break;
-            }
-            view.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, RecyclerView.LayoutParams.WRAP_CONTENT));
-            return new RecyclerListView.Holder(view);
         }
     }
 

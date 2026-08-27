@@ -94,7 +94,7 @@ jobs:
           BUILD_TIMESTAMP=$(date +%s)
           echo "BUILD_TIMESTAMP=$BUILD_TIMESTAMP" >> $GITHUB_ENV
           echo "build_timestamp=$BUILD_TIMESTAMP" >> "$GITHUB_OUTPUT"
-          ./gradlew TMessagesProj:assembleRelease --parallel --build-cache
+          ./gradlew TMessagesProj:assembleRelease --parallel --build-cache --max-workers=4
       - name: Upload arm64-v8a Artifact
         uses: actions/upload-artifact@v4
         with:

@@ -14,7 +14,6 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Cells.TextCheckCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
 import org.telegram.ui.Cells.TextSettingsCell;
-import org.telegram.ui.Components.RecyclerListView;
 
 import app.exteraless.chats.ChatsConfig;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
@@ -22,12 +21,7 @@ import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import xyz.nextalone.nagram.NaConfig;
 
 /**
- * Unified Miogram Chats & Media Settings:
- * - CameraX video circle messages (Wide angle, 60 FPS, Stabilization, Zoom slider)
- * - Double-tap message shortcuts
- * - No-quote message forwarding
- * - Sticker shapes & Reply styles
- * - Message ID & Online status indicators
+ * Unified Miogram Chats & Media Settings.
  */
 public class MiogramChatsSettingsActivity extends BaseNekoSettingsActivity {
 
@@ -194,11 +188,6 @@ public class MiogramChatsSettingsActivity extends BaseNekoSettingsActivity {
 
     private class ListAdapter extends BaseListAdapter {
 
-        private static final int TYPE_HEADER = 0;
-        private static final int TYPE_CHECK = 1;
-        private static final int TYPE_SETTINGS = 2;
-        private static final int TYPE_INFO = 3;
-
         public ListAdapter(Context context) {
             super(context);
         }
@@ -214,7 +203,7 @@ public class MiogramChatsSettingsActivity extends BaseNekoSettingsActivity {
                     || position == showOnlineStatusRow) {
                 return TYPE_CHECK;
             } else if (position == cameraInfoRow || position == chatActionsInfoRow || position == stickersInfoRow) {
-                return TYPE_INFO;
+                return TYPE_INFO_PRIVACY;
             }
             return TYPE_SETTINGS;
         }
@@ -279,7 +268,7 @@ public class MiogramChatsSettingsActivity extends BaseNekoSettingsActivity {
                     }
                     break;
                 }
-                case TYPE_INFO: {
+                case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == cameraInfoRow) {
                         cell.setText("Двигун CameraX значно покращує якість кружечків, додає стабілізацію та підтримку 60 FPS.");
@@ -291,19 +280,6 @@ public class MiogramChatsSettingsActivity extends BaseNekoSettingsActivity {
                     break;
                 }
             }
-        }
-
-        @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
-            View view;
-            switch (viewType) {
-                case TYPE_HEADER: view = new HeaderCell(mContext); break;
-                case TYPE_CHECK: view = new TextCheckCell(mContext); break;
-                case TYPE_SETTINGS: view = new TextSettingsCell(mContext); break;
-                case TYPE_INFO: default: view = new TextInfoPrivacyCell(mContext); break;
-            }
-            view.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, RecyclerView.LayoutParams.WRAP_CONTENT));
-            return new RecyclerListView.Holder(view);
         }
     }
 

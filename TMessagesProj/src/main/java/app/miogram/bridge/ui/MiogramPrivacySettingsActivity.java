@@ -11,18 +11,14 @@ import org.telegram.messenger.R;
 import org.telegram.ui.Cells.TextCell;
 import org.telegram.ui.Cells.TextCheckCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
-import org.telegram.ui.Components.RecyclerListView;
 
+import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import xyz.nextalone.nagram.NaConfig;
 
 /**
- * Unified Miogram Privacy & Security Settings:
- * - Zero-Knowledge Vault & Duress PIN
- * - Ghost Mode (Read stealth, Hide online, Hide typing)
- * - Message History (Save deleted messages, media saving)
- * - Privacy enhancements (Hide phone number, Allow screenshots)
+ * Unified Miogram Privacy & Security Settings.
  */
 public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
 
@@ -81,16 +77,16 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
         if (position == vaultManageRow) {
             presentFragment(new MiogramVaultActivity());
         } else if (position == ghostReadRow) {
-            boolean v = !NaConfig.INSTANCE.getSendReadMessage().Bool();
-            NaConfig.INSTANCE.getSendReadMessage().setConfigBool(v);
+            boolean v = !NekoConfig.sendReadMessagePackets.Bool();
+            NekoConfig.sendReadMessagePackets.setConfigBool(v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(!v);
         } else if (position == ghostOnlineRow) {
-            boolean v = !NaConfig.INSTANCE.getSendOnlinePackets().Bool();
-            NaConfig.INSTANCE.getSendOnlinePackets().setConfigBool(v);
+            boolean v = !NekoConfig.sendOnlinePackets.Bool();
+            NekoConfig.sendOnlinePackets.setConfigBool(v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(!v);
         } else if (position == ghostTypingRow) {
-            boolean v = !NaConfig.INSTANCE.getSendUploadProgress().Bool();
-            NaConfig.INSTANCE.getSendUploadProgress().setConfigBool(v);
+            boolean v = !NekoConfig.sendUploadProgress.Bool();
+            NekoConfig.sendUploadProgress.setConfigBool(v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(!v);
         } else if (position == saveDeletedMessagesRow) {
             boolean v = !NaConfig.INSTANCE.getEnableSaveDeletedMessages().Bool();
@@ -102,23 +98,18 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
             NaConfig.INSTANCE.getMessageSavingSaveMedia().setConfigBool(v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(v);
         } else if (position == hidePhoneRow) {
-            boolean v = !NaConfig.INSTANCE.getHidePhone().Bool();
-            NaConfig.INSTANCE.getHidePhone().setConfigBool(v);
+            boolean v = !NekoConfig.hidePhone.Bool();
+            NekoConfig.hidePhone.setConfigBool(v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(v);
             getNotificationCenter().postNotificationName(NotificationCenter.mainUserInfoChanged);
         } else if (position == allowScreenshotRow) {
-            boolean v = !NaConfig.INSTANCE.getAllowScreenshot().Bool();
-            NaConfig.INSTANCE.getAllowScreenshot().setConfigBool(v);
+            boolean v = !NekoConfig.allowScreenshot.Bool();
+            NekoConfig.allowScreenshot.setConfigBool(v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(v);
         }
     }
 
     private class ListAdapter extends BaseListAdapter {
-
-        private static final int TYPE_HEADER = 0;
-        private static final int TYPE_CHECK = 1;
-        private static final int TYPE_SETTINGS = 2;
-        private static final int TYPE_INFO = 3;
 
         public ListAdapter(Context context) {
             super(context);
@@ -135,9 +126,9 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
                 return TYPE_CHECK;
             } else if (position == vaultInfoRow || position == ghostInfoRow
                     || position == historyInfoRow || position == generalPrivacyInfoRow) {
-                return TYPE_INFO;
+                return TYPE_INFO_PRIVACY;
             }
-            return TYPE_SETTINGS;
+            return TYPE_TEXT;
         }
 
         @Override
@@ -159,31 +150,30 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_CHECK: {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
                     if (position == ghostReadRow) {
-                        // sendReadMessage == false means ghost reading is ON
-                        cell.setTextAndCheck("Не надсилати звіт про прочитання", !NaConfig.INSTANCE.getSendReadMessage().Bool(), true);
+                        cell.setTextAndCheck("Не надсилати звіт про прочитання", !NekoConfig.sendReadMessagePackets.Bool(), true);
                     } else if (position == ghostOnlineRow) {
-                        cell.setTextAndCheck("Приховувати статус «В мережі»", !NaConfig.INSTANCE.getSendOnlinePackets().Bool(), true);
+                        cell.setTextAndCheck("Приховувати статус «В мережі»", !NekoConfig.sendOnlinePackets.Bool(), true);
                     } else if (position == ghostTypingRow) {
-                        cell.setTextAndCheck("Приховувати статус «Друкує / записує»", !NaConfig.INSTANCE.getSendUploadProgress().Bool(), false);
+                        cell.setTextAndCheck("Приховувати статус «Друкує / записує»", !NekoConfig.sendUploadProgress.Bool(), false);
                     } else if (position == saveDeletedMessagesRow) {
                         cell.setTextAndCheck("Зберігати видалені та відредаговані повідомлення", NaConfig.INSTANCE.getEnableSaveDeletedMessages().Bool(), true);
                     } else if (position == saveDeletedMediaRow) {
                         cell.setTextAndCheck("Зберігати медіафайли видалених повідомлень", NaConfig.INSTANCE.getMessageSavingSaveMedia().Bool(), false);
                     } else if (position == hidePhoneRow) {
-                        cell.setTextAndCheck("Приховати номер телефону в меню та налаштуваннях", NaConfig.INSTANCE.getHidePhone().Bool(), true);
+                        cell.setTextAndCheck("Приховати номер телефону в меню та налаштуваннях", NekoConfig.hidePhone.Bool(), true);
                     } else if (position == allowScreenshotRow) {
-                        cell.setTextAndCheck("Дозволити знімки екрана в секретних чатах", NaConfig.INSTANCE.getAllowScreenshot().Bool(), false);
+                        cell.setTextAndCheck("Дозволити знімки екрана в секретних чатах", NekoConfig.allowScreenshot.Bool(), false);
                     }
                     break;
                 }
-                case TYPE_SETTINGS: {
+                case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
                     if (position == vaultManageRow) {
                         cell.setTextAndIcon("Налаштування сховку та PIN під примусом", R.drawable.msg_fave, false);
                     }
                     break;
                 }
-                case TYPE_INFO: {
+                case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == vaultInfoRow) {
                         cell.setText("Криптографічний захист чатів: при введенні фейкового PIN-коду під примусом відображаються лише безпечні чати.");
@@ -197,19 +187,6 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
                     break;
                 }
             }
-        }
-
-        @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
-            View view;
-            switch (viewType) {
-                case TYPE_HEADER: view = new HeaderCell(mContext); break;
-                case TYPE_CHECK: view = new TextCheckCell(mContext); break;
-                case TYPE_SETTINGS: view = new TextCell(mContext); break;
-                case TYPE_INFO: default: view = new TextInfoPrivacyCell(mContext); break;
-            }
-            view.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, RecyclerView.LayoutParams.WRAP_CONTENT));
-            return new RecyclerListView.Holder(view);
         }
     }
 

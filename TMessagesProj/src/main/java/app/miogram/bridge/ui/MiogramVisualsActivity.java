@@ -26,13 +26,7 @@ import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 
 /**
- * Clean & unified Miogram Appearance Settings:
- * - Liquid Frosted Glass (AGSL Shaders)
- * - Avatar Corner Radius & Single Corner for forums
- * - Mini-avatars in chat list
- * - Squircle / Square FAB button
- * - Chat list title mode (App name / Username / Name / "Chats")
- * - Monet & Material You dynamic themes
+ * Clean & unified Miogram Appearance Settings.
  */
 public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
 
@@ -246,11 +240,6 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
 
     private class ListAdapter extends BaseListAdapter {
 
-        private static final int TYPE_HEADER = 0;
-        private static final int TYPE_CHECK = 1;
-        private static final int TYPE_SETTINGS = 2;
-        private static final int TYPE_INFO = 3;
-
         public ListAdapter(Context context) {
             super(context);
         }
@@ -263,7 +252,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                     || position == senderMiniAvatarsRow || position == squareFabRow) {
                 return TYPE_CHECK;
             } else if (position == glassInfoRow || position == avatarsInfoRow || position == uiInfoRow) {
-                return TYPE_INFO;
+                return TYPE_INFO_PRIVACY;
             }
             return TYPE_SETTINGS;
         }
@@ -314,7 +303,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                     }
                     break;
                 }
-                case TYPE_INFO: {
+                case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == glassInfoRow) {
                         cell.setText("Рідке скло накладає матовий світловий блік та люмінесцентну грань на панель заголовка.");
@@ -326,19 +315,6 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                     break;
                 }
             }
-        }
-
-        @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
-            View view;
-            switch (viewType) {
-                case TYPE_HEADER: view = new HeaderCell(mContext); break;
-                case TYPE_CHECK: view = new TextCheckCell(mContext); break;
-                case TYPE_SETTINGS: view = new TextSettingsCell(mContext); break;
-                case TYPE_INFO: default: view = new TextInfoPrivacyCell(mContext); break;
-            }
-            view.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, RecyclerView.LayoutParams.WRAP_CONTENT));
-            return new RecyclerListView.Holder(view);
         }
     }
 

@@ -2,7 +2,6 @@ package app.miogram.bridge.settings;
 
 import android.content.Context;
 import android.view.View;
-import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -10,7 +9,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.telegram.messenger.R;
 import org.telegram.ui.Cells.TextCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
-import org.telegram.ui.Components.RecyclerListView;
 
 import app.miogram.bridge.ui.MiogramAiSettingsActivity;
 import app.miogram.bridge.ui.MiogramChatsSettingsActivity;
@@ -23,15 +21,7 @@ import tw.nekomimi.nekogram.settings.NekoTranslatorSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 
 /**
- * Unified Main Miogram Settings Hub:
- * - 🎨 Appearance & Design (Liquid Glass, Monet, Avatars)
- * - 💬 Chats & Media (CameraX, Double-tap, Forwarding)
- * - 🕵️ Privacy & Security (Vault, Duress PIN, Ghost Mode, History)
- * - 🌐 Translator (Google, DeepL, Yandex)
- * - ⚡ Performance & Network (Download Boost 12x, Spring Physics)
- * - 🤖 Miogram AI (Gemini 2.5 + Local Whisper)
- * - 🦀 Plugins Manager (Rust / WASM)
- * - 🔄 In-App Updater
+ * Unified Main Miogram Settings Hub.
  */
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
@@ -96,10 +86,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     private class ListAdapter extends BaseListAdapter {
 
-        private static final int TYPE_HEADER = 0;
-        private static final int TYPE_SETTINGS = 1;
-        private static final int TYPE_INFO = 2;
-
         public ListAdapter(Context context) {
             super(context);
         }
@@ -109,9 +95,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
             if (position == headerCategoriesRow || position == headerAdvancedRow) {
                 return TYPE_HEADER;
             } else if (position == categoriesInfoRow || position == advancedInfoRow) {
-                return TYPE_INFO;
+                return TYPE_INFO_PRIVACY;
             }
-            return TYPE_SETTINGS;
+            return TYPE_TEXT;
         }
 
         @Override
@@ -126,7 +112,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     }
                     break;
                 }
-                case TYPE_SETTINGS: {
+                case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
                     if (position == visualsRow) {
                         cell.setTextAndIcon("Зовнішній вигляд (Рідке скло, Аватарки, Теми)", R.drawable.msg_theme, true);
@@ -147,7 +133,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     }
                     break;
                 }
-                case TYPE_INFO: {
+                case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == categoriesInfoRow) {
                         cell.setText("Повний набір функцій exteraless та Nagram, оптимізований та об'єднаний у Miogram.");
@@ -157,18 +143,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     break;
                 }
             }
-        }
-
-        @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view;
-            switch (viewType) {
-                case TYPE_HEADER: view = new HeaderCell(mContext); break;
-                case TYPE_SETTINGS: view = new TextCell(mContext); break;
-                case TYPE_INFO: default: view = new TextInfoPrivacyCell(mContext); break;
-            }
-            view.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, RecyclerView.LayoutParams.WRAP_CONTENT));
-            return new RecyclerListView.Holder(view);
         }
     }
 
