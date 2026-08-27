@@ -13400,12 +13400,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
             });
             if (discordRail != null) {
-                ((ContentView) fragmentView).addView(discordRail, LayoutHelper.createFrame(68, LayoutHelper.MATCH_PARENT, Gravity.LEFT));
+                ((ContentView) fragmentView).addView(discordRail, LayoutHelper.createFrame(72, LayoutHelper.MATCH_PARENT, Gravity.LEFT));
                 FrameLayout.LayoutParams svpLp = (FrameLayout.LayoutParams) searchViewPager.getLayoutParams();
                 if (svpLp != null) {
-                    svpLp.leftMargin = dp(68);
+                    svpLp.leftMargin = dp(72);
+                    svpLp.bottomMargin = dp(52);
                     searchViewPager.setLayoutParams(svpLp);
                 }
+            }
+            View userFooter = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordUserFooter(getContext());
+            if (userFooter != null) {
+                ((ContentView) fragmentView).addView(userFooter, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 52, Gravity.BOTTOM | Gravity.LEFT, 72, 0, 0, 0));
             }
         }
 

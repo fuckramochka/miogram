@@ -1,15 +1,11 @@
 package app.miogram.bridge.ui.player;
 
-import android.animation.ValueAnimator;
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.RadialGradient;
+import android.graphics.Path;
 import android.graphics.RectF;
-import android.graphics.Shader;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
@@ -37,16 +33,16 @@ import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.LayoutHelper;
-import org.telegram.ui.Components.PlayPauseDrawable;
 
 import app.miogram.bridge.MiogramLocale;
 
 /**
  * 10/10 Apple Music + Spotify Hybrid Player:
+ * - Flawless vector playback controls (Prev ◄◄, Play/Pause ▶/❚❚, Next ►►)
  * - Dynamic animated gradient backdrop
  * - Full High-Res Cover Art extraction (AudioInfo + Document Thumbs)
  * - Ultra-smooth 120 FPS continuous progress bar tracking
- * - Tactile scrub controls, heart toggle, 3-state repeat, shuffle, and speed switcher
+ * - Spotify heart toggle, 3-state repeat, shuffle
  * - Living Mini-Bass Visualizer reacting to audio frequencies
  */
 public class MiogramAppleMusicSheet extends BottomSheet implements NotificationCenter.NotificationCenterDelegate {
@@ -57,10 +53,8 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
     private SeekBar progressBar;
     private TextView timeElapsedView;
     private TextView timeRemainingView;
-    private TextView speedBtn;
-    private ImageView playPauseBtn;
-    private PlayPauseDrawable playPauseDrawable;
-    private ImageView heartBtn;
+    private PlayPauseVectorButton playPauseBtn;
+    private HeartVectorButton heartBtn;
     private ImageView shuffleBtn;
     private ImageView repeatBtn;
     private MiogramBassVisualizer bassVisualizer;
@@ -86,7 +80,7 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
                 }
             }
             if (!MediaController.getInstance().isMessagePaused()) {
-                progressHandler.postDelayed(this, 16); // 60-120 FPS smooth update
+                progressHandler.postDelayed(this, 16); // 60-120 FPS
             }
         }
     };
@@ -122,7 +116,7 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         handle.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(3), 0x44FFFFFF));
         content.addView(handle, LayoutHelper.createLinear(40, 5, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 16));
 
-        // 1. Giant Rounded Album Art (Apple Music 1:1 with soft shadow)
+        // 1. Giant Rounded Album Art (Apple Music 1:1)
         albumArtView = new BackupImageView(ctx);
         albumArtView.setRoundRadius(AndroidUtilities.dp(22));
         albumArtView.setElevation(AndroidUtilities.dp(18));
@@ -151,16 +145,13 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
 
         titleBox.addView(textGroup, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
 
-        // Spotify Heart Favorite Button
-        heartBtn = new ImageView(ctx);
-        heartBtn.setImageResource(R.drawable.msg_fave);
-        heartBtn.setColorFilter(0x77FFFFFF);
-        heartBtn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        // Spotify Vector Heart Button
+        heartBtn = new HeartVectorButton(ctx);
         heartBtn.setOnClickListener(v -> {
             isFavorite = !isFavorite;
-            heartBtn.setColorFilter(isFavorite ? 0xFFFF4081 : 0x77FFFFFF);
+            heartBtn.setFavorite(isFavorite);
         });
-        titleBox.addView(heartBtn, LayoutHelper.createLinear(42, 42, Gravity.CENTER_VERTICAL, 8, 0, 0, 0));
+        titleBox.addView(heartBtn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL, 8, 0, 0, 0));
 
         content.addView(titleBox, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 14));
 
@@ -209,9 +200,9 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         timeRemainingView.setGravity(Gravity.RIGHT);
         timeBox.addView(timeRemainingView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
 
-        content.addView(timeBox, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 14));
+        content.addView(timeBox, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 16));
 
-        // 4. Apple Music / Spotify Ergonomic Playback Controls
+        // 4. Apple Music Vector Playback Controls
         LinearLayout controls = new LinearLayout(ctx);
         controls.setOrientation(LinearLayout.HORIZONTAL);
         controls.setGravity(Gravity.CENTER_VERTICAL);
@@ -226,21 +217,13 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         });
         controls.addView(shuffleBtn, LayoutHelper.createLinear(38, 38, Gravity.CENTER_VERTICAL, 0, 0, 14, 0));
 
-        // Previous
-        ImageView prevBtn = new ImageView(ctx);
-        prevBtn.setImageResource(R.drawable.msg_retry);
-        prevBtn.setColorFilter(0xFFFFFFFF);
-        prevBtn.setRotation(180);
+        // Vector Previous ◄◄
+        SkipVectorButton prevBtn = new SkipVectorButton(ctx, true);
         prevBtn.setOnClickListener(v -> MediaController.getInstance().playPreviousMessage());
-        controls.addView(prevBtn, LayoutHelper.createLinear(46, 46, Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
+        controls.addView(prevBtn, LayoutHelper.createLinear(48, 48, Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
 
-        // Play/Pause Big Center Button
-        playPauseBtn = new ImageView(ctx);
-        playPauseDrawable = new PlayPauseDrawable(28);
-        playPauseDrawable.setColor(Color.WHITE);
-        playPauseBtn.setImageDrawable(playPauseDrawable);
-        playPauseBtn.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(34), 0x26FFFFFF));
-        playPauseBtn.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
+        // Vector Big Center Play/Pause Button ▶ / ❚❚
+        playPauseBtn = new PlayPauseVectorButton(ctx);
         playPauseBtn.setOnClickListener(v -> {
             MessageObject current = MediaController.getInstance().getPlayingMessageObject();
             if (current != null) {
@@ -256,12 +239,10 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         });
         controls.addView(playPauseBtn, LayoutHelper.createLinear(68, 68, Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
 
-        // Next
-        ImageView nextBtn = new ImageView(ctx);
-        nextBtn.setImageResource(R.drawable.msg_retry);
-        nextBtn.setColorFilter(0xFFFFFFFF);
+        // Vector Next ►►
+        SkipVectorButton nextBtn = new SkipVectorButton(ctx, false);
         nextBtn.setOnClickListener(v -> MediaController.getInstance().playNextMessage());
-        controls.addView(nextBtn, LayoutHelper.createLinear(46, 46, Gravity.CENTER_VERTICAL, 0, 0, 14, 0));
+        controls.addView(nextBtn, LayoutHelper.createLinear(48, 48, Gravity.CENTER_VERTICAL, 0, 0, 14, 0));
 
         // Repeat
         repeatBtn = new ImageView(ctx);
@@ -326,8 +307,8 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
 
     private void updatePlayPauseState() {
         boolean isPaused = MediaController.getInstance().isMessagePaused();
-        if (playPauseDrawable != null) {
-            playPauseDrawable.setPause(!isPaused, true);
+        if (playPauseBtn != null) {
+            playPauseBtn.setPlaying(!isPaused);
         }
         if (isPaused) {
             stopProgressTicker();
@@ -364,5 +345,150 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidReset);
         super.dismiss();
+    }
+
+    /**
+     * Vector Apple Music Skip Button (◄◄ / ►►)
+     */
+    private static class SkipVectorButton extends View {
+        private final boolean isPrev;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        public SkipVectorButton(Context context, boolean isPrev) {
+            super(context);
+            this.isPrev = isPrev;
+            paint.setColor(Color.WHITE);
+            paint.setStyle(Paint.Style.FILL);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float cx = getWidth() / 2f;
+            float cy = getHeight() / 2f;
+            float size = AndroidUtilities.dp(14);
+
+            Path path = new Path();
+            if (isPrev) {
+                // Triangle 1
+                path.moveTo(cx, cy - size / 2f);
+                path.lineTo(cx - size / 2f, cy);
+                path.lineTo(cx, cy + size / 2f);
+                path.close();
+
+                // Triangle 2
+                path.moveTo(cx + size / 2f, cy - size / 2f);
+                path.lineTo(cx, cy);
+                path.lineTo(cx + size / 2f, cy + size / 2f);
+                path.close();
+            } else {
+                // Triangle 1
+                path.moveTo(cx - size / 2f, cy - size / 2f);
+                path.lineTo(cx, cy);
+                path.lineTo(cx - size / 2f, cy + size / 2f);
+                path.close();
+
+                // Triangle 2
+                path.moveTo(cx, cy - size / 2f);
+                path.lineTo(cx + size / 2f, cy);
+                path.lineTo(cx, cy + size / 2f);
+                path.close();
+            }
+            canvas.drawPath(path, paint);
+        }
+    }
+
+    /**
+     * Vector Apple Music Play/Pause Round Button (▶ / ❚❚)
+     */
+    private static class PlayPauseVectorButton extends View {
+        private boolean isPlaying = false;
+        private final Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        public PlayPauseVectorButton(Context context) {
+            super(context);
+            bgPaint.setColor(0x28FFFFFF);
+            bgPaint.setStyle(Paint.Style.FILL);
+            iconPaint.setColor(Color.WHITE);
+            iconPaint.setStyle(Paint.Style.FILL);
+        }
+
+        public void setPlaying(boolean playing) {
+            if (this.isPlaying != playing) {
+                this.isPlaying = playing;
+                invalidate();
+            }
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float cx = getWidth() / 2f;
+            float cy = getHeight() / 2f;
+            float r = Math.min(cx, cy) - AndroidUtilities.dp(2);
+
+            canvas.drawCircle(cx, cy, r, bgPaint);
+
+            if (isPlaying) {
+                // Pause Bars ❚❚
+                float barW = AndroidUtilities.dp(5);
+                float barH = AndroidUtilities.dp(18);
+                float gap = AndroidUtilities.dp(5);
+
+                RectF leftBar = new RectF(cx - gap / 2f - barW, cy - barH / 2f, cx - gap / 2f, cy + barH / 2f);
+                RectF rightBar = new RectF(cx + gap / 2f, cy - barH / 2f, cx + gap / 2f + barW, cy + barH / 2f);
+                canvas.drawRoundRect(leftBar, AndroidUtilities.dp(2), AndroidUtilities.dp(2), iconPaint);
+                canvas.drawRoundRect(rightBar, AndroidUtilities.dp(2), AndroidUtilities.dp(2), iconPaint);
+            } else {
+                // Play Triangle ▶
+                float triH = AndroidUtilities.dp(20);
+                float triW = AndroidUtilities.dp(16);
+
+                Path playPath = new Path();
+                playPath.moveTo(cx - triW / 3f, cy - triH / 2f);
+                playPath.lineTo(cx + triW * 2f / 3f, cy);
+                playPath.lineTo(cx - triW / 3f, cy + triH / 2f);
+                playPath.close();
+                canvas.drawPath(playPath, iconPaint);
+            }
+        }
+    }
+
+    /**
+     * Vector Spotify Heart Button
+     */
+    private static class HeartVectorButton extends View {
+        private boolean isFavorite = false;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        public HeartVectorButton(Context context) {
+            super(context);
+            paint.setStyle(Paint.Style.FILL);
+        }
+
+        public void setFavorite(boolean fav) {
+            this.isFavorite = fav;
+            invalidate();
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float cx = getWidth() / 2f;
+            float cy = getHeight() / 2f;
+            paint.setColor(isFavorite ? 0xFFFF4081 : 0x77FFFFFF);
+
+            Path heart = new Path();
+            float w = AndroidUtilities.dp(16);
+            float h = AndroidUtilities.dp(14);
+
+            heart.moveTo(cx, cy + h / 2f);
+            heart.cubicTo(cx - w, cy - h / 3f, cx - w / 2f, cy - h, cx, cy - h / 3f);
+            heart.cubicTo(cx + w / 2f, cy - h, cx + w, cy - h / 3f, cx, cy + h / 2f);
+            heart.close();
+
+            canvas.drawPath(heart, paint);
+        }
     }
 }
