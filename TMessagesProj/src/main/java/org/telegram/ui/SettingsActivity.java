@@ -740,15 +740,8 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             items.add(UItem.asShadow(null));
         }
 
-        // Настройки NagramX по умолчанию спрятаны: у форка свои экраны, а второй
-        // набор тех же настроек рядом только путает. Строку включают на экране
-        // «Other» (GeneralConfig.showNagramSettings).
-        if (app.exteraless.general.GeneralConfig.showNagramSettings()) {
-            items.add(SettingCell.Factory.of(100, 0xFF3CCFFF, 0xFF007AFF, R.drawable.filled_profile_settings, getString(R.string.NekoSettings)));
-        }
-        // Как в exteraGram 12.9.0 (SettingsActivity.java:899): знак приложения вместо
-        // шестерёнки, акцент фирменного цвета на обе точки градиента.
-        items.add(SettingCell.Factory.of(102, 0xFF993C38, 0xFF993C38, R.drawable.exteraless_icon_tile, getString(R.string.MiogramSettingsRow), getString(R.string.OpenExteraInfo)));
+        // Єдиний вхід у всі налаштування Miogram
+        items.add(SettingCell.Factory.of(102, 0xFF993C38, 0xFF993C38, R.drawable.exteraless_icon_tile, "Налаштування Miogram", "Усі функції, дизайн, конфіденційність та інструменти"));
         items.add(UItem.asShadow(null));
 
         items.add(SettingCell.Factory.of(1, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.settings_account, getString(R.string.SettingsAccount), getString(R.string.SettingsAccountInfo)));
