@@ -128,7 +128,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
             showTitleTextDialog();
         } else if (position == monetStyleRow) {
             int cur = AppearanceConfig.monetStyle.Int();
-            int next = cur == AppearanceConfig.MONET_STYLE_TELEMONE ? AppearanceConfig.MONET_STYLE_ACCENT : AppearanceConfig.MONET_STYLE_TELEMONE;
+            int next = cur == AppearanceConfig.MONET_STYLE_TELEMONE ? AppearanceConfig.MONET_STYLE_CLASSIC : AppearanceConfig.MONET_STYLE_TELEMONE;
             AppearanceConfig.monetStyle.setConfigInt(next);
             listAdapter.notifyItemChanged(monetStyleRow);
             getNotificationCenter().postNotificationName(NotificationCenter.needSetDayNightTheme);
