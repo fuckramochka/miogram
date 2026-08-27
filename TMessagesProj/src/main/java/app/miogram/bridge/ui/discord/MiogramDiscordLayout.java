@@ -265,4 +265,37 @@ public class MiogramDiscordLayout {
 
         return bar;
     }
+
+    public static View createDiscordProfileBottomBar(Context context) {
+        LinearLayout bar = new LinearLayout(context);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setBackgroundColor(COLOR_RAIL_BG);
+        bar.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8));
+
+        String[] labels = {"Квести", "Крамниця", "Nitro", "Налаштування"};
+        int[] icons = {R.drawable.msg_requests, R.drawable.menu_shop, R.drawable.msg_premium_normal, R.drawable.msg_settings_old};
+
+        for (int i = 0; i < 4; i++) {
+            LinearLayout btn = new LinearLayout(context);
+            btn.setOrientation(LinearLayout.VERTICAL);
+            btn.setGravity(Gravity.CENTER);
+            btn.setPadding(0, AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4));
+
+            ImageView icon = new ImageView(context);
+            icon.setImageResource(icons[i]);
+            icon.setColorFilter(COLOR_TEXT_MUTED);
+            btn.addView(icon, LayoutHelper.createLinear(24, 24, Gravity.CENTER_HORIZONTAL));
+
+            TextView text = new TextView(context);
+            text.setText(labels[i]);
+            text.setTextSize(11);
+            text.setTextColor(COLOR_TEXT_MUTED);
+            text.setGravity(Gravity.CENTER);
+            text.setSingleLine(true);
+            btn.addView(text, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 4, 0, 0));
+
+            bar.addView(btn, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        }
+        return bar;
+    }
 }

@@ -1323,6 +1323,11 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
         }
 
         currentDialogFolderDialogsCount = 0;
+        boolean isDiscord = app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled();
+        if (isDiscord) {
+            drawAvatar = false;
+            messagePaddingStart = 20;
+        }
         CharSequence nameString = "";
         String timeString = "";
         String countString = null;
@@ -2449,6 +2454,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             }
             if (nameString instanceof String) {
                 nameString = ((String) nameString).replace('\n', ' ');
+            }
+            if (isDiscord && nameString != null && !nameString.toString().startsWith("#")) {
+                nameString = "# " + nameString;
             }
             CharSequence nameStringFinal = nameString;
             if (nameLayoutEllipsizeByGradient) {
@@ -3920,6 +3928,17 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
         }
 
         boolean needInvalidate = false;
+
+        boolean isDiscord = app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled();
+        int oldNameColor = 0;
+        int oldMsgColor = 0;
+        if (isDiscord) {
+            oldNameColor = Theme.dialogs_namePaint[paintIndex].getColor();
+            oldMsgColor = Theme.dialogs_messagePaint[paintIndex].getColor();
+            Theme.dialogs_namePaint[paintIndex].setColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED);
+            Theme.dialogs_messagePaint[paintIndex].setColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED);
+            Theme.dialogs_messagePrintingPaint[paintIndex].setColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED);
+        }
 
         if (drawArchive && (currentDialogFolderId != 0 || isTopic && forumTopic != null && forumTopic.id == 1) && archivedChatsDrawable != null && archivedChatsDrawable.outProgress == 0.0f && translationX == 0.0f) {
             canvas.save();
@@ -5535,6 +5554,12 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             if (restoreCountTextPaint) {
                 Theme.dialogs_countTextPaint2.setColor(Theme.getColor(Theme.key_chats_unreadCounterText));
             }
+        }
+
+        if (isDiscord) {
+            Theme.dialogs_namePaint[paintIndex].setColor(oldNameColor);
+            Theme.dialogs_messagePaint[paintIndex].setColor(oldMsgColor);
+            Theme.dialogs_messagePrintingPaint[paintIndex].setColor(oldMsgColor);
         }
     }
 

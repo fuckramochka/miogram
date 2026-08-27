@@ -9190,6 +9190,13 @@ public class Theme {
                 return animatingColors.valueAt(index);
             }
         }
+        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            if (key == Theme.key_windowBackgroundWhite) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHAT_BG;
+            if (key == Theme.key_windowBackgroundGray) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_RAIL_BG;
+            if (key == Theme.key_windowBackgroundWhiteBlackText) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
+            if (key == Theme.key_windowBackgroundWhiteGrayText || key == Theme.key_windowBackgroundWhiteGrayText2) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
+            if (key == Theme.key_chats_actionBackground) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_BLURPLE;
+        }
         if (key_divider == key && !resolvingDividerColor && app.exteraless.appearance.AppearanceConfig.dividerHidden()) {
             return 0x00ffffff;
         }

@@ -6231,6 +6231,18 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         };
 
         ViewCompat.setOnApplyWindowInsetsListener(fragmentView, this::onApplyWindowInsets);
+
+        if (myProfile && app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            View discordBottomBar = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordProfileBottomBar(context);
+            if (fragmentView instanceof android.widget.FrameLayout) {
+                ((android.widget.FrameLayout) fragmentView).addView(discordBottomBar, org.telegram.ui.Components.LayoutHelper.createFrame(org.telegram.ui.Components.LayoutHelper.MATCH_PARENT, org.telegram.ui.Components.LayoutHelper.WRAP_CONTENT, android.view.Gravity.BOTTOM));
+                if (listView != null) {
+                    listView.setPadding(listView.getPaddingLeft(), listView.getPaddingTop(), listView.getPaddingRight(), org.telegram.messenger.AndroidUtilities.dp(60));
+                    listView.setClipToPadding(false);
+                }
+            }
+        }
+
         return fragmentView;
     }
 

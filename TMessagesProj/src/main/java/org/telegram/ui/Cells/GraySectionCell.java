@@ -73,6 +73,7 @@ public class GraySectionCell extends FrameLayout implements Theme.Colorable {
         rightTextView.setGravity(LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT);
         addView(rightTextView, rightTextViewLayoutParams = LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.TOP, padding, 0, padding, 0));
 
+        updateColors();
         ViewCompat.setAccessibilityHeading(this, true);
     }
 
@@ -83,9 +84,19 @@ public class GraySectionCell extends FrameLayout implements Theme.Colorable {
     }
 
     public void updateColors() {
-        setBackgroundColor(noBackground ? 0 : getThemedColor(Theme.key_graySection));
-        textView.setTextColor(getThemedColor(Theme.key_graySectionText));
-        rightTextView.setTextColor(getThemedColor(Theme.key_graySectionText));
+        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHANNELS_BG);
+            textView.setTextColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED);
+            rightTextView.setTextColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED);
+            textView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12);
+            textView.setAllCaps(true);
+        } else {
+            setBackgroundColor(noBackground ? 0 : getThemedColor(Theme.key_graySection));
+            textView.setTextColor(getThemedColor(Theme.key_graySectionText));
+            rightTextView.setTextColor(getThemedColor(Theme.key_graySectionText));
+            textView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14);
+            textView.setAllCaps(false);
+        }
     }
 
     @Override
