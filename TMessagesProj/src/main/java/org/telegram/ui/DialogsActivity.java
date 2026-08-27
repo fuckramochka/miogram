@@ -13385,9 +13385,27 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && scrollableViewNoiseSuppressor != null) {
                     blur3_InvalidateBlur();
                 }
-            }
-        };
         ((ContentView) fragmentView).addView(searchViewPager, searchViewPagerIndex);
+
+        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            View discordRail = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordServerRail(getContext(), folderId -> {
+                if (filterTabsView != null) {
+                    if (folderId == -1) {
+                        filterTabsView.selectTabWithId(0, 1.0f);
+                    } else {
+                        filterTabsView.selectTabWithId(folderId, 1.0f);
+                    }
+                }
+            });
+            if (discordRail != null) {
+                ((ContentView) fragmentView).addView(discordRail, LayoutHelper.createFrame(68, LayoutHelper.MATCH_PARENT, Gravity.LEFT));
+                FrameLayout.LayoutParams svpLp = (FrameLayout.LayoutParams) searchViewPager.getLayoutParams();
+                if (svpLp != null) {
+                    svpLp.leftMargin = dp(68);
+                    searchViewPager.setLayoutParams(svpLp);
+                }
+            }
+        }
 
         searchViewPager.dialogsSearchAdapter.setDelegate(new DialogsSearchAdapter.DialogsSearchAdapterDelegate() {
             @Override
