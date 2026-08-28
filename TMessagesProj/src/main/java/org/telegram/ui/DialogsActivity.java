@@ -13406,19 +13406,42 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (dialogStoriesCell != null) {
                 dialogStoriesCell.setVisibility(View.GONE);
             }
-            if (fragmentSearchField != null) {
-                fragmentSearchField.setVisibility(View.GONE);
-            }
             fragmentView.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHANNELS_BG);
 
-            View discordRail = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordServerRail(getContext(), selectedId -> {
-                if (selectedId >= 0) {
-                    if (filterTabsView != null) {
-                        if (selectedId == -1) {
-                            filterTabsView.selectTabWithId(0, 1.0f);
-                        } else {
-                            filterTabsView.selectTabWithId(selectedId, 1.0f);
+            // Channel pane header under the status bar; search icon focuses the idle search field.
+            View channelHeader = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordChannelHeader(
+                    getContext(),
+                    app.miogram.bridge.ui.discord.MiogramDiscordLayout.channelPaneTitle(getContext()),
+                    () -> {
+                        if (fragmentSearchField != null && fragmentSearchField.getVisibility() == View.VISIBLE) {
+                            fragmentSearchField.editText.requestFocus();
+                            AndroidUtilities.showKeyboard(fragmentSearchField.editText);
                         }
+                    });
+            if (channelHeader != null) {
+                ((ContentView) fragmentView).addView(channelHeader, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT, 72, AndroidUtilities.statusBarHeight, 0, 0));
+            }
+
+            // Discord-style idle search field below the header instead of being hidden.
+            if (fragmentSearchField != null) {
+                FrameLayout.LayoutParams sfpLp = (FrameLayout.LayoutParams) fragmentSearchField.getLayoutParams();
+                if (sfpLp != null) {
+                    sfpLp.leftMargin = dp(72 + 10);
+                    sfpLp.rightMargin = dp(10);
+                    sfpLp.topMargin = AndroidUtilities.statusBarHeight + dp(52);
+                    fragmentSearchField.setLayoutParams(sfpLp);
+                }
+            }
+
+            View discordRail = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordServerRail(getContext(), selectedId -> {
+                if (selectedId == app.miogram.bridge.ui.discord.MiogramDiscordLayout.RAIL_HOME) {
+                    // All chats is the default filter (id 0).
+                    if (filterTabsView != null) {
+                        filterTabsView.selectTabWithId(0, 1.0f);
+                    }
+                } else if (selectedId > 0) {
+                    if (filterTabsView != null) {
+                        filterTabsView.selectTabWithId(selectedId, 1.0f);
                     }
                 } else {
                     long did = (long) selectedId;
@@ -13436,13 +13459,14 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 ((ContentView) fragmentView).addView(discordRail, LayoutHelper.createFrame(72, LayoutHelper.MATCH_PARENT, Gravity.LEFT));
             }
 
+            int discordTopInset = AndroidUtilities.statusBarHeight + dp(48);
             if (viewPages != null) {
                 for (int a = 0; a < viewPages.length; a++) {
                     if (viewPages[a] != null) {
                         FrameLayout.LayoutParams vpLp = (FrameLayout.LayoutParams) viewPages[a].getLayoutParams();
                         if (vpLp != null) {
                             vpLp.leftMargin = dp(72);
-                            vpLp.topMargin = 0;
+                            vpLp.topMargin = discordTopInset;
                             vpLp.bottomMargin = dp(52);
                             viewPages[a].setLayoutParams(vpLp);
                         }
@@ -13454,7 +13478,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 FrameLayout.LayoutParams svpLp = (FrameLayout.LayoutParams) searchViewPager.getLayoutParams();
                 if (svpLp != null) {
                     svpLp.leftMargin = dp(72);
-                    svpLp.topMargin = 0;
+                    svpLp.topMargin = discordTopInset;
                     svpLp.bottomMargin = dp(52);
                     searchViewPager.setLayoutParams(svpLp);
                 }
@@ -15063,9 +15087,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private boolean shouldShowIdleSearchField() {
-        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
-            return false;
-        }
         return !NaConfig.INSTANCE.getHideDialogsSearchField().Bool();
     }
 

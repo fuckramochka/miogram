@@ -2697,8 +2697,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     presentFragment(new ChannelAdminLogActivity(currentChat));
                 } else if (id == message_filter){
                     presentFragment(new RegexChatFiltersListActivity(chatId != 0 ? -chatId : userId));
-                } else if (id == miogram_customize_profile) {
-                    app.miogram.bridge.profile.CustomProfileEngine.openEditor();
                 } else if (id == delete_topic) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                     builder.setTitle(LocaleController.getPluralString("DeleteTopics", 1));
@@ -4045,9 +4043,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         break;
                     case ProfileActionsView.KEY_SETTINGS:
                         presentFragment(new SettingsActivity());
-                        break;
-                    case ProfileActionsView.KEY_CUSTOM_PROFILE:
-                        app.miogram.bridge.profile.CustomProfileEngine.openEditor();
                         break;
                 }
             });
@@ -5992,7 +5987,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     actionsView.addCameraAction();
                     actionsView.addEditInfo();
                     actionsView.addSettings();
-                    actionsView.addCustomProfile();
                     actionsView.commitActions();
                 } else {
                     writeButton.setAnimation(cameraDrawable);
@@ -6238,17 +6232,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         };
 
         ViewCompat.setOnApplyWindowInsetsListener(fragmentView, this::onApplyWindowInsets);
-
-        if (myProfile && app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
-            View discordBottomBar = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordProfileBottomBar(context);
-            if (fragmentView instanceof android.widget.FrameLayout) {
-                ((android.widget.FrameLayout) fragmentView).addView(discordBottomBar, org.telegram.ui.Components.LayoutHelper.createFrame(org.telegram.ui.Components.LayoutHelper.MATCH_PARENT, org.telegram.ui.Components.LayoutHelper.WRAP_CONTENT, android.view.Gravity.BOTTOM));
-                if (listView != null) {
-                    listView.setPadding(listView.getPaddingLeft(), listView.getPaddingTop(), listView.getPaddingRight(), org.telegram.messenger.AndroidUtilities.dp(60));
-                    listView.setClipToPadding(false);
-                }
-            }
-        }
 
         return fragmentView;
     }
@@ -12843,10 +12826,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         if (selfUser && !myProfile) {
             otherItem.addSubItem(logout, R.drawable.msg_leave, LocaleController.getString(R.string.LogOut));
-        }
-        if (otherItem != null) {
-            otherItem.addSubItem(miogram_customize_profile, R.drawable.msg_theme, app.miogram.bridge.MiogramLocale.get("Оформити профіль", "Оформить профиль", "Customize Profile"));
-        }
         if (!isPulledDown) {
             otherItem.hideSubItem(gallery_menu_save);
             otherItem.hideSubItem(set_as_main);
