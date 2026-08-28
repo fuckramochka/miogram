@@ -1071,6 +1071,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     }
 
     private int getCollapsedHeight() {
+        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            return dp(42); // 42dp for Discord channels
+        }
         int height = dp(useForceThreeLines || SharedConfig.useThreeLinesLayout ? heightThreeLines : heightDefault);
         if (useSeparator || true) {
             height += 1;
@@ -1325,8 +1328,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
         currentDialogFolderDialogsCount = 0;
         boolean isDiscord = app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled();
         if (isDiscord) {
-            drawAvatar = false;
-            messagePaddingStart = 20;
+            drawAvatar = (currentDialogId >= 0); // Avatars only in DMs
+            messagePaddingStart = drawAvatar ? 52 : 20;
         }
         CharSequence nameString = "";
         String timeString = "";
@@ -4234,7 +4237,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             }
 
             int nameTop = dp(useForceThreeLines || SharedConfig.useThreeLinesLayout ? 10 : 14);
-            if ((!(useForceThreeLines || SharedConfig.useThreeLinesLayout) || isForumCell()) && hasTags()) {
+            if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+                nameTop = dp(11);
+            } else if ((!(useForceThreeLines || SharedConfig.useThreeLinesLayout) || isForumCell()) && hasTags()) {
                 nameTop -= dp(isForumCell() ? 8 : 9);
             }
             if (nameLayout != null) {
@@ -4277,7 +4282,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 }
             }
 
-            if (timeLayout != null && currentDialogFolderId == 0) {
+            if (timeLayout != null && currentDialogFolderId == 0 && !app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
                 canvas.save();
                 canvas.translate(timeLeft, timeTop);
 
@@ -4350,7 +4355,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 canvas.restore();
             }
 
-            if (messageLayout != null) {
+            if (messageLayout != null && !app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
                 if (currentDialogFolderId != 0) {
                     if (chat != null) {
                         Theme.dialogs_messagePaint[paintIndex].setColor(Theme.dialogs_messagePaint[paintIndex].linkColor = Theme.getColor(Theme.key_chats_nameMessageArchived, resourcesProvider));

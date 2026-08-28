@@ -9620,6 +9620,19 @@ public class ChatActivity extends BaseFragment implements
 
         onBottomItemsVisibilityChanged();
         ViewCompat.setOnApplyWindowInsetsListener(fragmentView, this::onApplyWindowInsets);
+        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            contentView.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHAT_BG);
+            if (chatInputViewsContainer != null) {
+                chatInputViewsContainer.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHANNELS_BG);
+            }
+            if (actionBar != null) {
+                actionBar.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHAT_BG);
+                if (avatarContainer != null && avatarContainer.avatarImageView != null) {
+                    avatarContainer.avatarImageView.setVisibility(View.GONE);
+                }
+            }
+        }
+        
         Timer.finish(t);
 
         return fragmentView;

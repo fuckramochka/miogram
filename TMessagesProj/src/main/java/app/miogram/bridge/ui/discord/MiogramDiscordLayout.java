@@ -60,6 +60,10 @@ public class MiogramDiscordLayout {
     public static final int COLOR_TEXT_MUTED = 0xFF949BA4;
     public static final int COLOR_ONLINE_GREEN = 0xFF23A55A;
     public static final int COLOR_BADGE_RED = 0xFFF23F43;
+    public static final int COLOR_HEADER_BG = 0xFF232428;
+    public static final int COLOR_CHANNEL_ACTIVE = 0xFF404249;
+    public static final int COLOR_SEPARATOR = 0xFF35363C;
+    public static final int COLOR_INPUT_BG = 0xFF383A40;
 
     private static int selectedFolderId = -1;
 
@@ -297,5 +301,30 @@ public class MiogramDiscordLayout {
             bar.addView(btn, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
         }
         return bar;
+    }
+
+    public static View createDiscordChannelHeader(Context context, String title) {
+        LinearLayout header = new LinearLayout(context);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setBackgroundColor(COLOR_HEADER_BG);
+        header.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
+        
+        TextView titleView = new TextView(context);
+        titleView.setText(title != null ? title : "Messages");
+        titleView.setTextColor(COLOR_TEXT_PRIMARY);
+        titleView.setTextSize(16);
+        titleView.setTypeface(AndroidUtilities.bold());
+        titleView.setSingleLine(true);
+        
+        header.addView(titleView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        
+        ImageView arrow = new ImageView(context);
+        // Using a basic down arrow or cross for now, will map to proper icon if needed
+        arrow.setImageResource(R.drawable.ic_ab_other); // 3 dots or down arrow
+        arrow.setColorFilter(COLOR_TEXT_MUTED);
+        header.addView(arrow, LayoutHelper.createLinear(24, 24));
+        
+        return header;
     }
 }

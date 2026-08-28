@@ -9108,6 +9108,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void updateFloatingButtonVisibility(boolean animated) {
+        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            if (floatingButton3 != null) floatingButton3.setButtonVisible(false, animated);
+            if (floatingButtonStories != null) floatingButtonStories.setButtonVisible(false, animated);
+            return;
+        }
         final boolean isVisible = !(onlySelect && initialDialogsType != 10 || folderId != 0 || communityId != 0 || inPreviewMode || (searching && !onlySelect) || floatingButtonHidden);
 
         if (floatingButton3 != null) {
@@ -13390,6 +13395,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         ((ContentView) fragmentView).addView(searchViewPager, searchViewPagerIndex);
 
         if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            actionBar.setVisibility(View.GONE);
+            if (filterTabsView != null) {
+                filterTabsView.setVisibility(View.GONE);
+            }
+            if (dialogStoriesCell != null) {
+                dialogStoriesCell.setVisibility(View.GONE);
+            }
+            
+            View discordHeader = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordChannelHeader(getContext(), "Messages");
+            ((ContentView) fragmentView).addView(discordHeader, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT, 72, 0, 0, 0));
+
             View discordRail = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordServerRail(getContext(), folderId -> {
                 if (filterTabsView != null) {
                     if (folderId == -1) {
@@ -13404,6 +13420,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 FrameLayout.LayoutParams svpLp = (FrameLayout.LayoutParams) searchViewPager.getLayoutParams();
                 if (svpLp != null) {
                     svpLp.leftMargin = dp(72);
+                    svpLp.topMargin = dp(48);
                     svpLp.bottomMargin = dp(52);
                     searchViewPager.setLayoutParams(svpLp);
                 }
