@@ -200,7 +200,7 @@ public class MiogramDiscordLayout {
             }
         }
 
-        ArrayList<TLRPC.Dialog> allDialogs = MessagesController.getInstance(currentAccount).allDialogs;
+        ArrayList<TLRPC.Dialog> allDialogs = MessagesController.getInstance(currentAccount).getDialogs(0);
         if (allDialogs != null) {
             ArrayList<TLRPC.Dialog> dialogsCopy = new ArrayList<>(allDialogs);
             for (int i = 0; i < dialogsCopy.size() && i < 30; i++) {
