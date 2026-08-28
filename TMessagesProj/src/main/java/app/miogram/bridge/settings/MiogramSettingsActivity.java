@@ -116,19 +116,19 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
                     if (position == visualsRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Зовнішній вигляд (Рідке скло, Аватарки, Теми)", "Внешний вид (Жидкое стекло, Аватарки, Темы)", "Appearance (Liquid Glass, Avatars, Themes)"), R.drawable.msg_theme, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Зовнішній вигляд", "Внешний вид", "Appearance"), R.drawable.msg_theme, true);
                     } else if (position == chatsRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Чати та Медіа (CameraX, Дабл-тап, Стікери)", "Чаты и Медиа (CameraX, Дабл-тап, Стикеры)", "Chats & Media (CameraX, Double-tap, Stickers)"), R.drawable.msg_camera, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Чати та Медіа", "Чаты и Медиа", "Chats & Media"), R.drawable.msg_camera, true);
                     } else if (position == privacyRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Конфіденційність та Ghost Mode (AyuGram, Сховок)", "Конфиденциальность и Ghost Mode (AyuGram, Сейф)", "Privacy & Ghost Mode (AyuGram, Vault)"), R.drawable.msg_secret, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Конфіденційність та Ghost Mode", "Конфиденциальность и Ghost Mode", "Privacy & Ghost Mode"), R.drawable.msg_secret, true);
                     } else if (position == translatorRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Перекладач (Google, DeepL, Yandex)", "Переводчик (Google, DeepL, Yandex)", "Translator (Google, DeepL, Yandex)"), R.drawable.msg_translate, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Перекладач", "Переводчик", "Translator"), R.drawable.msg_translate, true);
                     } else if (position == performanceRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Продуктивність (Download Boost 12x, Анімації)", "Производительность (Download Boost 12x, Анимации)", "Performance (Download Boost 12x, Animations)"), R.drawable.msg_speed, false);
+                        cell.setTextAndIcon(MiogramLocale.get("Продуктивність", "Производительность", "Performance"), R.drawable.msg_speed, false);
                     } else if (position == aiRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Miogram AI (Gemini 3.5 Flash Lite + Голосові)", "Miogram AI (Gemini 3.5 Flash Lite + Голосовые)", "Miogram AI (Gemini 3.5 Flash Lite + Voice)"), R.drawable.msg_bot, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Miogram AI", "Miogram AI", "Miogram AI"), R.drawable.msg_bot, true);
                     } else if (position == pluginsRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Плагіни Miogram (Rust / WASM / Py)", "Плагины Miogram (Rust / WASM / Py)", "Plugins Manager (Rust / WASM / Py)"), R.drawable.msg_folders, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Плагіни Miogram", "Плагины Miogram", "Plugins"), R.drawable.msg_folders, true);
                     } else if (position == updaterRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Перевірити оновлення Miogram", "Проверить обновления Miogram", "Check for Updates"), R.drawable.msg_retry, false);
                     }

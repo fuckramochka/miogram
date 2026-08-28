@@ -198,7 +198,7 @@ public abstract class BaseNekoSettingsActivity extends BaseFragment {
      * Снять её после вызова нельзя — {@code setDrawBlurBackground(null)} падает.
      */
     protected boolean needActionBarBlur() {
-        return true;
+        return false;
     }
 
     protected void setupAdaptiveBackground() {

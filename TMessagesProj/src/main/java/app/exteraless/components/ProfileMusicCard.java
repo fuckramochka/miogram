@@ -334,18 +334,23 @@ public class ProfileMusicCard extends FrameLayout {
     }
 
     private void applyThemeColors() {
-        backgroundColor = hasCover ? backgroundColor : getThemedColor(Theme.key_windowBackgroundWhite);
-        accentColor = hasCover ? accentColor : getThemedColor(Theme.key_windowBackgroundWhiteBlackText);
+        if (!hasCover) {
+            int base = getThemedColor(Theme.key_windowBackgroundWhite);
+            int accent = getThemedColor(Theme.key_windowBackgroundWhiteBlueHeader);
+            backgroundColor = ColorUtils.blendARGB(base, accent, 0.10f);
+            accentColor = accent;
+        }
         applyColors();
     }
 
     private void applyColors() {
         background.mutate();
-        background.setColors(new int[]{backgroundColor, hasCover ? adjustHsl(backgroundColor, 1.5f) : backgroundColor});
+        int endColor = hasCover ? adjustHsl(backgroundColor, 1.35f) : ColorUtils.blendARGB(backgroundColor, getThemedColor(Theme.key_windowBackgroundWhite), 0.5f);
+        background.setColors(new int[]{backgroundColor, endColor});
         int textColor = hasCover ? Color.WHITE : getThemedColor(Theme.key_windowBackgroundWhiteBlackText);
         nameView.setTextColor(textColor);
-        artistView.setTextColor(textColor);
-        statusView.setTextColor(textColor);
+        artistView.setTextColor(hasCover ? ColorUtils.setAlphaComponent(Color.WHITE, 190) : getThemedColor(Theme.key_windowBackgroundWhiteGrayText2));
+        statusView.setTextColor(hasCover ? Color.WHITE : getThemedColor(Theme.key_windowBackgroundWhiteGrayText2));
         cardLayout.invalidate();
     }
 

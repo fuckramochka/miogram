@@ -59,11 +59,19 @@ public class MiogramChatsSettingsActivity extends BaseNekoSettingsActivity {
 
         headerCameraRow = addRow();
         cameraTypeRow = addRow();
-        cameraMirrorRow = addRow();
-        cameraWideAngleRow = addRow();
-        cameraStabilizationRow = addRow();
-        cameraFpsRow = addRow();
-        cameraZoomRow = addRow();
+        if (ChatsConfig.cameraType.Int() != 0) {
+            cameraMirrorRow = addRow();
+            cameraWideAngleRow = addRow();
+            cameraStabilizationRow = addRow();
+            cameraFpsRow = addRow();
+            cameraZoomRow = addRow();
+        } else {
+            cameraMirrorRow = -1;
+            cameraWideAngleRow = -1;
+            cameraStabilizationRow = -1;
+            cameraFpsRow = -1;
+            cameraZoomRow = -1;
+        }
         cameraInfoRow = addRow();
 
         headerChatActionsRow = addRow();
@@ -140,7 +148,8 @@ public class MiogramChatsSettingsActivity extends BaseNekoSettingsActivity {
         builder.setItems(options, (dialog, which) -> {
             int val = which == 0 ? 2 : (which == 1 ? 1 : 0);
             ChatsConfig.cameraType.setConfigInt(val);
-            listAdapter.notifyItemChanged(cameraTypeRow);
+            updateRows();
+            listAdapter.notifyDataSetChanged();
         });
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         showDialog(builder.create());

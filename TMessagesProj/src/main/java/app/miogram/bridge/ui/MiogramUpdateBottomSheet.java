@@ -209,7 +209,14 @@ public class MiogramUpdateBottomSheet extends BottomSheet implements MiogramDown
             installButton.setEnabled(false);
             installButton.setAlpha(0.6f);
         }
-        if (cancelButton != null) cancelButton.setVisibility(View.GONE);
+        if (cancelButton != null) {
+            cancelButton.setVisibility(View.VISIBLE);
+            cancelButton.setText(MiogramLocale.get("Скасувати завантаження", "Отменить загрузку", "Cancel Download"));
+            cancelButton.setOnClickListener(v -> {
+                MiogramDownloadManager.getInstance().cancelDownload();
+                dismiss();
+            });
+        }
         if (progressContainer != null) progressContainer.setVisibility(View.VISIBLE);
     }
 

@@ -130,10 +130,13 @@ public class MiogramUpdateBar extends FrameLayout implements MiogramDownloadMana
                 FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT,
-                        Gravity.TOP | Gravity.CENTER_HORIZONTAL
+                        Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL
                 );
-                lp.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(48), AndroidUtilities.dp(16), 0);
+                lp.setMargins(AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16), AndroidUtilities.dp(70));
+                currentBarInstance.setTranslationY(AndroidUtilities.dp(100));
+                currentBarInstance.setAlpha(0f);
                 root.addView(currentBarInstance, lp);
+                currentBarInstance.animate().translationY(0).alpha(1f).setDuration(300).start();
                 MiogramDownloadManager.getInstance().addListener(currentBarInstance);
             }
             currentBarInstance.setVisibility(View.VISIBLE);
@@ -143,12 +146,15 @@ public class MiogramUpdateBar extends FrameLayout implements MiogramDownloadMana
     public static void hideGlobalBar() {
         new Handler(Looper.getMainLooper()).post(() -> {
             if (currentBarInstance != null) {
-                MiogramDownloadManager.getInstance().removeListener(currentBarInstance);
-                ViewGroup parent = (ViewGroup) currentBarInstance.getParent();
-                if (parent != null) {
-                    parent.removeView(currentBarInstance);
-                }
+                final View bar = currentBarInstance;
                 currentBarInstance = null;
+                MiogramDownloadManager.getInstance().removeListener((DownloadListener) bar);
+                bar.animate().translationY(AndroidUtilities.dp(100)).alpha(0f).setDuration(250).withEndAction(() -> {
+                    ViewGroup parent = (ViewGroup) bar.getParent();
+                    if (parent != null) {
+                        parent.removeView(bar);
+                    }
+                }).start();
             }
         });
     }

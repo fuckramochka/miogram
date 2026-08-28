@@ -510,6 +510,15 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             args.putBoolean("needFinishFragment", false);
             presentFragment(new CallLogActivity(args));
         });
+        o.add(R.drawable.msg_disable, app.miogram.bridge.MiogramLocale.get("Сховати вкладку", "Скрыть вкладку", "Hide Tab"), () -> {
+            NaConfig.INSTANCE.getMainTabsHideContacts().setConfigBool(true);
+            NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.mainUserInfoChanged);
+            if (fragmentView != null) {
+                checkUi_contactsOrFeedTabVisible(true);
+            }
+            rebuildFragments();
+            BulletinFactory.of(this).createSimpleBulletin(R.drawable.msg_disable, app.miogram.bridge.MiogramLocale.get("Вкладку контактів приховано", "Вкладка контактов скрыта", "Contacts tab hidden")).show();
+        });
         o.setBlur(true);
         o.translate(0, -dp(4));
         o.setGravity(Gravity.LEFT);
@@ -1500,9 +1509,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 });
                 o.addGap();
             }
-            if (app.exteraless.general.GeneralConfig.showNagramSettings()) {
-                o.add(R.drawable.msg_settings, getString(R.string.NekoSettings), () -> presentFragment(new NekoSettingsActivity()));
-            }
+            o.add(R.drawable.msg_settings, app.miogram.bridge.MiogramLocale.get("Налаштування Miogram", "Настройки Miogram", "Miogram Settings"), () -> presentFragment(new app.miogram.bridge.settings.MiogramSettingsActivity()));
             o.add(R.drawable.web_browser, getString(R.string.InappBrowser), () -> presentFragment(new WebBrowserSettings(null)), () -> BrowserUtils.openBrowserHome(currentAccount, null, true));
             o.addGap();
             o.add(R.drawable.msg_retry_solar, getString(R.string.RestartApp), () ->

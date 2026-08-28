@@ -74,12 +74,20 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         discordUiRow = addRow();
         ameVibeRow = addRow();
         appleMusicRow = addRow();
-        miniBassRow = addRow();
+        if (appleMusicEnabled()) {
+            miniBassRow = addRow();
+        } else {
+            miniBassRow = -1;
+        }
         modeInfoRow = addRow();
 
         headerGlassRow = addRow();
         glassToggleRow = addRow();
-        glassIntensityRow = addRow();
+        if (decorationEnabled()) {
+            glassIntensityRow = addRow();
+        } else {
+            glassIntensityRow = -1;
+        }
         glassInfoRow = addRow();
 
         headerAvatarsRow = addRow();
@@ -131,7 +139,8 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         } else if (position == appleMusicRow) {
             boolean next = !appleMusicEnabled();
             MiogramVisualsPrefs.saveBool(getSafeContext(), "apple_music_player", next);
-            if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(next);
+            updateRows();
+            listAdapter.notifyDataSetChanged();
         } else if (position == miniBassRow) {
             boolean next = !miniBassEnabled();
             MiogramVisualsPrefs.saveBool(getSafeContext(), "mini_bass_glow", next);
@@ -140,10 +149,8 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
             boolean enabled = !decorationEnabled();
             MiogramFlags.setSpatialDecoration(enabled);
             MiogramVisualsPrefs.saveBool(getSafeContext(), "agsl_enabled", enabled);
-            if (view instanceof TextCheckCell) {
-                ((TextCheckCell) view).setChecked(enabled);
-            }
-            listAdapter.notifyItemChanged(glassIntensityRow);
+            updateRows();
+            listAdapter.notifyDataSetChanged();
             getNotificationCenter().postNotificationName(NotificationCenter.needSetDayNightTheme);
         } else if (position == glassIntensityRow) {
             showIntensityDialog();
