@@ -61,6 +61,13 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
     private int monetStyleRow;
     private int uiInfoRow;
 
+    private int headerCustomProfileRow;
+    private int customProfileEditorRow;
+    private int customProfileBubbleRow;
+    private int customProfileChatDecorRow;
+    private int customProfileBakeRow;
+    private int customProfileInfoRow;
+
     @Override
     protected String getActionBarTitle() {
         return MiogramLocale.get("Зовнішній вигляд", "Внешний вид", "Appearance & Design");
@@ -101,6 +108,13 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         titleTextRow = addRow();
         monetStyleRow = addRow();
         uiInfoRow = addRow();
+
+        headerCustomProfileRow = addRow();
+        customProfileEditorRow = addRow();
+        customProfileBubbleRow = addRow();
+        customProfileChatDecorRow = addRow();
+        customProfileBakeRow = addRow();
+        customProfileInfoRow = addRow();
     }
 
     private Context getSafeContext() {
@@ -185,6 +199,18 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
             AppearanceConfig.monetStyle.setConfigInt(next);
             listAdapter.notifyItemChanged(monetStyleRow);
             getNotificationCenter().postNotificationName(NotificationCenter.needSetDayNightTheme);
+        } else if (position == customProfileEditorRow) {
+            app.miogram.bridge.profile.CustomProfileEngine.openEditor();
+        } else if (position == customProfileBubbleRow) {
+            app.miogram.bridge.profile.CustomProfileEngine.openBubbleSheet();
+        } else if (position == customProfileChatDecorRow) {
+            boolean next = !app.miogram.bridge.profile.CustomProfileEngine.flagOf("chat_decor", true);
+            app.miogram.bridge.profile.CustomProfileEngine.flagSet("chat_decor", next);
+            if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(next);
+        } else if (position == customProfileBakeRow) {
+            boolean next = !app.miogram.bridge.profile.CustomProfileEngine.flagOf("bake_outside", false);
+            app.miogram.bridge.profile.CustomProfileEngine.flagSet("bake_outside", next);
+            if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(next);
         }
     }
 
@@ -302,13 +328,14 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == headerModeRow || position == headerGlassRow || position == headerAvatarsRow || position == headerUiRow) {
+            if (position == headerModeRow || position == headerGlassRow || position == headerAvatarsRow || position == headerUiRow || position == headerCustomProfileRow) {
                 return TYPE_HEADER;
             } else if (position == ameVibeRow || position == appleMusicRow || position == miniBassRow
                     || position == glassToggleRow || position == singleCornerRadiusRow
-                    || position == senderMiniAvatarsRow || position == squareFabRow) {
+                    || position == senderMiniAvatarsRow || position == squareFabRow
+                    || position == customProfileChatDecorRow || position == customProfileBakeRow) {
                 return TYPE_CHECK;
-            } else if (position == modeInfoRow || position == glassInfoRow || position == avatarsInfoRow || position == uiInfoRow) {
+            } else if (position == modeInfoRow || position == glassInfoRow || position == avatarsInfoRow || position == uiInfoRow || position == customProfileInfoRow) {
                 return TYPE_INFO_PRIVACY;
             }
             return TYPE_SETTINGS;
@@ -327,6 +354,8 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                         cell.setText(MiogramLocale.get("Аватарки та список чатів", "Аватарки и список чатов", "Avatars & Chat List"));
                     } else if (position == headerUiRow) {
                         cell.setText(MiogramLocale.get("Елементи інтерфейсу та Теми", "Элементы интерфейса и Темы", "UI & Themes"));
+                    } else if (position == headerCustomProfileRow) {
+                        cell.setText(MiogramLocale.get("Кастомізація профілю (Custom Profile)", "Кастомизация профиля (Custom Profile)", "Custom Profile & Themes"));
                     }
                     break;
                 }
@@ -346,6 +375,10 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                         cell.setTextAndCheck(MiogramLocale.get("Міні-аватарки відправників у чатах", "Мини-аватарки отправителей в чатах", "Mini-avatars of message senders"), AppearanceConfig.senderMiniAvatars.Bool(), false);
                     } else if (position == squareFabRow) {
                         cell.setTextAndCheck(MiogramLocale.get("Квадратна («Squircle») плаваюча кнопка", "Квадратная («Squircle») плавающая кнопка", "Squircle Floating Action Button"), AppearanceConfig.squareFab.Bool(), true);
+                    } else if (position == customProfileChatDecorRow) {
+                        cell.setTextAndCheck(MiogramLocale.get("Рамки та прикраси в чатах", "Рамки и украшения в чатах", "Frames & decor in chats"), app.miogram.bridge.profile.CustomProfileEngine.flagOf("chat_decor", true), true);
+                    } else if (position == customProfileBakeRow) {
+                        cell.setTextAndCheck(MiogramLocale.get("Запікання текстур (Baking)", "Запекание текстур (Baking)", "Baking outside profiles"), app.miogram.bridge.profile.CustomProfileEngine.flagOf("bake_outside", false), false);
                     }
                     break;
                 }
@@ -372,6 +405,10 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                                 ? "Telemone (Material 3)"
                                 : MiogramLocale.get("Класичний", "Классический", "Classic");
                         cell.setTextAndValue(MiogramLocale.get("Стиль Monet теми", "Стиль Monet темы", "Monet Theme Style"), val, false);
+                    } else if (position == customProfileEditorRow) {
+                        cell.setText(MiogramLocale.get("Редактор оформлення профілю", "Редактор оформления профиля", "Profile Banner & Mesh Editor"), true);
+                    } else if (position == customProfileBubbleRow) {
+                        cell.setText(MiogramLocale.get("Кастомні бульбашки повідомлень", "Кастомные пузырьки сообщений", "Custom Message Bubbles (Sheet)"), false);
                     }
                     break;
                 }
@@ -393,6 +430,10 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                         cell.setText(MiogramLocale.get("Керує динамічним кольоровим оформленням Material You та кнопками дії.",
                                 "Управляет динамическим цветовым оформлением Material You и кнопками действия.",
                                 "Controls dynamic Material You coloring and action buttons."));
+                    } else if (position == customProfileInfoRow) {
+                        cell.setText(MiogramLocale.get("Повне налаштування банерів профілю, сіток градієнтів, світяться імен, бульбашок та публікацій у Воркшопі.",
+                                "Полная настройка баннеров профиля, сеток градиентов, светящихся имен, пузырьков и публикаций в Воркшопе.",
+                                "Customize profile banners, mesh gradients, glowing names, bubble styles, and Cloud Workshop."));
                     }
                     break;
                 }

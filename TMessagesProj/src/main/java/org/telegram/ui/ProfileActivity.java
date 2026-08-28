@@ -638,6 +638,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private final static int gift_premium = 38;
     private final static int channel_stories = 39;
     private final static int edit_color = 40;
+    private final static int miogram_customize_profile = 9921;
     private final static int edit_profile = 41;
     private final static int copy_link_profile = 42;
     private final static int set_username = 43;
@@ -2696,6 +2697,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     presentFragment(new ChannelAdminLogActivity(currentChat));
                 } else if (id == message_filter){
                     presentFragment(new RegexChatFiltersListActivity(chatId != 0 ? -chatId : userId));
+                } else if (id == miogram_customize_profile) {
+                    app.miogram.bridge.profile.CustomProfileEngine.openEditor();
                 } else if (id == delete_topic) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                     builder.setTitle(LocaleController.getPluralString("DeleteTopics", 1));
@@ -12836,6 +12839,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         if (selfUser && !myProfile) {
             otherItem.addSubItem(logout, R.drawable.msg_leave, LocaleController.getString(R.string.LogOut));
+        }
+        if (otherItem != null) {
+            otherItem.addSubItem(miogram_customize_profile, R.drawable.msg_theme, app.miogram.bridge.MiogramLocale.get("Оформити профіль", "Оформить профиль", "Customize Profile"));
         }
         if (!isPulledDown) {
             otherItem.hideSubItem(gallery_menu_save);

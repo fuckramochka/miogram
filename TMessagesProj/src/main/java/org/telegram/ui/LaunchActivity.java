@@ -444,6 +444,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         app.miogram.bridge.updater.MiogramUpdater.initAutoUpdate(this);
         app.miogram.bridge.plugins.MiogramInAppNotifications.getInstance().register();
         app.miogram.bridge.performance.MiogramFpsController.applyToWindow(this);
+        app.miogram.bridge.profile.CustomProfileEngine.init(this);
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if (!UserConfig.getInstance(currentAccount).isClientActivated()) {
             Intent intent = getIntent();
