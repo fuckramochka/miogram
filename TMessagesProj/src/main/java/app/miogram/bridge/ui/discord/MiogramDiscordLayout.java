@@ -149,20 +149,47 @@ public class MiogramDiscordLayout {
                 pill.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(3), isSelected ? 0xFFFFFFFF : 0x00FFFFFF));
                 serverItem.addView(pill, LayoutHelper.createFrame(4, isSelected ? 40 : 8, Gravity.LEFT | Gravity.CENTER_VERTICAL));
 
-                // Server Icon (Squircle when selected, Circle when unselected)
-                TextView letterBadge = new TextView(context);
-                String name = filter.name != null && !filter.name.isEmpty() ? filter.name : "G";
-                letterBadge.setText(name.substring(0, Math.min(2, name.length())).toUpperCase());
-                letterBadge.setTextColor(isSelected ? 0xFFFFFFFF : COLOR_TEXT_PRIMARY);
-                letterBadge.setTextSize(14);
-                letterBadge.setTypeface(AndroidUtilities.bold());
-                letterBadge.setGravity(Gravity.CENTER);
-                letterBadge.setBackground(Theme.createRoundRectDrawable(
-                        isSelected ? AndroidUtilities.dp(16) : AndroidUtilities.dp(24),
-                        isSelected ? COLOR_BLURPLE : 0xFF2B2D31
-                ));
+                TLRPC.Chat chat = null;
+                TLRPC.User user = null;
+                if (filter.alwaysShow != null && !filter.alwaysShow.isEmpty()) {
+                    for (int k = 0; k < filter.alwaysShow.size(); k++) {
+                        long did = filter.alwaysShow.get(k);
+                        if (did < 0) {
+                            chat = MessagesController.getInstance(currentAccount).getChat(-did);
+                            if (chat != null) break;
+                        } else if (did > 0) {
+                            user = MessagesController.getInstance(currentAccount).getUser(did);
+                            if (user != null) break;
+                        }
+                    }
+                }
 
-                serverItem.addView(letterBadge, LayoutHelper.createFrame(48, 48, Gravity.CENTER));
+                if (chat != null || user != null) {
+                    BackupImageView serverAvatar = new BackupImageView(context);
+                    serverAvatar.setRoundRadius(AndroidUtilities.dp(isSelected ? 16 : 24));
+                    AvatarDrawable avatarDrawable = new AvatarDrawable();
+                    if (chat != null) {
+                        avatarDrawable.setInfo(currentAccount, chat);
+                        serverAvatar.setForUserOrChat(chat, avatarDrawable);
+                    } else {
+                        avatarDrawable.setInfo(currentAccount, user);
+                        serverAvatar.setForUserOrChat(user, avatarDrawable);
+                    }
+                    serverItem.addView(serverAvatar, LayoutHelper.createFrame(48, 48, Gravity.CENTER));
+                } else {
+                    TextView letterBadge = new TextView(context);
+                    String name = filter.name != null && !filter.name.isEmpty() ? filter.name : "G";
+                    letterBadge.setText(name.substring(0, Math.min(2, name.length())).toUpperCase());
+                    letterBadge.setTextColor(isSelected ? 0xFFFFFFFF : COLOR_TEXT_PRIMARY);
+                    letterBadge.setTextSize(14);
+                    letterBadge.setTypeface(AndroidUtilities.bold());
+                    letterBadge.setGravity(Gravity.CENTER);
+                    letterBadge.setBackground(Theme.createRoundRectDrawable(
+                            isSelected ? AndroidUtilities.dp(16) : AndroidUtilities.dp(24),
+                            isSelected ? COLOR_BLURPLE : 0xFF2B2D31
+                    ));
+                    serverItem.addView(letterBadge, LayoutHelper.createFrame(48, 48, Gravity.CENTER));
+                }
 
                 serverItem.setOnClickListener(v -> {
                     selectedFolderId = filterId;
@@ -170,6 +197,41 @@ public class MiogramDiscordLayout {
                 });
 
                 serverList.addView(serverItem, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+            }
+        }
+
+        ArrayList<TLRPC.Dialog> allDialogs = MessagesController.getInstance(currentAccount).allDialogs;
+        if (allDialogs != null) {
+            for (int i = 0; i < allDialogs.size() && i < 30; i++) {
+                TLRPC.Dialog dialog = allDialogs.get(i);
+                if (dialog.id < 0) {
+                    TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialog.id);
+                    if (chat != null) {
+                        final long dialogId = dialog.id;
+                        final boolean isSelected = (selectedFolderId == (int) dialogId);
+
+                        FrameLayout serverItem = new FrameLayout(context);
+                        serverItem.setPadding(0, AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4));
+
+                        View pill = new View(context);
+                        pill.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(3), isSelected ? 0xFFFFFFFF : 0x00FFFFFF));
+                        serverItem.addView(pill, LayoutHelper.createFrame(4, isSelected ? 40 : 8, Gravity.LEFT | Gravity.CENTER_VERTICAL));
+
+                        BackupImageView serverAvatar = new BackupImageView(context);
+                        serverAvatar.setRoundRadius(AndroidUtilities.dp(isSelected ? 16 : 24));
+                        AvatarDrawable avatarDrawable = new AvatarDrawable();
+                        avatarDrawable.setInfo(currentAccount, chat);
+                        serverAvatar.setForUserOrChat(chat, avatarDrawable);
+                        serverItem.addView(serverAvatar, LayoutHelper.createFrame(48, 48, Gravity.CENTER));
+
+                        serverItem.setOnClickListener(v -> {
+                            selectedFolderId = (int) dialogId;
+                            if (listener != null) listener.onServerSelected((int) dialogId);
+                        });
+
+                        serverList.addView(serverItem, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+                    }
+                }
             }
         }
 

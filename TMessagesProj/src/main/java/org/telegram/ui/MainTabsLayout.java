@@ -69,6 +69,9 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     }
 
     public static boolean isBottomNavigationHidden() {
+        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            return true;
+        }
         return NaConfig.INSTANCE.getHideBottomNavigationBar().Bool();
     }
 

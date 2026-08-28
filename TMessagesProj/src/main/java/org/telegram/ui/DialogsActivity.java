@@ -4246,7 +4246,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         for (int a = 0; a < pagesCount; a++) {
             final ViewPage viewPage = new ViewPage(context);
             if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
-                contentView.addView(viewPage, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP | Gravity.LEFT, 72, 48, 0, 52));
+                contentView.addView(viewPage, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP | Gravity.LEFT, 72, 0, 0, 52));
             } else {
                 contentView.addView(viewPage, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
             }
@@ -13406,17 +13406,29 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (dialogStoriesCell != null) {
                 dialogStoriesCell.setVisibility(View.GONE);
             }
+            if (fragmentSearchField != null) {
+                fragmentSearchField.setVisibility(View.GONE);
+            }
             fragmentView.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHANNELS_BG);
-            
-            View discordHeader = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordChannelHeader(getContext(), "Messages");
-            ((ContentView) fragmentView).addView(discordHeader, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT, 72, 0, 0, 0));
 
-            View discordRail = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordServerRail(getContext(), folderId -> {
-                if (filterTabsView != null) {
-                    if (folderId == -1) {
-                        filterTabsView.selectTabWithId(0, 1.0f);
+            View discordRail = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordServerRail(getContext(), selectedId -> {
+                if (selectedId >= 0) {
+                    if (filterTabsView != null) {
+                        if (selectedId == -1) {
+                            filterTabsView.selectTabWithId(0, 1.0f);
+                        } else {
+                            filterTabsView.selectTabWithId(selectedId, 1.0f);
+                        }
+                    }
+                } else {
+                    long did = (long) selectedId;
+                    TLRPC.Chat chat = getMessagesController().getChat(-did);
+                    if (chat != null && chat.forum) {
+                        presentFragment(new TopicsFragment(-did, 0));
                     } else {
-                        filterTabsView.selectTabWithId(folderId, 1.0f);
+                        Bundle args = new Bundle();
+                        args.putLong("chat_id", -did);
+                        presentFragment(new ChatActivity(args));
                     }
                 }
             });
@@ -13430,7 +13442,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         FrameLayout.LayoutParams vpLp = (FrameLayout.LayoutParams) viewPages[a].getLayoutParams();
                         if (vpLp != null) {
                             vpLp.leftMargin = dp(72);
-                            vpLp.topMargin = dp(48);
+                            vpLp.topMargin = 0;
                             vpLp.bottomMargin = dp(52);
                             viewPages[a].setLayoutParams(vpLp);
                         }
@@ -13442,7 +13454,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 FrameLayout.LayoutParams svpLp = (FrameLayout.LayoutParams) searchViewPager.getLayoutParams();
                 if (svpLp != null) {
                     svpLp.leftMargin = dp(72);
-                    svpLp.topMargin = dp(48);
+                    svpLp.topMargin = 0;
                     svpLp.bottomMargin = dp(52);
                     searchViewPager.setLayoutParams(svpLp);
                 }
@@ -15051,6 +15063,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private boolean shouldShowIdleSearchField() {
+        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            return false;
+        }
         return !NaConfig.INSTANCE.getHideDialogsSearchField().Bool();
     }
 
