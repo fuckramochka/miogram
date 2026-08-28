@@ -136,6 +136,52 @@ public class CustomProfileEngine {
         invokeOnMainThread("openEgg");
     }
 
+    public static void pingServers() {
+        invokeOnMainThread("pingServers");
+    }
+
+    public static void checkUpdate() {
+        invokeOnMainThread("checkUpdate");
+    }
+
+    public static void unskipRelease() {
+        invokeOnMainThread("unskipRelease");
+    }
+
+    public static boolean isDevMode() {
+        if (!isLoaded || cpbNativeClass == null) return false;
+        try {
+            Method m = methodCache.get("devMode");
+            if (m != null) {
+                Object res = m.invoke(null);
+                if (res instanceof Boolean) return (Boolean) res;
+            }
+        } catch (Throwable ignore) {}
+        return false;
+    }
+
+    public static String getLangMode() {
+        if (!isLoaded || cpbNativeClass == null) return "auto";
+        try {
+            Method m = methodCache.get("langMode");
+            if (m != null) {
+                Object res = m.invoke(null);
+                if (res != null) return res.toString();
+            }
+        } catch (Throwable ignore) {}
+        return "auto";
+    }
+
+    public static void setLangMode(String mode) {
+        if (!isLoaded || cpbNativeClass == null) return;
+        try {
+            Method m = methodCache.get("setLangMode");
+            if (m != null) {
+                m.invoke(null, mode);
+            }
+        } catch (Throwable ignore) {}
+    }
+
     public static boolean flagOf(String key, boolean def) {
         if (!isLoaded || cpbNativeClass == null) return def;
         try {

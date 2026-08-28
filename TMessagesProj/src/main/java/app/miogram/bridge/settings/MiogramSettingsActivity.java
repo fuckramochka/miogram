@@ -28,6 +28,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     private int headerCategoriesRow;
     private int visualsRow;
+    private int customProfileRow;
     private int chatsRow;
     private int privacyRow;
     private int translatorRow;
@@ -51,6 +52,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
         headerCategoriesRow = addRow();
         visualsRow = addRow();
+        customProfileRow = addRow();
         chatsRow = addRow();
         privacyRow = addRow();
         translatorRow = addRow();
@@ -68,6 +70,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     public void onItemClick(View view, int position, float x, float y) {
         if (position == visualsRow) {
             presentFragment(new MiogramVisualsActivity());
+        } else if (position == customProfileRow) {
+            presentFragment(new app.miogram.bridge.profile.MiogramCustomProfileActivity());
         } else if (position == chatsRow) {
             presentFragment(new MiogramChatsSettingsActivity());
         } else if (position == privacyRow) {
@@ -117,6 +121,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     TextCell cell = (TextCell) holder.itemView;
                     if (position == visualsRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Зовнішній вигляд", "Внешний вид", "Appearance"), R.drawable.msg_theme, true);
+                    } else if (position == customProfileRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Оформлення профілю", "Оформление профиля", "Custom Profile"), R.drawable.msg_customize, true);
                     } else if (position == chatsRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Чати та Медіа", "Чаты и Медиа", "Chats & Media"), R.drawable.msg_camera, true);
                     } else if (position == privacyRow) {
