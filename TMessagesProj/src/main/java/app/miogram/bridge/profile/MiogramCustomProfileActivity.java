@@ -53,7 +53,7 @@ public class MiogramCustomProfileActivity extends BaseNekoSettingsActivity {
 
     @Override
     protected String getActionBarTitle() {
-        return MiogramLocale.get("Оформлення профілю", "Оформление профиля", "Custom Profile");
+        return MiogramLocale.get("РћС„РѕСЂРјР»РµРЅРЅСЏ РїСЂРѕС„С–Р»СЋ", "РћС„РѕСЂРјР»РµРЅРёРµ РїСЂРѕС„РёР»СЏ", "Custom Profile");
     }
 
     @Override
@@ -92,7 +92,7 @@ public class MiogramCustomProfileActivity extends BaseNekoSettingsActivity {
     }
 
     @Override
-    public void onItemClick(View view, int position) {
+    public void onItemClick(View view, int position, float x, float y) {
         if (position == editorRow) {
             CustomProfileEngine.openEditor();
         } else if (position == bubbleRow) {
@@ -135,14 +135,14 @@ public class MiogramCustomProfileActivity extends BaseNekoSettingsActivity {
         if (ctx == null) return;
 
         String[] options = new String[]{
-                MiogramLocale.get("Авто", "Авто", "Auto"),
-                "Русский",
+                MiogramLocale.get("РђРІС‚Рѕ", "РђРІС‚Рѕ", "Auto"),
+                "Р СѓСЃСЃРєРёР№",
                 "English"
         };
         String[] values = new String[]{"auto", "ru", "en"};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle(MiogramLocale.get("Мова оформлення", "Язык плагина", "Language"));
+        builder.setTitle(MiogramLocale.get("РњРѕРІР° РѕС„РѕСЂРјР»РµРЅРЅСЏ", "РЇР·С‹Рє РїР»Р°РіРёРЅР°", "Language"));
         builder.setItems(options, (dialog, which) -> {
             CustomProfileEngine.setLangMode(values[which]);
             listAdapter.notifyItemChanged(langRow);
@@ -175,26 +175,26 @@ public class MiogramCustomProfileActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerProfileRow) {
-                        cell.setText(MiogramLocale.get("Оформлення та редактор", "Оформление и редактор", "Profile Decoration"));
+                        cell.setText(MiogramLocale.get("РћС„РѕСЂРјР»РµРЅРЅСЏ С‚Р° СЂРµРґР°РєС‚РѕСЂ", "РћС„РѕСЂРјР»РµРЅРёРµ Рё СЂРµРґР°РєС‚РѕСЂ", "Profile Decoration"));
                     } else if (position == headerBatteryRow) {
-                        cell.setText(MiogramLocale.get("Витрата батареї", "Расход батареи", "Battery & Performance"));
+                        cell.setText(MiogramLocale.get("Р’РёС‚СЂР°С‚Р° Р±Р°С‚Р°СЂРµС—", "Р Р°СЃС…РѕРґ Р±Р°С‚Р°СЂРµРё", "Battery & Performance"));
                     } else if (position == headerAboutRow) {
-                        cell.setText(MiogramLocale.get("Про розробників", "О плагине", "About & Community"));
+                        cell.setText(MiogramLocale.get("РџСЂРѕ СЂРѕР·СЂРѕР±РЅРёРєС–РІ", "Рћ РїР»Р°РіРёРЅРµ", "About & Community"));
                     } else if (position == headerDevRow) {
-                        cell.setText(MiogramLocale.get("Розробка та діагностика", "Разработка", "Development"));
+                        cell.setText(MiogramLocale.get("Р РѕР·СЂРѕР±РєР° С‚Р° РґС–Р°РіРЅРѕСЃС‚РёРєР°", "Р Р°Р·СЂР°Р±РѕС‚РєР°", "Development"));
                     }
                     break;
                 }
                 case TYPE_CHECK: {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
                     if (position == chatDecorRow) {
-                        cell.setTextAndCheck(MiogramLocale.get("Рамки та прикраси в чатах", "Видеть рамки вне профиля", "Show frames outside profiles"), CustomProfileEngine.flagOf("chat_decor", true), true);
+                        cell.setTextAndCheck(MiogramLocale.get("Р Р°РјРєРё С‚Р° РїСЂРёРєСЂР°СЃРё РІ С‡Р°С‚Р°С…", "Р’РёРґРµС‚СЊ СЂР°РјРєРё РІРЅРµ РїСЂРѕС„РёР»СЏ", "Show frames outside profiles"), CustomProfileEngine.flagOf("chat_decor", true), true);
                     } else if (position == chatBubblesRow) {
-                        cell.setTextAndCheck(MiogramLocale.get("Кастомні бульбашки повідомлень", "Кастомные пузырьки сообщений", "Custom message bubbles"), CustomProfileEngine.flagOf("chat_bubbles", true), true);
+                        cell.setTextAndCheck(MiogramLocale.get("РљР°СЃС‚РѕРјРЅС– Р±СѓР»СЊР±Р°С€РєРё РїРѕРІС–РґРѕРјР»РµРЅСЊ", "РљР°СЃС‚РѕРјРЅС‹Рµ РїСѓР·С‹СЂСЊРєРё СЃРѕРѕР±С‰РµРЅРёР№", "Custom message bubbles"), CustomProfileEngine.flagOf("chat_bubbles", true), true);
                     } else if (position == bakeOutsideRow) {
-                        cell.setTextAndCheck(MiogramLocale.get("Запікання поза профілем", "Запекание вне профиля", "Baking outside profiles"), CustomProfileEngine.flagOf("bake_outside", false), true);
+                        cell.setTextAndCheck(MiogramLocale.get("Р—Р°РїС–РєР°РЅРЅСЏ РїРѕР·Р° РїСЂРѕС„С–Р»РµРј", "Р—Р°РїРµРєР°РЅРёРµ РІРЅРµ РїСЂРѕС„РёР»СЏ", "Baking outside profiles"), CustomProfileEngine.flagOf("bake_outside", false), true);
                     } else if (position == bakeProfileRow) {
-                        cell.setTextAndCheck(MiogramLocale.get("Запікання в профілі", "Запекание в профиле", "Baking in profiles"), CustomProfileEngine.flagOf("bake_profile", false), false);
+                        cell.setTextAndCheck(MiogramLocale.get("Р—Р°РїС–РєР°РЅРЅСЏ РІ РїСЂРѕС„С–Р»С–", "Р—Р°РїРµРєР°РЅРёРµ РІ РїСЂРѕС„РёР»Рµ", "Baking in profiles"), CustomProfileEngine.flagOf("bake_profile", false), false);
                     }
                     break;
                 }
@@ -202,39 +202,39 @@ public class MiogramCustomProfileActivity extends BaseNekoSettingsActivity {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == editorRow) {
-                        cell.setText(MiogramLocale.get("Редактор оформлення профілю", "Редактор оформления профиля", "Profile Banner Editor"), true);
+                        cell.setText(MiogramLocale.get("Р РµРґР°РєС‚РѕСЂ РѕС„РѕСЂРјР»РµРЅРЅСЏ РїСЂРѕС„С–Р»СЋ", "Р РµРґР°РєС‚РѕСЂ РѕС„РѕСЂРјР»РµРЅРёСЏ РїСЂРѕС„РёР»СЏ", "Profile Banner Editor"), true);
                     } else if (position == bubbleRow) {
-                        cell.setText(MiogramLocale.get("Пухирець повідомлень (Sheet)", "Пузырёк сообщений", "Message Bubble Sheet"), true);
+                        cell.setText(MiogramLocale.get("РџСѓС…РёСЂРµС†СЊ РїРѕРІС–РґРѕРјР»РµРЅСЊ (Sheet)", "РџСѓР·С‹СЂС‘Рє СЃРѕРѕР±С‰РµРЅРёР№", "Message Bubble Sheet"), true);
                     } else if (position == langRow) {
                         String mode = CustomProfileEngine.getLangMode();
-                        String val = "en".equals(mode) ? "English" : ("ru".equals(mode) ? "Русский" : MiogramLocale.get("Авто", "Авто", "Auto"));
-                        cell.setTextAndValue(MiogramLocale.get("Мова інтерфейсу", "Язык плагина", "Language"), val, false);
+                        String val = "en".equals(mode) ? "English" : ("ru".equals(mode) ? "Р СѓСЃСЃРєРёР№" : MiogramLocale.get("РђРІС‚Рѕ", "РђРІС‚Рѕ", "Auto"));
+                        cell.setTextAndValue(MiogramLocale.get("РњРѕРІР° С–РЅС‚РµСЂС„РµР№СЃСѓ", "РЇР·С‹Рє РїР»Р°РіРёРЅР°", "Language"), val, false);
                     } else if (position == thanksRow) {
-                        cell.setText(MiogramLocale.get("Список подяк (Автори)", "Спасибо (Те, кто поддержал)", "Thanks & Supporters"), true);
+                        cell.setText(MiogramLocale.get("РЎРїРёСЃРѕРє РїРѕРґСЏРє (РђРІС‚РѕСЂРё)", "РЎРїР°СЃРёР±Рѕ (РўРµ, РєС‚Рѕ РїРѕРґРґРµСЂР¶Р°Р»)", "Thanks & Supporters"), true);
                     } else if (position == channelRow) {
-                        cell.setText(MiogramLocale.get("Канал розробників @RoflPlugins", "Канал плагина @RoflPlugins", "Channel @RoflPlugins"), false);
+                        cell.setText(MiogramLocale.get("РљР°РЅР°Р» СЂРѕР·СЂРѕР±РЅРёРєС–РІ @RoflPlugins", "РљР°РЅР°Р» РїР»Р°РіРёРЅР° @RoflPlugins", "Channel @RoflPlugins"), false);
                     } else if (position == pingRow) {
-                        cell.setText(MiogramLocale.get("Перевірити зв'язок із серверами", "Проверить связь", "Check servers"), true);
+                        cell.setText(MiogramLocale.get("РџРµСЂРµРІС–СЂРёС‚Рё Р·РІ'СЏР·РѕРє С–Р· СЃРµСЂРІРµСЂР°РјРё", "РџСЂРѕРІРµСЂРёС‚СЊ СЃРІСЏР·СЊ", "Check servers"), true);
                     } else if (position == logRow) {
-                        cell.setText(MiogramLocale.get("Журнал діагностики", "Журнал плагина", "Plugin log"), true);
+                        cell.setText(MiogramLocale.get("Р–СѓСЂРЅР°Р» РґС–Р°РіРЅРѕСЃС‚РёРєРё", "Р–СѓСЂРЅР°Р» РїР»Р°РіРёРЅР°", "Plugin log"), true);
                     } else if (position == eggRow) {
-                        cell.setText(MiogramLocale.get("Відкрити пасхалку", "Открыть пасхалку", "Open the easter egg"), false);
+                        cell.setText(MiogramLocale.get("Р’С–РґРєСЂРёС‚Рё РїР°СЃС…Р°Р»РєСѓ", "РћС‚РєСЂС‹С‚СЊ РїР°СЃС…Р°Р»РєСѓ", "Open the easter egg"), false);
                     }
                     break;
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == profileInfoRow) {
-                        cell.setText(MiogramLocale.get("Налаштування банерів, анімованих обкладинок, градієнтних сіток, світяться імен та форм аватарок.",
-                                "Настройка баннеров, анимированных обложек, градиентных сеток, светящихся имен и форм аватарок.",
+                        cell.setText(MiogramLocale.get("РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ Р±Р°РЅРµСЂС–РІ, Р°РЅС–РјРѕРІР°РЅРёС… РѕР±РєР»Р°РґРёРЅРѕРє, РіСЂР°РґС–С”РЅС‚РЅРёС… СЃС–С‚РѕРє, СЃРІС–С‚СЏС‚СЊСЃСЏ С–РјРµРЅ С‚Р° С„РѕСЂРј Р°РІР°С‚Р°СЂРѕРє.",
+                                "РќР°СЃС‚СЂРѕР№РєР° Р±Р°РЅРЅРµСЂРѕРІ, Р°РЅРёРјРёСЂРѕРІР°РЅРЅС‹С… РѕР±Р»РѕР¶РµРє, РіСЂР°РґРёРµРЅС‚РЅС‹С… СЃРµС‚РѕРє, СЃРІРµС‚СЏС‰РёС…СЃСЏ РёРјРµРЅ Рё С„РѕСЂРј Р°РІР°С‚Р°СЂРѕРє.",
                                 "Configure banners, animated covers, mesh gradients, glowing text, and avatar geometry."));
                     } else if (position == batteryInfoRow) {
-                        cell.setText(MiogramLocale.get("Запікання чужого оформлення в одну текстуру знижує навантаження на акумулятор.",
-                                "Запекание чужого оформления в одну текстуру снижает нагрузку на аккумулятор.",
+                        cell.setText(MiogramLocale.get("Р—Р°РїС–РєР°РЅРЅСЏ С‡СѓР¶РѕРіРѕ РѕС„РѕСЂРјР»РµРЅРЅСЏ РІ РѕРґРЅСѓ С‚РµРєСЃС‚СѓСЂСѓ Р·РЅРёР¶СѓС” РЅР°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ РЅР° Р°РєСѓРјСѓР»СЏС‚РѕСЂ.",
+                                "Р—Р°РїРµРєР°РЅРёРµ С‡СѓР¶РѕРіРѕ РѕС„РѕСЂРјР»РµРЅРёСЏ РІ РѕРґРЅСѓ С‚РµРєСЃС‚СѓСЂСѓ СЃРЅРёР¶Р°РµС‚ РЅР°РіСЂСѓР·РєСѓ РЅР° Р°РєРєСѓРјСѓР»СЏС‚РѕСЂ.",
                                 "Baking decorations into static textures conserves battery and GPU cycles."));
                     } else if (position == aboutInfoRow) {
-                        cell.setText(MiogramLocale.get("Вбудований нативний рушій Custom Profile v1.8.1 для Miogram.",
-                                "Встроенный нативный движок Custom Profile v1.8.1 для Miogram.",
+                        cell.setText(MiogramLocale.get("Р’Р±СѓРґРѕРІР°РЅРёР№ РЅР°С‚РёРІРЅРёР№ СЂСѓС€С–Р№ Custom Profile v1.8.1 РґР»СЏ Miogram.",
+                                "Р’СЃС‚СЂРѕРµРЅРЅС‹Р№ РЅР°С‚РёРІРЅС‹Р№ РґРІРёР¶РѕРє Custom Profile v1.8.1 РґР»СЏ Miogram.",
                                 "Built-in native Custom Profile v1.8.1 engine for Miogram."));
                     }
                     break;
