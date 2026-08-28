@@ -13422,12 +13422,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     }
                 } else {
                     long did = (long) selectedId;
+                    Bundle args = new Bundle();
+                    args.putLong("chat_id", -did);
                     TLRPC.Chat chat = getMessagesController().getChat(-did);
                     if (chat != null && chat.forum) {
-                        presentFragment(new TopicsFragment(-did, 0));
+                        presentFragment(new TopicsFragment(args));
                     } else {
-                        Bundle args = new Bundle();
-                        args.putLong("chat_id", -did);
                         presentFragment(new ChatActivity(args));
                     }
                 }
