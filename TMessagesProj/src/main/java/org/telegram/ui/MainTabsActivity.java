@@ -516,7 +516,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             if (fragmentView != null) {
                 checkUi_contactsOrFeedTabVisible(true);
             }
-            rebuildFragments();
             BulletinFactory.of(this).createSimpleBulletin(R.drawable.msg_disable, app.miogram.bridge.MiogramLocale.get("Вкладку контактів приховано", "Вкладка контактов скрыта", "Contacts tab hidden")).show();
         });
         o.setBlur(true);

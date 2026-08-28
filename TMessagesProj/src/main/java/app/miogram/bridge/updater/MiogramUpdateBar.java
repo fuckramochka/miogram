@@ -146,9 +146,9 @@ public class MiogramUpdateBar extends FrameLayout implements MiogramDownloadMana
     public static void hideGlobalBar() {
         new Handler(Looper.getMainLooper()).post(() -> {
             if (currentBarInstance != null) {
-                final View bar = currentBarInstance;
+                final MiogramUpdateBar bar = currentBarInstance;
                 currentBarInstance = null;
-                MiogramDownloadManager.getInstance().removeListener((DownloadListener) bar);
+                MiogramDownloadManager.getInstance().removeListener(bar);
                 bar.animate().translationY(AndroidUtilities.dp(100)).alpha(0f).setDuration(250).withEndAction(() -> {
                     ViewGroup parent = (ViewGroup) bar.getParent();
                     if (parent != null) {
