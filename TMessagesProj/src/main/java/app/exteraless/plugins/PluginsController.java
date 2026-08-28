@@ -107,6 +107,7 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
         preferences = appContext.getSharedPreferences(PluginsConstants.PREFS_NAME, Context.MODE_PRIVATE);
         watchdog = new PluginsWatchdog(preferences);
         getPluginsDir().mkdirs();
+        copyBuiltinPlugins();
 
         if (!isEngineEnabled()) {
             return;
@@ -123,6 +124,31 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
                 executeOnAppEvent(PluginsConstants.EVENT_APP_START);
             }
         });
+    }
+
+    private void copyBuiltinPlugins() {
+        try {
+            File pluginsDir = getPluginsDir();
+            pluginsDir.mkdirs();
+            String[] assets = appContext.getAssets().list("plugins");
+            if (assets != null) {
+                for (String name : assets) {
+                    File target = new File(pluginsDir, name);
+                    if (!target.exists() || target.length() == 0) {
+                        try (java.io.InputStream is = appContext.getAssets().open("plugins/" + name);
+                             java.io.FileOutputStream fos = new java.io.FileOutputStream(target)) {
+                            byte[] buf = new byte[8192];
+                            int len;
+                            while ((len = is.read(buf)) != -1) {
+                                fos.write(buf, 0, len);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            FileLog.e("PluginsController: failed to copy builtin plugins", t);
+        }
     }
 
     public PluginsWatchdog getWatchdog() {
@@ -145,7 +171,7 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
     }
 
     public boolean isEngineEnabled() {
-        return preferences != null && preferences.getBoolean(PluginsConstants.KEY_ENGINE_ENABLED, false);
+        return preferences != null && preferences.getBoolean(PluginsConstants.KEY_ENGINE_ENABLED, true);
     }
 
     public void setEngineEnabled(boolean enabled) {

@@ -80,7 +80,27 @@ public class CustomProfileEngine {
                 Method loadMethod = methodCache.get("load");
                 if (loadMethod != null) {
                     HashMap<String, Object> config = new HashMap<>();
+                    config.put("__cpb_build_sha", "ef53cd2e64ed2590d750186a851bd4f7343a49f722792306ff48189cca1d8493");
+                    
+                    // Load any saved legacy keys from shared preferences
+                    try {
+                        android.content.SharedPreferences prefs = appCtx.getSharedPreferences("plugin_settings_custom_profile", Context.MODE_PRIVATE);
+                        for (Map.Entry<String, ?> entry : prefs.getAll().entrySet()) {
+                            if (entry.getValue() != null) {
+                                config.put(entry.getKey(), entry.getValue());
+                            }
+                        }
+                    } catch (Throwable ignore) {}
+
                     loadMethod.invoke(null, appCtx, config);
+
+                    Method diagBuild = methodCache.get("diagBuild");
+                    if (diagBuild != null) {
+                        try {
+                            diagBuild.invoke(null, "1.8.1", "e1c352144a748eb91be2513e4164063e2179d3b3c5c74c93d97dd162386583f3");
+                        } catch (Throwable ignore) {}
+                    }
+
                     isLoaded = true;
                     FileLog.d("CustomProfileEngine: successfully loaded native CPB core");
                 }
