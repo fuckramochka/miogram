@@ -9625,10 +9625,18 @@ public class ChatActivity extends BaseFragment implements
             if (chatInputViewsContainer != null) {
                 chatInputViewsContainer.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHANNELS_BG);
             }
+            if (chatActivityEnterView != null) {
+                chatActivityEnterView.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_INPUT_BG);
+            }
             if (actionBar != null) {
                 actionBar.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHAT_BG);
-                if (avatarContainer != null && avatarContainer.avatarImageView != null) {
-                    avatarContainer.avatarImageView.setVisibility(View.GONE);
+                actionBar.setTitleColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY);
+                actionBar.setSubtitleColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED);
+                actionBar.setItemsColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY, false);
+                actionBar.setItemsBackgroundColor(0x20FFFFFF, false);
+                actionBar.setBackButtonImage(R.drawable.ic_ab_back);
+                if (avatarContainer != null) {
+                    avatarContainer.setTitleColors(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY, app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED);
                 }
             }
         }

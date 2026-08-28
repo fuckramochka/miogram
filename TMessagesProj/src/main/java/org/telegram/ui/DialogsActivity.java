@@ -4245,7 +4245,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         viewPages = new ViewPage[pagesCount];
         for (int a = 0; a < pagesCount; a++) {
             final ViewPage viewPage = new ViewPage(context);
-            contentView.addView(viewPage, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+            if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+                contentView.addView(viewPage, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP | Gravity.LEFT, 72, 48, 0, 52));
+            } else {
+                contentView.addView(viewPage, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+            }
             viewPage.dialogsType = initialDialogsType;
             viewPages[a] = viewPage;
 
@@ -13402,6 +13406,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (dialogStoriesCell != null) {
                 dialogStoriesCell.setVisibility(View.GONE);
             }
+            fragmentView.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHANNELS_BG);
             
             View discordHeader = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordChannelHeader(getContext(), "Messages");
             ((ContentView) fragmentView).addView(discordHeader, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT, 72, 0, 0, 0));
@@ -13417,6 +13422,23 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             });
             if (discordRail != null) {
                 ((ContentView) fragmentView).addView(discordRail, LayoutHelper.createFrame(72, LayoutHelper.MATCH_PARENT, Gravity.LEFT));
+            }
+
+            if (viewPages != null) {
+                for (int a = 0; a < viewPages.length; a++) {
+                    if (viewPages[a] != null) {
+                        FrameLayout.LayoutParams vpLp = (FrameLayout.LayoutParams) viewPages[a].getLayoutParams();
+                        if (vpLp != null) {
+                            vpLp.leftMargin = dp(72);
+                            vpLp.topMargin = dp(48);
+                            vpLp.bottomMargin = dp(52);
+                            viewPages[a].setLayoutParams(vpLp);
+                        }
+                    }
+                }
+            }
+
+            if (searchViewPager != null) {
                 FrameLayout.LayoutParams svpLp = (FrameLayout.LayoutParams) searchViewPager.getLayoutParams();
                 if (svpLp != null) {
                     svpLp.leftMargin = dp(72);

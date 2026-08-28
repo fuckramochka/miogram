@@ -123,7 +123,9 @@ public class GraySectionCell extends FrameLayout implements Theme.Colorable {
 
     public void setText(CharSequence text) {
         if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
-            text = "▾ " + text;
+            if (text != null && !text.toString().startsWith("▾ ")) {
+                text = "▾ " + text;
+            }
         }
         textView.setText(text);
         rightTextView.setVisibility(GONE);
@@ -132,7 +134,9 @@ public class GraySectionCell extends FrameLayout implements Theme.Colorable {
 
     public void setText(CharSequence left, CharSequence right, OnClickListener onClickListener) {
         if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
-            left = "▾ " + left;
+            if (left != null && !left.toString().startsWith("▾ ")) {
+                left = "▾ " + left;
+            }
         }
         textView.setText(left);
         rightTextView.setText(right, false);

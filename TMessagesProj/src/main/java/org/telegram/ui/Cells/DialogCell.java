@@ -1329,7 +1329,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
         boolean isDiscord = app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled();
         if (isDiscord) {
             drawAvatar = (currentDialogId >= 0); // Avatars only in DMs
-            messagePaddingStart = drawAvatar ? 52 : 20;
+            messagePaddingStart = drawAvatar ? 50 : 16;
         }
         CharSequence nameString = "";
         String timeString = "";
@@ -2458,7 +2458,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             if (nameString instanceof String) {
                 nameString = ((String) nameString).replace('\n', ' ');
             }
-            if (isDiscord && nameString != null && !nameString.toString().startsWith("#")) {
+            if (isDiscord && currentDialogId < 0 && nameString != null && !nameString.toString().startsWith("#")) {
                 nameString = "# " + nameString;
             }
             CharSequence nameStringFinal = nameString;
@@ -4256,7 +4256,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     canvas.saveLayerAlpha(0, 0, getMeasuredWidth(), getMeasuredHeight(), 255, Canvas.ALL_SAVE_FLAG);
                     canvas.clipRect(nameLeft, 0, nameLeft + nameWidth, getMeasuredHeight());
                 }
-                if (currentDialogFolderId != 0) {
+                if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+                    Theme.dialogs_namePaint[paintIndex].setColor(Theme.dialogs_namePaint[paintIndex].linkColor = app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY);
+                } else if (currentDialogFolderId != 0) {
                     Theme.dialogs_namePaint[paintIndex].setColor(Theme.dialogs_namePaint[paintIndex].linkColor = Theme.getColor(Theme.key_chats_nameArchived, resourcesProvider));
                 } else if (encryptedChat != null || customDialog != null && customDialog.type == 2) {
                     Theme.dialogs_namePaint[paintIndex].setColor(Theme.dialogs_namePaint[paintIndex].linkColor = Theme.getColor(Theme.key_chats_secretName, resourcesProvider));
