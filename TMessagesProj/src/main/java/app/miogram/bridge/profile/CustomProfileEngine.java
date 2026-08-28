@@ -77,6 +77,10 @@ public class CustomProfileEngine {
                     methodCache.put(m.getName(), m);
                 }
 
+                try {
+                    app.exteraless.plugins.xposed.XposedHooks.ensureReady();
+                } catch (Throwable ignore) {}
+
                 Method loadMethod = methodCache.get("load");
                 if (loadMethod != null) {
                     HashMap<String, Object> config = new HashMap<>();
@@ -209,6 +213,16 @@ public class CustomProfileEngine {
         new Handler(Looper.getMainLooper()).post(() -> {
             if (!isLoaded || cpbNativeClass == null) {
                 init(ApplicationLoader.applicationContext);
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    try {
+                        Method m = methodCache.get(methodName);
+                        if (m != null) {
+                            m.invoke(null);
+                        }
+                    } catch (Throwable t) {
+                        FileLog.e(t);
+                    }
+                }, 500);
                 return;
             }
             try {

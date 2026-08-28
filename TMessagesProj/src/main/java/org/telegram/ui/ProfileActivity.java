@@ -4046,6 +4046,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     case ProfileActionsView.KEY_SETTINGS:
                         presentFragment(new SettingsActivity());
                         break;
+                    case ProfileActionsView.KEY_CUSTOM_PROFILE:
+                        app.miogram.bridge.profile.CustomProfileEngine.openEditor();
+                        break;
                 }
             });
         }
@@ -5989,6 +5992,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     actionsView.addCameraAction();
                     actionsView.addEditInfo();
                     actionsView.addSettings();
+                    actionsView.addCustomProfile();
                     actionsView.commitActions();
                 } else {
                     writeButton.setAnimation(cameraDrawable);

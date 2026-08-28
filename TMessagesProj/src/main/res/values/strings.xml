@@ -10207,6 +10207,7 @@
     <string name="ProfileActionsEditPhoto2">Set Photo</string>
     <string name="ProfileActionsEditUsername">Username</string>
     <string name="ProfileActionsEditInfo">Edit Info</string>
+    <string name="ProfileActionsCustomize">Customize</string>
     <string name="PersonalChannel">personal channel</string>
     <string name="ProfilePlaylistTitleMine">Your Playlist</string>
     <string name="ProfilePlaylistTitle">%s\'s Playlist</string>
