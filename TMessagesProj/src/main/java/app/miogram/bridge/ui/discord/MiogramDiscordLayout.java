@@ -26,7 +26,7 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.LayoutHelper;
-import org.telegram.ui.FiltersActivity;
+import org.telegram.ui.FiltersSetupActivity;
 import org.telegram.ui.LaunchActivity;
 
 import java.util.ArrayList;
@@ -238,7 +238,7 @@ public class MiogramDiscordLayout {
             if (act != null && !act.isFinishing()) {
                 BaseFragment frag = act.getSafeLastFragment();
                 if (frag != null) {
-                    frag.presentFragment(new FiltersActivity());
+                    frag.presentFragment(new FiltersSetupActivity());
                 }
             }
         });
