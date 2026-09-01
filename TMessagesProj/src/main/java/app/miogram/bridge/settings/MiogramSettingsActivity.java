@@ -120,7 +120,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
         org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(ctx);
         builder.setTitle(MiogramLocale.get("Глобальні пресети макета", "Глобальные пресеты макета", "Miogram Layout Presets"));
-        builder.setSingleChoiceItems(titles, selectedIndex, (dialog, which) -> {
+        builder.setItems(titles, (dialog, which) -> {
             app.miogram.bridge.divine.MiogramDivineEngine.applyPreset(ctx, presets[which]);
             dialog.dismiss();
             if (listView != null && listView.getAdapter() != null) {
