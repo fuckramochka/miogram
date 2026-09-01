@@ -119,7 +119,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         }
 
         org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(ctx);
-        builder.setTitle(MiogramLocale.get("Глобальні пресети Miogram Divine", "Глобальные пресеты Miogram Divine", "Miogram Divine Presets"));
+        builder.setTitle(MiogramLocale.get("Глобальні пресети макета", "Глобальные пресеты макета", "Miogram Layout Presets"));
         builder.setSingleChoiceItems(titles, selectedIndex, (dialog, which) -> {
             app.miogram.bridge.divine.MiogramDivineEngine.applyPreset(ctx, presets[which]);
             dialog.dismiss();
@@ -153,11 +153,11 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerPresetRow) {
-                        cell.setText(MiogramLocale.get("Швидкі пресети дизайну", "Быстрые пресеты дизайна", "Divine Global Presets"));
+                        cell.setText(MiogramLocale.get("✨ Пресети макета інтерфейсу ໒꒱", "✨ Пресеты макета интерфейса ໒꒱", "✨ UI Layout Presets ໒꒱"));
                     } else if (position == headerCategoriesRow) {
-                        cell.setText(MiogramLocale.get("Основні розділи", "Основные разделы", "Main Sections"));
+                        cell.setText(MiogramLocale.get("💖 Основні розділи ໒꒱", "💖 Основные разделы ໒꒱", "💖 Main Sections ໒꒱"));
                     } else if (position == headerAdvancedRow) {
-                        cell.setText(MiogramLocale.get("Інтелект та Інструменти", "Интеллект и Инструменты", "AI & Developer Tools"));
+                        cell.setText(MiogramLocale.get("✨ Інтелект та Інструменти ໒꒱", "✨ Интеллект и Инструменты ໒꒱", "✨ AI & Developer Tools ໒꒱"));
                     }
                     break;
                 }
@@ -166,7 +166,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     if (position == presetRow) {
                         app.miogram.bridge.divine.MiogramDivineEngine.Preset current = app.miogram.bridge.divine.MiogramDivineEngine.getCurrentPreset(getParentActivity());
                         cell.setTextAndValueAndIcon(
-                                MiogramLocale.get("Активний стиль інтерфейсу", "Активный стиль интерфейса", "Active UI Style"),
+                                MiogramLocale.get("Активний макет інтерфейсу", "Активный макет интерфейса", "Active Layout"),
                                 app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(current),
                                 R.drawable.msg_theme,
                                 false
@@ -195,7 +195,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == presetInfoRow) {
-                        cell.setText(MiogramLocale.get("Один клік перемикає клієнт між стилями Discord, iOS Apple Music, Ame Pastel та Classic.", "Один клик переключает клиент между стилями Discord, iOS Apple Music, Ame Pastel и Classic.", "1-click switch between Discord, iOS Apple Music, Ame Pastel, and Classic styles."));
+                        cell.setText(MiogramLocale.get("Клієнт використовує стилізацію Ame-chan. Тут ви можете обрати режим макета (Discord, iOS Glass, Classic TG, Minimalist).", "Клиент использует стилизацию Ame-chan. Здесь вы можете выбрать режим макета (Discord, iOS Glass, Classic TG, Minimalist).", "Miogram uses omnipresent Ame-chan aesthetic. Here you can choose your preferred layout (Discord, iOS Glass, Classic TG, Minimalist)."));
                     } else if (position == categoriesInfoRow) {
                         cell.setText(MiogramLocale.get("Повний набір функцій exteraless та Nagram, оптимізований та об'єднаний у Miogram.", "Полный набор функций exteraless и Nagram, оптимизированный и объединённый в Miogram.", "Full suite of exteraless and Nagram features, unified and optimized for Miogram."));
                     } else if (position == advancedInfoRow) {

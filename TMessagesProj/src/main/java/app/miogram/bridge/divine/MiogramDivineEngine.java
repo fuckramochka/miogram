@@ -23,7 +23,6 @@ public class MiogramDivineEngine {
     public enum Preset {
         CLASSIC_TG,
         DISCORD_ULTRA,
-        AME_DIVINE,
         IOS_GLASS,
         MINIMALIST
     }
@@ -34,18 +33,16 @@ public class MiogramDivineEngine {
     public static Preset getCurrentPreset(Context context) {
         if (context == null) context = ApplicationLoader.applicationContext;
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String name = prefs.getString(KEY_CURRENT_PRESET, Preset.AME_DIVINE.name());
+        String name = prefs.getString(KEY_CURRENT_PRESET, Preset.CLASSIC_TG.name());
         try {
             return Preset.valueOf(name);
         } catch (Throwable t) {
-            return Preset.AME_DIVINE;
+            return Preset.CLASSIC_TG;
         }
     }
 
     public static String getPresetTitle(Preset preset) {
         switch (preset) {
-            case AME_DIVINE:
-                return app.miogram.bridge.MiogramLocale.get("💖 Ame Divine (Яскравий Кіберпанк)", "💖 Ame Divine (Яркий Киберпанк)", "💖 Ame Divine (Vibrant Cyber-Pastel)");
             case DISCORD_ULTRA:
                 return app.miogram.bridge.MiogramLocale.get("🎮 Discord Ultra (Автентичний 2026)", "🎮 Discord Ultra (Аутентичный 2026)", "🎮 Discord Ultra (Authentic 2026)");
             case IOS_GLASS:
@@ -54,7 +51,7 @@ public class MiogramDivineEngine {
                 return app.miogram.bridge.MiogramLocale.get("⚡ Minimalist (Швидкість та фокус)", "⚡ Minimalist (Скорость и фокус)", "⚡ Minimalist (Speed & Focus)");
             case CLASSIC_TG:
             default:
-                return app.miogram.bridge.MiogramLocale.get("📱 Classic TG (Стандартний Telegram)", "📱 Classic TG (Стандартный Telegram)", "📱 Classic TG (Stock Telegram)");
+                return app.miogram.bridge.MiogramLocale.get("📱 Classic TG (Ame-Chan Стандарт)", "📱 Classic TG (Ame-Chan Стандарт)", "📱 Classic TG (Ame-Chan Standard)");
         }
     }
 
@@ -64,23 +61,10 @@ public class MiogramDivineEngine {
         prefs.edit().putString(KEY_CURRENT_PRESET, preset.name()).apply();
 
         switch (preset) {
-            case AME_DIVINE:
-                MiogramDiscordLayout.setDiscordUiEnabled(false);
-                MiogramFlags.setSpatialDecoration(true);
-                MiogramVisualsPrefs.saveBool(context, "agsl_enabled", true);
-                MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", true);
-                MiogramVisualsPrefs.saveBool(context, "apple_music_player", true);
-                MiogramVisualsPrefs.saveBool(context, "mini_bass_glow", true);
-                AppearanceConfig.singleCornerRadius.setConfigBool(true);
-                AppearanceConfig.senderMiniAvatars.setConfigBool(true);
-                NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(false);
-                NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(false);
-                break;
-
             case DISCORD_ULTRA:
                 MiogramDiscordLayout.setDiscordUiEnabled(true);
                 MiogramFlags.setSpatialDecoration(false);
-                MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", false);
+                MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", true);
                 NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(true);
                 break;
 
@@ -88,7 +72,7 @@ public class MiogramDivineEngine {
                 MiogramDiscordLayout.setDiscordUiEnabled(false);
                 MiogramFlags.setSpatialDecoration(true);
                 MiogramVisualsPrefs.saveBool(context, "agsl_enabled", true);
-                MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", false);
+                MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", true);
                 MiogramVisualsPrefs.saveBool(context, "apple_music_player", true);
                 MiogramVisualsPrefs.saveBool(context, "mini_bass_glow", true);
                 AppearanceConfig.singleCornerRadius.setConfigBool(true);
@@ -112,11 +96,15 @@ public class MiogramDivineEngine {
             case CLASSIC_TG:
             default:
                 MiogramDiscordLayout.setDiscordUiEnabled(false);
-                MiogramFlags.setSpatialDecoration(false);
-                MiogramVisualsPrefs.saveBool(context, "agsl_enabled", false);
-                MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", false);
-                MiogramVisualsPrefs.saveBool(context, "apple_music_player", false);
-                MiogramVisualsPrefs.saveBool(context, "mini_bass_glow", false);
+                MiogramFlags.setSpatialDecoration(true);
+                MiogramVisualsPrefs.saveBool(context, "agsl_enabled", true);
+                MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", true);
+                MiogramVisualsPrefs.saveBool(context, "apple_music_player", true);
+                MiogramVisualsPrefs.saveBool(context, "mini_bass_glow", true);
+                AppearanceConfig.singleCornerRadius.setConfigBool(true);
+                AppearanceConfig.senderMiniAvatars.setConfigBool(true);
+                NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(false);
+                NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(false);
                 break;
         }
 
