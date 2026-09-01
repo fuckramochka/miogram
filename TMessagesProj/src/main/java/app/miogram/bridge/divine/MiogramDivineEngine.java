@@ -25,8 +25,7 @@ public class MiogramDivineEngine {
         DISCORD_ULTRA,
         AME_DIVINE,
         IOS_GLASS,
-        CYBER_NEO,
-        MINIMALIST_PRO
+        MINIMALIST
     }
 
     private static final String PREFS_NAME = "miogram_divine_prefs";
@@ -46,18 +45,16 @@ public class MiogramDivineEngine {
     public static String getPresetTitle(Preset preset) {
         switch (preset) {
             case AME_DIVINE:
-                return app.miogram.bridge.MiogramLocale.get("Ame Divine (Кіберпанк-Пастель)", "Ame Divine (Киберпанк-Пастель)", "Ame Divine (Cyberpunk Pastel)");
+                return app.miogram.bridge.MiogramLocale.get("💖 Ame Divine (Яскравий Кіберпанк)", "💖 Ame Divine (Яркий Киберпанк)", "💖 Ame Divine (Vibrant Cyber-Pastel)");
             case DISCORD_ULTRA:
-                return app.miogram.bridge.MiogramLocale.get("Discord Ultra (Сервери та канали)", "Discord Ultra (Серверы и каналы)", "Discord Ultra (Guilds & Channels)");
+                return app.miogram.bridge.MiogramLocale.get("🎮 Discord Ultra (Автентичний 2026)", "🎮 Discord Ultra (Аутентичный 2026)", "🎮 Discord Ultra (Authentic 2026)");
             case IOS_GLASS:
-                return app.miogram.bridge.MiogramLocale.get("iOS Glassmorphism (Apple Style)", "iOS Glassmorphism (Apple Style)", "iOS Glassmorphism (Apple Style)");
-            case CYBER_NEO:
-                return app.miogram.bridge.MiogramLocale.get("Cyber Neo (Світіння та неон)", "Cyber Neo (Свечение и неон)", "Cyber Neo (Neon Glow & Mesh)");
-            case MINIMALIST_PRO:
-                return app.miogram.bridge.MiogramLocale.get("Minimalist Pro (Швидкість та фокус)", "Minimalist Pro (Скорость и фокус)", "Minimalist Pro (Speed & Focus)");
+                return app.miogram.bridge.MiogramLocale.get("🍏 iOS Glassmorphism (1:1 Apple Style)", "🍏 iOS Glassmorphism (1:1 Apple Style)", "🍏 iOS Glassmorphism (1:1 Apple Style)");
+            case MINIMALIST:
+                return app.miogram.bridge.MiogramLocale.get("⚡ Minimalist (Швидкість та фокус)", "⚡ Minimalist (Скорость и фокус)", "⚡ Minimalist (Speed & Focus)");
             case CLASSIC_TG:
             default:
-                return app.miogram.bridge.MiogramLocale.get("Classic Telegram (Оригінал)", "Classic Telegram (Оригинал)", "Classic Telegram (Stock)");
+                return app.miogram.bridge.MiogramLocale.get("📱 Classic TG (Стандартний Telegram)", "📱 Classic TG (Стандартный Telegram)", "📱 Classic TG (Stock Telegram)");
         }
     }
 
@@ -100,26 +97,15 @@ public class MiogramDivineEngine {
                 NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(false);
                 break;
 
-            case CYBER_NEO:
-                MiogramDiscordLayout.setDiscordUiEnabled(false);
-                MiogramFlags.setSpatialDecoration(true);
-                MiogramVisualsPrefs.saveBool(context, "agsl_enabled", true);
-                MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", true);
-                MiogramVisualsPrefs.saveBool(context, "apple_music_player", true);
-                MiogramVisualsPrefs.saveBool(context, "mini_bass_glow", true);
-                AppearanceConfig.singleCornerRadius.setConfigBool(false);
-                AppearanceConfig.senderMiniAvatars.setConfigBool(true);
-                NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(false);
-                NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(false);
-                break;
-
-            case MINIMALIST_PRO:
+            case MINIMALIST:
                 MiogramDiscordLayout.setDiscordUiEnabled(false);
                 MiogramFlags.setSpatialDecoration(false);
                 MiogramVisualsPrefs.saveBool(context, "agsl_enabled", false);
                 MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", false);
                 MiogramVisualsPrefs.saveBool(context, "apple_music_player", false);
                 MiogramVisualsPrefs.saveBool(context, "mini_bass_glow", false);
+                AppearanceConfig.singleCornerRadius.setConfigBool(false);
+                AppearanceConfig.senderMiniAvatars.setConfigBool(false);
                 NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(true);
                 break;
 

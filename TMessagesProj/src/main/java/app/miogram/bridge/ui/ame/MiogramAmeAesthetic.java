@@ -2,9 +2,9 @@ package app.miogram.bridge.ui.ame;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -18,16 +18,18 @@ import app.miogram.bridge.ui.MiogramVisualsPrefs;
 
 /**
  * Needy Streamer Overload / Ame-chan (KAngel) Cyber-Pastel Aesthetic Engine:
- * - Vaporwave / Y2K glitch-pastel color palette (Cyan #70D6FF & Neon Pink #FF70A6)
- * - Custom †昇天† (Ascension) status pill badges
- * - Floating pixel-heart decorations for chat and dialog headers
+ * - Vaporwave / Y2K glitch-pastel palette: Neon Pink #FF70A6, Cyan #70D6FF, Lavender #E0AAFF, Dark Velvet #120F1D
+ * - †昇天† (Ascension) status pills, angel wing headers, and glowing message cards
+ * - Everywhere and prominent throughout Miogram
  */
 public class MiogramAmeAesthetic {
 
     public static final int COLOR_AME_PINK = 0xFFFF70A6;
     public static final int COLOR_AME_CYAN = 0xFF70D6FF;
     public static final int COLOR_AME_LAVENDER = 0xFFE0AAFF;
-    public static final int COLOR_AME_DARK = 0xFF141220;
+    public static final int COLOR_AME_PURPLE = 0xFF9D4EDD;
+    public static final int COLOR_AME_DARK = 0xFF120F1D;
+    public static final int COLOR_AME_CARD = 0x26FF70A6;
 
     public static boolean isAmeEnabled(Context context) {
         Context ctx = context != null ? context : ApplicationLoader.applicationContext;
@@ -40,23 +42,62 @@ public class MiogramAmeAesthetic {
         LinearLayout pill = new LinearLayout(context);
         pill.setOrientation(LinearLayout.HORIZONTAL);
         pill.setGravity(Gravity.CENTER_VERTICAL);
-        pill.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(12), 0x33FF70A6));
-        pill.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(3), AndroidUtilities.dp(8), AndroidUtilities.dp(3));
+        pill.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), COLOR_AME_CARD));
+        pill.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(4), AndroidUtilities.dp(10), AndroidUtilities.dp(4));
 
         TextView heart = new TextView(context);
         heart.setText("💖 †昇天† ");
-        heart.setTextSize(11);
+        heart.setTextSize(11.5f);
         heart.setTextColor(COLOR_AME_PINK);
         heart.setTypeface(AndroidUtilities.bold());
         pill.addView(heart);
 
         TextView label = new TextView(context);
         label.setText("INTERNET YAMERO");
-        label.setTextSize(10.5f);
+        label.setTextSize(11f);
         label.setTextColor(COLOR_AME_CYAN);
         label.setTypeface(AndroidUtilities.bold());
         pill.addView(label);
 
         return pill;
+    }
+
+    public static View createAmeHeaderBadge(Context context, String title) {
+        if (!isAmeEnabled(context)) return null;
+
+        LinearLayout badge = new LinearLayout(context);
+        badge.setOrientation(LinearLayout.HORIZONTAL);
+        badge.setGravity(Gravity.CENTER);
+        badge.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(10), 0x3370D6FF));
+        badge.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(2), AndroidUtilities.dp(8), AndroidUtilities.dp(2));
+
+        TextView txt = new TextView(context);
+        txt.setText("✨ " + (title != null ? title : "Ame") + " ໒꒱");
+        txt.setTextSize(11f);
+        txt.setTextColor(COLOR_AME_LAVENDER);
+        txt.setTypeface(AndroidUtilities.bold());
+        badge.addView(txt);
+
+        return badge;
+    }
+
+    public static GradientDrawable getAmeBubbleOutGradient() {
+        GradientDrawable gd = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{0xFF241635, 0xFF3D1635, 0xFF1B1635}
+        );
+        gd.setCornerRadius(AndroidUtilities.dp(16));
+        gd.setStroke(AndroidUtilities.dp(1.2f), COLOR_AME_PINK);
+        return gd;
+    }
+
+    public static GradientDrawable getAmeBubbleInGradient() {
+        GradientDrawable gd = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{0xFF12142B, 0xFF14223A, 0xFF121B2B}
+        );
+        gd.setCornerRadius(AndroidUtilities.dp(16));
+        gd.setStroke(AndroidUtilities.dp(1.2f), COLOR_AME_CYAN);
+        return gd;
     }
 }
