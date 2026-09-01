@@ -13487,6 +13487,41 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (userFooter != null) {
                 ((ContentView) fragmentView).addView(userFooter, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 52, Gravity.BOTTOM | Gravity.LEFT, 72, 0, 0, 0));
             }
+        } else if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+            View iosTabBar = app.miogram.bridge.ui.ios.MiogramIosLayout.createIosTabBar(getContext(), 2, tabIndex -> {
+                if (tabIndex == 0) {
+                    presentFragment(new ContactsActivity(null));
+                } else if (tabIndex == 1) {
+                    // Calls
+                } else if (tabIndex == 2) {
+                    if (viewPages != null && viewPages[0] != null && viewPages[0].listView != null) {
+                        viewPages[0].listView.smoothScrollToPosition(0);
+                    }
+                } else if (tabIndex == 3) {
+                    presentFragment(new SettingsActivity());
+                }
+            });
+            if (iosTabBar != null) {
+                ((ContentView) fragmentView).addView(iosTabBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 49, Gravity.BOTTOM));
+                if (viewPages != null) {
+                    for (int a = 0; a < viewPages.length; a++) {
+                        if (viewPages[a] != null) {
+                            FrameLayout.LayoutParams vpLp = (FrameLayout.LayoutParams) viewPages[a].getLayoutParams();
+                            if (vpLp != null) {
+                                vpLp.bottomMargin = dp(49);
+                                viewPages[a].setLayoutParams(vpLp);
+                            }
+                        }
+                    }
+                }
+                if (searchViewPager != null) {
+                    FrameLayout.LayoutParams svpLp = (FrameLayout.LayoutParams) searchViewPager.getLayoutParams();
+                    if (svpLp != null) {
+                        svpLp.bottomMargin = dp(49);
+                        searchViewPager.setLayoutParams(svpLp);
+                    }
+                }
+            }
         }
 
         searchViewPager.dialogsSearchAdapter.setDelegate(new DialogsSearchAdapter.DialogsSearchAdapterDelegate() {

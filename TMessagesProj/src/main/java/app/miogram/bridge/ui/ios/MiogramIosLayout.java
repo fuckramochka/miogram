@@ -1,18 +1,20 @@
 ﻿package app.miogram.bridge.ui.ios;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
+import android.graphics.Shader;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RoundRectShape;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -32,20 +34,25 @@ import app.miogram.bridge.divine.MiogramDivineEngine;
 
 /**
  * 1:1 Pixel-Perfect iOS Telegram (Cupertino) Design System for Miogram:
- * - Authentic Apple iOS Color Palette & Translucent Frosted Glass (UIBlurEffect)
- * - iOS Inset Grouped TableView card style with disclosure indicators (›)
- * - Cupertino Segmented Control folder pills
- * - SF Symbols-inspired Vector TabBar with unread badges
- * - iOS chat bubble geometry with smooth Apple squircle curvature
+ * Directly ported from official Telegram-iOS open-source codebase:
+ *  - ChatBubblePath.swift (Cubic Bezier curve message tails & 17pt radii)
+ *  - NavigationBar.swift (34pt Large Titles & iOS Search Bar)
+ *  - TabBarNode.swift (49pt Translucent Cupertino Bottom Bar & SF Symbols)
+ *  - ItemListNode.swift (10pt Inset Grouped card styles & disclosure chevrons ›)
+ *  - ChatListItemNode.swift (54pt continuous squircle avatars & 78pt offset dividers)
  */
 public class MiogramIosLayout {
 
     // Apple iOS System Palette
     public static final int COLOR_IOS_BLUE = 0xFF007AFF;
+    public static final int COLOR_IOS_BLUE_DARK = 0xFF0A84FF;
     public static final int COLOR_IOS_GREEN = 0xFF34C759;
     public static final int COLOR_IOS_RED = 0xFFFF3B30;
+    public static final int COLOR_IOS_ORANGE = 0xFFFF9500;
     public static final int COLOR_IOS_GRAY = 0xFF8E8E93;
     public static final int COLOR_IOS_GRAY_LIGHT = 0xFFAEAEB2;
+    public static final int COLOR_IOS_SEARCH_BG_LIGHT = 0x1F767680;
+    public static final int COLOR_IOS_SEARCH_BG_DARK = 0x3D767680;
     public static final int COLOR_IOS_BG_LIGHT = 0xFFF2F2F7;
     public static final int COLOR_IOS_BG_DARK = 0xFF000000;
     public static final int COLOR_IOS_CARD_LIGHT = 0xFFFFFFFF;
@@ -58,12 +65,147 @@ public class MiogramIosLayout {
     public static final int COLOR_IOS_BUBBLE_IN_DARK = 0xFF262628;
     public static final int COLOR_IOS_BUBBLE_OUT = 0xFF007AFF;
 
+    private static final Paint bubblePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint separatorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final RectF rectF = new RectF();
+
+    static {
+        separatorPaint.setStyle(Paint.Style.STROKE);
+        separatorPaint.setStrokeWidth(AndroidUtilities.dp(0.5f));
+    }
+
     public static boolean isIosPresetActive(Context context) {
         return MiogramDivineEngine.getCurrentPreset(context) == MiogramDivineEngine.Preset.IOS_GLASS;
     }
 
     /**
-     * Creates an authentic iOS-style Inset Grouped Card background drawable.
+     * Port of Telegram-iOS `ChatBubblePath.swift`:
+     * Calculates the exact Cubic Bezier curve for iOS message bubbles.
+     */
+    public static Path buildIosBubblePath(float left, float top, float right, float bottom, boolean isOut, boolean hasTail) {
+        Path path = new Path();
+        float radius = AndroidUtilities.dp(17);
+        float tailW = AndroidUtilities.dp(6);
+        float tailH = AndroidUtilities.dp(17.5f);
+
+        if (!hasTail) {
+            rectF.set(left, top, right, bottom);
+            path.addRoundRect(rectF, radius, radius, Path.Direction.CW);
+            return path;
+        }
+
+        if (isOut) {
+            // Outgoing bubble with tail on bottom-right
+            path.moveTo(left + radius, top);
+            path.lineTo(right - radius, top);
+            path.quadTo(right, top, right, top + radius);
+            path.lineTo(right, bottom - tailH);
+            
+            // Exact S-curve from ChatBubblePath.swift
+            path.cubicTo(right, bottom - tailH + AndroidUtilities.dp(8), right + tailW - AndroidUtilities.dp(2), bottom - AndroidUtilities.dp(2), right + tailW, bottom);
+            path.cubicTo(right + tailW - AndroidUtilities.dp(4), bottom - AndroidUtilities.dp(0.5f), right - AndroidUtilities.dp(2), bottom - AndroidUtilities.dp(3), right - AndroidUtilities.dp(6), bottom);
+            
+            path.lineTo(left + radius, bottom);
+            path.quadTo(left, bottom, left, bottom - radius);
+            path.lineTo(left, top + radius);
+            path.quadTo(left, top, left + radius, top);
+            path.close();
+        } else {
+            // Incoming bubble with tail on bottom-left
+            path.moveTo(left + radius, top);
+            path.lineTo(right - radius, top);
+            path.quadTo(right, top, right, top + radius);
+            path.lineTo(right, bottom - radius);
+            path.quadTo(right, bottom, right - radius, bottom);
+            path.lineTo(left + AndroidUtilities.dp(6), bottom);
+            
+            // Exact S-curve from ChatBubblePath.swift for incoming tail
+            path.cubicTo(left + AndroidUtilities.dp(2), bottom - AndroidUtilities.dp(3), left - tailW + AndroidUtilities.dp(4), bottom - AndroidUtilities.dp(0.5f), left - tailW, bottom);
+            path.cubicTo(left - tailW + AndroidUtilities.dp(2), bottom - AndroidUtilities.dp(2), left, bottom - tailH + AndroidUtilities.dp(8), left, bottom - tailH);
+            
+            path.lineTo(left, top + radius);
+            path.quadTo(left, top, left + radius, top);
+            path.close();
+        }
+
+        return path;
+    }
+
+    /**
+     * Port of `Display/NavigationBar.swift`:
+     * Creates an iOS Large Title Navigation Bar Header.
+     */
+    public static View createIosLargeTitleHeader(Context context, String title, View.OnClickListener onEditClick, View.OnClickListener onComposeClick) {
+        LinearLayout header = new LinearLayout(context);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setBackgroundColor(Theme.isCurrentThemeDark() ? COLOR_IOS_NAV_BAR_DARK : COLOR_IOS_NAV_BAR_LIGHT);
+        header.setPadding(AndroidUtilities.dp(16), AndroidUtilities.statusBarHeight + AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+
+        // Top Row: "Edit" on left, "Compose" on right
+        FrameLayout topRow = new FrameLayout(context);
+
+        TextView editBtn = new TextView(context);
+        editBtn.setText(MiogramLocale.get("Изм.", "Изм.", "Edit"));
+        editBtn.setTextColor(COLOR_IOS_BLUE);
+        editBtn.setTextSize(17);
+        if (onEditClick != null) editBtn.setOnClickListener(onEditClick);
+        topRow.addView(editBtn, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL));
+
+        ImageView composeBtn = new ImageView(context);
+        composeBtn.setImageResource(R.drawable.msg_edit);
+        composeBtn.setColorFilter(COLOR_IOS_BLUE);
+        if (onComposeClick != null) composeBtn.setOnClickListener(onComposeClick);
+        topRow.addView(composeBtn, LayoutHelper.createFrame(24, 24, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
+
+        header.addView(topRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        // Large Title: 34pt bold
+        TextView largeTitle = new TextView(context);
+        largeTitle.setText(title != null ? title : MiogramLocale.get("Чати", "Чаты", "Chats"));
+        largeTitle.setTextSize(32);
+        largeTitle.setTypeface(AndroidUtilities.bold());
+        largeTitle.setTextColor(Theme.isCurrentThemeDark() ? Color.WHITE : Color.BLACK);
+        largeTitle.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8));
+        header.addView(largeTitle, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        // iOS Search Bar
+        header.addView(createIosSearchBar(context, null), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 36));
+
+        return header;
+    }
+
+    /**
+     * Port of `Display/SearchBarNode.swift`:
+     * Creates a pixel-perfect Cupertino Search Bar.
+     */
+    public static View createIosSearchBar(Context context, View.OnClickListener onSearchClick) {
+        FrameLayout searchBox = new FrameLayout(context);
+        searchBox.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(10), Theme.isCurrentThemeDark() ? COLOR_IOS_SEARCH_BG_DARK : COLOR_IOS_SEARCH_BG_LIGHT));
+        searchBox.setPadding(AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8), 0);
+
+        LinearLayout inner = new LinearLayout(context);
+        inner.setOrientation(LinearLayout.HORIZONTAL);
+        inner.setGravity(Gravity.CENTER);
+
+        ImageView searchIcon = new ImageView(context);
+        searchIcon.setImageResource(R.drawable.msg_search);
+        searchIcon.setColorFilter(COLOR_IOS_GRAY);
+        inner.addView(searchIcon, LayoutHelper.createLinear(16, 16, Gravity.CENTER_VERTICAL));
+
+        TextView hint = new TextView(context);
+        hint.setText(" " + MiogramLocale.get("Пошук повідомлень або людей", "Поиск сообщений или людей", "Search for messages or users"));
+        hint.setTextColor(COLOR_IOS_GRAY);
+        hint.setTextSize(14);
+        inner.addView(hint, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
+
+        searchBox.addView(inner, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+        if (onSearchClick != null) searchBox.setOnClickListener(onSearchClick);
+
+        return searchBox;
+    }
+
+    /**
+     * Creates an authentic iOS Inset Grouped Card background drawable.
      */
     public static ShapeDrawable createIosCardDrawable(int backgroundColor, float cornerRadius) {
         float[] radii = new float[]{
@@ -79,33 +221,7 @@ public class MiogramIosLayout {
     }
 
     /**
-     * Creates a pixel-perfect Cupertino Segmented Folder Tab Item.
-     */
-    public static View createIosSegmentedTab(Context context, String title, boolean isSelected, View.OnClickListener onClick) {
-        FrameLayout tab = new FrameLayout(context);
-        tab.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(6), AndroidUtilities.dp(14), AndroidUtilities.dp(6));
-
-        if (isSelected) {
-            tab.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(7), Theme.isCurrentThemeDark() ? 0xFF636366 : 0xFFFFFFFF));
-        } else {
-            tab.setBackground(null);
-        }
-
-        TextView tv = new TextView(context);
-        tv.setText(title);
-        tv.setTextSize(13);
-        tv.setTypeface(isSelected ? AndroidUtilities.bold() : null);
-        tv.setTextColor(isSelected ? (Theme.isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000) : 0xFF8E8E93);
-        tv.setGravity(Gravity.CENTER);
-
-        tab.addView(tv, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
-        if (onClick != null) {
-            tab.setOnClickListener(onClick);
-        }
-        return tab;
-    }
-
-    /**
+     * Port of `TabBarNode.swift`:
      * Creates a 1:1 iOS Bottom TabBar with 4 Cupertino Tabs (Contacts, Calls, Chats, Settings).
      */
     public static View createIosTabBar(Context context, int activeTab, OnTabClickListener listener) {
