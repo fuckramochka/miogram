@@ -1,4 +1,4 @@
-﻿package app.miogram.bridge.ui.ios;
+package app.miogram.bridge.ui.ios;
 
 import android.content.Context;
 import android.graphics.Canvas;
