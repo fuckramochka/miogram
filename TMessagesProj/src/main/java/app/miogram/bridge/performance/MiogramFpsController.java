@@ -26,7 +26,8 @@ public class MiogramFpsController {
     public static final int REFRESH_MODE_AUTO = 0;
     public static final int REFRESH_MODE_90HZ = 1;
     public static final int REFRESH_MODE_120HZ = 2;
-    public static final int REFRESH_MODE_MAX = 3;
+    public static final int REFRESH_MODE_144HZ = 3;
+    public static final int REFRESH_MODE_MAX = 4;
 
     private static SharedPreferences getPrefs() {
         Context ctx = ApplicationLoader.applicationContext;
@@ -39,6 +40,22 @@ public class MiogramFpsController {
 
     public static void setRefreshRateMode(int mode) {
         getPrefs().edit().putInt(KEY_REFRESH_RATE_MODE, mode).apply();
+    }
+
+    public static String getRefreshRateTitle(int mode) {
+        switch (mode) {
+            case REFRESH_MODE_90HZ:
+                return "90 Hz";
+            case REFRESH_MODE_120HZ:
+                return "120 Hz (Ultra Smooth)";
+            case REFRESH_MODE_144HZ:
+                return "144 Hz (Pro Gaming)";
+            case REFRESH_MODE_MAX:
+                return app.miogram.bridge.MiogramLocale.get("Максимальна частота екрану", "Максимальная частота экрана", "Display Maximum (Auto Boost)");
+            case REFRESH_MODE_AUTO:
+            default:
+                return app.miogram.bridge.MiogramLocale.get("Системна за замовчуванням (60-120Hz)", "Системная по умолчанию (60-120Hz)", "System Default");
+        }
     }
 
     public static void applyToWindow(Activity activity) {
@@ -58,8 +75,11 @@ public class MiogramFpsController {
                 case REFRESH_MODE_120HZ:
                     targetFps = 120f;
                     break;
+                case REFRESH_MODE_144HZ:
+                    targetFps = 144f;
+                    break;
                 case REFRESH_MODE_MAX:
-                    targetFps = Math.max(90f, AndroidUtilities.screenMaxRefreshRate);
+                    targetFps = Math.max(120f, AndroidUtilities.screenMaxRefreshRate);
                     break;
                 case REFRESH_MODE_AUTO:
                 default:

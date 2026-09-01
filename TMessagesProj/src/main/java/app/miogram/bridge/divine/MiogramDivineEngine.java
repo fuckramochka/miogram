@@ -24,6 +24,8 @@ public class MiogramDivineEngine {
         CLASSIC_TG,
         DISCORD_ULTRA,
         AME_DIVINE,
+        IOS_GLASS,
+        CYBER_NEO,
         MINIMALIST_PRO
     }
 
@@ -38,6 +40,24 @@ public class MiogramDivineEngine {
             return Preset.valueOf(name);
         } catch (Throwable t) {
             return Preset.AME_DIVINE;
+        }
+    }
+
+    public static String getPresetTitle(Preset preset) {
+        switch (preset) {
+            case AME_DIVINE:
+                return app.miogram.bridge.MiogramLocale.get("Ame Divine (Кіберпанк-Пастель)", "Ame Divine (Киберпанк-Пастель)", "Ame Divine (Cyberpunk Pastel)");
+            case DISCORD_ULTRA:
+                return app.miogram.bridge.MiogramLocale.get("Discord Ultra (Сервери та канали)", "Discord Ultra (Серверы и каналы)", "Discord Ultra (Guilds & Channels)");
+            case IOS_GLASS:
+                return app.miogram.bridge.MiogramLocale.get("iOS Glassmorphism (Apple Style)", "iOS Glassmorphism (Apple Style)", "iOS Glassmorphism (Apple Style)");
+            case CYBER_NEO:
+                return app.miogram.bridge.MiogramLocale.get("Cyber Neo (Світіння та неон)", "Cyber Neo (Свечение и неон)", "Cyber Neo (Neon Glow & Mesh)");
+            case MINIMALIST_PRO:
+                return app.miogram.bridge.MiogramLocale.get("Minimalist Pro (Швидкість та фокус)", "Minimalist Pro (Скорость и фокус)", "Minimalist Pro (Speed & Focus)");
+            case CLASSIC_TG:
+            default:
+                return app.miogram.bridge.MiogramLocale.get("Classic Telegram (Оригінал)", "Classic Telegram (Оригинал)", "Classic Telegram (Stock)");
         }
     }
 
@@ -57,6 +77,7 @@ public class MiogramDivineEngine {
                 AppearanceConfig.singleCornerRadius.setConfigBool(true);
                 AppearanceConfig.senderMiniAvatars.setConfigBool(true);
                 NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(false);
+                NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(false);
                 break;
 
             case DISCORD_ULTRA:
@@ -64,6 +85,32 @@ public class MiogramDivineEngine {
                 MiogramFlags.setSpatialDecoration(false);
                 MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", false);
                 NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(true);
+                break;
+
+            case IOS_GLASS:
+                MiogramDiscordLayout.setDiscordUiEnabled(false);
+                MiogramFlags.setSpatialDecoration(true);
+                MiogramVisualsPrefs.saveBool(context, "agsl_enabled", true);
+                MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", false);
+                MiogramVisualsPrefs.saveBool(context, "apple_music_player", true);
+                MiogramVisualsPrefs.saveBool(context, "mini_bass_glow", true);
+                AppearanceConfig.singleCornerRadius.setConfigBool(true);
+                AppearanceConfig.senderMiniAvatars.setConfigBool(false);
+                NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(false);
+                NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(false);
+                break;
+
+            case CYBER_NEO:
+                MiogramDiscordLayout.setDiscordUiEnabled(false);
+                MiogramFlags.setSpatialDecoration(true);
+                MiogramVisualsPrefs.saveBool(context, "agsl_enabled", true);
+                MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", true);
+                MiogramVisualsPrefs.saveBool(context, "apple_music_player", true);
+                MiogramVisualsPrefs.saveBool(context, "mini_bass_glow", true);
+                AppearanceConfig.singleCornerRadius.setConfigBool(false);
+                AppearanceConfig.senderMiniAvatars.setConfigBool(true);
+                NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(false);
+                NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(false);
                 break;
 
             case MINIMALIST_PRO:

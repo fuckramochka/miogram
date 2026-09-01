@@ -113,6 +113,7 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
                 MiogramLocale.get("Автоматично (Системна)", "Автоматически (Системная)", "Auto (System Default)"),
                 "90 FPS / 90 Hz (" + MiogramLocale.get("Плавний", "Плавный", "Smooth") + ")",
                 "120 FPS / 120 Hz (" + MiogramLocale.get("Максимальна плавність", "Максимальная плавность", "Ultra Smooth") + ")",
+                "144 FPS / 144 Hz (" + MiogramLocale.get("Геймінг", "Гейминг", "Pro Gaming") + ")",
                 MiogramLocale.get("Максимум екрану (Max Refresh Rate)", "Максимум экрана (Max Refresh Rate)", "Screen Maximum (Max Refresh Rate)")
         };
 
@@ -235,7 +236,7 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == fpsModeRow) {
                         int m = MiogramFpsController.getRefreshRateMode();
-                        String val = m == MiogramFpsController.REFRESH_MODE_120HZ ? "120 FPS" : (m == MiogramFpsController.REFRESH_MODE_90HZ ? "90 FPS" : (m == MiogramFpsController.REFRESH_MODE_MAX ? "Max" : "Auto"));
+                        String val = m == MiogramFpsController.REFRESH_MODE_144HZ ? "144 FPS" : (m == MiogramFpsController.REFRESH_MODE_120HZ ? "120 FPS" : (m == MiogramFpsController.REFRESH_MODE_90HZ ? "90 FPS" : (m == MiogramFpsController.REFRESH_MODE_MAX ? "Max" : "Auto")));
                         cell.setTextAndValue(MiogramLocale.get("Режим FPS дисплея", "Режим FPS дисплея", "Display FPS Mode"), val, true);
                     } else if (position == downloadBoostRow) {
                         int b = GeneralConfig.downloadSpeedBoost.Int();
