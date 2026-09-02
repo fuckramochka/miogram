@@ -266,7 +266,7 @@ public class MiogramIosLayout {
 
             if (i == 2) {
                 // Chats unread badge
-                int totalUnread = org.telegram.messenger.NotificationsController.getInstance(UserConfig.selectedAccount).getTotalAllUnreadCount();
+                int totalUnread = org.telegram.messenger.NotificationsController.getInstance(UserConfig.selectedAccount).getTotalUnreadCount();
                 if (totalUnread > 0) {
                     TextView badge = new TextView(context);
                     badge.setText(totalUnread > 99 ? "99+" : String.valueOf(totalUnread));

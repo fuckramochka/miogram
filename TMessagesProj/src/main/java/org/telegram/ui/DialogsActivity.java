@@ -13526,10 +13526,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (actionBar != null && actionBar.getVisibility() != View.VISIBLE) {
                 actionBar.setVisibility(View.VISIBLE);
             }
-            if (filterTabsView != null && !NaConfig.INSTANCE.getHideFolder().Bool()) {
+            if (filterTabsView != null) {
                 filterTabsView.setVisibility(View.VISIBLE);
             }
-            if (dialogStoriesCell != null && !NaConfig.INSTANCE.getHideStories().Bool()) {
+            if (dialogStoriesCell != null && !NaConfig.INSTANCE.getDisableStories().Bool()) {
                 dialogStoriesCell.setVisibility(View.VISIBLE);
             }
             if (fragmentSearchField != null) {

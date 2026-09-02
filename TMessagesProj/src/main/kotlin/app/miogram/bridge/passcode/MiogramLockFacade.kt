@@ -76,6 +76,9 @@ object MiogramLockFacade {
      */
     fun isRealSessionActiveSnapshot(): Boolean = vault?.isActiveSessionReal() == true
 
+    @JvmStatic
+    fun isDecoySessionActive(): Boolean = vault?.isActiveSessionDecoy() == true
+
     suspend fun setup(realPin: CharArray, duressPin: CharArray?) {
         val pinCopy = realPin.copyOf()
         val duressCopy = duressPin?.copyOf()

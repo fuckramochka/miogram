@@ -109,6 +109,8 @@ class ProfileVault(
 
     fun isActiveSessionReal(): Boolean = session?.record?.kind == ProfileKind.REAL
 
+    fun isActiveSessionDecoy(): Boolean = session?.record?.kind == ProfileKind.DECOY
+
     /**
      * Returns the secret bound to [namespace] under the open profile,
      * generating and persisting it on first access. The returned handle is an
