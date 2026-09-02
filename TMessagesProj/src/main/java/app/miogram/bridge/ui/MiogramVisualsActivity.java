@@ -19,6 +19,7 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Cells.TextCheckCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
 import org.telegram.ui.Cells.TextSettingsCell;
+import org.telegram.ui.LaunchActivity;
 
 import app.exteraless.appearance.AppearanceConfig;
 import app.miogram.bridge.MiogramFlags;
