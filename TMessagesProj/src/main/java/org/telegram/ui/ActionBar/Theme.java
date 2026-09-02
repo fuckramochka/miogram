@@ -9219,6 +9219,10 @@ public class Theme {
             if (key == Theme.key_chat_messageTextIn) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
             if (key == Theme.key_chat_outTimeText) return 0xB3FFFFFF;
             if (key == Theme.key_chat_inTimeText) return isCurrentThemeDark() ? 0x80FFFFFF : 0x8A000000;
+            if (key == Theme.key_actionBarDefaultSubmenuBackground) return isCurrentThemeDark() ? 0xF22C2C2E : 0xF2FFFFFF;
+            if (key == Theme.key_actionBarDefaultSubmenuItem) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
+            if (key == Theme.key_actionBarDefaultSubmenuItemIcon) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+            if (key == Theme.key_actionBarDefaultSubmenuSeparator) return isCurrentThemeDark() ? 0x24FFFFFF : 0x1F000000;
         }
         if (key_divider == key && !resolvingDividerColor && app.exteraless.appearance.AppearanceConfig.dividerHidden()) {
             return 0x00ffffff;
