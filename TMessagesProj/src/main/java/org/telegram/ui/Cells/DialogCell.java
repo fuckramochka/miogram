@@ -4935,7 +4935,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             canvas.restore();
         }
 
-        if (useSeparator) {
+        if (useSeparator && !app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
             int left;
             if (fullSeparator || currentDialogFolderId != 0 && archiveHidden && !fullSeparator2 || fullSeparator2 && !archiveHidden) {
                 left = 0;
