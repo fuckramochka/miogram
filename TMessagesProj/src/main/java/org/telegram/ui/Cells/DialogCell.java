@@ -3824,15 +3824,15 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             drawMonoforumAvatar = !isFolderCell() && chat != null && chat.monoforum;
 
             final int avatarRadius;
-            if (drawMonoforumAvatar) {
+            if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+                avatarRadius = dp(16);
+            } else if (drawMonoforumAvatar) {
                 avatarRadius = 1;
             } else if (drawCommunityAvatar) {
                 avatarRadius = app.exteraless.appearance.AppearanceConfig.getAvatarCorners(dp(56), app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_COMMUNITY);
             } else if ((chat != null && chat.forum && currentDialogFolderId == 0 && !useFromUserAsAvatar)
                     || !isSavedDialog && user != null && user.self && MessagesController.getInstance(currentAccount).savedViewAsChats) {
                 avatarRadius = app.exteraless.appearance.AppearanceConfig.getAvatarCorners(dp(56), app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_FORUM);
-            if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
-                avatarRadius = dp(16);
             } else {
                 avatarRadius = app.exteraless.appearance.AppearanceConfig.getAvatarCorners(dp(56));
             }
