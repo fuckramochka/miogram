@@ -1558,17 +1558,23 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                                     swipeProgress = MathUtils.clamp((float) dx / containerView.getMeasuredWidth(), 0f, 1f);
                                 }
                                 if (containerView.getMeasuredWidth() > 0) {
-                                    // openExtera: карточка сжимается и следует за пальцем по вертикали
-                                    final float m3s = AndroidUtilities.lerp(1.0f, 0.85f,
-                                            MathUtils.clamp((float) dx / containerView.getMeasuredWidth(), 0f, 1f));
-                                    containerView.setScaleX(m3s);
-                                    containerView.setScaleY(m3s);
-                                    final float maxY = Math.max(0f,
-                                            (containerView.getMeasuredHeight() * (1f - m3s)) / 2f - dp(8));
-                                    springRouteYRatio = MathUtils.clamp(
-                                            (ev.getY() - startedTrackingY)
-                                                    / (containerView.getMeasuredHeight() / 2f), 1f, -1f);
-                                    containerView.setTranslationY(springRouteYRatio * maxY);
+                                    if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+                                        containerView.setScaleX(1.0f);
+                                        containerView.setScaleY(1.0f);
+                                        containerView.setTranslationY(0f);
+                                    } else {
+                                        // openExtera: карточка сжимается и следует за пальцем по вертикали
+                                        final float m3s = AndroidUtilities.lerp(1.0f, 0.85f,
+                                                MathUtils.clamp((float) dx / containerView.getMeasuredWidth(), 0f, 1f));
+                                        containerView.setScaleX(m3s);
+                                        containerView.setScaleY(m3s);
+                                        final float maxY = Math.max(0f,
+                                                (containerView.getMeasuredHeight() * (1f - m3s)) / 2f - dp(8));
+                                        springRouteYRatio = MathUtils.clamp(
+                                                (ev.getY() - startedTrackingY)
+                                                        / (containerView.getMeasuredHeight() / 2f), 1f, -1f);
+                                        containerView.setTranslationY(springRouteYRatio * maxY);
+                                    }
                                 }
                             }
                             setInnerTranslationX(dx);
@@ -1910,12 +1916,18 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                     swipeProgress = progress;
                 }
                 if (!m3PredictiveBack) {
-                    // openExtera: доводим масштаб и вертикальный сдвиг карточки после отпускания
-                    final float m3s = AndroidUtilities.lerp(1.0f, 0.85f, MathUtils.clamp(progress, 0f, 1f));
-                    containerView.setScaleX(m3s);
-                    containerView.setScaleY(m3s);
-                    containerView.setTranslationY(springRouteYRatio * Math.max(0f,
-                            (containerView.getMeasuredHeight() * (1f - m3s)) / 2f - dp(8)));
+                    if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+                        containerView.setScaleX(1.0f);
+                        containerView.setScaleY(1.0f);
+                        containerView.setTranslationY(0f);
+                    } else {
+                        // openExtera: доводим масштаб и вертикальный сдвиг карточки после отпускания
+                        final float m3s = AndroidUtilities.lerp(1.0f, 0.85f, MathUtils.clamp(progress, 0f, 1f));
+                        containerView.setScaleX(m3s);
+                        containerView.setScaleY(m3s);
+                        containerView.setTranslationY(springRouteYRatio * Math.max(0f,
+                                (containerView.getMeasuredHeight() * (1f - m3s)) / 2f - dp(8)));
+                    }
                 }
 
                 if (!backAnimation) {
@@ -2240,10 +2252,15 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                         containerView.setTranslationX((1.0f - interpolated) * widthNoPaddings);
                         containerViewBack.setTranslationX(-interpolated * 0.35f * widthNoPaddings);
                         setInnerTranslationX((1.0f - interpolated) * widthNoPaddings);
-                        // openExtera: открывающийся экран разжимается карточкой (exteraGram)
-                        final float m3s = AndroidUtilities.lerp(0.85f, 1.0f, interpolated);
-                        containerView.setScaleX(m3s);
-                        containerView.setScaleY(m3s);
+                        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+                            containerView.setScaleX(1.0f);
+                            containerView.setScaleY(1.0f);
+                        } else {
+                            // openExtera: открывающийся экран разжимается карточкой (exteraGram)
+                            final float m3s = AndroidUtilities.lerp(0.85f, 1.0f, interpolated);
+                            containerView.setScaleX(m3s);
+                            containerView.setScaleY(m3s);
+                        }
                     }
                 } else {
                     float clampedReverseInterpolated = MathUtils.clamp(1f - interpolated, 0, 1);
@@ -2265,10 +2282,15 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                         containerViewBack.setTranslationX(interpolated * widthNoPaddings);
                         containerView.setTranslationX(-(1f - interpolated) * 0.35f * widthNoPaddings);
                         setInnerTranslationX(interpolated * widthNoPaddings);
-                        // openExtera: закрывающийся экран сжимается карточкой (exteraGram)
-                        final float m3s = AndroidUtilities.lerp(1.0f, 0.85f, interpolated);
-                        containerViewBack.setScaleX(m3s);
-                        containerViewBack.setScaleY(m3s);
+                        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+                            containerViewBack.setScaleX(1.0f);
+                            containerViewBack.setScaleY(1.0f);
+                        } else {
+                            // openExtera: закрывающийся экран сжимается карточкой (exteraGram)
+                            final float m3s = AndroidUtilities.lerp(1.0f, 0.85f, interpolated);
+                            containerViewBack.setScaleX(m3s);
+                            containerViewBack.setScaleY(m3s);
+                        }
                     }
                 }
             });
