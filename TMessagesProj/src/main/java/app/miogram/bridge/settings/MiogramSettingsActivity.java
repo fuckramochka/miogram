@@ -26,10 +26,6 @@ import tw.nekomimi.nekogram.ui.cells.HeaderCell;
  */
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
-    private int headerPresetRow;
-    private int presetRow;
-    private int presetInfoRow;
-
     private int headerCategoriesRow;
     private int visualsRow;
     private int customProfileRow;
@@ -54,10 +50,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     protected void updateRows() {
         super.updateRows();
 
-        headerPresetRow = addRow();
-        presetRow = addRow();
-        presetInfoRow = addRow();
-
         headerCategoriesRow = addRow();
         visualsRow = addRow();
         customProfileRow = addRow();
@@ -76,9 +68,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == presetRow) {
-            showPresetDialog();
-        } else if (position == visualsRow) {
+        if (position == visualsRow) {
             presentFragment(new MiogramVisualsActivity());
         } else if (position == customProfileRow) {
             presentFragment(new app.miogram.bridge.profile.MiogramCustomProfileActivity());
@@ -99,38 +89,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         }
     }
 
-    private void showPresetDialog() {
-        Context ctx = getParentActivity();
-        if (ctx == null) return;
-
-        final app.miogram.bridge.divine.MiogramDivineEngine.Preset[] presets = app.miogram.bridge.divine.MiogramDivineEngine.Preset.values();
-        String[] titles = new String[presets.length];
-        for (int i = 0; i < presets.length; i++) {
-            titles[i] = app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(presets[i]);
-        }
-
-        app.miogram.bridge.divine.MiogramDivineEngine.Preset current = app.miogram.bridge.divine.MiogramDivineEngine.getCurrentPreset(ctx);
-        int selectedIndex = 0;
-        for (int i = 0; i < presets.length; i++) {
-            if (presets[i] == current) {
-                selectedIndex = i;
-                break;
-            }
-        }
-
-        org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(ctx);
-        builder.setTitle(MiogramLocale.get("Глобальні пресети макета", "Глобальные пресеты макета", "Miogram Layout Presets"));
-        builder.setItems(titles, (dialog, which) -> {
-            app.miogram.bridge.divine.MiogramDivineEngine.applyPreset(ctx, presets[which]);
-            dialog.dismiss();
-            if (listView != null && listView.getAdapter() != null) {
-                listView.getAdapter().notifyDataSetChanged();
-            }
-        });
-        builder.setNegativeButton(org.telegram.messenger.LocaleController.getString(R.string.Cancel), null);
-        showDialog(builder.create());
-    }
-
     private class ListAdapter extends BaseListAdapter {
 
         public ListAdapter(Context context) {
@@ -139,9 +97,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == headerPresetRow || position == headerCategoriesRow || position == headerAdvancedRow) {
+            if (position == headerCategoriesRow || position == headerAdvancedRow) {
                 return TYPE_HEADER;
-            } else if (position == presetInfoRow || position == categoriesInfoRow || position == advancedInfoRow) {
+            } else if (position == categoriesInfoRow || position == advancedInfoRow) {
                 return TYPE_INFO_PRIVACY;
             }
             return TYPE_TEXT;
@@ -152,10 +110,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
             switch (holder.getItemViewType()) {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
-                    if (position == headerPresetRow) {
-                        cell.setText(MiogramLocale.get("✨ Пресети макета інтерфейсу ໒꒱", "✨ Пресеты макета интерфейса ໒꒱", "✨ UI Layout Presets ໒꒱"));
-                    } else if (position == headerCategoriesRow) {
-                        cell.setText(MiogramLocale.get("💖 Основні розділи ໒꒱", "💖 Основные разделы ໒꒱", "💖 Main Sections ໒꒱"));
+                    if (position == headerCategoriesRow) {
+                        cell.setText(MiogramLocale.get("💖 Стиль та Розділи ໒꒱", "💖 Стиль и Разделы ໒꒱", "💖 Style & Sections ໒꒱"));
                     } else if (position == headerAdvancedRow) {
                         cell.setText(MiogramLocale.get("✨ Інтелект та Інструменти ໒꒱", "✨ Интеллект и Инструменты ໒꒱", "✨ AI & Developer Tools ໒꒱"));
                     }
@@ -163,16 +119,14 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
-                    if (position == presetRow) {
+                    if (position == visualsRow) {
                         app.miogram.bridge.divine.MiogramDivineEngine.Preset current = app.miogram.bridge.divine.MiogramDivineEngine.getCurrentPreset(getParentActivity());
                         cell.setTextAndValueAndIcon(
-                                MiogramLocale.get("Активний макет інтерфейсу", "Активный макет интерфейса", "Active Layout"),
+                                MiogramLocale.get("Стиль інтерфейсу", "Стиль интерфейса", "Interface Style"),
                                 app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(current),
                                 R.drawable.msg_theme,
-                                false
+                                true
                         );
-                    } else if (position == visualsRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Зовнішній вигляд", "Внешний вид", "Appearance"), R.drawable.msg_theme, true);
                     } else if (position == customProfileRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Оформлення профілю", "Оформление профиля", "Custom Profile"), R.drawable.msg_customize, true);
                     } else if (position == chatsRow) {
@@ -194,9 +148,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
-                    if (position == presetInfoRow) {
-                        cell.setText(MiogramLocale.get("Клієнт використовує стилізацію Ame-chan. Тут ви можете обрати режим макета (Discord, iOS Glass, Classic TG, Minimalist).", "Клиент использует стилизацию Ame-chan. Здесь вы можете выбрать режим макета (Discord, iOS Glass, Classic TG, Minimalist).", "Miogram uses omnipresent Ame-chan aesthetic. Here you can choose your preferred layout (Discord, iOS Glass, Classic TG, Minimalist)."));
-                    } else if (position == categoriesInfoRow) {
+                    if (position == categoriesInfoRow) {
                         cell.setText(MiogramLocale.get("Повний набір функцій exteraless та Nagram, оптимізований та об'єднаний у Miogram.", "Полный набор функций exteraless и Nagram, оптимизированный и объединённый в Miogram.", "Full suite of exteraless and Nagram features, unified and optimized for Miogram."));
                     } else if (position == advancedInfoRow) {
                         cell.setText(MiogramLocale.get("Нативні плагіни, голосовий ШІ Gemini Live та система безшовних оновлень.", "Нативные плагины, голосовой ИИ Gemini Live и система бесшовных обновлений.", "Native plugins, Gemini Live multimodal voice AI, and seamless in-app updater."));

@@ -13487,12 +13487,44 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (userFooter != null) {
                 ((ContentView) fragmentView).addView(userFooter, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 52, Gravity.BOTTOM | Gravity.LEFT, 72, 0, 0, 0));
             }
-        } else if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext()) && NaConfig.INSTANCE.getHideBottomNavigationBar().Bool()) {
+        } else if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+            actionBar.setVisibility(View.GONE);
+            if (filterTabsView != null) {
+                filterTabsView.setVisibility(View.GONE);
+            }
+            if (dialogStoriesCell != null) {
+                dialogStoriesCell.setVisibility(View.GONE);
+            }
+            if (fragmentSearchField != null) {
+                fragmentSearchField.setVisibility(View.GONE);
+            }
+
+            View iosHeader = app.miogram.bridge.ui.ios.MiogramIosLayout.createIosLargeTitleHeader(
+                    getContext(),
+                    LocaleController.getString(R.string.Chats),
+                    v -> presentFragment(new FiltersSetupActivity()),
+                    v -> {
+                        Bundle args = new Bundle();
+                        args.putBoolean("destroyAfterSelect", true);
+                        presentFragment(new ContactsActivity(args));
+                    },
+                    v -> {
+                        if (fragmentSearchField != null) {
+                            fragmentSearchField.setVisibility(View.VISIBLE);
+                            fragmentSearchField.editText.requestFocus();
+                            AndroidUtilities.showKeyboard(fragmentSearchField.editText);
+                        }
+                    }
+            );
+            if (iosHeader != null) {
+                ((ContentView) fragmentView).addView(iosHeader, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
+            }
+
             View iosTabBar = app.miogram.bridge.ui.ios.MiogramIosLayout.createIosTabBar(getContext(), 2, tabIndex -> {
                 if (tabIndex == 0) {
                     presentFragment(new ContactsActivity(null));
                 } else if (tabIndex == 1) {
-                    // Calls
+                    presentFragment(new CallLogActivity());
                 } else if (tabIndex == 2) {
                     if (viewPages != null && viewPages[0] != null && viewPages[0].listView != null) {
                         viewPages[0].listView.smoothScrollToPosition(0);
@@ -13502,24 +13534,31 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
             });
             if (iosTabBar != null) {
-                ((ContentView) fragmentView).addView(iosTabBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 49, Gravity.BOTTOM));
-                if (viewPages != null) {
-                    for (int a = 0; a < viewPages.length; a++) {
-                        if (viewPages[a] != null) {
-                            FrameLayout.LayoutParams vpLp = (FrameLayout.LayoutParams) viewPages[a].getLayoutParams();
-                            if (vpLp != null) {
-                                vpLp.bottomMargin = dp(49);
-                                viewPages[a].setLayoutParams(vpLp);
-                            }
+                ((ContentView) fragmentView).addView(iosTabBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 50, Gravity.BOTTOM));
+            }
+
+            int iosTopInset = AndroidUtilities.statusBarHeight + dp(120);
+            int iosBottomInset = dp(50);
+            if (viewPages != null) {
+                for (int a = 0; a < viewPages.length; a++) {
+                    if (viewPages[a] != null) {
+                        FrameLayout.LayoutParams vpLp = (FrameLayout.LayoutParams) viewPages[a].getLayoutParams();
+                        if (vpLp != null) {
+                            vpLp.leftMargin = 0;
+                            vpLp.topMargin = iosTopInset;
+                            vpLp.bottomMargin = iosBottomInset;
+                            viewPages[a].setLayoutParams(vpLp);
                         }
                     }
                 }
-                if (searchViewPager != null) {
-                    FrameLayout.LayoutParams svpLp = (FrameLayout.LayoutParams) searchViewPager.getLayoutParams();
-                    if (svpLp != null) {
-                        svpLp.bottomMargin = dp(49);
-                        searchViewPager.setLayoutParams(svpLp);
-                    }
+            }
+            if (searchViewPager != null) {
+                FrameLayout.LayoutParams svpLp = (FrameLayout.LayoutParams) searchViewPager.getLayoutParams();
+                if (svpLp != null) {
+                    svpLp.leftMargin = 0;
+                    svpLp.topMargin = iosTopInset;
+                    svpLp.bottomMargin = iosBottomInset;
+                    searchViewPager.setLayoutParams(svpLp);
                 }
             }
         } else {
@@ -13533,6 +13572,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 dialogStoriesCell.setVisibility(View.VISIBLE);
             }
             if (fragmentSearchField != null) {
+                fragmentSearchField.setVisibility(View.VISIBLE);
                 FrameLayout.LayoutParams sfpLp = (FrameLayout.LayoutParams) fragmentSearchField.getLayoutParams();
                 if (sfpLp != null && (sfpLp.leftMargin != dp(7) || sfpLp.topMargin != dp(-2))) {
                     sfpLp.leftMargin = dp(7);

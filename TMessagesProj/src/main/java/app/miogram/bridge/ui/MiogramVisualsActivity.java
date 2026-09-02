@@ -165,7 +165,11 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
             MiogramVisualsPrefs.saveBool(getSafeContext(), "agsl_enabled", enabled);
             updateRows();
             listAdapter.notifyDataSetChanged();
-            getNotificationCenter().postNotificationName(NotificationCenter.needSetDayNightTheme);
+            AndroidUtilities.runOnUIThread(() -> {
+                if (LaunchActivity.instance != null && !LaunchActivity.instance.isFinishing()) {
+                    LaunchActivity.instance.rebuildAllFragments(false);
+                }
+            });
         } else if (position == glassIntensityRow) {
             showIntensityDialog();
         } else if (position == avatarCornersRow) {
@@ -198,7 +202,11 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
             int next = cur == AppearanceConfig.MONET_STYLE_TELEMONE ? AppearanceConfig.MONET_STYLE_CLASSIC : AppearanceConfig.MONET_STYLE_TELEMONE;
             AppearanceConfig.monetStyle.setConfigInt(next);
             listAdapter.notifyItemChanged(monetStyleRow);
-            getNotificationCenter().postNotificationName(NotificationCenter.needSetDayNightTheme);
+            AndroidUtilities.runOnUIThread(() -> {
+                if (LaunchActivity.instance != null && !LaunchActivity.instance.isFinishing()) {
+                    LaunchActivity.instance.rebuildAllFragments(false);
+                }
+            });
         } else if (position == customProfileEditorRow) {
             app.miogram.bridge.profile.CustomProfileEngine.openEditor();
         } else if (position == customProfileBubbleRow) {
@@ -225,13 +233,10 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle(MiogramLocale.get("Варіант інтерфейсу", "Вариант интерфейса", "Interface Variant"));
+        builder.setTitle(MiogramLocale.get("Стиль інтерфейсу", "Стиль интерфейса", "Interface Style"));
         builder.setItems(titles, (dialog, which) -> {
             app.miogram.bridge.divine.MiogramDivineEngine.applyPreset(ctx, presets[which]);
             listAdapter.notifyItemChanged(discordUiRow);
-            getNotificationCenter().postNotificationName(NotificationCenter.needSetDayNightTheme);
-            getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
-            getNotificationCenter().postNotificationName(NotificationCenter.mainUserInfoChanged);
         });
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         showDialog(builder.create());
@@ -273,7 +278,11 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         builder.setView(container);
         builder.setPositiveButton(LocaleController.getString(R.string.OK), (dialog, which) -> {
             listAdapter.notifyItemChanged(glassIntensityRow);
-            getNotificationCenter().postNotificationName(NotificationCenter.needSetDayNightTheme);
+            AndroidUtilities.runOnUIThread(() -> {
+                if (LaunchActivity.instance != null && !LaunchActivity.instance.isFinishing()) {
+                    LaunchActivity.instance.rebuildAllFragments(false);
+                }
+            });
         });
         showDialog(builder.create());
     }
@@ -389,7 +398,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == discordUiRow) {
                         app.miogram.bridge.divine.MiogramDivineEngine.Preset current = app.miogram.bridge.divine.MiogramDivineEngine.getCurrentPreset(getSafeContext());
-                        cell.setTextAndValue(MiogramLocale.get("Варіант інтерфейсу", "Вариант интерфейса", "Interface Variant"), app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(current), true);
+                        cell.setTextAndValue(MiogramLocale.get("Стиль інтерфейсу", "Стиль интерфейса", "Interface Style"), app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(current), true);
                     } else if (position == glassIntensityRow) {
                         cell.setTextAndValue(MiogramLocale.get("Інтенсивність скла", "Интенсивность стекла", "Glass Intensity"), intensityPercent() + "%", false);
                     } else if (position == avatarCornersRow) {

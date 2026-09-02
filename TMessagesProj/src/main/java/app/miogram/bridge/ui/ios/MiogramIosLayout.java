@@ -136,6 +136,10 @@ public class MiogramIosLayout {
      * Creates an iOS Large Title Navigation Bar Header.
      */
     public static View createIosLargeTitleHeader(Context context, String title, View.OnClickListener onEditClick, View.OnClickListener onComposeClick) {
+        return createIosLargeTitleHeader(context, title, onEditClick, onComposeClick, null);
+    }
+
+    public static View createIosLargeTitleHeader(Context context, String title, View.OnClickListener onEditClick, View.OnClickListener onComposeClick, View.OnClickListener onSearchClick) {
         LinearLayout header = new LinearLayout(context);
         header.setOrientation(LinearLayout.VERTICAL);
         header.setBackgroundColor(Theme.isCurrentThemeDark() ? COLOR_IOS_NAV_BAR_DARK : COLOR_IOS_NAV_BAR_LIGHT);
@@ -145,7 +149,7 @@ public class MiogramIosLayout {
         FrameLayout topRow = new FrameLayout(context);
 
         TextView editBtn = new TextView(context);
-        editBtn.setText(MiogramLocale.get("Изм.", "Изм.", "Edit"));
+        editBtn.setText(MiogramLocale.get("Ред.", "Изм.", "Edit"));
         editBtn.setTextColor(COLOR_IOS_BLUE);
         editBtn.setTextSize(17);
         if (onEditClick != null) editBtn.setOnClickListener(onEditClick);
@@ -169,7 +173,7 @@ public class MiogramIosLayout {
         header.addView(largeTitle, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         // iOS Search Bar
-        header.addView(createIosSearchBar(context, null), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 36));
+        header.addView(createIosSearchBar(context, onSearchClick), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 36));
 
         return header;
     }

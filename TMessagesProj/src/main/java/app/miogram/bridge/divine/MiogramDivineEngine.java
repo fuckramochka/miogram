@@ -78,7 +78,7 @@ public class MiogramDivineEngine {
                 AppearanceConfig.singleCornerRadius.setConfigBool(true);
                 AppearanceConfig.senderMiniAvatars.setConfigBool(false);
                 NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(false);
-                NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(false);
+                NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(true);
                 break;
 
             case MINIMALIST:
@@ -108,7 +108,12 @@ public class MiogramDivineEngine {
                 break;
         }
 
-        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme);
+        org.telegram.messenger.AndroidUtilities.runOnUIThread(() -> {
+            org.telegram.ui.LaunchActivity act = org.telegram.ui.LaunchActivity.instance;
+            if (act != null && !act.isFinishing()) {
+                act.rebuildAllFragments(false);
+            }
+        });
         NotificationCenter.getInstance(UserConfig.selectedAccount).postNotificationName(NotificationCenter.dialogsNeedReload);
         NotificationCenter.getInstance(UserConfig.selectedAccount).postNotificationName(NotificationCenter.mainUserInfoChanged);
     }

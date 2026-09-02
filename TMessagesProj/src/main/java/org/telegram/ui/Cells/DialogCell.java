@@ -3831,6 +3831,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             } else if ((chat != null && chat.forum && currentDialogFolderId == 0 && !useFromUserAsAvatar)
                     || !isSavedDialog && user != null && user.self && MessagesController.getInstance(currentAccount).savedViewAsChats) {
                 avatarRadius = app.exteraless.appearance.AppearanceConfig.getAvatarCorners(dp(56), app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_FORUM);
+            if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+                avatarRadius = dp(16);
             } else {
                 avatarRadius = app.exteraless.appearance.AppearanceConfig.getAvatarCorners(dp(56));
             }
@@ -4937,6 +4939,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             int left;
             if (fullSeparator || currentDialogFolderId != 0 && archiveHidden && !fullSeparator2 || fullSeparator2 && !archiveHidden) {
                 left = 0;
+            } else if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+                left = dp(76);
             } else {
                 left = dp(messagePaddingStart);
             }
