@@ -230,11 +230,11 @@ public class MiogramIosLayout {
      */
     public static View createIosTabBar(Context context, int activeTab, OnTabClickListener listener) {
         FrameLayout root = new FrameLayout(context);
-        root.setBackgroundColor(Theme.isCurrentThemeDark() ? COLOR_IOS_NAV_BAR_DARK : COLOR_IOS_NAV_BAR_LIGHT);
+        root.setBackgroundColor(MiogramIosTheme.getTabBarBg());
 
         // 0.5dp top hairline separator
         View hairline = new View(context);
-        hairline.setBackgroundColor(Theme.isCurrentThemeDark() ? COLOR_IOS_SEPARATOR_DARK : COLOR_IOS_SEPARATOR_LIGHT);
+        hairline.setBackgroundColor(MiogramIosTheme.getTabBarSeparator());
         root.addView(hairline, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 0.5f, Gravity.TOP));
 
         LinearLayout bar = new LinearLayout(context);
@@ -269,18 +269,26 @@ public class MiogramIosLayout {
             iconContainer.addView(iconView, LayoutHelper.createFrame(26, 26, Gravity.CENTER));
 
             if (i == 2) {
-                // Chats unread badge
+                // Chats unread badge: 1:1 from TabBarNode.swift (18dp height pill, min 18dp width)
                 int totalUnread = org.telegram.messenger.NotificationsController.getInstance(UserConfig.selectedAccount).getTotalUnreadCount();
                 if (totalUnread > 0) {
                     TextView badge = new TextView(context);
                     badge.setText(totalUnread > 99 ? "99+" : String.valueOf(totalUnread));
-                    badge.setTextSize(9.5f);
-                    badge.setTextColor(0xFFFFFFFF);
+                    badge.setTextSize(10f);
+                    badge.setTextColor(Theme.isCurrentThemeDark() ? MiogramIosTheme.TAB_BAR_BADGE_TEXT_DARK : MiogramIosTheme.TAB_BAR_BADGE_TEXT_LIGHT);
                     badge.setTypeface(AndroidUtilities.bold());
                     badge.setGravity(Gravity.CENTER);
-                    badge.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(7), COLOR_IOS_RED));
-                    badge.setPadding(AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4), 0);
-                    iconContainer.addView(badge, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, 14, Gravity.TOP | Gravity.RIGHT, 0, -2, -4, 0));
+                    int badgeBg = Theme.isCurrentThemeDark() ? MiogramIosTheme.TAB_BAR_BADGE_BG_DARK : MiogramIosTheme.TAB_BAR_BADGE_BG_LIGHT;
+                    badge.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(9), badgeBg));
+                    badge.setPadding(AndroidUtilities.dp(5), 0, AndroidUtilities.dp(5), 0);
+                    FrameLayout.LayoutParams badgeLp = new FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            AndroidUtilities.dp(18)
+                    );
+                    badgeLp.gravity = Gravity.TOP | Gravity.RIGHT;
+                    badgeLp.topMargin = AndroidUtilities.dp(-2);
+                    badgeLp.rightMargin = AndroidUtilities.dp(-6);
+                    iconContainer.addView(badge, badgeLp);
                 }
             }
 
@@ -290,7 +298,7 @@ public class MiogramIosLayout {
             label.setText(titles[i]);
             label.setTextSize(10f);
             label.setTypeface(isSelected ? AndroidUtilities.bold() : null);
-            label.setTextColor(isSelected ? COLOR_IOS_BLUE : COLOR_IOS_GRAY);
+            label.setTextColor(MiogramIosTheme.getTabBarText(isSelected));
             label.setGravity(Gravity.CENTER);
             item.addView(label, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 1, 0, 0));
 
@@ -318,7 +326,7 @@ public class MiogramIosLayout {
         public IosContactsIconView(Context context, boolean isSelected) {
             super(context);
             this.isSelected = isSelected;
-            paint.setColor(isSelected ? COLOR_IOS_BLUE : COLOR_IOS_GRAY);
+            paint.setColor(MiogramIosTheme.getTabBarIcon(isSelected));
         }
 
         @Override
@@ -340,7 +348,7 @@ public class MiogramIosLayout {
 
         public IosCallsIconView(Context context, boolean isSelected) {
             super(context);
-            paint.setColor(isSelected ? COLOR_IOS_BLUE : COLOR_IOS_GRAY);
+            paint.setColor(MiogramIosTheme.getTabBarIcon(isSelected));
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(AndroidUtilities.dp(2));
             paint.setStrokeCap(Paint.Cap.ROUND);
@@ -366,7 +374,7 @@ public class MiogramIosLayout {
         public IosChatsIconView(Context context, boolean isSelected) {
             super(context);
             this.isSelected = isSelected;
-            paint.setColor(isSelected ? COLOR_IOS_BLUE : COLOR_IOS_GRAY);
+            paint.setColor(MiogramIosTheme.getTabBarIcon(isSelected));
         }
 
         @Override
@@ -394,7 +402,7 @@ public class MiogramIosLayout {
 
         public IosSettingsIconView(Context context, boolean isSelected) {
             super(context);
-            paint.setColor(isSelected ? COLOR_IOS_BLUE : COLOR_IOS_GRAY);
+            paint.setColor(MiogramIosTheme.getTabBarIcon(isSelected));
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(AndroidUtilities.dp(1.8f));
         }

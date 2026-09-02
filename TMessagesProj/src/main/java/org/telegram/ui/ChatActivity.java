@@ -9639,6 +9639,20 @@ public class ChatActivity extends BaseFragment implements
                     avatarContainer.setTitleColors(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY, app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED);
                 }
             }
+        } else if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+            if (actionBar != null) {
+                actionBar.setBackgroundColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getNavBarBg());
+                actionBar.setTitleColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListTitle());
+                actionBar.setSubtitleColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListMessage());
+                actionBar.setItemsColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent(), false);
+                actionBar.setItemsBackgroundColor(0x18007AFF, false);
+                if (avatarContainer != null) {
+                    avatarContainer.setTitleColors(app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListTitle(), app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListMessage());
+                }
+            }
+            if (chatActivityEnterView != null) {
+                chatActivityEnterView.setBackgroundColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getNavBarBg());
+            }
         }
         
         Timer.finish(t);

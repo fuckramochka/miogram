@@ -9199,6 +9199,20 @@ public class Theme {
             if (key == Theme.key_windowBackgroundWhiteGrayText || key == Theme.key_windowBackgroundWhiteGrayText2) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
             if (key == Theme.key_chats_actionBackground) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_BLURPLE;
         }
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            if (key == Theme.key_chats_name) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListTitle();
+            if (key == Theme.key_chats_message || key == Theme.key_chats_message_threeLines) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListMessage();
+            if (key == Theme.key_chats_date) return isCurrentThemeDark() ? app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_DATE_DARK : app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_DATE_LIGHT;
+            if (key == Theme.key_windowBackgroundWhite) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListBg();
+            if (key == Theme.key_windowBackgroundGray) return isCurrentThemeDark() ? 0xFF1C1C1E : 0xFFF2F2F7;
+            if (key == Theme.key_windowBackgroundWhiteBlackText) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListTitle();
+            if (key == Theme.key_windowBackgroundWhiteGrayText || key == Theme.key_windowBackgroundWhiteGrayText2) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListMessage();
+            if (key == Theme.key_chats_actionBackground) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+            if (key == Theme.key_chats_unreadCounter) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+            if (key == Theme.key_chats_unreadCounterMuted) return isCurrentThemeDark() ? app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_BADGE_MUTED_DARK : app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_BADGE_MUTED_LIGHT;
+            if (key == Theme.key_chats_unreadCounterText) return 0xFFFFFFFF;
+            if (key == Theme.key_divider) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListSeparator();
+        }
         if (key_divider == key && !resolvingDividerColor && app.exteraless.appearance.AppearanceConfig.dividerHidden()) {
             return 0x00ffffff;
         }

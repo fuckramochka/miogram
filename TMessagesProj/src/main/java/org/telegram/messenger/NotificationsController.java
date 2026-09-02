@@ -5954,6 +5954,10 @@ public class NotificationsController extends BaseController implements Notificat
         if (!inChatSoundEnabled || MediaController.getInstance().isRecordingAudio()) {
             return;
         }
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(ApplicationLoader.applicationContext)) {
+            app.miogram.bridge.ui.ios.MiogramIosSoundEngine.playSentSound();
+            return;
+        }
         try {
             if (audioManager.getRingerMode() == AudioManager.RINGER_MODE_SILENT) {
                 return;

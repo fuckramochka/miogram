@@ -13499,26 +13499,33 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 fragmentSearchField.setVisibility(View.GONE);
             }
 
-            View iosHeader = app.miogram.bridge.ui.ios.MiogramIosLayout.createIosLargeTitleHeader(
+            app.miogram.bridge.ui.ios.MiogramIosLargeHeaderView iosHeader = new app.miogram.bridge.ui.ios.MiogramIosLargeHeaderView(
                     getContext(),
                     LocaleController.getString(R.string.Chats),
-                    v -> presentFragment(new FiltersSetupActivity()),
-                    v -> {
-                        Bundle args = new Bundle();
-                        args.putBoolean("destroyAfterSelect", true);
-                        presentFragment(new ContactsActivity(args));
-                    },
-                    v -> {
-                        if (fragmentSearchField != null) {
-                            fragmentSearchField.setVisibility(View.VISIBLE);
-                            fragmentSearchField.editText.requestFocus();
-                            AndroidUtilities.showKeyboard(fragmentSearchField.editText);
+                    new app.miogram.bridge.ui.ios.MiogramIosLargeHeaderView.OnHeaderActionListener() {
+                        @Override
+                        public void onEditClick() {
+                            presentFragment(new FiltersSetupActivity());
+                        }
+
+                        @Override
+                        public void onComposeClick() {
+                            Bundle args = new Bundle();
+                            args.putBoolean("destroyAfterSelect", true);
+                            presentFragment(new ContactsActivity(args));
+                        }
+
+                        @Override
+                        public void onSearchClick() {
+                            if (fragmentSearchField != null) {
+                                fragmentSearchField.setVisibility(View.VISIBLE);
+                                fragmentSearchField.editText.requestFocus();
+                                AndroidUtilities.showKeyboard(fragmentSearchField.editText);
+                            }
                         }
                     }
             );
-            if (iosHeader != null) {
-                ((ContentView) fragmentView).addView(iosHeader, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
-            }
+            ((ContentView) fragmentView).addView(iosHeader, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
 
             View iosTabBar = app.miogram.bridge.ui.ios.MiogramIosLayout.createIosTabBar(getContext(), 2, tabIndex -> {
                 if (tabIndex == 0) {
@@ -13537,7 +13544,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 ((ContentView) fragmentView).addView(iosTabBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 50, Gravity.BOTTOM));
             }
 
-            int iosTopInset = AndroidUtilities.statusBarHeight + dp(120);
+            int iosTopInset = iosHeader.getHeaderTotalHeight();
             int iosBottomInset = dp(50);
             if (viewPages != null) {
                 for (int a = 0; a < viewPages.length; a++) {
@@ -13548,6 +13555,16 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                             vpLp.topMargin = iosTopInset;
                             vpLp.bottomMargin = iosBottomInset;
                             viewPages[a].setLayoutParams(vpLp);
+                        }
+                        if (viewPages[a].listView != null) {
+                            viewPages[a].listView.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+                                private int totalY = 0;
+                                @Override
+                                public void onScrolled(androidx.recyclerview.widget.RecyclerView recyclerView, int dx, int dy) {
+                                    totalY += dy;
+                                    iosHeader.onScrollOffsetChanged(Math.max(0, totalY));
+                                }
+                            });
                         }
                     }
                 }

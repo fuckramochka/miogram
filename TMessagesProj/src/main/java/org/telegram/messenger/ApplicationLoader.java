@@ -342,6 +342,7 @@ public class ApplicationLoader extends Application implements CameraXConfig.Prov
 
         super.onCreate();
         installCrashReportFilter();
+        app.miogram.bridge.perf.MiogramPerformanceOptimizer.init(this);
 
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("app start time = " + (startTime = SystemClock.elapsedRealtime()));

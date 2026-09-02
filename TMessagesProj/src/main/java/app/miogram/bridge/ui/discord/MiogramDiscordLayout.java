@@ -81,7 +81,8 @@ public class MiogramDiscordLayout {
     }
 
     public static boolean isDiscordUiEnabled() {
-        return getPrefs().getInt(KEY_UI_MODE, UI_MODE_TELEGRAM) == UI_MODE_DISCORD;
+        return getPrefs().getInt(KEY_UI_MODE, UI_MODE_TELEGRAM) == UI_MODE_DISCORD
+                || app.miogram.bridge.divine.MiogramDivineEngine.getCurrentPreset(null) == app.miogram.bridge.divine.MiogramDivineEngine.Preset.DISCORD_ULTRA;
     }
 
     public static void setDiscordUiEnabled(boolean enabled) {
