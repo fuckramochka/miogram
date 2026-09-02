@@ -2697,6 +2697,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     presentFragment(new ChannelAdminLogActivity(currentChat));
                 } else if (id == message_filter){
                     presentFragment(new RegexChatFiltersListActivity(chatId != 0 ? -chatId : userId));
+                } else if (id == miogram_customize_profile) {
+                    presentFragment(new app.miogram.bridge.profile.MiogramCustomProfileActivity());
                 } else if (id == delete_topic) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                     builder.setTitle(LocaleController.getPluralString("DeleteTopics", 1));
@@ -4043,6 +4045,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         break;
                     case ProfileActionsView.KEY_SETTINGS:
                         presentFragment(new SettingsActivity());
+                        break;
+                    case ProfileActionsView.KEY_CUSTOM_PROFILE:
+                        presentFragment(new app.miogram.bridge.profile.MiogramCustomProfileActivity());
                         break;
                 }
             });
@@ -5987,6 +5992,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     actionsView.addCameraAction();
                     actionsView.addEditInfo();
                     actionsView.addSettings();
+                    actionsView.addCustomProfile();
                     actionsView.commitActions();
                 } else {
                     writeButton.setAnimation(cameraDrawable);
@@ -12826,6 +12832,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         if (selfUser && !myProfile) {
             otherItem.addSubItem(logout, R.drawable.msg_leave, LocaleController.getString(R.string.LogOut));
+        }
+        if (otherItem != null && (myProfile || selfUser)) {
+            otherItem.addSubItem(miogram_customize_profile, R.drawable.msg_customize, app.miogram.bridge.MiogramLocale.get("Оформити профіль", "Оформить профиль", "Customize Profile"));
         }
         if (!isPulledDown) {
             otherItem.hideSubItem(gallery_menu_save);

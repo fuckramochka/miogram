@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.LaunchActivity;
 
@@ -29,11 +30,8 @@ import app.miogram.bridge.MiogramLocale;
 import app.miogram.bridge.ui.MiogramUpdateBottomSheet;
 
 /**
- * Robust in-app updater for Miogram:
- * - Checks GitHub Releases API
- * - Semantic version and build code comparison
- * - Automatic background check every 5 minutes and on launch
- * - 16:9 Anime reaction dialog (Happy on update / Sad on latest)
+ * Updater service for Miogram.
+ * Automatically checks GitHub releases for updates and prompts the user.
  */
 public class MiogramUpdater {
 
@@ -41,26 +39,47 @@ public class MiogramUpdater {
     private static final String PREFS_NAME = "miogram_updater_prefs";
     private static final String KEY_LAST_SEEN_TAG = "last_seen_tag";
 
-    private static ScheduledExecutorService scheduler;
+    private static final String KEY_LAST_CHECK_TIME = "last_check_timestamp";
+    private static final long CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000L; // 24 hours cooldown
     private static volatile boolean autoUpdateStarted = false;
 
     /**
-     * Initializes background update checking:
-     * - Initial check 5 seconds after startup
-     * - Periodic check every 5 minutes
+     * Safe, battery-friendly launch check (at most once every 24 hours).
      */
     public static synchronized void initAutoUpdate(Context context) {
         if (autoUpdateStarted) return;
         autoUpdateStarted = true;
 
-        scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleWithFixedDelay(() -> {
+        Utilities.globalQueue.postRunnable(() -> {
+            try {
+                Context ctx = ApplicationLoader.applicationContext != null ? ApplicationLoader.applicationContext : context;
+                if (ctx == null) return;
+                SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                long lastCheck = prefs.getLong(KEY_LAST_CHECK_TIME, 0L);
+                long now = System.currentTimeMillis();
+                if (now - lastCheck < CHECK_INTERVAL_MS) {
+                    return; // Skip if checked within the last 24 hours
+                }
+                prefs.edit().putLong(KEY_LAST_CHECK_TIME, now).apply();
+                performBackgroundCheck();
+            } catch (Exception e) {
+                FileLog.e(e);
+            }
+        }, 10000L); // Delayed by 10s so it doesn't block app launch
+    }
+
+    /**
+     * Checks for updates immediately upon entry/unlock.
+     * Silent if on the latest version; presents update bottom sheet if a newer version is found.
+     */
+    public static void checkOnEntry(Context context) {
+        Utilities.globalQueue.postRunnable(() -> {
             try {
                 performBackgroundCheck();
             } catch (Exception e) {
                 FileLog.e(e);
             }
-        }, 5, 300, TimeUnit.SECONDS);
+        }, 1500L); // 1.5s post-unlock delay so it doesn't stutter unlock animations
     }
 
     private static void performBackgroundCheck() {

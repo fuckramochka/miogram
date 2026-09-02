@@ -953,20 +953,19 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 onPasscodeError();
                 return;
             }
-            if (app.miogram.bridge.passcode.MiogramDuressConfig.hasDuressPin() && app.miogram.bridge.passcode.MiogramDuressConfig.checkDuressPin(password)) {
-                app.miogram.bridge.passcode.MiogramDuressConfig.setDuressActive(true);
-                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
-                finishUnlock(false);
-                return;
-            }
-            if (app.miogram.bridge.passcode.MiogramDuressConfig.hasRealPin() && app.miogram.bridge.passcode.MiogramDuressConfig.checkRealPin(password)) {
-                app.miogram.bridge.passcode.MiogramDuressConfig.setDuressActive(false);
-                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
-                finishUnlock(false);
+            if (MiogramGate.isConfigured()) {
+                MiogramGate.interceptUnlockAsync(password, verdict -> {
+                    if (verdict == MiogramGate.VERDICT_REAL_UNLOCKED) {
+                        finishUnlock(false);
+                    } else if (verdict == MiogramGate.VERDICT_DECOY_UNLOCKED) {
+                        MiogramDecoyActivity.start(getContext());
+                    } else {
+                        handleLegacyPasscodeError();
+                    }
+                });
                 return;
             }
             if (PasscodeHelper.checkPasscode((Activity) getContext(), password)) {
-                app.miogram.bridge.passcode.MiogramDuressConfig.setDuressActive(false);
                 finishUnlock(false);
                 return;
             }
@@ -974,8 +973,6 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 handleLegacyPasscodeError();
                 return;
             }
-            app.miogram.bridge.passcode.MiogramDuressConfig.setDuressActive(false);
-            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
         }
         finishUnlock(fingerprint);
     }
@@ -1016,6 +1013,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
         if (delegate != null) {
             delegate.didAcceptedPassword(this);
         }
+        app.miogram.bridge.updater.MiogramUpdater.checkOnEntry(getContext());
 
         imageView.getAnimatedDrawable().setCustomEndFrame(71);
         imageView.getAnimatedDrawable().setCurrentFrame(37, false);

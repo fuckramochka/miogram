@@ -218,18 +218,20 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         Context ctx = getParentActivity();
         if (ctx == null) return;
 
-        String[] options = new String[]{
-                MiogramLocale.get("Telegram Класичний", "Telegram Классический", "Telegram Classic"),
-                MiogramLocale.get("Discord Стиль (Сервери, Папки та Канали)", "Discord Стиль (Сервера, Папки и Каналы)", "Discord Style (Servers & Channels)")
-        };
+        final app.miogram.bridge.divine.MiogramDivineEngine.Preset[] presets = app.miogram.bridge.divine.MiogramDivineEngine.Preset.values();
+        String[] titles = new String[presets.length];
+        for (int i = 0; i < presets.length; i++) {
+            titles[i] = app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(presets[i]);
+        }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle(MiogramLocale.get("Режим інтерфейсу", "Режим интерфейса", "Interface Layout Mode"));
-        builder.setItems(options, (dialog, which) -> {
-            MiogramDiscordLayout.setUiMode(which);
+        builder.setTitle(MiogramLocale.get("Варіант інтерфейсу", "Вариант интерфейса", "Interface Variant"));
+        builder.setItems(titles, (dialog, which) -> {
+            app.miogram.bridge.divine.MiogramDivineEngine.applyPreset(ctx, presets[which]);
             listAdapter.notifyItemChanged(discordUiRow);
-            getNotificationCenter().postNotificationName(NotificationCenter.mainUserInfoChanged);
+            getNotificationCenter().postNotificationName(NotificationCenter.needSetDayNightTheme);
             getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
+            getNotificationCenter().postNotificationName(NotificationCenter.mainUserInfoChanged);
         });
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         showDialog(builder.create());
@@ -386,8 +388,8 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == discordUiRow) {
-                        String val = MiogramDiscordLayout.getUiMode() == MiogramDiscordLayout.UI_MODE_DISCORD ? "Discord" : "Telegram";
-                        cell.setTextAndValue(MiogramLocale.get("Варіант інтерфейсу", "Вариант интерфейса", "Interface Layout Mode"), val, true);
+                        app.miogram.bridge.divine.MiogramDivineEngine.Preset current = app.miogram.bridge.divine.MiogramDivineEngine.getCurrentPreset(getSafeContext());
+                        cell.setTextAndValue(MiogramLocale.get("Варіант інтерфейсу", "Вариант интерфейса", "Interface Variant"), app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(current), true);
                     } else if (position == glassIntensityRow) {
                         cell.setTextAndValue(MiogramLocale.get("Інтенсивність скла", "Интенсивность стекла", "Glass Intensity"), intensityPercent() + "%", false);
                     } else if (position == avatarCornersRow) {

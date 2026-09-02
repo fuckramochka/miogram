@@ -4256,9 +4256,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     canvas.saveLayerAlpha(0, 0, getMeasuredWidth(), getMeasuredHeight(), 255, Canvas.ALL_SAVE_FLAG);
                     canvas.clipRect(nameLeft, 0, nameLeft + nameWidth, getMeasuredHeight());
                 }
-                if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
-                    Theme.dialogs_namePaint[paintIndex].setColor(Theme.dialogs_namePaint[paintIndex].linkColor = app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY);
-                } else if (currentDialogFolderId != 0) {
+                if (currentDialogFolderId != 0) {
                     Theme.dialogs_namePaint[paintIndex].setColor(Theme.dialogs_namePaint[paintIndex].linkColor = Theme.getColor(Theme.key_chats_nameArchived, resourcesProvider));
                 } else if (encryptedChat != null || customDialog != null && customDialog.type == 2) {
                     Theme.dialogs_namePaint[paintIndex].setColor(Theme.dialogs_namePaint[paintIndex].linkColor = Theme.getColor(Theme.key_chats_secretName, resourcesProvider));
@@ -4898,6 +4896,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
                 communityArrowDrawable.draw(canvas);
             }
+        } else if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            app.miogram.bridge.ui.discord.MiogramDiscordLayout.drawChannelIcon(canvas, dp(24), getMeasuredHeight() / 2f, unreadCount > 0);
         }
 
         if (animatingArchiveAvatar) {

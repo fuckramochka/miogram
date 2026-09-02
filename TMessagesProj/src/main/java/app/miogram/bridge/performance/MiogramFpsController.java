@@ -66,24 +66,29 @@ public class MiogramFpsController {
     public static void applyToWindow(Window window) {
         if (window == null) return;
         try {
+            Context ctx = window.getContext();
+            android.os.PowerManager pm = (android.os.PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
+            if (pm != null && pm.isPowerSaveMode()) {
+                return; // Respect Android battery saver mode
+            }
+
             int mode = getRefreshRateMode();
+            float maxSupported = Math.max(60f, AndroidUtilities.screenMaxRefreshRate);
             float targetFps = 0f;
             switch (mode) {
                 case REFRESH_MODE_90HZ:
-                    targetFps = 90f;
+                    targetFps = Math.min(90f, maxSupported);
                     break;
                 case REFRESH_MODE_120HZ:
-                    targetFps = 120f;
+                    targetFps = Math.min(120f, maxSupported);
                     break;
                 case REFRESH_MODE_144HZ:
-                    targetFps = 144f;
+                    targetFps = Math.min(144f, maxSupported);
                     break;
                 case REFRESH_MODE_MAX:
-                    targetFps = Math.max(120f, AndroidUtilities.screenMaxRefreshRate);
-                    break;
                 case REFRESH_MODE_AUTO:
                 default:
-                    targetFps = AndroidUtilities.screenMaxRefreshRate;
+                    targetFps = maxSupported;
                     break;
             }
 

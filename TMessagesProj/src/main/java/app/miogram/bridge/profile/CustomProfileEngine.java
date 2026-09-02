@@ -124,6 +124,7 @@ public class CustomProfileEngine {
                     if (!tmp.renameTo(dexFile)) {
                         throw new IllegalStateException("cannot move extracted cpb_core.dex into place");
                     }
+                    dexFile.setReadOnly();
                     try (FileOutputStream fos = new FileOutputStream(versionStamp)) {
                         fos.write(stamp.getBytes("UTF-8"));
                     }
@@ -360,15 +361,21 @@ public class CustomProfileEngine {
     }
 
     public static boolean flagOf(String key, boolean def) {
-        if (loadState != STATE_LOADED || cpbNativeClass == null) return def;
-        try {
-            Method m = methodCache.get("flagOf");
-            if (m != null) {
-                Object res = invokeTarget(m, key);
-                if (res instanceof Boolean) return (Boolean) res;
-                if (res != null) return Boolean.parseBoolean(res.toString());
+        if (loadState == STATE_LOADED && cpbNativeClass != null) {
+            try {
+                Method m = methodCache.get("flagOf");
+                if (m != null) {
+                    Object res = invokeTarget(m, key);
+                    if (res instanceof Boolean) return (Boolean) res;
+                    if (res != null) return Boolean.parseBoolean(res.toString());
+                }
+            } catch (Throwable ignore) {
             }
-        } catch (Throwable ignore) {
+        }
+        Context ctx = ApplicationLoader.applicationContext;
+        if (ctx != null) {
+            SharedPreferences prefs = ctx.getSharedPreferences("plugin_settings_custom_profile", Context.MODE_PRIVATE);
+            return prefs.getBoolean(key, def);
         }
         return def;
     }
@@ -388,13 +395,19 @@ public class CustomProfileEngine {
     }
 
     public static void flagSet(String key, boolean value) {
-        if (loadState != STATE_LOADED || cpbNativeClass == null) return;
-        try {
-            Method m = methodCache.get("flagSet");
-            if (m != null) {
-                invokeTarget(m, key, value);
+        Context ctx = ApplicationLoader.applicationContext;
+        if (ctx != null) {
+            SharedPreferences prefs = ctx.getSharedPreferences("plugin_settings_custom_profile", Context.MODE_PRIVATE);
+            prefs.edit().putBoolean(key, value).apply();
+        }
+        if (loadState == STATE_LOADED && cpbNativeClass != null) {
+            try {
+                Method m = methodCache.get("flagSet");
+                if (m != null) {
+                    invokeTarget(m, key, value);
+                }
+            } catch (Throwable ignore) {
             }
-        } catch (Throwable ignore) {
         }
     }
 

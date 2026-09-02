@@ -444,7 +444,6 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         app.miogram.bridge.updater.MiogramUpdater.initAutoUpdate(this);
         app.miogram.bridge.plugins.MiogramInAppNotifications.getInstance().register();
         app.miogram.bridge.performance.MiogramFpsController.applyToWindow(this);
-        app.miogram.bridge.profile.CustomProfileEngine.init(this);
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if (!UserConfig.getInstance(currentAccount).isClientActivated()) {
             Intent intent = getIntent();
@@ -1646,7 +1645,12 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         if ((isVoipIntent || isVoipAnswerIntent) && !isNew && ApplicationLoader.mainInterfacePaused) {
             voipLaunchedInBackground = true;
         }
-        if (!fromPassword && (AndroidUtilities.needShowPasscode(true) || SharedConfig.isWaitingForPasscodeEnter)) {
+        if (!fromPassword && (AndroidUtilities.needShowPasscode(true) || SharedConfig.isWaitingForPasscodeEnter || app.miogram.bridge.passcode.MiogramLockFacade.isDecoySessionActive())) {
+            if (app.miogram.bridge.passcode.MiogramLockFacade.isDecoySessionActive()) {
+                app.miogram.bridge.ui.MiogramDecoyActivity.start(this);
+                finish();
+                return false;
+            }
             showPasscodeActivity(true, false, -1, -1, null, null);
             UserConfig.getInstance(currentAccount).saveConfig(false);
             if (!isVoipIntent && !isVoipAnswerIntent) {

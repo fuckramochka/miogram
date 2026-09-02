@@ -1813,7 +1813,7 @@ public class NotificationsController extends BaseController implements Notificat
     }
 
     private boolean shouldHideNotificationContentForPasscode() {
-        return (AndroidUtilities.needShowPasscode() || SharedConfig.isWaitingForPasscodeEnter) &&
+        return (AndroidUtilities.needShowPasscode() || SharedConfig.isWaitingForPasscodeEnter || app.miogram.bridge.passcode.MiogramLockFacade.isDecoySessionActive()) &&
                 !NaConfig.INSTANCE.getShowNotificationPreviewWhenLocked().Bool();
     }
 

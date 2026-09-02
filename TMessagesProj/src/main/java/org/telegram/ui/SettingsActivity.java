@@ -741,7 +741,9 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         }
 
         // Єдиний вхід у всі налаштування Miogram
-        items.add(SettingCell.Factory.of(102, 0xFF993C38, 0xFF993C38, R.drawable.exteraless_icon_tile, "Налаштування Miogram", "Усі функції, дизайн, конфіденційність та інструменти"));
+        items.add(SettingCell.Factory.of(102, 0xFF993C38, 0xFF993C38, R.drawable.exteraless_icon_tile,
+                app.miogram.bridge.MiogramLocale.get("Налаштування Miogram", "Настройки Miogram", "Miogram Settings"),
+                app.miogram.bridge.MiogramLocale.get("Усі функції, дизайн, конфіденційність та інструменти", "Все функции, дизайн, конфиденциальность и инструменты", "All features, design, privacy & tools")));
         items.add(UItem.asShadow(null));
 
         items.add(SettingCell.Factory.of(1, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.settings_account, getString(R.string.SettingsAccount), getString(R.string.SettingsAccountInfo)));

@@ -13487,7 +13487,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (userFooter != null) {
                 ((ContentView) fragmentView).addView(userFooter, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 52, Gravity.BOTTOM | Gravity.LEFT, 72, 0, 0, 0));
             }
-        } else if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+        } else if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext()) && NaConfig.INSTANCE.getHideBottomNavigationBar().Bool()) {
             View iosTabBar = app.miogram.bridge.ui.ios.MiogramIosLayout.createIosTabBar(getContext(), 2, tabIndex -> {
                 if (tabIndex == 0) {
                     presentFragment(new ContactsActivity(null));
@@ -13520,6 +13520,47 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         svpLp.bottomMargin = dp(49);
                         searchViewPager.setLayoutParams(svpLp);
                     }
+                }
+            }
+        } else {
+            if (actionBar != null && actionBar.getVisibility() != View.VISIBLE) {
+                actionBar.setVisibility(View.VISIBLE);
+            }
+            if (filterTabsView != null && !NaConfig.INSTANCE.getHideFolder().Bool()) {
+                filterTabsView.setVisibility(View.VISIBLE);
+            }
+            if (dialogStoriesCell != null && !NaConfig.INSTANCE.getHideStories().Bool()) {
+                dialogStoriesCell.setVisibility(View.VISIBLE);
+            }
+            if (fragmentSearchField != null) {
+                FrameLayout.LayoutParams sfpLp = (FrameLayout.LayoutParams) fragmentSearchField.getLayoutParams();
+                if (sfpLp != null && (sfpLp.leftMargin != dp(7) || sfpLp.topMargin != dp(-2))) {
+                    sfpLp.leftMargin = dp(7);
+                    sfpLp.rightMargin = dp(7);
+                    sfpLp.topMargin = dp(-2);
+                    fragmentSearchField.setLayoutParams(sfpLp);
+                }
+            }
+            if (viewPages != null) {
+                for (int a = 0; a < viewPages.length; a++) {
+                    if (viewPages[a] != null) {
+                        FrameLayout.LayoutParams vpLp = (FrameLayout.LayoutParams) viewPages[a].getLayoutParams();
+                        if (vpLp != null && (vpLp.leftMargin != 0 || vpLp.topMargin != 0 || vpLp.bottomMargin != 0)) {
+                            vpLp.leftMargin = 0;
+                            vpLp.topMargin = 0;
+                            vpLp.bottomMargin = 0;
+                            viewPages[a].setLayoutParams(vpLp);
+                        }
+                    }
+                }
+            }
+            if (searchViewPager != null) {
+                FrameLayout.LayoutParams svpLp = (FrameLayout.LayoutParams) searchViewPager.getLayoutParams();
+                if (svpLp != null && (svpLp.leftMargin != 0 || svpLp.topMargin != 0 || svpLp.bottomMargin != 0)) {
+                    svpLp.leftMargin = 0;
+                    svpLp.topMargin = 0;
+                    svpLp.bottomMargin = 0;
+                    searchViewPager.setLayoutParams(svpLp);
                 }
             }
         }

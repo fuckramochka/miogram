@@ -104,6 +104,32 @@ public class MiogramDiscordLayout {
         getPrefs().edit().putInt(KEY_SELECTED, id).apply();
     }
 
+    private static final Paint channelIconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint unreadPillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final RectF rectF = new RectF();
+
+    static {
+        channelIconPaint.setStyle(Paint.Style.STROKE);
+        channelIconPaint.setStrokeCap(Paint.Cap.ROUND);
+        unreadPillPaint.setColor(0xFFFFFFFF);
+        unreadPillPaint.setStyle(Paint.Style.FILL);
+    }
+
+    public static void drawChannelIcon(Canvas canvas, float x, float cy, boolean unread) {
+        channelIconPaint.setColor(unread ? 0xFFFFFFFF : COLOR_TEXT_MUTED);
+        channelIconPaint.setStrokeWidth(AndroidUtilities.dp(1.8f));
+        float size = AndroidUtilities.dp(8);
+        canvas.drawLine(x - size * 0.25f, cy - size, x - size * 0.45f, cy + size, channelIconPaint);
+        canvas.drawLine(x + size * 0.35f, cy - size, x + size * 0.15f, cy + size, channelIconPaint);
+        canvas.drawLine(x - size * 0.8f, cy - size * 0.35f, x + size * 0.8f, cy - size * 0.35f, channelIconPaint);
+        canvas.drawLine(x - size * 0.8f, cy + size * 0.35f, x + size * 0.8f, cy + size * 0.35f, channelIconPaint);
+
+        if (unread) {
+            rectF.set(0, cy - AndroidUtilities.dp(4), AndroidUtilities.dp(4), cy + AndroidUtilities.dp(4));
+            canvas.drawRoundRect(rectF, AndroidUtilities.dp(2), AndroidUtilities.dp(2), unreadPillPaint);
+        }
+    }
+
     public interface OnServerSelectedListener {
         void onServerSelected(int id);
     }

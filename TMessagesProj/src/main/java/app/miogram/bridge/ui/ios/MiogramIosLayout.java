@@ -225,11 +225,18 @@ public class MiogramIosLayout {
      * Creates a 1:1 iOS Bottom TabBar with 4 Cupertino Tabs (Contacts, Calls, Chats, Settings).
      */
     public static View createIosTabBar(Context context, int activeTab, OnTabClickListener listener) {
+        FrameLayout root = new FrameLayout(context);
+        root.setBackgroundColor(Theme.isCurrentThemeDark() ? COLOR_IOS_NAV_BAR_DARK : COLOR_IOS_NAV_BAR_LIGHT);
+
+        // 0.5dp top hairline separator
+        View hairline = new View(context);
+        hairline.setBackgroundColor(Theme.isCurrentThemeDark() ? COLOR_IOS_SEPARATOR_DARK : COLOR_IOS_SEPARATOR_LIGHT);
+        root.addView(hairline, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 0.5f, Gravity.TOP));
+
         LinearLayout bar = new LinearLayout(context);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setBackgroundColor(Theme.isCurrentThemeDark() ? COLOR_IOS_NAV_BAR_DARK : COLOR_IOS_NAV_BAR_LIGHT);
-        bar.setPadding(0, AndroidUtilities.dp(4), 0, AndroidUtilities.dp(6));
+        bar.setPadding(0, AndroidUtilities.dp(3), 0, AndroidUtilities.dp(4));
 
         String[] titles = new String[]{
                 MiogramLocale.get("Контакти", "Контакты", "Contacts"),
@@ -247,13 +254,33 @@ public class MiogramIosLayout {
             item.setGravity(Gravity.CENTER);
             item.setPadding(0, AndroidUtilities.dp(2), 0, AndroidUtilities.dp(2));
 
+            FrameLayout iconContainer = new FrameLayout(context);
+
             View iconView;
             if (i == 0) iconView = new IosContactsIconView(context, isSelected);
             else if (i == 1) iconView = new IosCallsIconView(context, isSelected);
             else if (i == 2) iconView = new IosChatsIconView(context, isSelected);
             else iconView = new IosSettingsIconView(context, isSelected);
 
-            item.addView(iconView, LayoutHelper.createLinear(24, 24, Gravity.CENTER));
+            iconContainer.addView(iconView, LayoutHelper.createFrame(26, 26, Gravity.CENTER));
+
+            if (i == 2) {
+                // Chats unread badge
+                int totalUnread = org.telegram.messenger.NotificationsController.getInstance(UserConfig.selectedAccount).getTotalAllUnreadCount();
+                if (totalUnread > 0) {
+                    TextView badge = new TextView(context);
+                    badge.setText(totalUnread > 99 ? "99+" : String.valueOf(totalUnread));
+                    badge.setTextSize(9.5f);
+                    badge.setTextColor(0xFFFFFFFF);
+                    badge.setTypeface(AndroidUtilities.bold());
+                    badge.setGravity(Gravity.CENTER);
+                    badge.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(7), COLOR_IOS_RED));
+                    badge.setPadding(AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4), 0);
+                    iconContainer.addView(badge, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, 14, Gravity.TOP | Gravity.RIGHT, 0, -2, -4, 0));
+                }
+            }
+
+            item.addView(iconContainer, LayoutHelper.createLinear(36, 26, Gravity.CENTER));
 
             TextView label = new TextView(context);
             label.setText(titles[i]);
@@ -261,16 +288,18 @@ public class MiogramIosLayout {
             label.setTypeface(isSelected ? AndroidUtilities.bold() : null);
             label.setTextColor(isSelected ? COLOR_IOS_BLUE : COLOR_IOS_GRAY);
             label.setGravity(Gravity.CENTER);
-            item.addView(label, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 2, 0, 0));
+            item.addView(label, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 1, 0, 0));
 
             item.setOnClickListener(v -> {
+                v.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP);
                 if (listener != null) listener.onTabClick(index);
             });
 
             bar.addView(item, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1.0f));
         }
 
-        return bar;
+        root.addView(bar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        return root;
     }
 
     public interface OnTabClickListener {

@@ -21,6 +21,14 @@ class MiogramDecoyActivity : Activity() {
 
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
+        // Anti-forensic hygiene: purge dynamic shortcuts and notifications from real sessions
+        try {
+            androidx.core.content.pm.ShortcutManagerCompat.removeAllDynamicShortcuts(this)
+            androidx.core.app.NotificationManagerCompat.from(this).cancelAll()
+        } catch (t: Throwable) {
+            // Best effort across diverse Android versions
+        }
+
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
@@ -40,6 +48,11 @@ class MiogramDecoyActivity : Activity() {
             )
         )
         setContentView(root)
+    }
+
+    override fun onBackPressed() {
+        // Drop back to Android launcher instead of revealing any back-stack activity
+        moveTaskToBack(true)
     }
 
     companion object {

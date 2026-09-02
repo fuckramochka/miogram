@@ -44,12 +44,9 @@ object MiogramRoomAdapter {
     fun <T : RoomDatabase> applyOpenHelperFactory(builder: RoomDatabase.Builder<T>, resolvedName: String) {
         if (!HistoryStoragePolicy.isSecureName(resolvedName)) return
 
-        // createDatabase() may run during class init on the main thread;
-        // blocking there for Argon2id/keystore work would ANR. Failing open to
-        // plaintext is safe while ENCRYPT_AYU_DB ships disabled.
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            android.util.Log.e("Miogram", "secure history requested on main thread; refusing to block")
-            return
+        val appCtx = org.telegram.messenger.ApplicationLoader.applicationContext
+        if (appCtx != null) {
+            MiogramDatabaseSecurity.ensureNativeLoaded(appCtx)
         }
 
         val passphrase: KeyMaterial = kotlinx.coroutines.runBlocking {

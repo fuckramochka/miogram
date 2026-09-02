@@ -20326,21 +20326,6 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             Theme.chat_msgTextCode3Paint.linkColor = getThemedColor(Theme.key_chat_messageLinkIn);
         }
 
-        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
-            Theme.chat_msgTextPaint.setColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY);
-            Theme.chat_msgGameTextPaint.setColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY);
-            Theme.chat_msgTextCodePaint.setColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY);
-            Theme.chat_msgTextCode2Paint.setColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY);
-            Theme.chat_msgTextCode3Paint.setColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY);
-            Theme.chat_msgGameTextPaint.linkColor =
-            Theme.chat_replyTextPaint.linkColor =
-            Theme.chat_quoteTextPaint.linkColor =
-            Theme.chat_msgTextPaint.linkColor =
-            Theme.chat_msgTextCodePaint.linkColor =
-            Theme.chat_msgTextCode2Paint.linkColor =
-            Theme.chat_msgTextCode3Paint.linkColor = app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_BLURPLE;
-        }
-
         if (documentAttach != null) {
             if (documentAttachType == DOCUMENT_ATTACH_TYPE_AUDIO || documentAttachType == DOCUMENT_ATTACH_TYPE_ROUND) {
                 if (currentMessageObject.isOutOwner()) {
