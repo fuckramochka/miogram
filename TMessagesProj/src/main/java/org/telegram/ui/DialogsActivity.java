@@ -13459,6 +13459,18 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 ((ContentView) fragmentView).addView(discordRail, LayoutHelper.createFrame(72, LayoutHelper.MATCH_PARENT, Gravity.LEFT));
             }
 
+            if (filterTabsView != null) {
+                filterTabsView.setVisibility(View.GONE);
+            }
+            if (actionBar != null) {
+                FrameLayout.LayoutParams abLp = (FrameLayout.LayoutParams) actionBar.getLayoutParams();
+                if (abLp != null) {
+                    abLp.leftMargin = dp(72);
+                    actionBar.setLayoutParams(abLp);
+                }
+                actionBar.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_HEADER_BG);
+            }
+
             int discordTopInset = AndroidUtilities.statusBarHeight + dp(48);
             if (viewPages != null) {
                 for (int a = 0; a < viewPages.length; a++) {

@@ -384,6 +384,9 @@ object AppearanceConfig {
     /** Радиус скругления карточек-секций, dp. 0 — острые углы (как сток). */
     @JvmStatic
     fun sectionRadius(): Int {
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            return 10
+        }
         ensureLoaded()
         return sectionRadius.Int()
     }

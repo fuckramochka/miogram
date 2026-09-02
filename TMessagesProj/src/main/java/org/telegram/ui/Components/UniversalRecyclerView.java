@@ -428,10 +428,12 @@ public class UniversalRecyclerView extends RecyclerListView {
     }
 
     public void setSections() {
-        setSections(dp(12), dp(app.exteraless.appearance.AppearanceConfig.sectionRadius()), false);
+        int pad = app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext()) ? dp(16) : dp(12);
+        setSections(pad, dp(app.exteraless.appearance.AppearanceConfig.sectionRadius()), false);
     }
     public void setSections(boolean topPadding) {
-        setSections(dp(12), dp(app.exteraless.appearance.AppearanceConfig.sectionRadius()), topPadding);
+        int pad = app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext()) ? dp(16) : dp(12);
+        setSections(pad, dp(app.exteraless.appearance.AppearanceConfig.sectionRadius()), topPadding);
     }
     public void setSections(int padding, float roundRadius, boolean topPadding) {
         super.setSections(

@@ -570,6 +570,9 @@ public class MessageDrawable extends Drawable {
         } else if (currentType == TYPE_PREVIEW) {
             rad = dp(6);
             nearRad = dp(6);
+        } else if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            rad = dp(16);
+            nearRad = dp(8);
         } else {
             rad = dp(SharedConfig.bubbleRadius);
             nearRad = dp(Math.min(6, SharedConfig.bubbleRadius));

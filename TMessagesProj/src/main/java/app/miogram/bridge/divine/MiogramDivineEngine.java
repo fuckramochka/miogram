@@ -91,6 +91,8 @@ public class MiogramDivineEngine {
                 AppearanceConfig.singleCornerRadius.setConfigBool(false);
                 AppearanceConfig.senderMiniAvatars.setConfigBool(false);
                 NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(true);
+                NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(true);
+                NaConfig.INSTANCE.getDisableStories().setConfigBool(true);
                 break;
 
             case CLASSIC_TG:

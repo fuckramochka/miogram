@@ -9212,6 +9212,13 @@ public class Theme {
             if (key == Theme.key_chats_unreadCounterMuted) return isCurrentThemeDark() ? app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_BADGE_MUTED_DARK : app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_BADGE_MUTED_LIGHT;
             if (key == Theme.key_chats_unreadCounterText) return 0xFFFFFFFF;
             if (key == Theme.key_divider) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListSeparator();
+            if (key == Theme.key_chat_outBubble) return app.miogram.bridge.ui.ios.MiogramIosLayout.COLOR_IOS_BUBBLE_OUT;
+            if (key == Theme.key_chat_outBubbleGradient1 || key == Theme.key_chat_outBubbleGradient2 || key == Theme.key_chat_outBubbleGradient3) return 0;
+            if (key == Theme.key_chat_outText) return 0xFFFFFFFF;
+            if (key == Theme.key_chat_inBubble) return isCurrentThemeDark() ? app.miogram.bridge.ui.ios.MiogramIosLayout.COLOR_IOS_BUBBLE_IN_DARK : app.miogram.bridge.ui.ios.MiogramIosLayout.COLOR_IOS_BUBBLE_IN_LIGHT;
+            if (key == Theme.key_chat_inText) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
+            if (key == Theme.key_chat_outTimeText) return 0xB3FFFFFF;
+            if (key == Theme.key_chat_inTimeText) return isCurrentThemeDark() ? 0x80FFFFFF : 0x8A000000;
         }
         if (key_divider == key && !resolvingDividerColor && app.exteraless.appearance.AppearanceConfig.dividerHidden()) {
             return 0x00ffffff;
