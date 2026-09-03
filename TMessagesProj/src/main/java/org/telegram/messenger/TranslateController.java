@@ -1035,6 +1035,20 @@ public class TranslateController extends BaseController {
                 loadingSummarizations.remove(id);
                 callback.run(res);
             } else if (err != null) {
+                String apiKey = app.miogram.bridge.ai.MiogramAiService.getApiKey();
+                if (!TextUtils.isEmpty(apiKey) && message.messageText != null && message.messageText.length() > 0) {
+                    app.miogram.bridge.ai.MiogramAiService.summarizeText(message.messageText.toString(), summary -> {
+                        loadingSummarizations.remove(id);
+                        if (!TextUtils.isEmpty(summary)) {
+                            TLRPC.TL_textWithEntities textWithEntities = new TLRPC.TL_textWithEntities();
+                            textWithEntities.text = summary;
+                            callback.run(textWithEntities);
+                        } else {
+                            callback.run(null);
+                        }
+                    });
+                    return;
+                }
                 if ("SUMMARY_FLOOD_PREMIUM".equalsIgnoreCase(err.text)) {
                     final BaseFragment lastFragment = LaunchActivity.getSafeLastFragment();
                     if (lastFragment != null) {

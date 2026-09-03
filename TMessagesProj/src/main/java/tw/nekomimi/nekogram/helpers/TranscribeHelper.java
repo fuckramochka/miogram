@@ -382,19 +382,7 @@ public class TranscribeHelper {
     }
 
     private static void requestGeminiAi(String path, boolean video, BiConsumer<String, Exception> callback) {
-        String apiKey = "";
-        try {
-            Context ctx = org.telegram.messenger.ApplicationLoader.applicationContext;
-            if (ctx != null) {
-                apiKey = ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE).getString("gemini_key", "");
-            }
-        } catch (Exception ignored) {}
-        if (TextUtils.isEmpty(apiKey)) {
-            apiKey = NaConfig.INSTANCE.getTranscribeProviderGeminiApiKey().String();
-        }
-        if (TextUtils.isEmpty(apiKey)) {
-            apiKey = NaConfig.INSTANCE.getLlmProviderGeminiKey().String().split(",")[0].trim();
-        }
+        String apiKey = app.miogram.bridge.ai.MiogramAiService.getApiKey();
         if (TextUtils.isEmpty(apiKey)) {
             callback.accept(null, new Exception("Введіть ключ Gemini у «Налаштування Miogram -> Miogram AI» (безкоштовно на aistudio.google.com)"));
             return;
@@ -431,12 +419,22 @@ public class TranscribeHelper {
 
                 OkHttpClient client = getOkHttpClient();
                 RequestBody requestBody = RequestBody.create(jsonRequest, HttpClient.MEDIA_TYPE_JSON);
+                String model = app.miogram.bridge.ai.MiogramAiService.getModel();
+                String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + finalApiKey;
                 Request request = new Request.Builder()
-                        .url(String.format(GEMINI_API_ENDPOINT, finalApiKey))
+                        .url(url)
                         .post(requestBody)
                         .build();
-                try (Response response = client.newCall(request).execute()) {
-                    String responseBody = response.body().string();
+                Response response = client.newCall(request).execute();
+                String responseBody = response.body() != null ? response.body().string() : "";
+                if (!response.isSuccessful() && response.code() == 404 && !"gemini-2.5-flash".equals(model)) {
+                    // Fallback to gemini-2.5-flash on 404
+                    String fallbackUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + finalApiKey;
+                    Request fallbackReq = new Request.Builder().url(fallbackUrl).post(requestBody).build();
+                    response = client.newCall(fallbackReq).execute();
+                    responseBody = response.body() != null ? response.body().string() : "";
+                }
+                try {
                     if (!response.isSuccessful()) {
                         throw new IOException("Gemini API request failed: " + response.code() + " " + response.message() + "\nBody: " + responseBody);
                     }

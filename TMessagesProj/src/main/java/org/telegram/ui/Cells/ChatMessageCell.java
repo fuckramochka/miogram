@@ -20096,6 +20096,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             return null;
         }
         if (currentUser != null) {
+            if (app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(currentUser.id)) {
+                return app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(currentUser.id, 14);
+            }
             Long emojiStatusId = UserObject.getEmojiStatusDocumentId(currentUser);
             if (emojiStatusId != null) {
                 if (currentUser.emoji_status instanceof TLRPC.TL_emojiStatusCollectible) {
@@ -20109,6 +20112,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             if (currentMessageObject != null && (currentMessageObject.getDialogId() != UserObject.REPLY_BOT) && currentChat.signature_profiles) {
                 long did = DialogObject.getPeerDialogId(currentMessageObject.messageOwner.from_id);
                 if (did >= 0) {
+                    if (app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(did)) {
+                        return app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(did, 14);
+                    }
                     TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(did);
                     if (user != null && user.emoji_status instanceof TLRPC.TL_emojiStatusCollectible) {
                         nameStatusSlug = ((TLRPC.TL_emojiStatusCollectible) user.emoji_status).slug;

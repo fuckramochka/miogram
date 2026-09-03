@@ -11904,7 +11904,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         nameTextViewRightDrawable2ContentDescription = null;
                     }
                     Long selfEmojiDocId = (user != null && user.self) ? UserObject.getEmojiStatusDocumentId(user) : null;
-                    if (user != null/* && !getMessagesController().premiumFeaturesBlocked()*/ && !MessagesController.isSupportUser(user) && (DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0 || (user.self && selfEmojiDocId != null && selfEmojiDocId != 0))) {
+                    if (user != null && app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(user.id)) {
+                        rightIconIsStatus = true;
+                        rightIconIsPremium = false;
+                        nameTextView[a].setRightDrawable(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 18));
+                        nameTextViewRightDrawableContentDescription = app.miogram.bridge.badge.MiogramBadgeManager.getBadgeTitle(user.id);
+                    } else if (user != null/* && !getMessagesController().premiumFeaturesBlocked()*/ && !MessagesController.isSupportUser(user) && (DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0 || (user.self && selfEmojiDocId != null && selfEmojiDocId != 0))) {
                         rightIconIsStatus = true;
                         rightIconIsPremium = false;
                         if (user.self && (selfEmojiDocId != null && selfEmojiDocId != 0) && DialogObject.getEmojiStatusDocumentId(user.emoji_status) == 0) {
@@ -11933,7 +11938,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         nameTextView[a].setRightDrawable2(null);
                     }
                     Long selfEmojiDocId2 = (user != null && user.self) ? UserObject.getEmojiStatusDocumentId(user) : null;
-                    if (/*!getMessagesController().premiumFeaturesBlocked() && */user != null && !MessagesController.isSupportUser(user) && (DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0 || (user.self && selfEmojiDocId2 != null && selfEmojiDocId2 != 0))) {
+                    if (user != null && app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(user.id)) {
+                        rightIconIsStatus = true;
+                        rightIconIsPremium = false;
+                        nameTextView[a].setRightDrawable(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 18));
+                        nameTextViewRightDrawableContentDescription = app.miogram.bridge.badge.MiogramBadgeManager.getBadgeTitle(user.id);
+                    } else if (/*!getMessagesController().premiumFeaturesBlocked() && */user != null && !MessagesController.isSupportUser(user) && (DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0 || (user.self && selfEmojiDocId2 != null && selfEmojiDocId2 != 0))) {
                         rightIconIsStatus = true;
                         rightIconIsPremium = false;
                         if (user.self && (selfEmojiDocId2 != null && selfEmojiDocId2 != 0) && DialogObject.getEmojiStatusDocumentId(user.emoji_status) == 0) {

@@ -1564,18 +1564,26 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                             drawVerified = !forbidVerified && user.verified;
                             drawBotVerified = !forbidVerified && !UserObject.isUserSelf(user) && user.bot_verification_icon != 0;
                         }
-                        drawPremium = MessagesController.getInstance(currentAccount).isPremiumUser(user) && UserConfig.getInstance(currentAccount).clientUserId != user.id && user.id != 0;
-                        if (drawPremium) {
-                            Long emojiStatusId = UserObject.getEmojiStatusDocumentId(user);
+                        if (user != null && app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(user.id)) {
+                            drawPremium = true;
                             emojiStatus.center = LocaleController.isRTL;
-                            if (emojiStatusId != null) {
-                                nameLayoutEllipsizeByGradient = true;
-                                emojiStatus.set(emojiStatusId, false);
-                                emojiStatus.setParticles(DialogObject.isEmojiStatusCollectible(user.emoji_status), false);
-                            } else {
-                                nameLayoutEllipsizeByGradient = true;
-                                emojiStatus.set(PremiumGradient.getInstance().premiumStarDrawableMini, false);
-                                emojiStatus.setParticles(false, false);
+                            nameLayoutEllipsizeByGradient = true;
+                            emojiStatus.set(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 14), false);
+                            emojiStatus.setParticles(false, false);
+                        } else {
+                            drawPremium = MessagesController.getInstance(currentAccount).isPremiumUser(user) && UserConfig.getInstance(currentAccount).clientUserId != user.id && user.id != 0;
+                            if (drawPremium) {
+                                Long emojiStatusId = UserObject.getEmojiStatusDocumentId(user);
+                                emojiStatus.center = LocaleController.isRTL;
+                                if (emojiStatusId != null) {
+                                    nameLayoutEllipsizeByGradient = true;
+                                    emojiStatus.set(emojiStatusId, false);
+                                    emojiStatus.setParticles(DialogObject.isEmojiStatusCollectible(user.emoji_status), false);
+                                } else {
+                                    nameLayoutEllipsizeByGradient = true;
+                                    emojiStatus.set(PremiumGradient.getInstance().premiumStarDrawableMini, false);
+                                    emojiStatus.setParticles(false, false);
+                                }
                             }
                         }
                     }

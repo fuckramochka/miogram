@@ -1330,7 +1330,36 @@ public class AIEditorAlert extends BottomSheetWithRecyclerListView implements No
             requestId = -1;
 
             loading = false;
-            if (err != null && ("SUMMARY_FLOOD_PREMIUM".equalsIgnoreCase(err.text) || "AICOMPOSE_FLOOD_PREMIUM".equalsIgnoreCase(err.text))) {
+            if (err != null) {
+                String apiKey = app.miogram.bridge.ai.MiogramAiService.getApiKey();
+                String rawText = this.text != null ? this.text.toString() : "";
+                if (!TextUtils.isEmpty(apiKey) && !TextUtils.isEmpty(rawText)) {
+                    String tone = (tab == TAB_FIX) ? "граматично правильний, природний" : (tab == TAB_STYLE ? "ввічливий, виразний" : "переклад");
+                    app.miogram.bridge.ai.MiogramAiService.rephraseText(rawText, tone, rephrased -> {
+                        actionBarTitleTextView.setRightDrawable(null);
+                        loading = false;
+                        if (!TextUtils.isEmpty(rephrased)) {
+                            this.lastRequest[tab] = req;
+                            if (tab == TAB_FIX) {
+                                fixedTextLoading = false;
+                                fixedText = rephrased;
+                            } else if (tab == TAB_STYLE) {
+                                styledTextLoading = false;
+                                styledText = rephrased;
+                            } else {
+                                translatedTextLoading = false;
+                                translatedText = rephrased;
+                            }
+                            adapter.update(true);
+                            updateButton();
+                        } else {
+                            errored = true;
+                            updateButton();
+                        }
+                    });
+                    return;
+                }
+                if ("SUMMARY_FLOOD_PREMIUM".equalsIgnoreCase(err.text) || "AICOMPOSE_FLOOD_PREMIUM".equalsIgnoreCase(err.text)) {
                 BulletinFactory.of(bulletinContainer, resourcesProvider)
                     .createSimpleBulletin(R.raw.star_premium_2, getString(R.string.AIEditorLimitTitle), AndroidUtilities.replaceTags(getString(R.string.AIEditorLimitText)))
                     .show();
@@ -1444,7 +1473,38 @@ public class AIEditorAlert extends BottomSheetWithRecyclerListView implements No
             requestId = -1;
 
             loading = false;
-            if (err != null && ("SUMMARY_FLOOD_PREMIUM".equalsIgnoreCase(err.text) || "AICOMPOSE_FLOOD_PREMIUM".equalsIgnoreCase(err.text))) {
+            if (err != null) {
+                String apiKey = app.miogram.bridge.ai.MiogramAiService.getApiKey();
+                String rawText = this.textRich != null && this.textRich.text != null ? this.textRich.text.toString() : (this.text != null ? this.text.toString() : "");
+                if (!TextUtils.isEmpty(apiKey) && !TextUtils.isEmpty(rawText)) {
+                    String tone = (tab == TAB_FIX) ? "граматично правильний, природний" : (tab == TAB_STYLE ? "ввічливий, виразний" : "переклад");
+                    app.miogram.bridge.ai.MiogramAiService.rephraseText(rawText, tone, rephrased -> {
+                        actionBarTitleTextView.setRightDrawable(null);
+                        loading = false;
+                        if (!TextUtils.isEmpty(rephrased)) {
+                            TL_iv.TL_richMessage rich = new TL_iv.TL_richMessage();
+                            rich.text = rephrased;
+                            this.lastRequestRich[tab] = req;
+                            if (tab == TAB_FIX) {
+                                fixedTextLoading = false;
+                                fixedTextRich = rich;
+                            } else if (tab == TAB_STYLE) {
+                                styledTextLoading = false;
+                                styledTextRich = rich;
+                            } else {
+                                translatedTextLoading = false;
+                                translatedTextRich = rich;
+                            }
+                            adapter.update(true);
+                            updateButton();
+                        } else {
+                            errored = true;
+                            updateButton();
+                        }
+                    });
+                    return;
+                }
+                if ("SUMMARY_FLOOD_PREMIUM".equalsIgnoreCase(err.text) || "AICOMPOSE_FLOOD_PREMIUM".equalsIgnoreCase(err.text)) {
                 BulletinFactory.of(bulletinContainer, resourcesProvider)
                     .createSimpleBulletin(R.raw.star_premium_2, getString(R.string.AIEditorLimitTitle), AndroidUtilities.replaceTags(getString(R.string.AIEditorLimitText)))
                     .show();
