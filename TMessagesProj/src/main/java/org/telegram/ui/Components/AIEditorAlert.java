@@ -1360,20 +1360,21 @@ public class AIEditorAlert extends BottomSheetWithRecyclerListView implements No
                     return;
                 }
                 if ("SUMMARY_FLOOD_PREMIUM".equalsIgnoreCase(err.text) || "AICOMPOSE_FLOOD_PREMIUM".equalsIgnoreCase(err.text)) {
-                BulletinFactory.of(bulletinContainer, resourcesProvider)
-                    .createSimpleBulletin(R.raw.star_premium_2, getString(R.string.AIEditorLimitTitle), AndroidUtilities.replaceTags(getString(R.string.AIEditorLimitText)))
-                    .show();
-                showLimit = true;
-                updateButton();
-                return;
-            } else if (err != null) {
-                BulletinFactory.of(bulletinContainer, resourcesProvider).showForError(err);
+                    BulletinFactory.of(bulletinContainer, resourcesProvider)
+                        .createSimpleBulletin(R.raw.star_premium_2, getString(R.string.AIEditorLimitTitle), AndroidUtilities.replaceTags(getString(R.string.AIEditorLimitText)))
+                        .show();
+                    showLimit = true;
+                    updateButton();
+                    return;
+                } else {
+                    BulletinFactory.of(bulletinContainer, resourcesProvider).showForError(err);
 
-                actionBarTitleTextView.setRightDrawable(null);
-                errored = true;
-                showLimit = false;
-                updateButton();
-                return;
+                    actionBarTitleTextView.setRightDrawable(null);
+                    errored = true;
+                    showLimit = false;
+                    updateButton();
+                    return;
+                }
             }
             if (res == null) {
                 actionBarTitleTextView.setRightDrawable(null);
@@ -1505,20 +1506,21 @@ public class AIEditorAlert extends BottomSheetWithRecyclerListView implements No
                     return;
                 }
                 if ("SUMMARY_FLOOD_PREMIUM".equalsIgnoreCase(err.text) || "AICOMPOSE_FLOOD_PREMIUM".equalsIgnoreCase(err.text)) {
-                BulletinFactory.of(bulletinContainer, resourcesProvider)
-                    .createSimpleBulletin(R.raw.star_premium_2, getString(R.string.AIEditorLimitTitle), AndroidUtilities.replaceTags(getString(R.string.AIEditorLimitText)))
-                    .show();
-                showLimit = true;
-                updateButton();
-                return;
-            } else if (err != null) {
-                BulletinFactory.of(bulletinContainer, resourcesProvider).showForError(err);
+                    BulletinFactory.of(bulletinContainer, resourcesProvider)
+                        .createSimpleBulletin(R.raw.star_premium_2, getString(R.string.AIEditorLimitTitle), AndroidUtilities.replaceTags(getString(R.string.AIEditorLimitText)))
+                        .show();
+                    showLimit = true;
+                    updateButton();
+                    return;
+                } else {
+                    BulletinFactory.of(bulletinContainer, resourcesProvider).showForError(err);
 
-                actionBarTitleTextView.setRightDrawable(null);
-                errored = true;
-                showLimit = false;
-                updateButton();
-                return;
+                    actionBarTitleTextView.setRightDrawable(null);
+                    errored = true;
+                    showLimit = false;
+                    updateButton();
+                    return;
+                }
             }
             if (res == null) {
                 actionBarTitleTextView.setRightDrawable(null);

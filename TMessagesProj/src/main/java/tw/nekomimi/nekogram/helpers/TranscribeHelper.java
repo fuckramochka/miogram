@@ -434,37 +434,35 @@ public class TranscribeHelper {
                     response = client.newCall(fallbackReq).execute();
                     responseBody = response.body() != null ? response.body().string() : "";
                 }
-                try {
-                    if (!response.isSuccessful()) {
-                        throw new IOException("Gemini API request failed: " + response.code() + " " + response.message() + "\nBody: " + responseBody);
-                    }
-                    GeminiResponse geminiResponse = gson.fromJson(responseBody, GeminiResponse.class);
-                    if (geminiResponse != null && geminiResponse.candidates != null && !geminiResponse.candidates.isEmpty()) {
-                        GeminiResponse.Candidate firstCandidate = geminiResponse.candidates.get(0);
-                        if (firstCandidate.content != null && firstCandidate.content.parts != null && !firstCandidate.content.parts.isEmpty()) {
-                            String transcribedText = firstCandidate.content.parts.stream()
-                                    .filter(part -> !TextUtils.isEmpty(part.text))
-                                    .map(part -> part.text)
-                                    .findFirst()
-                                    .orElse(null);
-                            if (transcribedText != null) {
-                                callback.accept(transcribedText.trim(), null);
-                            } else {
-                                String finishReason = firstCandidate.finishReason;
-                                List<GeminiResponse.SafetyRating> safetyRatings = firstCandidate.safetyRatings;
-                                String errorMsg = "Gemini response did not contain text.";
-                                if (finishReason != null) errorMsg += " Finish reason: " + finishReason;
-                                if (safetyRatings != null) errorMsg += " Safety Ratings: " + safetyRatings;
-                                callback.accept(null, new Exception(errorMsg));
-                            }
+                if (!response.isSuccessful()) {
+                    throw new IOException("Gemini API request failed: " + response.code() + " " + response.message() + "\nBody: " + responseBody);
+                }
+                GeminiResponse geminiResponse = gson.fromJson(responseBody, GeminiResponse.class);
+                if (geminiResponse != null && geminiResponse.candidates != null && !geminiResponse.candidates.isEmpty()) {
+                    GeminiResponse.Candidate firstCandidate = geminiResponse.candidates.get(0);
+                    if (firstCandidate.content != null && firstCandidate.content.parts != null && !firstCandidate.content.parts.isEmpty()) {
+                        String transcribedText = firstCandidate.content.parts.stream()
+                                .filter(part -> !TextUtils.isEmpty(part.text))
+                                .map(part -> part.text)
+                                .findFirst()
+                                .orElse(null);
+                        if (transcribedText != null) {
+                            callback.accept(transcribedText.trim(), null);
                         } else {
-                            callback.accept(null, new Exception("Gemini response structure invalid (no content parts). Finish Reason: " + firstCandidate.finishReason));
+                            String finishReason = firstCandidate.finishReason;
+                            List<GeminiResponse.SafetyRating> safetyRatings = firstCandidate.safetyRatings;
+                            String errorMsg = "Gemini response did not contain text.";
+                            if (finishReason != null) errorMsg += " Finish reason: " + finishReason;
+                            if (safetyRatings != null) errorMsg += " Safety Ratings: " + safetyRatings;
+                            callback.accept(null, new Exception(errorMsg));
                         }
-                    } else if (geminiResponse != null && geminiResponse.promptFeedback != null) {
-                        callback.accept(null, new Exception("Gemini prompt feedback: " + geminiResponse.promptFeedback));
                     } else {
-                        callback.accept(null, new Exception("Invalid or empty response from Gemini API: " + responseBody));
+                        callback.accept(null, new Exception("Gemini response structure invalid (no content parts). Finish Reason: " + firstCandidate.finishReason));
                     }
+                } else if (geminiResponse != null && geminiResponse.promptFeedback != null) {
+                    callback.accept(null, new Exception("Gemini prompt feedback: " + geminiResponse.promptFeedback));
+                } else {
+                    callback.accept(null, new Exception("Invalid or empty response from Gemini API: " + responseBody));
                 }
             } catch (Exception e) {
                 FileLog.e("Gemini transcription error", e);
