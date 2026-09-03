@@ -76,10 +76,7 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
     @Override
     public void onItemClick(View view, int position, float x, float y) {
         if (position == vaultManageRow) {
-            android.app.Activity act = getParentActivity() != null ? getParentActivity() : (view.getContext() instanceof android.app.Activity ? (android.app.Activity) view.getContext() : null);
-            if (act != null) {
-                app.miogram.bridge.ui.MiogramVaultSetupActivity.start(act);
-            }
+            presentFragment(new tw.nekomimi.nekogram.settings.NekoPasscodeSettingsActivity());
         } else if (position == ghostReadRow) {
             boolean v = !NekoConfig.sendReadMessagePackets.Bool();
             NekoConfig.sendReadMessagePackets.setConfigBool(v);
@@ -141,7 +138,7 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerVaultRow) {
-                        cell.setText(MiogramLocale.get("Секретний сховок (Zero-Knowledge Vault)", "Секретный сейф (Zero-Knowledge Vault)", "Zero-Knowledge Vault"));
+                        cell.setText(MiogramLocale.get("Подвійне сховище (Double Bottom)", "Двойное дно (Double Bottom)", "Double Bottom (Hidden Accounts)"));
                     } else if (position == headerGhostRow) {
                         cell.setText(MiogramLocale.get("Режим невидимки (Ghost Mode)", "Режим невидимки (Ghost Mode)", "Ghost Mode"));
                     } else if (position == headerHistoryRow) {
@@ -173,16 +170,16 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
                     if (position == vaultManageRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Налаштування сховку та PIN під примусом", "Настройки сейфа и PIN под принуждением", "Vault setup & Duress PIN"), R.drawable.msg_fave, false);
+                        cell.setTextAndIcon(MiogramLocale.get("Налаштування прихованих акаунтів та кодів", "Настройки скрытых аккаунтов и кодов", "Hidden accounts & Passcodes setup"), R.drawable.msg_permissions, false);
                     }
                     break;
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == vaultInfoRow) {
-                        cell.setText(MiogramLocale.get("Криптографічний захист чатів: при введенні фейкового PIN-коду під примусом відображаються лише безпечні чати.",
-                                "Криптографическая защита чатов: при вводе фейкового PIN-кода под принуждением отображаются только безопасные чаты.",
-                                "Cryptographic chat protection: entering a duress PIN reveals only innocuous chats."));
+                        cell.setText(MiogramLocale.get("Встановіть різні PIN-коди для кожного акаунта. Прихований акаунт не відображатиметься в інтерфейсі та відкриватиметься лише при введенні його секретного PIN-коду на екрані блокування. Екстрений PIN миттєво видаляє сесії схованих акаунтів.",
+                                "Установите разные PIN-коды для каждого аккаунта. Скрытый аккаунт не отображается в интерфейсе и открывается только при вводе его секретного PIN-кода на экране блокировки. Экстренный PIN мгновенно завершает сессии защищённых аккаунтов.",
+                                "Configure separate passcodes for each account. Hidden accounts are completely invisible and unlocked strictly via their secret passcode on the lockscreen. Panic code immediately terminates sessions of protected accounts."));
                     } else if (position == ghostInfoRow) {
                         cell.setText(MiogramLocale.get("Дозволяє читати повідомлення непомітно для співрозмовника.",
                                 "Позволяет читать сообщения незаметно для собеседника.",

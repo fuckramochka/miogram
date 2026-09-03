@@ -31,6 +31,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     private int customProfileRow;
     private int chatsRow;
     private int privacyRow;
+    private int doubleBottomRow;
     private int translatorRow;
     private int performanceRow;
     private int categoriesInfoRow;
@@ -55,6 +56,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         customProfileRow = addRow();
         chatsRow = addRow();
         privacyRow = addRow();
+        doubleBottomRow = addRow();
         translatorRow = addRow();
         performanceRow = addRow();
         categoriesInfoRow = addRow();
@@ -76,6 +78,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
             presentFragment(new MiogramChatsSettingsActivity());
         } else if (position == privacyRow) {
             presentFragment(new MiogramPrivacySettingsActivity());
+        } else if (position == doubleBottomRow) {
+            presentFragment(new tw.nekomimi.nekogram.settings.NekoPasscodeSettingsActivity());
         } else if (position == translatorRow) {
             presentFragment(new NekoTranslatorSettingsActivity());
         } else if (position == performanceRow) {
@@ -133,6 +137,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                         cell.setTextAndIcon(MiogramLocale.get("Чати та Медіа", "Чаты и Медиа", "Chats & Media"), R.drawable.msg_camera, true);
                     } else if (position == privacyRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Конфіденційність та Ghost Mode", "Конфиденциальность и Ghost Mode", "Privacy & Ghost Mode"), R.drawable.msg_secret, true);
+                    } else if (position == doubleBottomRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Подвійне сховище (Double Bottom)", "Двойное дно (Double Bottom)", "Double Bottom (Hidden Accounts)"), R.drawable.msg_permissions, true);
                     } else if (position == translatorRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Перекладач", "Переводчик", "Translator"), R.drawable.msg_translate, true);
                     } else if (position == performanceRow) {

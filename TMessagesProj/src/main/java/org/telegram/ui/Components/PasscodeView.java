@@ -953,18 +953,6 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 onPasscodeError();
                 return;
             }
-            if (MiogramGate.isConfigured()) {
-                MiogramGate.interceptUnlockAsync(password, verdict -> {
-                    if (verdict == MiogramGate.VERDICT_REAL_UNLOCKED) {
-                        finishUnlock(false);
-                    } else if (verdict == MiogramGate.VERDICT_DECOY_UNLOCKED) {
-                        MiogramDecoyActivity.start(getContext());
-                    } else {
-                        handleLegacyPasscodeError();
-                    }
-                });
-                return;
-            }
             if (PasscodeHelper.checkPasscode((Activity) getContext(), password)) {
                 finishUnlock(false);
                 return;
