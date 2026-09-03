@@ -965,7 +965,33 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 finishUnlock(false);
                 return;
             }
+            int duressVerdict = app.miogram.bridge.vault.MiogramDoubleBottomManager.checkPasscode(password);
+            if (duressVerdict == app.miogram.bridge.vault.MiogramDoubleBottomManager.VERDICT_REAL) {
+                app.miogram.bridge.vault.MiogramDoubleBottomManager.setDuressActive(false);
+                finishUnlock(false);
+                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
+                return;
+            } else if (duressVerdict == app.miogram.bridge.vault.MiogramDoubleBottomManager.VERDICT_DURESS) {
+                app.miogram.bridge.vault.MiogramDoubleBottomManager.setDuressActive(true);
+                int decoyAccount = app.miogram.bridge.vault.MiogramDoubleBottomManager.getDecoyAccount();
+                if (decoyAccount >= 0 && decoyAccount < UserConfig.MAX_ACCOUNT_COUNT && UserConfig.getInstance(decoyAccount).isClientActivated()) {
+                    if (getContext() instanceof LaunchActivity) {
+                        ((LaunchActivity) getContext()).switchToAccount(decoyAccount, true);
+                    }
+                }
+                if (app.miogram.bridge.vault.MiogramDoubleBottomManager.isPanicLogoutEnabled()) {
+                    for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
+                        if (a != decoyAccount && UserConfig.getInstance(a).isClientActivated()) {
+                            MessagesController.getInstance(a).performLogout(1);
+                        }
+                    }
+                }
+                finishUnlock(false);
+                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
+                return;
+            }
             if (PasscodeHelper.checkPasscode((Activity) getContext(), password)) {
+                app.miogram.bridge.vault.MiogramDoubleBottomManager.setDuressActive(false);
                 finishUnlock(false);
                 return;
             }
@@ -973,6 +999,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 handleLegacyPasscodeError();
                 return;
             }
+            app.miogram.bridge.vault.MiogramDoubleBottomManager.setDuressActive(false);
         }
         finishUnlock(fingerprint);
     }

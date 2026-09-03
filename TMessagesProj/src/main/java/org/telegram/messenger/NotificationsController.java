@@ -4129,6 +4129,9 @@ public class NotificationsController extends BaseController implements Notificat
             long maxDate = 0;
             for (int i = 0; i < pushMessages.size(); ++i) {
                 MessageObject message = pushMessages.get(i);
+                if (app.miogram.bridge.vault.MiogramDoubleBottomManager.isDuressActive() && !app.miogram.bridge.vault.MiogramDoubleBottomManager.isChatAllowed(currentAccount, message.getDialogId())) {
+                    continue;
+                }
                 if (maxDate < message.messageOwner.date) {
                     lastNotification = message;
                     maxDate = message.messageOwner.date;

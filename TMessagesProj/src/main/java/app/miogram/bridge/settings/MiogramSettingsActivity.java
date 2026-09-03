@@ -79,7 +79,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         } else if (position == privacyRow) {
             presentFragment(new MiogramPrivacySettingsActivity());
         } else if (position == doubleBottomRow) {
-            presentFragment(new tw.nekomimi.nekogram.settings.NekoPasscodeSettingsActivity());
+            presentFragment(new app.miogram.bridge.vault.MiogramDoubleBottomActivity());
         } else if (position == translatorRow) {
             presentFragment(new NekoTranslatorSettingsActivity());
         } else if (position == performanceRow) {

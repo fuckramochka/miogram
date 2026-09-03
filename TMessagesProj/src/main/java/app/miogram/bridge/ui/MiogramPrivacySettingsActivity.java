@@ -76,7 +76,7 @@ public class MiogramPrivacySettingsActivity extends BaseNekoSettingsActivity {
     @Override
     public void onItemClick(View view, int position, float x, float y) {
         if (position == vaultManageRow) {
-            presentFragment(new tw.nekomimi.nekogram.settings.NekoPasscodeSettingsActivity());
+            presentFragment(new app.miogram.bridge.vault.MiogramDoubleBottomActivity());
         } else if (position == ghostReadRow) {
             boolean v = !NekoConfig.sendReadMessagePackets.Bool();
             NekoConfig.sendReadMessagePackets.setConfigBool(v);
