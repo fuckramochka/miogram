@@ -1116,7 +1116,7 @@ public class AnimatedEmojiDrawable extends Drawable {
         }
     }
 
-    public static class SwapAnimatedEmojiDrawable extends Drawable implements AnimatedEmojiSpan.InvalidateHolder {
+    public static class SwapAnimatedEmojiDrawable extends Drawable implements AnimatedEmojiSpan.InvalidateHolder, Drawable.Callback {
 
         public boolean center = false;
 
@@ -1433,11 +1433,16 @@ public class AnimatedEmojiDrawable extends Drawable {
                 if (drawables[1] != null) {
                     if (attached && drawables[1] instanceof AnimatedEmojiDrawable) {
                         ((AnimatedEmojiDrawable) drawables[1]).removeView(this);
+                    } else if (drawables[1] != null) {
+                        drawables[1].setCallback(null);
                     }
                     drawables[1] = null;
                 }
                 drawables[1] = drawables[0];
                 drawables[0] = drawable;
+                if (drawable != null) {
+                    drawable.setCallback(this);
+                }
             } else {
                 changeProgress.set(1, true);
                 boolean attachedLocal = attached;
@@ -1445,6 +1450,9 @@ public class AnimatedEmojiDrawable extends Drawable {
                     detach();
                 }
                 drawables[0] = drawable;
+                if (drawable != null) {
+                    drawable.setCallback(this);
+                }
                 if (attachedLocal) {
                     attach();
                 }
@@ -1463,9 +1471,13 @@ public class AnimatedEmojiDrawable extends Drawable {
             attached = false;
             if (drawables[0] instanceof AnimatedEmojiDrawable) {
                 ((AnimatedEmojiDrawable) drawables[0]).removeView(this);
+            } else if (drawables[0] != null) {
+                drawables[0].setCallback(null);
             }
             if (drawables[1] instanceof AnimatedEmojiDrawable) {
                 ((AnimatedEmojiDrawable) drawables[1]).removeView(this);
+            } else if (drawables[1] != null) {
+                drawables[1].setCallback(null);
             }
         }
 
@@ -1476,9 +1488,32 @@ public class AnimatedEmojiDrawable extends Drawable {
             attached = true;
             if (drawables[0] instanceof AnimatedEmojiDrawable) {
                 ((AnimatedEmojiDrawable) drawables[0]).addView(this);
+            } else if (drawables[0] != null) {
+                drawables[0].setCallback(this);
             }
             if (drawables[1] instanceof AnimatedEmojiDrawable) {
                 ((AnimatedEmojiDrawable) drawables[1]).addView(this);
+            } else if (drawables[1] != null) {
+                drawables[1].setCallback(this);
+            }
+        }
+
+        @Override
+        public void invalidateDrawable(@NonNull Drawable who) {
+            invalidate();
+        }
+
+        @Override
+        public void scheduleDrawable(@NonNull Drawable who, @NonNull Runnable what, long when) {
+            if (parentView != null) {
+                parentView.postDelayed(what, Math.max(0, when - SystemClock.uptimeMillis()));
+            }
+        }
+
+        @Override
+        public void unscheduleDrawable(@NonNull Drawable who, @NonNull Runnable what) {
+            if (parentView != null) {
+                parentView.removeCallbacks(what);
             }
         }
 
