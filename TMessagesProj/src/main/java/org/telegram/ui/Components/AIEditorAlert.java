@@ -1476,15 +1476,14 @@ public class AIEditorAlert extends BottomSheetWithRecyclerListView implements No
             loading = false;
             if (err != null) {
                 String apiKey = app.miogram.bridge.ai.MiogramAiService.getApiKey();
-                String rawText = this.textRich != null && this.textRich.text != null ? this.textRich.text.toString() : (this.text != null ? this.text.toString() : "");
+                String rawText = this.textRich != null ? MessageObject.formatRichMessage(this.textRich, false).toString() : (this.text != null ? this.text.toString() : "");
                 if (!TextUtils.isEmpty(apiKey) && !TextUtils.isEmpty(rawText)) {
                     String tone = (tab == TAB_FIX) ? "граматично правильний, природний" : (tab == TAB_STYLE ? "ввічливий, виразний" : "переклад");
                     app.miogram.bridge.ai.MiogramAiService.rephraseText(rawText, tone, rephrased -> {
                         actionBarTitleTextView.setRightDrawable(null);
                         loading = false;
                         if (!TextUtils.isEmpty(rephrased)) {
-                            TL_iv.TL_richMessage rich = new TL_iv.TL_richMessage();
-                            rich.text = rephrased;
+                            TL_iv.RichMessage rich = org.telegram.ui.iv.RichMessageConvert.fromCharSequence(rephrased);
                             this.lastRequestRich[tab] = req;
                             if (tab == TAB_FIX) {
                                 fixedTextLoading = false;
