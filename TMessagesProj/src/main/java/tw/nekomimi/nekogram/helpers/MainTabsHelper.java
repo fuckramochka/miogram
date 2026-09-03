@@ -22,10 +22,16 @@ public final class MainTabsHelper {
     }
 
     public static int getMainTabsHeight() {
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            return 50;
+        }
         return isMainTabsHideTitleStyle() ? FILTER_TABS_HEIGHT : MAIN_TABS_HEIGHT;
     }
 
     public static int getMainTabsMargin() {
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            return 0;
+        }
         return isMainTabsHideTitleStyle() ? MAIN_TABS_MARGIN_COMPACT : MAIN_TABS_MARGIN;
     }
 

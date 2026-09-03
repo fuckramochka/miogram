@@ -9223,6 +9223,9 @@ public class Theme {
             if (key == Theme.key_actionBarDefaultSubmenuItem) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
             if (key == Theme.key_actionBarDefaultSubmenuItemIcon) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
             if (key == Theme.key_actionBarDefaultSubmenuSeparator) return isCurrentThemeDark() ? 0x24FFFFFF : 0x1F000000;
+            if (key == Theme.key_glass_tabSelected) return app.miogram.bridge.ui.ios.MiogramIosTheme.getTabBarIcon(true);
+            if (key == Theme.key_glass_tabSelectedText) return app.miogram.bridge.ui.ios.MiogramIosTheme.getTabBarText(true);
+            if (key == Theme.key_glass_tabUnselected) return app.miogram.bridge.ui.ios.MiogramIosTheme.getTabBarIcon(false);
         }
         if (key_divider == key && !resolvingDividerColor && app.exteraless.appearance.AppearanceConfig.dividerHidden()) {
             return 0x00ffffff;

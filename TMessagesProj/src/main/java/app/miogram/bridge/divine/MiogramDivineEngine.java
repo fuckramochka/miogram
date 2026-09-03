@@ -78,7 +78,7 @@ public class MiogramDivineEngine {
                 AppearanceConfig.singleCornerRadius.setConfigBool(true);
                 AppearanceConfig.senderMiniAvatars.setConfigBool(false);
                 NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(false);
-                NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(true);
+                NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(false);
                 break;
 
             case MINIMALIST:

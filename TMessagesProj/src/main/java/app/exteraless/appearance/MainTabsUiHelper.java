@@ -57,26 +57,43 @@ public final class MainTabsUiHelper {
 
     /** В M3 подложка без отступа от краёв. */
     public static int getBackgroundInset() {
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            return 0;
+        }
         return isMaterial3NavigationBar() ? 0 : AndroidUtilities.dp(MainTabsHelper.getMainTabsMargin() - 0.334f);
     }
 
     /** В M3 подложка прямоугольная, иначе скругление в половину высоты. */
     public static float getBackgroundRadius() {
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            return 0;
+        }
         return isMaterial3NavigationBar() ? 0 : AndroidUtilities.dp(MainTabsHelper.getMainTabsHeight() / 2f);
     }
 
     /** В M3 панель растянута на всю ширину. */
     public static int getTabsViewWidth() {
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            return LayoutHelper.MATCH_PARENT;
+        }
         return isMaterial3NavigationBar() ? LayoutHelper.MATCH_PARENT : MainTabsHelper.getTabsViewWidth();
     }
 
     /** Сдвиг кнопки «написать» над панелью: в M3 всегда 64. */
     public static int getTabsFabOffsetDp() {
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            return 56;
+        }
         return isMaterial3NavigationBar() ? 64 : MainTabsHelper.getMainTabsHeight() + MainTabsHelper.getMainTabsMargin();
     }
 
     /** В M3 панель во всю ширину и без внутренних отступов. */
     public static void applyTabsLayoutStyle(MainTabsLayout layout, int legacyMaxWidthPx) {
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            layout.setPadding(0, 0, 0, 0);
+            layout.setMaxWidth(0);
+            return;
+        }
         final int paddingH = getTabsInnerPaddingHorizontal();
         final int paddingV = getTabsInnerPaddingVertical();
         layout.setPadding(paddingH, paddingV, paddingH, paddingV);
@@ -88,6 +105,11 @@ public final class MainTabsUiHelper {
      * Левый и правый инсеты несёт обёртка, поэтому переданы отдельно.
      */
     public static void applyTabsBottomInset(MainTabsLayout layout, View wrapper, int bottomInset, int leftInset, int rightInset) {
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            applyTabsBottomInset(layout, bottomInset);
+            wrapper.setPadding(leftInset, 0, rightInset, 0);
+            return;
+        }
         applyTabsBottomInset(layout, bottomInset);
         wrapper.setPadding(leftInset, 0, rightInset, isMaterial3NavigationBar() ? 0 : bottomInset);
     }

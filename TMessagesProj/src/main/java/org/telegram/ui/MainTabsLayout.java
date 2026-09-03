@@ -80,7 +80,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     }
 
     public static boolean isBottomNavigationFloating() {
-        if (isBottomNavigationHidden()) {
+        if (isBottomNavigationHidden() || app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
             return false;
         }
         if (bottomNavigationFloating == null) {

@@ -13539,25 +13539,42 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             );
             ((ContentView) fragmentView).addView(iosHeader, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
 
-            View iosTabBar = app.miogram.bridge.ui.ios.MiogramIosLayout.createIosTabBar(getContext(), 2, tabIndex -> {
-                if (tabIndex == 0) {
-                    presentFragment(new ContactsActivity(null));
-                } else if (tabIndex == 1) {
-                    presentFragment(new CallLogActivity());
-                } else if (tabIndex == 2) {
-                    if (viewPages != null && viewPages[0] != null && viewPages[0].listView != null) {
-                        viewPages[0].listView.smoothScrollToPosition(0);
+            int iosTopInset = iosHeader.getHeaderTotalHeight();
+
+            if (filterTabsView != null) {
+                if (getMessagesController().dialogFilters.isEmpty()) {
+                    filterTabsView.setVisibility(View.GONE);
+                } else {
+                    filterTabsView.setVisibility(View.VISIBLE);
+                    FrameLayout.LayoutParams ftpLp = (FrameLayout.LayoutParams) filterTabsView.getLayoutParams();
+                    if (ftpLp != null) {
+                        ftpLp.topMargin = iosTopInset;
+                        filterTabsView.setLayoutParams(ftpLp);
                     }
-                } else if (tabIndex == 3) {
-                    presentFragment(new SettingsActivity());
+                    iosTopInset += dp(40);
                 }
-            });
-            if (iosTabBar != null) {
-                ((ContentView) fragmentView).addView(iosTabBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 50, Gravity.BOTTOM));
             }
 
-            int iosTopInset = iosHeader.getHeaderTotalHeight();
-            int iosBottomInset = dp(50);
+            if (mainTabsActivityController == null) {
+                View iosTabBar = app.miogram.bridge.ui.ios.MiogramIosLayout.createIosTabBar(getContext(), 2, tabIndex -> {
+                    if (tabIndex == 0) {
+                        presentFragment(new ContactsActivity(null));
+                    } else if (tabIndex == 1) {
+                        presentFragment(new CallLogActivity());
+                    } else if (tabIndex == 2) {
+                        if (viewPages != null && viewPages[0] != null && viewPages[0].listView != null) {
+                            viewPages[0].listView.smoothScrollToPosition(0);
+                        }
+                    } else if (tabIndex == 3) {
+                        presentFragment(new SettingsActivity());
+                    }
+                });
+                if (iosTabBar != null) {
+                    ((ContentView) fragmentView).addView(iosTabBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 50, Gravity.BOTTOM));
+                }
+            }
+
+            int iosBottomInset = mainTabsActivityController == null ? dp(50) : 0;
             if (viewPages != null) {
                 for (int a = 0; a < viewPages.length; a++) {
                     if (viewPages[a] != null) {
