@@ -42526,6 +42526,10 @@ public class ChatActivity extends BaseFragment implements
             if (cell == null) {
                 return;
             }
+            if (user != null && app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(user.id)) {
+                new app.miogram.bridge.badge.MiogramBadgeBottomSheet(ChatActivity.this, user.id).show();
+                return;
+            }
             if (!TextUtils.isEmpty(giftSlug)) {
                 Browser.openUrl(getContext(), "https://" + getMessagesController().linkPrefix + "/nft/" + giftSlug);
                 return;

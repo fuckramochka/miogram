@@ -1,5 +1,8 @@
 package tw.nekomimi.nekogram.llm
 
+import android.content.Context
+import app.miogram.bridge.ai.MiogramAiService
+import org.telegram.messenger.ApplicationLoader
 import org.telegram.messenger.LocaleController.getString
 import org.telegram.messenger.R
 import tw.nekomimi.nekogram.NekoConfig
@@ -24,7 +27,15 @@ object LlmConfig {
     fun getSavedModelName(preset: Int): String {
         val value = when (preset) {
             PresetRegistry.OPENAI -> NaConfig.llmProviderOpenAIModel.String()
-            PresetRegistry.GOOGLE_AI_STUDIO -> NaConfig.llmProviderGeminiModel.String()
+            PresetRegistry.GOOGLE_AI_STUDIO -> {
+                var model = NaConfig.llmProviderGeminiModel.String()
+                if (model.isNullOrBlank()) {
+                    try {
+                        model = MiogramAiService.getModel()
+                    } catch (_: Throwable) {}
+                }
+                model
+            }
             PresetRegistry.GROQ -> NaConfig.llmProviderGroqModel.String()
             PresetRegistry.DEEPSEEK -> NaConfig.llmProviderDeepSeekModel.String()
             PresetRegistry.XAI -> NaConfig.llmProviderXAIModel.String()
@@ -43,7 +54,18 @@ object LlmConfig {
         val value = model?.trim() ?: ""
         when (preset) {
             PresetRegistry.OPENAI -> NaConfig.llmProviderOpenAIModel.setConfigString(value)
-            PresetRegistry.GOOGLE_AI_STUDIO -> NaConfig.llmProviderGeminiModel.setConfigString(value)
+            PresetRegistry.GOOGLE_AI_STUDIO -> {
+                NaConfig.llmProviderGeminiModel.setConfigString(value)
+                try {
+                    val ctx = ApplicationLoader.applicationContext
+                    if (ctx != null && value.isNotEmpty()) {
+                        ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE)
+                            .edit()
+                            .putString("gen_model", value)
+                            .apply()
+                    }
+                } catch (_: Throwable) {}
+            }
             PresetRegistry.GROQ -> NaConfig.llmProviderGroqModel.setConfigString(value)
             PresetRegistry.DEEPSEEK -> NaConfig.llmProviderDeepSeekModel.setConfigString(value)
             PresetRegistry.XAI -> NaConfig.llmProviderXAIModel.setConfigString(value)
@@ -101,7 +123,12 @@ object LlmConfig {
 
     @JvmStatic
     fun getFirstApiKey(preset: Int): String? {
-        val raw = getApiKeyConfigItem(preset).String()?.trim()
+        var raw = getApiKeyConfigItem(preset).String()?.trim()
+        if (raw.isNullOrBlank() && preset == PresetRegistry.GOOGLE_AI_STUDIO) {
+            try {
+                raw = MiogramAiService.getApiKey()
+            } catch (_: Throwable) {}
+        }
         if (raw.isNullOrBlank()) {
             return null
         }
@@ -113,20 +140,16 @@ object LlmConfig {
     @JvmStatic
     fun isLLMTranslatorAvailable(): Boolean {
         val llmProvider = NaConfig.llmProviderPreset.Int()
-        val keyConfig = when (llmProvider) {
-            PresetRegistry.OPENAI -> NaConfig.llmProviderOpenAIKey
-            PresetRegistry.GOOGLE_AI_STUDIO -> NaConfig.llmProviderGeminiKey
-            PresetRegistry.GROQ -> NaConfig.llmProviderGroqKey
-            PresetRegistry.DEEPSEEK -> NaConfig.llmProviderDeepSeekKey
-            PresetRegistry.XAI -> NaConfig.llmProviderXAIKey
-            PresetRegistry.CEREBRAS -> NaConfig.llmProviderCerebrasKey
-            PresetRegistry.OLLAMA_CLOUD -> NaConfig.llmProviderOllamaCloudKey
-            PresetRegistry.OPENROUTER -> NaConfig.llmProviderOpenRouterKey
-            PresetRegistry.VERCEL_AI_GATEWAY -> NaConfig.llmProviderVercelAIGatewayKey
-            PresetRegistry.GOOGLE_AGENT_PLATFORM -> NaConfig.llmProviderVertexKey
-            else -> NaConfig.llmApiKey
+        val keyConfig = getApiKeyConfigItem(llmProvider)
+        if (keyConfig.String().isNotEmpty()) {
+            return true
         }
-        return keyConfig.String().isNotEmpty()
+        if (llmProvider == PresetRegistry.GOOGLE_AI_STUDIO) {
+            try {
+                return MiogramAiService.hasApiKey()
+            } catch (_: Throwable) {}
+        }
+        return false
     }
 
     @JvmStatic

@@ -6020,7 +6020,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             super.onMeasure(widthMeasureSpec, heightMeasureSpec);
             if (isInitLineCount) {
                 lineCount = getLineCount();
-                showAiButton(!TextUtils.isEmpty(getText().toString().trim()));
+                showAiButton((lineCount > 2 || richDraftActive) && !TextUtils.isEmpty(getText().toString().trim()));
                 showRichButton(lineCount > 2 && !TextUtils.isEmpty(getText().toString().trim()));
             }
             isInitLineCount = false;
@@ -6362,7 +6362,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec);
                 if (lineCount != messageEditText.getLineCount()) {
-                    showAiButton(messageEditText.getText() != null && !TextUtils.isEmpty(messageEditText.getText().toString().trim()));
+                    showAiButton((messageEditText.getLineCount() > 2 || richDraftActive) && messageEditText.getText() != null && !TextUtils.isEmpty(messageEditText.getText().toString().trim()));
                     showRichButton(messageEditText.getLineCount() > 2 && messageEditText.getText() != null && !TextUtils.isEmpty(messageEditText.getText().toString().trim()));
                 }
             }
@@ -6534,7 +6534,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                         onLineCountChanged(lineCount, messageEditText.getLineCount());
                     }
                     lineCount = messageEditText.getLineCount();
-                    showAiButton(charSequence != null && !TextUtils.isEmpty(charSequence.toString().trim()));
+                    showAiButton((lineCount > 2 || richDraftActive) && charSequence != null && !TextUtils.isEmpty(charSequence.toString().trim()));
                     showRichButton(lineCount > 2 && charSequence != null && !TextUtils.isEmpty(charSequence.toString().trim()));
                 } else {
                     heightShouldBeChanged = false;
@@ -6648,7 +6648,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     }
                 }
 
-                showAiButton(editable != null && !TextUtils.isEmpty(editable.toString().trim()));
+                showAiButton((lineCount > 2 || richDraftActive) && editable != null && !TextUtils.isEmpty(editable.toString().trim()));
                 checkIsEphemeralMessage(true);
                 showRichButton(lineCount > 2 && editable != null && !TextUtils.isEmpty(editable.toString().trim()));
             }
@@ -11871,7 +11871,7 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     private void updateButtons() {
-        showAiButton(messageEditText != null && messageEditText.getText() != null && !TextUtils.isEmpty(messageEditText.getText().toString().trim()));
+        showAiButton((messageEditText != null && messageEditText.getLineCount() > 2 || richDraftActive) && messageEditText != null && messageEditText.getText() != null && !TextUtils.isEmpty(messageEditText.getText().toString().trim()));
         showRichButton(messageEditText != null && messageEditText.getLineCount() > 2 && messageEditText.getText() != null && !TextUtils.isEmpty(messageEditText.getText().toString().trim()));
     }
 

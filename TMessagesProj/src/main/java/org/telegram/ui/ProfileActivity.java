@@ -1435,6 +1435,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     backgroundPaint.setAlpha((int) (0xFF * progressToGradient));
                     canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
                 }
+                app.miogram.bridge.profile.MiogramCustomProfileManager.drawBanner(canvas, getMeasuredWidth(), y1, user != null ? user.id : 0L);
+                if (avatarContainer != null && user != null && app.miogram.bridge.profile.MiogramCustomProfileManager.shouldApplyToUser(user.id)) {
+                    app.miogram.bridge.profile.MiogramCustomProfileManager.drawThoughtBubble(canvas, avatarContainer.getX(), avatarContainer.getY(), avatarContainer.getWidth());
+                }
                 if (hasEmoji) {
                     final float loadedScale = emojiLoadedT.set(isEmojiLoaded());
                     boolean shoudIgnore = openAnimationInProgress && playProfileAnimation == 2;
@@ -5605,6 +5609,26 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     info.addAction(new AccessibilityNodeInfo.AccessibilityAction(AccessibilityNodeInfo.ACTION_LONG_CLICK, LocaleController.getString(R.string.AccDescrOpenInPhotoViewer)));
                 } else {
                     info.setVisibleToUser(false);
+                }
+            }
+
+            @Override
+            public void draw(Canvas canvas) {
+                boolean custom = app.miogram.bridge.profile.MiogramCustomProfileManager.shouldApplyToUser(user != null ? user.id : 0L);
+                if (custom && app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShape() != app.miogram.bridge.profile.MiogramCustomProfileManager.SHAPE_CIRCLE) {
+                    android.graphics.Path path = app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShapePath(getWidth(), getHeight(), app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShape());
+                    if (path != null) {
+                        canvas.save();
+                        canvas.clipPath(path);
+                        super.draw(canvas);
+                        canvas.restore();
+                        app.miogram.bridge.profile.MiogramCustomProfileManager.drawAvatarGlowAndBorder(canvas, getWidth(), getHeight(), app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShape());
+                        return;
+                    }
+                }
+                super.draw(canvas);
+                if (custom) {
+                    app.miogram.bridge.profile.MiogramCustomProfileManager.drawAvatarGlowAndBorder(canvas, getWidth(), getHeight(), app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShape());
                 }
             }
 
@@ -11907,7 +11931,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (user != null && app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(user.id)) {
                         rightIconIsStatus = true;
                         rightIconIsPremium = false;
-                        nameTextView[a].setRightDrawable(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 18));
+                        nameTextView[a].setRightDrawable(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 20));
                         nameTextViewRightDrawableContentDescription = app.miogram.bridge.badge.MiogramBadgeManager.getBadgeTitle(user.id);
                     } else if (user != null/* && !getMessagesController().premiumFeaturesBlocked()*/ && !MessagesController.isSupportUser(user) && (DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0 || (user.self && selfEmojiDocId != null && selfEmojiDocId != 0))) {
                         rightIconIsStatus = true;
@@ -11941,7 +11965,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (user != null && app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(user.id)) {
                         rightIconIsStatus = true;
                         rightIconIsPremium = false;
-                        nameTextView[a].setRightDrawable(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 18));
+                        nameTextView[a].setRightDrawable(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 20));
                         nameTextViewRightDrawableContentDescription = app.miogram.bridge.badge.MiogramBadgeManager.getBadgeTitle(user.id);
                     } else if (/*!getMessagesController().premiumFeaturesBlocked() && */user != null && !MessagesController.isSupportUser(user) && (DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0 || (user.self && selfEmojiDocId2 != null && selfEmojiDocId2 != 0))) {
                         rightIconIsStatus = true;
@@ -11974,7 +11998,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 if (a == 1 && (rightIconIsStatus || rightIconIsPremium)) {
                     nameTextView[a].setRightDrawableOutside(true);
                 }
-                if (user.self && getMessagesController().isPremiumUser(user)) {
+                if (user != null && app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(user.id)) {
+                    nameTextView[a].setRightDrawableOnClick(v -> {
+                        new app.miogram.bridge.badge.MiogramBadgeBottomSheet(ProfileActivity.this, user.id).show();
+                    });
+                } else if (user.self && getMessagesController().isPremiumUser(user)) {
                     nameTextView[a].setRightDrawableOnClick(v -> {
                         showStatusSelect();
                     });

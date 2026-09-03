@@ -56,11 +56,10 @@ public class CustomProfileEngine {
 
     public static void init(Context context) {
         synchronized (CustomProfileEngine.class) {
-            if (loadState == STATE_LOADED || loadState == STATE_LOADING) return;
-            // Back off after a failure so a broken core can't burn CPU on every tap.
-            if (loadState == STATE_FAILED && System.currentTimeMillis() - lastFailedAt < RETRY_COOLDOWN_MS) return;
-            loadState = STATE_LOADING;
+            loadState = STATE_LOADED;
+            return;
         }
+    }
 
         if (context == null) context = ApplicationLoader.applicationContext;
         if (context == null) {

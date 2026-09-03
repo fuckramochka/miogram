@@ -11,6 +11,7 @@ import org.telegram.messenger.LocaleController.getString
 import org.telegram.messenger.R
 import org.telegram.tgnet.TLRPC
 import org.telegram.ui.Components.TranslateAlert2
+import app.miogram.bridge.ai.MiogramAiService
 import tw.nekomimi.nekogram.llm.LlmConfig
 import tw.nekomimi.nekogram.llm.net.OpenAICompatClient
 import tw.nekomimi.nekogram.llm.net.VertexGeminiClient
@@ -72,7 +73,12 @@ object LLMTranslator : Translator {
     private fun updateApiKeys() {
         val llmProvider = NaConfig.llmProviderPreset.Int()
         val keyConfig = LlmConfig.getApiKeyConfigItem(llmProvider)
-        val key = keyConfig.String()
+        var key = keyConfig.String()
+        if (key.isNullOrBlank() && llmProvider == PresetRegistry.GOOGLE_AI_STUDIO) {
+            try {
+                key = MiogramAiService.getApiKey()
+            } catch (_: Throwable) {}
+        }
 
         if (currentProvider == llmProvider && cachedKeyString == key) {
             return
@@ -91,6 +97,13 @@ object LLMTranslator : Translator {
     private fun getNextApiKey(): String? {
         updateApiKeys()
         if (apiKeys.isEmpty()) {
+            val llmProvider = NaConfig.llmProviderPreset.Int()
+            if (llmProvider == PresetRegistry.GOOGLE_AI_STUDIO) {
+                try {
+                    val k = MiogramAiService.getApiKey()
+                    if (k.isNotBlank()) return k
+                } catch (_: Throwable) {}
+            }
             return null
         }
 

@@ -111,9 +111,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerCategoriesRow) {
-                        cell.setText(MiogramLocale.get("💖 Стиль та Розділи ໒꒱", "💖 Стиль и Разделы ໒꒱", "💖 Style & Sections ໒꒱"));
+                        cell.setText(MiogramLocale.get("Інтерфейс та Зовнішній вигляд", "Интерфейс и Внешний вид", "Interface & Appearance"));
                     } else if (position == headerAdvancedRow) {
-                        cell.setText(MiogramLocale.get("✨ Інтелект та Інструменти ໒꒱", "✨ Интеллект и Инструменты ໒꒱", "✨ AI & Developer Tools ໒꒱"));
+                        cell.setText(MiogramLocale.get("Інструменти та Сервіси", "Инструменты и Сервисы", "Tools & Services"));
                     }
                     break;
                 }
@@ -122,7 +122,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     if (position == visualsRow) {
                         app.miogram.bridge.divine.MiogramDivineEngine.Preset current = app.miogram.bridge.divine.MiogramDivineEngine.getCurrentPreset(getParentActivity());
                         cell.setTextAndValueAndIcon(
-                                MiogramLocale.get("Стиль інтерфейсу", "Стиль интерфейса", "Interface Style"),
+                                MiogramLocale.get("Налаштування інтерфейсу", "Настройки интерфейса", "Interface Settings"),
                                 app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(current),
                                 R.drawable.msg_theme,
                                 true
@@ -149,9 +149,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == categoriesInfoRow) {
-                        cell.setText(MiogramLocale.get("Повний набір функцій exteraless та Nagram, оптимізований та об'єднаний у Miogram.", "Полный набор функций exteraless и Nagram, оптимизированный и объединённый в Miogram.", "Full suite of exteraless and Nagram features, unified and optimized for Miogram."));
+                        cell.setText(MiogramLocale.get("Налаштування інтерфейсу, кастомізація профілю та додаткові функції.", "Настройки интерфейса, кастомизация профиля и дополнительные функции.", "Interface settings, profile customization, and extended features."));
                     } else if (position == advancedInfoRow) {
-                        cell.setText(MiogramLocale.get("Нативні плагіни, голосовий ШІ Gemini Live та система безшовних оновлень.", "Нативные плагины, голосовой ИИ Gemini Live и система бесшовных обновлений.", "Native plugins, Gemini Live multimodal voice AI, and seamless in-app updater."));
+                        cell.setText(MiogramLocale.get("Керування плагінами, сервісами штучного інтелекту та оновленнями клієнта.", "Управление плагинами, сервисами искусственного интеллекта и обновлениями клиента.", "Manage plugins, AI services, and client updates."));
                     }
                     break;
                 }

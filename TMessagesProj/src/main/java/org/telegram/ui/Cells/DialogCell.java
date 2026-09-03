@@ -1568,7 +1568,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                             drawPremium = true;
                             emojiStatus.center = LocaleController.isRTL;
                             nameLayoutEllipsizeByGradient = true;
-                            emojiStatus.set(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 14), false);
+                            emojiStatus.set(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 19), false);
                             emojiStatus.setParticles(false, false);
                         } else {
                             drawPremium = MessagesController.getInstance(currentAccount).isPremiumUser(user) && UserConfig.getInstance(currentAccount).clientUserId != user.id && user.id != 0;

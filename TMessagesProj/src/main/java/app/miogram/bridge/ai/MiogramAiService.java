@@ -21,11 +21,14 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import tw.nekomimi.nekogram.config.ConfigItem;
+import tw.nekomimi.nekogram.llm.LlmConfig;
+import tw.nekomimi.nekogram.llm.preset.PresetRegistry;
 import xyz.nextalone.nagram.NaConfig;
 
 /**
  * High-performance Miogram AI service for text summarization, rephrasing and voice transcription.
- * Uses Google Gemini API with smart fallback and unified key vault.
+ * Fully synchronized key, model, and provider vault across Miogram AI and Neko Translator.
  */
 public class MiogramAiService {
 
@@ -34,20 +37,53 @@ public class MiogramAiService {
     private static final ExecutorService executor = Executors.newCachedThreadPool();
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
+    public static int getProvider() {
+        try {
+            return NaConfig.INSTANCE.getLlmProviderPreset().Int();
+        } catch (Throwable ignored) {
+            return PresetRegistry.GOOGLE_AI_STUDIO;
+        }
+    }
+
+    public static void setProvider(int provider) {
+        try {
+            NaConfig.INSTANCE.getLlmProviderPreset().setConfigInt(provider);
+        } catch (Throwable ignored) {}
+    }
+
+    public static boolean hasApiKey() {
+        return !TextUtils.isEmpty(getApiKey());
+    }
+
     public static String getApiKey() {
+        int provider = getProvider();
         String key = "";
         try {
-            Context ctx = ApplicationLoader.applicationContext;
-            if (ctx != null) {
-                key = ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE).getString("gemini_api_key", "");
-                if (TextUtils.isEmpty(key)) {
-                    key = ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE).getString("gemini_key", "");
+            ConfigItem item = LlmConfig.getApiKeyConfigItem(provider);
+            if (item != null) {
+                key = item.String();
+                if (!TextUtils.isEmpty(key)) {
+                    key = key.split(",")[0].trim();
                 }
             }
         } catch (Throwable ignored) {}
 
         if (TextUtils.isEmpty(key)) {
-            key = NaConfig.INSTANCE.getTranscribeProviderGeminiApiKey().String();
+            try {
+                Context ctx = ApplicationLoader.applicationContext;
+                if (ctx != null) {
+                    key = ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE).getString("gemini_api_key", "");
+                    if (TextUtils.isEmpty(key)) {
+                        key = ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE).getString("gemini_key", "");
+                    }
+                }
+            } catch (Throwable ignored) {}
+        }
+
+        if (TextUtils.isEmpty(key)) {
+            try {
+                key = NaConfig.INSTANCE.getTranscribeProviderGeminiApiKey().String();
+            } catch (Throwable ignored) {}
         }
         if (TextUtils.isEmpty(key)) {
             try {
@@ -60,7 +96,40 @@ public class MiogramAiService {
         return key != null ? key.trim() : "";
     }
 
+    public static void setApiKey(String key) {
+        String trimmed = key != null ? key.trim() : "";
+        try {
+            Context ctx = ApplicationLoader.applicationContext;
+            if (ctx != null) {
+                ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE).edit()
+                        .putString("gemini_api_key", trimmed)
+                        .putString("gemini_key", trimmed)
+                        .apply();
+            }
+        } catch (Throwable ignored) {}
+
+        try {
+            int provider = getProvider();
+            ConfigItem item = LlmConfig.getApiKeyConfigItem(provider);
+            if (item != null) {
+                item.setConfigString(trimmed);
+            }
+            if (provider == PresetRegistry.GOOGLE_AI_STUDIO) {
+                NaConfig.INSTANCE.getTranscribeProviderGeminiApiKey().setConfigString(trimmed);
+                NaConfig.INSTANCE.getLlmProviderGeminiKey().setConfigString(trimmed);
+            }
+        } catch (Throwable ignored) {}
+    }
+
     public static String getModel() {
+        try {
+            int provider = getProvider();
+            String model = LlmConfig.getEffectiveModelName(provider);
+            if (!TextUtils.isEmpty(model)) {
+                return model;
+            }
+        } catch (Throwable ignored) {}
+
         try {
             Context ctx = ApplicationLoader.applicationContext;
             if (ctx != null) {
@@ -69,6 +138,23 @@ public class MiogramAiService {
             }
         } catch (Throwable ignored) {}
         return "gemini-3.5-flash-lite";
+    }
+
+    public static void setModel(String model) {
+        String trimmed = model != null ? model.trim() : "";
+        try {
+            Context ctx = ApplicationLoader.applicationContext;
+            if (ctx != null) {
+                ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE).edit()
+                        .putString("gen_model", trimmed)
+                        .apply();
+            }
+        } catch (Throwable ignored) {}
+
+        try {
+            int provider = getProvider();
+            LlmConfig.setSavedModelName(provider, trimmed);
+        } catch (Throwable ignored) {}
     }
 
     /**

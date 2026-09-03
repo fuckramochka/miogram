@@ -234,7 +234,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle(MiogramLocale.get("Стиль інтерфейсу", "Стиль интерфейса", "Interface Style"));
+        builder.setTitle(MiogramLocale.get("Налаштування інтерфейсу", "Настройки интерфейса", "Interface Settings"));
         builder.setItems(titles, (dialog, which) -> {
             app.miogram.bridge.divine.MiogramDivineEngine.applyPreset(ctx, presets[which]);
             listAdapter.notifyItemChanged(discordUiRow);
@@ -359,7 +359,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerModeRow) {
-                        cell.setText(MiogramLocale.get("Стиль інтерфейсу та Вайб", "Стиль интерфейса и Вайб", "Interface Style & Aesthetics"));
+                        cell.setText(MiogramLocale.get("Налаштування інтерфейсу", "Настройки интерфейса", "Interface Settings"));
                     } else if (position == headerGlassRow) {
                         cell.setText(MiogramLocale.get("Рідке скло (Liquid Frosted Glass)", "Жидкое стекло (Liquid Frosted Glass)", "Liquid Frosted Glass (AGSL)"));
                     } else if (position == headerAvatarsRow) {
@@ -399,7 +399,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == discordUiRow) {
                         app.miogram.bridge.divine.MiogramDivineEngine.Preset current = app.miogram.bridge.divine.MiogramDivineEngine.getCurrentPreset(getSafeContext());
-                        cell.setTextAndValue(MiogramLocale.get("Стиль інтерфейсу", "Стиль интерфейса", "Interface Style"), app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(current), true);
+                        cell.setTextAndValue(MiogramLocale.get("Налаштування інтерфейсу", "Настройки интерфейса", "Interface Settings"), app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(current), true);
                     } else if (position == glassIntensityRow) {
                         cell.setTextAndValue(MiogramLocale.get("Інтенсивність скла", "Интенсивность стекла", "Glass Intensity"), intensityPercent() + "%", false);
                     } else if (position == avatarCornersRow) {

@@ -93,10 +93,8 @@ public class MiogramCustomProfileActivity extends BaseNekoSettingsActivity {
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == editorRow) {
-            CustomProfileEngine.openEditor();
-        } else if (position == bubbleRow) {
-            CustomProfileEngine.openBubbleSheet();
+        if (position == editorRow || position == bubbleRow) {
+            presentFragment(new MiogramCustomProfileEditorActivity());
         } else if (position == langRow) {
             showLanguageDialog();
         } else if (position == chatDecorRow) {

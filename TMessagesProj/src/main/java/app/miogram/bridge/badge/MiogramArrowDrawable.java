@@ -158,33 +158,15 @@ public class MiogramArrowDrawable extends Drawable {
         if (w != lastWidth || h != lastHeight) {
             lastWidth = w;
             lastHeight = h;
-
-            float s = w / 128f;
-            heartStrokePaint.setStrokeWidth(Math.max(1f, 1.0f * s));
-            wingStrokePaint.setStrokeWidth(Math.max(1f, 1.2f * s));
-            haloGlowPaint.setStrokeWidth(Math.max(1.5f, 3.2f * s));
-            haloCorePaint.setStrokeWidth(Math.max(1f, 1.8f * s));
-            particleStarPaint.setStrokeWidth(Math.max(1f, 1.0f * s));
-
-            // Ame-chan Signature Heart Gradient: Hot Pink -> Tenshi Lilac
-            Shader heartShader = new LinearGradient(
-                    bounds.centerX(), bounds.centerY() - 16f * s,
-                    bounds.centerX(), bounds.centerY() + 20f * s,
-                    new int[]{0xFFFF2A93, 0xFFB872FF},
-                    new float[]{0.0f, 1.0f},
-                    Shader.TileMode.CLAMP
-            );
-            heartPaint.setShader(heartShader);
         }
     }
 
     @Override
     public void draw(@NonNull Canvas canvas) {
         Rect bounds = getBounds();
-        if (bounds.width() <= 0 || bounds.height() <= 0) return;
-        if (lastWidth != bounds.width() || lastHeight != bounds.height()) {
-            updateDimensionsAndShaders(bounds);
-        }
+        int w = bounds.width();
+        int h = bounds.height();
+        if (w <= 0 || h <= 0) return;
 
         long now = SystemClock.uptimeMillis();
         lastDrawTime = now;
@@ -196,131 +178,163 @@ public class MiogramArrowDrawable extends Drawable {
         float phase = (now % ANIMATION_DURATION_MS) / (float) ANIMATION_DURATION_MS;
         double angle = phase * 2.0 * Math.PI;
 
-        float s = bounds.width() / 128f;
-        float cx = bounds.centerX();
-        float cy = bounds.centerY() + 3f * s;
+        // Discrete stepped pixel dimensions (28x22 pixel grid)
+        final float GRID_W = 28f;
+        final float GRID_H = 22f;
+        float px = w / GRID_W;
+        float py = h / GRID_H;
 
-        // Subtle, alive movement
-        float hoverY = (float) Math.sin(angle) * 2.2f * s;
-        float scale = 1.0f + (float) Math.sin(angle) * 0.025f;
-        float flap = (float) Math.sin(angle) * 2.0f * s;
-        float glitchOffset = Math.max(AndroidUtilities.dpf2(0.6f), s * 1.5f);
+        // Discrete retro bobbing (stepped pixel hops)
+        float bobY = (float) Math.round(Math.sin(angle) * 1.2) * py;
 
         canvas.save();
+        canvas.translate(bounds.left, bounds.top + bobY);
 
-        // 1. Draw Floating Halo above heart
-        float haloY = cy - 27f * scale * s + hoverY + (float) Math.sin(angle + 0.2) * 0.8f * s;
-        float haloRx = 17f * scale * s;
-        float haloRy = 5f * scale * s;
-        haloRect.set(cx - haloRx, haloY - haloRy, cx + haloRx, haloY + haloRy);
-        canvas.drawOval(haloRect, haloGlowPaint);
-        canvas.drawOval(haloRect, haloCorePaint);
+        // 1. CRT Chromatic Glitch Shadows (Cyan shifted -1px, Pink shifted +1px)
+        float glitchPx = Math.max(1f, px * 0.9f);
 
-        // 2. Draw Feathered Angel Wings (Left & Right)
-        buildWingPath(leftWingPath, cx, cy + hoverY, -1, scale, s, flap);
-        buildWingPath(rightWingPath, cx, cy + hoverY, 1, scale, s, flap);
-
-        // Wing CRT Glitch Channels
+        // Glitch Cyan
         canvas.save();
-        canvas.translate(-glitchOffset, -glitchOffset * 0.7f);
-        canvas.drawPath(leftWingPath, wingGlitchCyanPaint);
-        canvas.drawPath(rightWingPath, wingGlitchCyanPaint);
+        canvas.translate(-glitchPx, 0);
+        drawPixelWings(canvas, px, py, wingGlitchCyanPaint);
+        drawPixelHeart(canvas, px, py, heartGlitchCyanPaint);
         canvas.restore();
 
+        // Glitch Magenta/Pink
         canvas.save();
-        canvas.translate(glitchOffset, glitchOffset * 0.7f);
-        canvas.drawPath(leftWingPath, wingGlitchPinkPaint);
-        canvas.drawPath(rightWingPath, wingGlitchPinkPaint);
+        canvas.translate(glitchPx, 0);
+        drawPixelWings(canvas, px, py, wingGlitchPinkPaint);
+        drawPixelHeart(canvas, px, py, heartGlitchPinkPaint);
         canvas.restore();
 
-        // Core Wings
-        canvas.drawPath(leftWingPath, wingFillPaint);
-        canvas.drawPath(leftWingPath, wingStrokePaint);
-        canvas.drawPath(rightWingPath, wingFillPaint);
-        canvas.drawPath(rightWingPath, wingStrokePaint);
-
-        // 3. Draw Kawaii Ame-chan Heart
-        buildHeartPath(heartPath, cx, cy + hoverY, scale, s);
-
-        // Heart CRT Glitch Channels
+        // 2. Halo (Floating Pixel Ring)
+        float haloHover = (float) Math.round(Math.sin(angle + 0.3) * 0.8) * py;
         canvas.save();
-        canvas.translate(-glitchOffset * 1.2f, -glitchOffset * 0.8f);
-        canvas.drawPath(heartPath, heartGlitchCyanPaint);
+        canvas.translate(0, haloHover);
+        drawPixelHalo(canvas, px, py);
         canvas.restore();
 
-        canvas.save();
-        canvas.translate(glitchOffset * 1.2f, glitchOffset * 0.8f);
-        canvas.drawPath(heartPath, heartGlitchPinkPaint);
-        canvas.restore();
+        // 3. Pixel Angel Wings
+        drawPixelWings(canvas, px, py, wingFillPaint);
+        drawPixelWingsOutline(canvas, px, py, wingStrokePaint);
 
-        // Core Heart Fill & Stroke
-        canvas.drawPath(heartPath, heartPaint);
-        canvas.drawPath(heartPath, heartStrokePaint);
+        // 4. Pixel Ame-chan Heart
+        drawPixelHeart(canvas, px, py, heartPaint);
+        drawPixelHeartOutline(canvas, px, py, heartStrokePaint);
 
-        // Glossy Specular Highlights on Heart
-        canvas.drawCircle(cx - 7f * scale * s, cy + hoverY - 8f * scale * s, 3.2f * scale * s, shinePaint);
-        canvas.drawCircle(cx + 4f * scale * s, cy + hoverY - 7f * scale * s, 1.6f * scale * s, shinePaint);
+        // 5. Specular Pixel Highlights
+        canvas.drawRect(10 * px, 9 * py, 12 * px, 11 * py, shinePaint);
+        canvas.drawRect(16 * px, 10 * py, 17 * px, 11 * py, shinePaint);
 
-        // 4. Draw Shimmering Sparkle Particles (✦)
-        for (float[] p : PARTICLES) {
-            float pT = (phase + p[2]) % 1.0f;
-            float pAlphaProgress = (float) Math.sin(pT * Math.PI);
-            int pAlpha = (int) (pAlphaProgress * 255);
-            if (pAlpha <= 0) continue;
-
-            float px = cx + p[0] * s;
-            float py = cy + hoverY + p[1] * s - pT * 6f * s; // drifting upwards
-            float pSize = (2.2f + 1.4f * pAlphaProgress) * s;
-
-            particleStarPaint.setAlpha(pAlpha);
-            particleCorePaint.setAlpha(pAlpha);
-
-            // 4-point sparkle cross
-            canvas.drawLine(px, py - pSize * 2f, px, py + pSize * 2f, particleStarPaint);
-            canvas.drawLine(px - pSize * 2f, py, px + pSize * 2f, py, particleStarPaint);
-            canvas.drawCircle(px, py, pSize * 0.7f, particleCorePaint);
-        }
+        // 6. Twinkling ✦ Pixel Sparkles
+        drawPixelSparkles(canvas, px, py, phase);
 
         canvas.restore();
     }
 
-    private static void buildWingPath(Path path, float cx, float cy, int sign, float scale, float s, float flap) {
-        path.reset();
-        path.moveTo(cx + sign * 10f * scale * s, cy - 4f * scale * s);
-        path.lineTo(cx + sign * 28f * scale * s, cy - 19f * scale * s - flap);
-        path.lineTo(cx + sign * 52f * scale * s, cy - 17f * scale * s - flap);
-        path.lineTo(cx + sign * 58f * scale * s, cy - 8f * scale * s - flap * 0.7f);
-        path.lineTo(cx + sign * 46f * scale * s, cy - 1f * scale * s);
-        path.lineTo(cx + sign * 50f * scale * s, cy + 4f * scale * s);
-        path.lineTo(cx + sign * 38f * scale * s, cy + 8f * scale * s);
-        path.lineTo(cx + sign * 36f * scale * s, cy + 14f * scale * s);
-        path.lineTo(cx + sign * 20f * scale * s, cy + 12f * scale * s);
-        path.lineTo(cx + sign * 10f * scale * s, cy + 5f * scale * s);
-        path.close();
+    private void drawPixelHalo(Canvas canvas, float px, float py) {
+        // Halo top
+        canvas.drawRect(11 * px, 2 * py, 17 * px, 3 * py, haloCorePaint);
+        // Halo sides
+        canvas.drawRect(9 * px, 3 * py, 11 * px, 4 * py, haloCorePaint);
+        canvas.drawRect(17 * px, 3 * py, 19 * px, 4 * py, haloCorePaint);
+        // Halo bottom
+        canvas.drawRect(11 * px, 4 * py, 17 * px, 5 * py, haloCorePaint);
+
+        // Halo outer cyan glow
+        canvas.drawRect(10 * px, 1 * py, 18 * px, 2 * py, haloGlowPaint);
+        canvas.drawRect(8 * px, 2 * py, 9 * px, 5 * py, haloGlowPaint);
+        canvas.drawRect(19 * px, 2 * py, 20 * px, 5 * py, haloGlowPaint);
+        canvas.drawRect(10 * px, 5 * py, 18 * px, 6 * py, haloGlowPaint);
     }
 
-    private static void buildHeartPath(Path path, float cx, float cy, float scale, float s) {
-        path.reset();
-        float r = 1.18f * scale * s;
-        int steps = 32;
-        for (int i = 0; i <= steps; i++) {
-            double theta = i * 2.0 * Math.PI / steps;
-            float sinT = (float) Math.sin(theta);
-            float cosT = (float) Math.cos(theta);
-            float cos2T = (float) Math.cos(2.0 * theta);
-            float cos3T = (float) Math.cos(3.0 * theta);
-            float cos4T = (float) Math.cos(4.0 * theta);
+    private void drawPixelWings(Canvas canvas, float px, float py, Paint paint) {
+        // Left Wing Rows
+        canvas.drawRect(4 * px, 5 * py, 9 * px, 6 * py, paint);
+        canvas.drawRect(3 * px, 6 * py, 10 * px, 7 * py, paint);
+        canvas.drawRect(2 * px, 7 * py, 11 * px, 8 * py, paint);
+        canvas.drawRect(1 * px, 8 * py, 11 * px, 9 * py, paint);
+        canvas.drawRect(2 * px, 9 * py, 11 * px, 10 * py, paint);
+        canvas.drawRect(3 * px, 10 * py, 10 * px, 11 * py, paint);
+        canvas.drawRect(4 * px, 11 * py, 9 * px, 12 * py, paint);
+        canvas.drawRect(6 * px, 12 * py, 9 * px, 13 * py, paint);
 
-            float x = cx + r * 15f * (sinT * sinT * sinT);
-            float y = cy - r * (12f * cosT - 4.5f * cos2T - 2f * cos3T - cos4T);
+        // Right Wing Rows (Mirrored: x -> 27 - x)
+        canvas.drawRect(19 * px, 5 * py, 24 * px, 6 * py, paint);
+        canvas.drawRect(18 * px, 6 * py, 25 * px, 7 * py, paint);
+        canvas.drawRect(17 * px, 7 * py, 26 * px, 8 * py, paint);
+        canvas.drawRect(17 * px, 8 * py, 27 * px, 9 * py, paint);
+        canvas.drawRect(17 * px, 9 * py, 26 * px, 10 * py, paint);
+        canvas.drawRect(18 * px, 10 * py, 25 * px, 11 * py, paint);
+        canvas.drawRect(19 * px, 11 * py, 24 * px, 12 * py, paint);
+        canvas.drawRect(19 * px, 12 * py, 22 * px, 13 * py, paint);
+    }
 
-            if (i == 0) {
-                path.moveTo(x, y);
-            } else {
-                path.lineTo(x, y);
-            }
+    private void drawPixelWingsOutline(Canvas canvas, float px, float py, Paint paint) {
+        // Left Wing Tips/Outline
+        canvas.drawRect(3 * px, 5 * py, 4 * px, 6 * py, paint);
+        canvas.drawRect(1 * px, 7 * py, 2 * px, 9 * py, paint);
+        canvas.drawRect(2 * px, 9 * py, 3 * px, 10 * py, paint);
+        canvas.drawRect(3 * px, 10 * py, 4 * px, 11 * py, paint);
+        canvas.drawRect(5 * px, 12 * py, 6 * px, 13 * py, paint);
+
+        // Right Wing Tips/Outline
+        canvas.drawRect(24 * px, 5 * py, 25 * px, 6 * py, paint);
+        canvas.drawRect(26 * px, 7 * py, 27 * px, 9 * py, paint);
+        canvas.drawRect(25 * px, 9 * py, 26 * px, 10 * py, paint);
+        canvas.drawRect(24 * px, 10 * py, 25 * px, 11 * py, paint);
+        canvas.drawRect(22 * px, 12 * py, 23 * px, 13 * py, paint);
+    }
+
+    private void drawPixelHeart(Canvas canvas, float px, float py, Paint paint) {
+        // Heart Rows
+        canvas.drawRect(10 * px, 8 * py, 13 * px, 9 * py, paint);
+        canvas.drawRect(15 * px, 8 * py, 18 * px, 9 * py, paint);
+        canvas.drawRect(9 * px, 9 * py, 19 * px, 10 * py, paint);
+        canvas.drawRect(8 * px, 10 * py, 20 * px, 11 * py, paint);
+        canvas.drawRect(8 * px, 11 * py, 20 * px, 12 * py, paint);
+        canvas.drawRect(9 * px, 12 * py, 19 * px, 13 * py, paint);
+        canvas.drawRect(10 * px, 13 * py, 18 * px, 14 * py, paint);
+        canvas.drawRect(11 * px, 14 * py, 17 * px, 15 * py, paint);
+        canvas.drawRect(12 * px, 15 * py, 16 * px, 16 * py, paint);
+        canvas.drawRect(13 * px, 16 * py, 15 * px, 17 * py, paint);
+    }
+
+    private void drawPixelHeartOutline(Canvas canvas, float px, float py, Paint paint) {
+        // Heart Edge Highlights (Kawaii Pastel Outline)
+        canvas.drawRect(10 * px, 7 * py, 13 * px, 8 * py, paint);
+        canvas.drawRect(15 * px, 7 * py, 18 * px, 8 * py, paint);
+        canvas.drawRect(7 * px, 10 * py, 8 * px, 12 * py, paint);
+        canvas.drawRect(20 * px, 10 * py, 21 * px, 12 * py, paint);
+        canvas.drawRect(13 * px, 17 * py, 15 * px, 18 * py, paint);
+    }
+
+    private void drawPixelSparkles(Canvas canvas, float px, float py, float phase) {
+        // 4 Starlight Pixel Crosses (✦)
+        float[][] sparks = {
+                {3f, 3f, 0.10f},
+                {24f, 4f, 0.55f},
+                {3f, 17f, 0.80f},
+                {24f, 18f, 0.35f}
+        };
+
+        for (float[] sp : sparks) {
+            float t = (phase + sp[2]) % 1.0f;
+            float alphaProgress = (float) Math.sin(t * Math.PI);
+            int alpha = (int) (alphaProgress * 255);
+            if (alpha <= 10) continue;
+
+            float sx = sp[0] * px;
+            float sy = sp[1] * py;
+
+            particleStarPaint.setAlpha(alpha);
+            particleCorePaint.setAlpha(alpha);
+
+            // 4-point pixel star cross
+            canvas.drawRect(sx, sy - py, sx + px, sy + 2 * py, particleStarPaint);
+            canvas.drawRect(sx - px, sy, sx + 2 * px, sy + py, particleStarPaint);
+            canvas.drawRect(sx, sy, sx + px, sy + py, particleCorePaint);
         }
-        path.close();
     }
 
     @Override
@@ -336,7 +350,6 @@ public class MiogramArrowDrawable extends Drawable {
 
     @Override
     public void setColorFilter(@Nullable ColorFilter colorFilter) {
-        // Aesthetic Ame-chan palette is preserved by default
         heartPaint.setColorFilter(colorFilter);
         wingFillPaint.setColorFilter(colorFilter);
         invalidateSelf();

@@ -93,6 +93,11 @@ import tw.nekomimi.nekogram.translate.TranslatorKt;
 import tw.nekomimi.nekogram.ui.PopupBuilder;
 import tw.nekomimi.nekogram.utils.AndroidUtil;
 import xyz.nextalone.nagram.NaConfig;
+import app.miogram.bridge.MiogramLocale;
+import app.miogram.bridge.ai.MiogramAiService;
+import app.miogram.bridge.ui.MiogramAiSettingsActivity;
+import org.telegram.messenger.Utilities;
+import org.telegram.ui.Components.Bulletin;
 
 @SuppressLint("NotifyDataSetChanged")
 public class NekoTranslatorSettingsActivity extends BaseNekoXSettingsActivity {
@@ -158,32 +163,34 @@ public class NekoTranslatorSettingsActivity extends BaseNekoXSettingsActivity {
 
     // AI Translator
     private final AbstractConfigCell headerAITranslatorSettings = cellGroup.appendCell(new ConfigCellHeader(getString(R.string.AITranslatorSettings)));
+    private final AbstractConfigCell llmSyncNoticeRow = cellGroup.appendCell(new ConfigCellCustom("LlmSyncNotice", CellGroup.ITEM_TYPE_TEXT_SETTINGS_CELL, false));
     private final AbstractConfigCell llmProviderRow = cellGroup.appendCell(new ConfigCellSelectBox(null, NaConfig.INSTANCE.getLlmProviderPreset(), new String[]{
-            getString(R.string.LlmProviderCustom),
-            "OpenAI",
-            "Google AI Studio",
-            "Google Vertex",
-            "Groq",
-            "DeepSeek",
-            "SpaceXAI",
-            "Cerebras",
-            "Ollama",
-            "OpenRouter",
+            "Google AI Studio (Gemini)",
+            "OpenAI (ChatGPT)",
+            "DeepSeek (V3 / R1)",
+            "Groq (Ultra-Fast LLaMA)",
+            "xAI (Grok)",
+            "OpenRouter (Multi-Model Hub)",
+            "Ollama (Local / Cloud)",
+            "Cerebras (High-Speed)",
+            "Google Cloud Vertex AI",
             "Vercel AI Gateway",
+            getString(R.string.LlmProviderCustom),
     }, new int[]{
-            PresetRegistry.CUSTOM,
-            PresetRegistry.OPENAI,
             PresetRegistry.GOOGLE_AI_STUDIO,
-            PresetRegistry.GOOGLE_AGENT_PLATFORM,
-            PresetRegistry.GROQ,
+            PresetRegistry.OPENAI,
             PresetRegistry.DEEPSEEK,
+            PresetRegistry.GROQ,
             PresetRegistry.XAI,
-            PresetRegistry.CEREBRAS,
-            PresetRegistry.OLLAMA_CLOUD,
             PresetRegistry.OPENROUTER,
+            PresetRegistry.OLLAMA_CLOUD,
+            PresetRegistry.CEREBRAS,
+            PresetRegistry.GOOGLE_AGENT_PLATFORM,
             PresetRegistry.VERCEL_AI_GATEWAY,
+            PresetRegistry.CUSTOM,
     }, null));
     private final AbstractConfigCell llmModelRow = cellGroup.appendCell(new ConfigCellCustom("LlmModelName", CellGroup.ITEM_TYPE_TEXT_SETTINGS_CELL, true));
+    private final AbstractConfigCell llmTestConnectionRow = cellGroup.appendCell(new ConfigCellCustom("LlmTestConnection", CellGroup.ITEM_TYPE_TEXT_SETTINGS_CELL, true));
 
     private final Map<Integer, List<AbstractConfigCell>> llmProviderConfigMap = new HashMap<>();
 
@@ -244,6 +251,9 @@ public class NekoTranslatorSettingsActivity extends BaseNekoXSettingsActivity {
     private final boolean isAutoTranslateEnabled;
 
     public NekoTranslatorSettingsActivity() {
+        if (NaConfig.INSTANCE.getLlmProviderGeminiKey().String().isEmpty() && MiogramAiService.hasApiKey()) {
+            NaConfig.INSTANCE.getLlmProviderGeminiKey().setConfigString(MiogramAiService.getApiKey());
+        }
         initialTranslationProvider = NekoConfig.translationProvider.Int();
         isAutoTranslateEnabled = NaConfig.INSTANCE.getTelegramUIAutoTranslate().Bool();
         oldLlmProvider = NaConfig.INSTANCE.getLlmProviderPreset().Int();
@@ -388,6 +398,7 @@ public class NekoTranslatorSettingsActivity extends BaseNekoXSettingsActivity {
                     }
                 }
                 listAdapter.notifyItemChanged(cellGroup.rows.indexOf(llmModelRow));
+                listAdapter.notifyItemChanged(cellGroup.rows.indexOf(llmTestConnectionRow));
                 addRowsToMap(cellGroup);
                 oldLlmProvider = newLlmProvider;
             } else if (key.equals(NaConfig.INSTANCE.getGoogleTranslateExp().getKey())) {
@@ -443,8 +454,12 @@ public class NekoTranslatorSettingsActivity extends BaseNekoXSettingsActivity {
                 listAdapter.notifyItemChanged(position);
                 return Unit.INSTANCE;
             });
+        } else if (position == cellGroup.rows.indexOf(llmSyncNoticeRow)) {
+            presentFragment(new MiogramAiSettingsActivity());
         } else if (position == cellGroup.rows.indexOf(llmModelRow)) {
             showLlmModelDialog();
+        } else if (position == cellGroup.rows.indexOf(llmTestConnectionRow)) {
+            testLlmConnection();
         } else if (position == cellGroup.rows.indexOf(doNotTranslateRow)) {
             presentFragment(new RestrictedLanguagesSelectActivity());
         } else if (position == cellGroup.rows.indexOf(articleTranslationProviderRow)) {
@@ -476,9 +491,24 @@ public class NekoTranslatorSettingsActivity extends BaseNekoXSettingsActivity {
                     textCell.setTextAndValue(getString(R.string.TransToLang), value, true);
                 } else if (position == cellGroup.rows.indexOf(doNotTranslateRow)) {
                     textCell.setTextAndValue(getString(R.string.DoNotTranslate), getRestrictedLanguages(), true, true);
+                } else if (position == cellGroup.rows.indexOf(llmSyncNoticeRow)) {
+                    textCell.setTextAndValue(
+                            MiogramLocale.get("✦ Miogram AI Sync", "✦ Miogram AI Sync", "✦ Miogram AI Sync"),
+                            MiogramLocale.get("Спільний ключ, модель та провайдер", "Общий ключ, модель и провайдер", "Shared key, model & provider"),
+                            true
+                    );
                 } else if (position == cellGroup.rows.indexOf(llmModelRow)) {
                     int preset = NaConfig.INSTANCE.getLlmProviderPreset().Int();
                     textCell.setTextAndValue(getString(R.string.LlmModelName), LlmConfig.getEffectiveModelName(preset), true);
+                } else if (position == cellGroup.rows.indexOf(llmTestConnectionRow)) {
+                    int preset = NaConfig.INSTANCE.getLlmProviderPreset().Int();
+                    String key = LlmConfig.getFirstApiKey(preset);
+                    boolean hasKey = !TextUtils.isEmpty(key);
+                    textCell.setTextAndValue(
+                            MiogramLocale.get("Перевірити зв'язок з ШІ", "Проверить связь с ИИ", "Test AI Connection"),
+                            hasKey ? MiogramLocale.get("Натисніть для тесту", "Нажмите для теста", "Tap to test") : MiogramLocale.get("Потрібен ключ", "Требуется ключ", "Key required"),
+                            false
+                    );
                 } else if (position == cellGroup.rows.indexOf(articleTranslationProviderRow)) {
                     textCell.setTextAndValue(getString(R.string.ArticleTranslationProvider), getProviderName(NaConfig.INSTANCE.getArticleTranslationProvider().Int()), true);
                 }
@@ -623,12 +653,14 @@ public class NekoTranslatorSettingsActivity extends BaseNekoXSettingsActivity {
         cellGroup.appendCell(dividerTranslation);
 
         cellGroup.appendCell(headerAITranslatorSettings);
+        cellGroup.appendCell(llmSyncNoticeRow);
         cellGroup.appendCell(llmProviderRow);
         cellGroup.appendCell(llmModelRow);
         List<AbstractConfigCell> currentLlmProviderConfigRows = llmProviderConfigMap.get(currentLlmProvider);
         if (currentLlmProviderConfigRows != null) {
             currentLlmProviderConfigRows.forEach(cellGroup::appendCell);
         }
+        cellGroup.appendCell(llmTestConnectionRow);
         cellGroup.appendCell(llmSystemPromptRow);
         cellGroup.appendCell(llmUserPromptRow);
         cellGroup.appendCell(llmUseContextRow);
@@ -804,6 +836,9 @@ public class NekoTranslatorSettingsActivity extends BaseNekoXSettingsActivity {
                 } else {
                     if (value.trim().isEmpty()) value = null;
                     bind.setConfigString(value);
+                    if (bind == NaConfig.INSTANCE.getLlmProviderGeminiKey()) {
+                        MiogramAiService.setApiKey(value != null ? value : "");
+                    }
                 }
                 if (listAdapter != null) {
                     listAdapter.notifyItemChanged(position);
@@ -962,6 +997,50 @@ public class NekoTranslatorSettingsActivity extends BaseNekoXSettingsActivity {
             }
         }
         return highlighted != null ? highlighted : text;
+    }
+
+    private void testLlmConnection() {
+        int preset = NaConfig.INSTANCE.getLlmProviderPreset().Int();
+        String baseUrl = LlmConfig.getEffectiveBaseUrl(preset);
+        String apiKey = LlmConfig.getFirstApiKey(preset);
+        String model = LlmConfig.getEffectiveModelName(preset);
+
+        if (TextUtils.isEmpty(apiKey)) {
+            BulletinFactory.of(this).createSimpleBulletin(R.raw.info, MiogramLocale.get("Спочатку введіть API ключ", "Сначала введите API ключ", "Enter API key first")).show();
+            return;
+        }
+
+        Bulletin progressBulletin = BulletinFactory.of(this).createSimpleBulletin(R.raw.loading_animation, MiogramLocale.get("Перевірка зв'язку з ШІ…", "Проверка связи с ИИ…", "Testing AI connection…")).show();
+
+        Utilities.globalQueue.postRunnable(() -> {
+            LlmResponse<String> response;
+            if (preset == PresetRegistry.GOOGLE_AGENT_PLATFORM) {
+                response = VertexGeminiClient.testGenerateContent(baseUrl, apiKey, model);
+            } else {
+                response = OpenAICompatClient.testChatCompletions(baseUrl, apiKey, model);
+            }
+            AndroidUtilities.runOnUIThread(() -> {
+                if (progressBulletin != null) {
+                    try {
+                        progressBulletin.hide();
+                    } catch (Throwable ignored) {}
+                }
+                if (response != null && response.isSuccess()) {
+                    BulletinFactory.of(this).createSimpleBulletin(R.raw.ic_save_to_cloud,
+                            MiogramLocale.get("З'єднання успішне! (" + response.durationMs() + " мс)",
+                                    "Соединение успешно! (" + response.durationMs() + " мс)",
+                                    "Connected successfully! (" + response.durationMs() + " ms)")).show();
+                } else {
+                    String err = response != null && response.error() != null ? response.error() : "Unknown error";
+                    BulletinFactory.of(this).createSimpleBulletin(R.raw.error,
+                            MiogramLocale.get("Помилка: " + err, "Ошибка: " + err, "Error: " + err)).show();
+                }
+                if (listAdapter != null) {
+                    int idx = cellGroup.rows.indexOf(llmTestConnectionRow);
+                    if (idx >= 0) listAdapter.notifyItemChanged(idx);
+                }
+            });
+        });
     }
 
     private void showLlmModelDialog() {
@@ -1364,6 +1443,9 @@ public class NekoTranslatorSettingsActivity extends BaseNekoXSettingsActivity {
                     value = "";
                 }
                 LlmConfig.setSavedModelName(preset, value);
+                if (preset == PresetRegistry.GOOGLE_AI_STUDIO) {
+                    MiogramAiService.setModel(value);
+                }
                 int idx = cellGroup.rows.indexOf(llmModelRow);
                 if (listAdapter != null && idx >= 0) {
                     listAdapter.notifyItemChanged(idx);
