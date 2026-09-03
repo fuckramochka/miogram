@@ -65,10 +65,10 @@ public class MiogramAiService {
             Context ctx = ApplicationLoader.applicationContext;
             if (ctx != null) {
                 return ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE)
-                        .getString("gen_model", "gemini-2.5-flash");
+                        .getString("gen_model", "gemini-3.5-flash-lite");
             }
         } catch (Throwable ignored) {}
-        return "gemini-2.5-flash";
+        return "gemini-3.5-flash-lite";
     }
 
     /**

@@ -84,7 +84,7 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
     }
 
     private String savedModel() {
-        return prefs().getString("gen_model", "gemini-2.5-flash");
+        return prefs().getString("gen_model", "gemini-3.5-flash-lite");
     }
 
     private boolean piiMaskEnabled() {
@@ -164,16 +164,47 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
         if (ctx == null) return;
 
         String[] models = {
+                "gemini-3.5-flash-lite (" + MiogramLocale.get("За замовчуванням", "По умолчанию", "Default") + ")",
                 "gemini-2.5-flash (" + MiogramLocale.get("Швидка, рекомендовано", "Быстрая, рекомендовано", "Fast, recommended") + ")",
                 "gemini-2.5-pro (" + MiogramLocale.get("Глибокий аналіз", "Глубокий анализ", "Deep reasoning") + ")",
-                "gemini-1.5-flash (" + MiogramLocale.get("Стабільна", "Стабильная", "Stable") + ")"
+                "gemini-1.5-flash (" + MiogramLocale.get("Стабільна", "Стабильная", "Stable") + ")",
+                MiogramLocale.get("Вказати власну модель…", "Указать свою модель…", "Custom model…")
         };
-        String[] modelKeys = {"gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash"};
+        String[] modelKeys = {"gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "custom"};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
         builder.setTitle(MiogramLocale.get("Модель Miogram AI", "Модель Miogram AI", "Miogram AI Model"));
         builder.setItems(models, (dialog, which) -> {
-            saveModel(modelKeys[which]);
+            if ("custom".equals(modelKeys[which])) {
+                showCustomModelDialog();
+            } else {
+                saveModel(modelKeys[which]);
+            }
+        });
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(builder.create());
+    }
+
+    private void showCustomModelDialog() {
+        Context ctx = getParentActivity();
+        if (ctx == null) return;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
+        builder.setTitle(MiogramLocale.get("Власна назва моделі", "Своё название модели", "Custom Model Name"));
+
+        EditTextBoldCursor input = new EditTextBoldCursor(ctx);
+        input.setText(savedModel());
+        input.setHint("gemini-3.5-flash-lite");
+        input.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        input.setHintColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
+        input.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(12), AndroidUtilities.dp(24), AndroidUtilities.dp(12));
+
+        builder.setView(input);
+        builder.setPositiveButton(LocaleController.getString(R.string.Save), (dialog, which) -> {
+            String val = input.getText().toString().trim();
+            if (!val.isEmpty()) {
+                saveModel(val);
+            }
         });
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         showDialog(builder.create());

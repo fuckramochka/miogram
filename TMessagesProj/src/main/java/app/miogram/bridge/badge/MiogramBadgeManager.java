@@ -24,7 +24,7 @@ public class MiogramBadgeManager {
 
     public static String getBadgeTitle(long userId) {
         if (userId == FOUNDER_USER_ID) {
-            return "Miogram Founder";
+            return "Miogram Founder (Ame-chan Edition)";
         }
         return "Miogram Supporter";
     }
