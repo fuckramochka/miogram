@@ -206,34 +206,26 @@ public class MiogramDoubleBottomActivity extends BaseNekoSettingsActivity {
         ArrayList<String> names = new ArrayList<>();
         ArrayList<Integer> indices = new ArrayList<>();
 
-        names.add(MiogramLocale.get("Залишати поточний акаунт", "Оставлять текущий аккаунт", "Keep current account"));
+        int currentDecoy = MiogramDoubleBottomManager.getDecoyAccount();
+        names.add((currentDecoy == -1 ? "✓ " : "   ") + MiogramLocale.get("Залишати поточний акаунт", "Оставлять текущий аккаунт", "Keep current account"));
         indices.add(-1);
 
         for (int i = 0; i < UserConfig.MAX_ACCOUNT_COUNT; i++) {
             if (UserConfig.getInstance(i).isClientActivated()) {
                 TLRPC.User u = UserConfig.getInstance(i).getCurrentUser();
                 String name = UserObject.getUserName(u);
-                names.add(MiogramLocale.get("Акаунт ", "Аккаунт ", "Account ") + (i + 1) + (name != null ? " (" + name + ")" : ""));
+                String label = MiogramLocale.get("Акаунт ", "Аккаунт ", "Account ") + (i + 1) + (name != null ? " (" + name + ")" : "");
+                names.add((currentDecoy == i ? "✓ " : "   ") + label);
                 indices.add(i);
-            }
-        }
-
-        int currentDecoy = MiogramDoubleBottomManager.getDecoyAccount();
-        int selected = 0;
-        for (int i = 0; i < indices.size(); i++) {
-            if (indices.get(i) == currentDecoy) {
-                selected = i;
-                break;
             }
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
         builder.setTitle(MiogramLocale.get("Вибір аварійного акаунта", "Выбор аварийного аккаунта", "Select Emergency Account"));
-        builder.setSingleChoiceItems(names.toArray(new CharSequence[0]), selected, (dialog, which) -> {
+        builder.setItems(names.toArray(new CharSequence[0]), (dialog, which) -> {
             MiogramDoubleBottomManager.setDecoyAccount(indices.get(which));
             updateRows();
             listAdapter.notifyDataSetChanged();
-            dialog.dismiss();
         });
         builder.setNegativeButton(MiogramLocale.get("Скасувати", "Отмена", "Cancel"), null);
         showDialog(builder.create());
@@ -293,28 +285,6 @@ public class MiogramDoubleBottomActivity extends BaseNekoSettingsActivity {
                 return TYPE_CHECK;
             }
             return TYPE_TEXT;
-        }
-
-        @NonNull
-        @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view;
-            switch (viewType) {
-                case TYPE_HEADER:
-                    view = new HeaderCell(mContext);
-                    break;
-                case TYPE_CHECK:
-                    view = new TextCheckCell(mContext);
-                    break;
-                case TYPE_INFO_PRIVACY:
-                    view = new TextInfoPrivacyCell(mContext);
-                    break;
-                default:
-                    view = new TextCell(mContext);
-                    break;
-            }
-            view.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, RecyclerView.LayoutParams.WRAP_CONTENT));
-            return new RecyclerListView.Holder(view);
         }
 
         @Override
