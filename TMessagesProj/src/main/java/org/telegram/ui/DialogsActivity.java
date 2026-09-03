@@ -13499,117 +13499,18 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (userFooter != null) {
                 ((ContentView) fragmentView).addView(userFooter, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 52, Gravity.BOTTOM | Gravity.LEFT, 72, 0, 0, 0));
             }
-        } else if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
-            actionBar.setVisibility(View.GONE);
-            if (filterTabsView != null) {
-                filterTabsView.setVisibility(View.GONE);
-            }
-            if (dialogStoriesCell != null) {
-                dialogStoriesCell.setVisibility(View.GONE);
-            }
-            if (fragmentSearchField != null) {
-                fragmentSearchField.setVisibility(View.GONE);
-            }
-
-            app.miogram.bridge.ui.ios.MiogramIosLargeHeaderView iosHeader = new app.miogram.bridge.ui.ios.MiogramIosLargeHeaderView(
-                    getContext(),
-                    LocaleController.getString(R.string.Chats),
-                    new app.miogram.bridge.ui.ios.MiogramIosLargeHeaderView.OnHeaderActionListener() {
-                        @Override
-                        public void onEditClick() {
-                            presentFragment(new FiltersSetupActivity());
-                        }
-
-                        @Override
-                        public void onComposeClick() {
-                            Bundle args = new Bundle();
-                            args.putBoolean("destroyAfterSelect", true);
-                            presentFragment(new ContactsActivity(args));
-                        }
-
-                        @Override
-                        public void onSearchClick() {
-                            if (fragmentSearchField != null) {
-                                fragmentSearchField.setVisibility(View.VISIBLE);
-                                fragmentSearchField.editText.requestFocus();
-                                AndroidUtilities.showKeyboard(fragmentSearchField.editText);
-                            }
-                        }
-                    }
-            );
-            ((ContentView) fragmentView).addView(iosHeader, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
-
-            int iosTopInset = iosHeader.getHeaderTotalHeight();
-
-            if (filterTabsView != null) {
-                if (getMessagesController().dialogFilters.isEmpty()) {
-                    filterTabsView.setVisibility(View.GONE);
-                } else {
-                    filterTabsView.setVisibility(View.VISIBLE);
-                    FrameLayout.LayoutParams ftpLp = (FrameLayout.LayoutParams) filterTabsView.getLayoutParams();
-                    if (ftpLp != null) {
-                        ftpLp.topMargin = iosTopInset;
-                        filterTabsView.setLayoutParams(ftpLp);
-                    }
-                    iosTopInset += dp(40);
-                }
-            }
-
-            if (mainTabsActivityController == null) {
-                View iosTabBar = app.miogram.bridge.ui.ios.MiogramIosLayout.createIosTabBar(getContext(), 2, tabIndex -> {
-                    if (tabIndex == 0) {
-                        presentFragment(new ContactsActivity(null));
-                    } else if (tabIndex == 1) {
-                        presentFragment(new CallLogActivity());
-                    } else if (tabIndex == 2) {
-                        if (viewPages != null && viewPages[0] != null && viewPages[0].listView != null) {
-                            viewPages[0].listView.smoothScrollToPosition(0);
-                        }
-                    } else if (tabIndex == 3) {
-                        presentFragment(new SettingsActivity());
-                    }
-                });
-                if (iosTabBar != null) {
-                    ((ContentView) fragmentView).addView(iosTabBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 50, Gravity.BOTTOM));
-                }
-            }
-
-            int iosBottomInset = mainTabsActivityController == null ? dp(50) : 0;
-            if (viewPages != null) {
-                for (int a = 0; a < viewPages.length; a++) {
-                    if (viewPages[a] != null) {
-                        FrameLayout.LayoutParams vpLp = (FrameLayout.LayoutParams) viewPages[a].getLayoutParams();
-                        if (vpLp != null) {
-                            vpLp.leftMargin = 0;
-                            vpLp.topMargin = iosTopInset;
-                            vpLp.bottomMargin = iosBottomInset;
-                            viewPages[a].setLayoutParams(vpLp);
-                        }
-                        if (viewPages[a].listView != null) {
-                            viewPages[a].listView.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
-                                private int totalY = 0;
-                                @Override
-                                public void onScrolled(androidx.recyclerview.widget.RecyclerView recyclerView, int dx, int dy) {
-                                    totalY += dy;
-                                    iosHeader.onScrollOffsetChanged(Math.max(0, totalY));
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-            if (searchViewPager != null) {
-                FrameLayout.LayoutParams svpLp = (FrameLayout.LayoutParams) searchViewPager.getLayoutParams();
-                if (svpLp != null) {
-                    svpLp.leftMargin = 0;
-                    svpLp.topMargin = iosTopInset;
-                    svpLp.bottomMargin = iosBottomInset;
-                    searchViewPager.setLayoutParams(svpLp);
-                }
-            }
         } else {
             if (actionBar != null && actionBar.getVisibility() != View.VISIBLE) {
                 actionBar.setVisibility(View.VISIBLE);
+            }
+            if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+                if (dialogStoriesCell != null) {
+                    dialogStoriesCell.setVisibility(View.GONE);
+                }
+                if (actionBar != null) {
+                    actionBar.setBackgroundColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getNavBarBg());
+                    actionBar.setTitle(LocaleController.getString(R.string.Chats));
+                }
             }
             if (filterTabsView != null) {
                 filterTabsView.setVisibility(View.VISIBLE);

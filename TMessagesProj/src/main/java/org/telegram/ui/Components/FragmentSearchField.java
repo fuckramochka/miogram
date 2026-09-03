@@ -269,6 +269,17 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
 
     @Override
     public void updateColors() {
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            bg = Theme.createRoundRectDrawable(dp(10), app.miogram.bridge.ui.ios.MiogramIosTheme.getSearchInputFill());
+            searchIcon.setColorFilter(app.miogram.bridge.ui.ios.MiogramIosTheme.getSearchPlaceholder(), PorterDuff.Mode.SRC_IN);
+            closeIcon.setColorFilter(app.miogram.bridge.ui.ios.MiogramIosTheme.getSearchPlaceholder(), PorterDuff.Mode.SRC_IN);
+            closeIcon.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, dp(17)));
+            editText.setHintTextColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getSearchPlaceholder());
+            editText.setTextColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListTitle());
+            editText.setCursorColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent());
+            invalidate();
+            return;
+        }
         final boolean isDark = resourcesProvider != null ? resourcesProvider.isDark() : Theme.isCurrentThemeDark();
         bg = isSectionBackground ?
             Theme.createRoundRectDrawableShadowed(dp(20), getThemedColor(Theme.key_windowBackgroundWhite)) :

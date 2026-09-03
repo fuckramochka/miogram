@@ -9165,10 +9165,56 @@ public class Theme {
         if (key_divider == key && !resolvingDividerColor && app.exteraless.appearance.AppearanceConfig.dividerHidden()) {
             return 0x00ffffff;
         }
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            int iosColor = getIosPresetColor(key);
+            if (iosColor != 0) {
+                return iosColor;
+            }
+        }
         if (provider != null) {
             return provider.getColor(key);
         }
         return getColor(key);
+    }
+
+    public static int getIosPresetColor(int key) {
+        if (key == Theme.key_chats_name) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListTitle();
+        if (key == Theme.key_chats_message || key == Theme.key_chats_message_threeLines) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListMessage();
+        if (key == Theme.key_chats_date) return isCurrentThemeDark() ? app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_DATE_DARK : app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_DATE_LIGHT;
+        if (key == Theme.key_windowBackgroundWhite) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListBg();
+        if (key == Theme.key_windowBackgroundGray) return isCurrentThemeDark() ? 0xFF1C1C1E : 0xFFF2F2F7;
+        if (key == Theme.key_windowBackgroundWhiteBlackText) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListTitle();
+        if (key == Theme.key_windowBackgroundWhiteGrayText || key == Theme.key_windowBackgroundWhiteGrayText2) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListMessage();
+        if (key == Theme.key_windowBackgroundWhiteValueText) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+        if (key == Theme.key_windowBackgroundWhiteBlueText || key == Theme.key_windowBackgroundWhiteBlueText2 || key == Theme.key_windowBackgroundWhiteBlueText4) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+        if (key == Theme.key_chats_actionBackground) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+        if (key == Theme.key_chats_unreadCounter) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+        if (key == Theme.key_chats_unreadCounterMuted) return isCurrentThemeDark() ? app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_BADGE_MUTED_DARK : app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_BADGE_MUTED_LIGHT;
+        if (key == Theme.key_chats_unreadCounterText) return 0xFFFFFFFF;
+        if (key == Theme.key_divider) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListSeparator();
+        if (key == Theme.key_actionBarDefaultSubmenuBackground) return isCurrentThemeDark() ? 0xF22C2C2E : 0xF2FFFFFF;
+        if (key == Theme.key_actionBarDefaultSubmenuItem) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
+        if (key == Theme.key_actionBarDefaultSubmenuItemIcon) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+        if (key == Theme.key_actionBarDefaultSubmenuSeparator) return isCurrentThemeDark() ? 0x24FFFFFF : 0x1F000000;
+        if (key == Theme.key_glass_tabSelected) return app.miogram.bridge.ui.ios.MiogramIosTheme.getTabBarIcon(true);
+        if (key == Theme.key_glass_tabSelectedText) return app.miogram.bridge.ui.ios.MiogramIosTheme.getTabBarText(true);
+        if (key == Theme.key_glass_tabUnselected) return app.miogram.bridge.ui.ios.MiogramIosTheme.getTabBarIcon(false);
+        if (key == Theme.key_actionBarDefault) return app.miogram.bridge.ui.ios.MiogramIosTheme.getNavBarBg();
+        if (key == Theme.key_actionBarDefaultTitle) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
+        if (key == Theme.key_actionBarDefaultSubtitle) return 0xFF8E8E93;
+        if (key == Theme.key_actionBarDefaultIcon) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+        if (key == Theme.key_actionBarDefaultSelector) return isCurrentThemeDark() ? 0x1F2C2C2E : 0x1F000000;
+        if (key == Theme.key_chat_messagePanelBackground) return app.miogram.bridge.ui.ios.MiogramIosTheme.getNavBarBg();
+        if (key == Theme.key_chat_messagePanelShadow) return isCurrentThemeDark() ? 0x8C545458 : 0xFFC8C7CC;
+        if (key == Theme.key_chat_messagePanelSend) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+        if (key == Theme.key_chat_messagePanelIcons) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+        if (key == Theme.key_chat_messagePanelText) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
+        if (key == Theme.key_chat_messagePanelHint) return 0xFF8E8E93;
+        if (key == Theme.key_chat_messagePanelVoiceBackground) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+        if (key == Theme.key_chat_messagePanelVoiceDuration) return 0xFFFFFFFF;
+        if (key == Theme.key_switchTrack) return isCurrentThemeDark() ? 0xFF39393D : 0xFFE9E9EA;
+        if (key == Theme.key_switchTrackChecked) return 0xFF34C759;
+        return 0;
     }
 
     public static int getCurrentColor(int key) {
@@ -9200,38 +9246,10 @@ public class Theme {
             if (key == Theme.key_chats_actionBackground) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_BLURPLE;
         }
         if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
-            if (key == Theme.key_chats_name) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListTitle();
-            if (key == Theme.key_chats_message || key == Theme.key_chats_message_threeLines) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListMessage();
-            if (key == Theme.key_chats_date) return isCurrentThemeDark() ? app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_DATE_DARK : app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_DATE_LIGHT;
-            if (key == Theme.key_windowBackgroundWhite) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListBg();
-            if (key == Theme.key_windowBackgroundGray) return isCurrentThemeDark() ? 0xFF1C1C1E : 0xFFF2F2F7;
-            if (key == Theme.key_windowBackgroundWhiteBlackText) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListTitle();
-            if (key == Theme.key_windowBackgroundWhiteGrayText || key == Theme.key_windowBackgroundWhiteGrayText2) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListMessage();
-            if (key == Theme.key_chats_actionBackground) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
-            if (key == Theme.key_chats_unreadCounter) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
-            if (key == Theme.key_chats_unreadCounterMuted) return isCurrentThemeDark() ? app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_BADGE_MUTED_DARK : app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_BADGE_MUTED_LIGHT;
-            if (key == Theme.key_chats_unreadCounterText) return 0xFFFFFFFF;
-            if (key == Theme.key_divider) return app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListSeparator();
-            if (key == Theme.key_actionBarDefaultSubmenuBackground) return isCurrentThemeDark() ? 0xF22C2C2E : 0xF2FFFFFF;
-            if (key == Theme.key_actionBarDefaultSubmenuItem) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
-            if (key == Theme.key_actionBarDefaultSubmenuItemIcon) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
-            if (key == Theme.key_actionBarDefaultSubmenuSeparator) return isCurrentThemeDark() ? 0x24FFFFFF : 0x1F000000;
-            if (key == Theme.key_glass_tabSelected) return app.miogram.bridge.ui.ios.MiogramIosTheme.getTabBarIcon(true);
-            if (key == Theme.key_glass_tabSelectedText) return app.miogram.bridge.ui.ios.MiogramIosTheme.getTabBarText(true);
-            if (key == Theme.key_glass_tabUnselected) return app.miogram.bridge.ui.ios.MiogramIosTheme.getTabBarIcon(false);
-            if (key == Theme.key_actionBarDefault) return app.miogram.bridge.ui.ios.MiogramIosTheme.getNavBarBg();
-            if (key == Theme.key_actionBarDefaultTitle) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
-            if (key == Theme.key_actionBarDefaultSubtitle) return 0xFF8E8E93;
-            if (key == Theme.key_actionBarDefaultIcon) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
-            if (key == Theme.key_actionBarDefaultSelector) return isCurrentThemeDark() ? 0x1F2C2C2E : 0x1F000000;
-            if (key == Theme.key_chat_messagePanelBackground) return app.miogram.bridge.ui.ios.MiogramIosTheme.getNavBarBg();
-            if (key == Theme.key_chat_messagePanelShadow) return isCurrentThemeDark() ? 0x8C545458 : 0xFFC8C7CC;
-            if (key == Theme.key_chat_messagePanelSend) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
-            if (key == Theme.key_chat_messagePanelIcons) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
-            if (key == Theme.key_chat_messagePanelText) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
-            if (key == Theme.key_chat_messagePanelHint) return 0xFF8E8E93;
-            if (key == Theme.key_chat_messagePanelVoiceBackground) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
-            if (key == Theme.key_chat_messagePanelVoiceDuration) return 0xFFFFFFFF;
+            int iosColor = getIosPresetColor(key);
+            if (iosColor != 0) {
+                return iosColor;
+            }
         }
         if (key_divider == key && !resolvingDividerColor && app.exteraless.appearance.AppearanceConfig.dividerHidden()) {
             return 0x00ffffff;
