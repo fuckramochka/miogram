@@ -134,6 +134,21 @@ public class BackDrawable extends Drawable {
             canvas.rotate(135 + currentRotation * (reverseAngle ? -180 : 180));
             rotation = 1.0f;
         }
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null) && currentRotation == 0f && !alwaysClose) {
+            paint.setColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent());
+            paint.setStrokeWidth(AndroidUtilities.dp(2.8f));
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setStrokeJoin(Paint.Join.ROUND);
+            float tipX = -AndroidUtilities.dp(4.5f);
+            float topX = AndroidUtilities.dp(2.5f);
+            float topY = -AndroidUtilities.dp(7f);
+            float botX = AndroidUtilities.dp(2.5f);
+            float botY = AndroidUtilities.dp(7f);
+            canvas.drawLine(topX, topY, tipX, 0, paint);
+            canvas.drawLine(tipX, 0, botX, botY, paint);
+            canvas.restore();
+            return;
+        }
         canvas.drawLine(AndroidUtilities.dp(AndroidUtilities.lerp(-6.75f, -8f, rotation)), 0, AndroidUtilities.dp(8) - (paint.getStrokeWidth() / 2f) * (1f - rotation), 0, paint);
         float startYDiff = AndroidUtilities.dp(-0.25f);
         float endYDiff = AndroidUtilities.dp(AndroidUtilities.lerp(7f, 8f, rotation)) - (paint.getStrokeWidth() / 4f) * (1f - rotation);

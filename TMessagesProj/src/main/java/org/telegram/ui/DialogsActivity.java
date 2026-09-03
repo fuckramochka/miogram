@@ -9112,7 +9112,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void updateFloatingButtonVisibility(boolean animated) {
-        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled() || app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
             if (floatingButton3 != null) floatingButton3.setButtonVisible(false, animated);
             if (floatingButtonStories != null) floatingButtonStories.setButtonVisible(false, animated);
             return;

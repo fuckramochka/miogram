@@ -50513,6 +50513,9 @@ public class ChatActivity extends BaseFragment implements
     }
 
     private boolean isTitleCentered() {
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
+            return true;
+        }
         return canShowCenteredTitle(this);
     }
 

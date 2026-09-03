@@ -9226,6 +9226,20 @@ public class Theme {
             if (key == Theme.key_glass_tabSelected) return app.miogram.bridge.ui.ios.MiogramIosTheme.getTabBarIcon(true);
             if (key == Theme.key_glass_tabSelectedText) return app.miogram.bridge.ui.ios.MiogramIosTheme.getTabBarText(true);
             if (key == Theme.key_glass_tabUnselected) return app.miogram.bridge.ui.ios.MiogramIosTheme.getTabBarIcon(false);
+            if (key == Theme.key_actionBarDefault) return app.miogram.bridge.ui.ios.MiogramIosTheme.getNavBarBg();
+            if (key == Theme.key_actionBarDefaultTitle) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
+            if (key == Theme.key_actionBarDefaultSubtitle) return 0xFF8E8E93;
+            if (key == Theme.key_actionBarDefaultIcon) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+            if (key == Theme.key_actionBarDefaultSelector) return isCurrentThemeDark() ? 0x1F2C2C2E : 0x1F000000;
+            if (key == Theme.key_chat_wallpaper) return isCurrentThemeDark() ? 0xFF000000 : 0xFFEFEFF4;
+            if (key == Theme.key_chat_messagePanelBackground) return app.miogram.bridge.ui.ios.MiogramIosTheme.getNavBarBg();
+            if (key == Theme.key_chat_messagePanelShadow) return isCurrentThemeDark() ? 0x8C545458 : 0xFFC8C7CC;
+            if (key == Theme.key_chat_messagePanelSend) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+            if (key == Theme.key_chat_messagePanelIcons) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+            if (key == Theme.key_chat_messagePanelText) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
+            if (key == Theme.key_chat_messagePanelHint) return 0xFF8E8E93;
+            if (key == Theme.key_chat_messagePanelVoiceBackground) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+            if (key == Theme.key_chat_messagePanelVoiceDuration) return 0xFFFFFFFF;
         }
         if (key_divider == key && !resolvingDividerColor && app.exteraless.appearance.AppearanceConfig.dividerHidden()) {
             return 0x00ffffff;
