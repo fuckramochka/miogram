@@ -151,7 +151,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     } else if (position == navigationRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Навігація та Меню", "Навигация и Меню", "Navigation & Menu"), R.drawable.msg_folders, true);
                     } else if (position == iconPacksRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Паки іконок", "Паки иконок", "Icon Packs"), R.drawable.msg_emoji, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Паки іконок", "Паки иконок", "Icon Packs"), R.drawable.msg_sticker, true);
                     } else if (position == chatsRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Чати та Медіа", "Чаты и Медиа", "Chats & Media"), R.drawable.msg_camera, true);
                     } else if (position == privacyRow) {
@@ -165,7 +165,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     } else if (position == aiRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Miogram AI", "Miogram AI", "Miogram AI"), R.drawable.msg_bot, true);
                     } else if (position == pluginsRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Плагіни Miogram", "Плагины Miogram", "Plugins"), R.drawable.msg_open, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Плагіни Miogram", "Плагины Miogram", "Plugins"), R.drawable.msg_plugins, true);
                     } else if (position == updaterRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Перевірити оновлення Miogram", "Проверить обновления Miogram", "Check for Updates"), R.drawable.msg_retry, false);
                     }

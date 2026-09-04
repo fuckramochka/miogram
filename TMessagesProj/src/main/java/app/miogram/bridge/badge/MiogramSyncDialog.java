@@ -36,7 +36,6 @@ public class MiogramSyncDialog {
             MiogramSupabaseBridge.setSyncEnabled(activity, false);
         });
 
-        builder.setCancelable(true);
         builder.show();
     }
 }
