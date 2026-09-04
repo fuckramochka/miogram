@@ -1010,7 +1010,7 @@ public class NekoTranslatorSettingsActivity extends BaseNekoXSettingsActivity {
             return;
         }
 
-        Bulletin progressBulletin = BulletinFactory.of(this).createSimpleBulletin(R.raw.loading_animation, MiogramLocale.get("Перевірка зв'язку з ШІ…", "Проверка связи с ИИ…", "Testing AI connection…")).show();
+        Bulletin progressBulletin = BulletinFactory.of(this).createSimpleBulletin(R.raw.info, MiogramLocale.get("Перевірка зв'язку з ШІ…", "Проверка связи с ИИ…", "Testing AI connection…")).show();
 
         Utilities.globalQueue.postRunnable(() -> {
             LlmResponse<String> response;
@@ -1026,7 +1026,7 @@ public class NekoTranslatorSettingsActivity extends BaseNekoXSettingsActivity {
                     } catch (Throwable ignored) {}
                 }
                 if (response != null && response.isSuccess()) {
-                    BulletinFactory.of(this).createSimpleBulletin(R.raw.ic_save_to_cloud,
+                    BulletinFactory.of(this).createSimpleBulletin(R.raw.done,
                             MiogramLocale.get("З'єднання успішне! (" + response.durationMs() + " мс)",
                                     "Соединение успешно! (" + response.durationMs() + " мс)",
                                     "Connected successfully! (" + response.durationMs() + " ms)")).show();

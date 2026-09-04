@@ -1435,8 +1435,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     backgroundPaint.setAlpha((int) (0xFF * progressToGradient));
                     canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
                 }
-                app.miogram.bridge.profile.MiogramCustomProfileManager.drawBanner(canvas, getMeasuredWidth(), y1, user != null ? user.id : 0L);
-                if (avatarContainer != null && user != null && app.miogram.bridge.profile.MiogramCustomProfileManager.shouldApplyToUser(user.id)) {
+                app.miogram.bridge.profile.MiogramCustomProfileManager.drawBanner(canvas, getMeasuredWidth(), y1, userId);
+                if (avatarContainer != null && app.miogram.bridge.profile.MiogramCustomProfileManager.shouldApplyToUser(userId)) {
                     app.miogram.bridge.profile.MiogramCustomProfileManager.drawThoughtBubble(canvas, avatarContainer.getX(), avatarContainer.getY(), avatarContainer.getWidth());
                 }
                 if (hasEmoji) {
@@ -5614,7 +5614,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
             @Override
             public void draw(Canvas canvas) {
-                boolean custom = app.miogram.bridge.profile.MiogramCustomProfileManager.shouldApplyToUser(user != null ? user.id : 0L);
+                boolean custom = app.miogram.bridge.profile.MiogramCustomProfileManager.shouldApplyToUser(userId);
                 if (custom && app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShape() != app.miogram.bridge.profile.MiogramCustomProfileManager.SHAPE_CIRCLE) {
                     android.graphics.Path path = app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShapePath(getWidth(), getHeight(), app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShape());
                     if (path != null) {

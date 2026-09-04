@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -323,7 +324,7 @@ public class MiogramCustomProfileEditorActivity extends BaseFragment {
             tv.setTypeface(AndroidUtilities.bold());
         } else {
             tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            tv.setTypeface(AndroidUtilities.regular());
+            tv.setTypeface(Typeface.DEFAULT);
         }
     }
 
