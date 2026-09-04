@@ -109,7 +109,8 @@ public class ProfileActionsView extends View {
     public static final int KEY_EDIT_USERNAME = 15;
     public static final int KEY_EDIT_INFO = 16;
     public static final int KEY_SETTINGS = 17;
-    public static final int KEY_CUSTOM_PROFILE = 18;
+
+    private Paint ameStrokePaint;
 
     private boolean isApplying;
     private boolean isNotificationsEnabled;
@@ -133,6 +134,11 @@ public class ProfileActionsView extends View {
 
         paint.setColor(Color.BLACK);
         paint.setAlpha(40);
+
+        ameStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        ameStrokePaint.setStyle(Paint.Style.STROKE);
+        ameStrokePaint.setStrokeWidth(dpf2(1.2f));
+        ameStrokePaint.setColor(app.miogram.bridge.ui.ame.MiogramAmeAesthetic.COLOR_AME_BUTTON_STROKE);
 
         xpadding = dpf2(14);
         ypadding = dpf2(12);
@@ -311,6 +317,11 @@ public class ProfileActionsView extends View {
                     int newAlpha = (int) (action.getAlpha() * alphaFraction1 * wasAlpha);
                     paint.setAlpha((int) (newAlpha * (radialGradient != null ? 0.1f : 1f)));
 
+                    if (app.miogram.bridge.ui.ame.MiogramAmeAesthetic.isAmeEnabled(null)) {
+                        boolean isPressed = action.bounce != null && action.bounce.isPressed();
+                        paint.setColor(isPressed ? app.miogram.bridge.ui.ame.MiogramAmeAesthetic.COLOR_AME_BUTTON_PRESSED : app.miogram.bridge.ui.ame.MiogramAmeAesthetic.COLOR_AME_BUTTON_GLASS);
+                    }
+
                     if (SharedConfig.shadowsInSections && isButtonColorLight() && parentExpanded < 0.5f) {
                         paint.setShadowLayer(dpf2(1.5f), 0, 0, Theme.multAlpha(Color.BLACK & 0x20FFFFFF, (newAlpha / 255f * (radialGradient != null ? 0.1f : 1f))));
                     } else {
@@ -325,6 +336,12 @@ public class ProfileActionsView extends View {
                         radialGradient.setLocalMatrix(matrix);
                         canvas.drawRoundRect(AndroidUtilities.rectTmp, r, r, shaderPaint);
                         shaderPaint.setAlpha(wasAlpha2);
+                    }
+                    if (app.miogram.bridge.ui.ame.MiogramAmeAesthetic.isAmeEnabled(null) && ameStrokePaint != null) {
+                        boolean isPressed = action.bounce != null && action.bounce.isPressed();
+                        ameStrokePaint.setColor(isPressed ? app.miogram.bridge.ui.ame.MiogramAmeAesthetic.COLOR_AME_PINK : app.miogram.bridge.ui.ame.MiogramAmeAesthetic.COLOR_AME_BUTTON_STROKE);
+                        ameStrokePaint.setAlpha((int) (action.getAlpha() * alphaFraction1 * 255));
+                        canvas.drawRoundRect(AndroidUtilities.rectTmp, r, r, ameStrokePaint);
                     }
                     paint.setAlpha(wasAlpha);
                 }
@@ -513,6 +530,9 @@ public class ProfileActionsView extends View {
     }
 
     public float getRoundRadius() {
+        if (app.miogram.bridge.ui.ame.MiogramAmeAesthetic.isAmeEnabled(null)) {
+            return dp(18);
+        }
         return dp(16);
     }
 
@@ -646,12 +666,6 @@ public class ProfileActionsView extends View {
     public void addSettings() {
         final Action action = new Action(ActionButton.SETTINGS);
         action.key = KEY_SETTINGS;
-        actions.add(action);
-    }
-
-    public void addCustomProfile() {
-        final Action action = new Action(ActionButton.CUSTOM_PROFILE);
-        action.key = KEY_CUSTOM_PROFILE;
         actions.add(action);
     }
 
@@ -1245,8 +1259,7 @@ public class ProfileActionsView extends View {
         SET_PHOTO(R.string.ProfileActionsEditPhoto2, R.drawable.filled_profile_photo, R.drawable.outline_profile_photo),
         EDIT_USERNAME(R.string.ProfileActionsEditUsername, R.drawable.filled_profile_edit_24, R.drawable.outline_profile_edit_24),
         EDIT_INFO(R.string.ProfileActionsEditInfo, R.drawable.filled_profile_edit_24, R.drawable.outline_profile_edit_24),
-        SETTINGS(R.string.Settings, R.drawable.filled_profile_settings, R.drawable.outline_profile_settings),
-        CUSTOM_PROFILE(R.string.ProfileActionsCustomize, R.drawable.msg_customize, R.drawable.msg_customize);
+        SETTINGS(R.string.Settings, R.drawable.filled_profile_settings, R.drawable.outline_profile_settings);
 
         final @StringRes int title;
         final @DrawableRes int filledIcon;

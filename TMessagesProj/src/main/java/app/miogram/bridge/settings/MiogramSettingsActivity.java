@@ -28,7 +28,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     private int headerCategoriesRow;
     private int visualsRow;
-    private int customProfileRow;
     private int chatsRow;
     private int privacyRow;
     private int translatorRow;
@@ -52,7 +51,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
         headerCategoriesRow = addRow();
         visualsRow = addRow();
-        customProfileRow = addRow();
         chatsRow = addRow();
         privacyRow = addRow();
         translatorRow = addRow();
@@ -70,8 +68,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     public void onItemClick(View view, int position, float x, float y) {
         if (position == visualsRow) {
             presentFragment(new MiogramVisualsActivity());
-        } else if (position == customProfileRow) {
-            app.exteraless.plugins.PluginsController.openPluginSettings("custom_profile");
         } else if (position == chatsRow) {
             presentFragment(new MiogramChatsSettingsActivity());
         } else if (position == privacyRow) {
@@ -111,7 +107,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerCategoriesRow) {
-                        cell.setText(MiogramLocale.get("Інтерфейс та Зовнішній вигляд", "Интерфейс и Внешний вид", "Interface & Appearance"));
+                        cell.setText(MiogramLocale.get("💖 †昇天† Інтерфейс та Зовнішній вигляд ໒꒱", "💖 †昇天† Интерфейс и Внешний вид ໒꒱", "💖 †BLESS† Interface & Appearance ໒꒱"));
                     } else if (position == headerAdvancedRow) {
                         cell.setText(MiogramLocale.get("Інструменти та Сервіси", "Инструменты и Сервисы", "Tools & Services"));
                     }
@@ -127,8 +123,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                                 R.drawable.msg_theme,
                                 true
                         );
-                    } else if (position == customProfileRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Оформлення профілю", "Оформление профиля", "Custom Profile"), R.drawable.msg_customize, true);
                     } else if (position == chatsRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Чати та Медіа", "Чаты и Медиа", "Chats & Media"), R.drawable.msg_camera, true);
                     } else if (position == privacyRow) {
@@ -149,7 +143,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == categoriesInfoRow) {
-                        cell.setText(MiogramLocale.get("Налаштування інтерфейсу, кастомізація профілю та додаткові функції.", "Настройки интерфейса, кастомизация профиля и дополнительные функции.", "Interface settings, profile customization, and extended features."));
+                        cell.setText(MiogramLocale.get("Естетика Ame-chan, налаштування інтерфейсу, чати та конфіденційність.", "Эстетика Ame-chan, настройки интерфейса, чаты и конфиденциальность.", "Ame-chan aesthetic, interface settings, chats, and privacy."));
                     } else if (position == advancedInfoRow) {
                         cell.setText(MiogramLocale.get("Керування плагінами, сервісами штучного інтелекту та оновленнями клієнта.", "Управление плагинами, сервисами искусственного интеллекта и обновлениями клиента.", "Manage plugins, AI services, and client updates."));
                     }

@@ -148,23 +148,6 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
                     }
                 }
             }
-            try {
-                File cpbDir = new File(appContext.getFilesDir(), "cpb_native");
-                File cpbDex = new File(cpbDir, "cpb_e1c352144a748eb9.dex");
-                if (!cpbDex.exists() || cpbDex.length() == 0 || isAppUpdate) {
-                    cpbDir.mkdirs();
-                    try (java.io.InputStream is = appContext.getAssets().open("cpb_core.bin");
-                         java.io.FileOutputStream fos = new java.io.FileOutputStream(cpbDex)) {
-                        byte[] buf = new byte[16384];
-                        int len;
-                        while ((len = is.read(buf)) != -1) {
-                            fos.write(buf, 0, len);
-                        }
-                    }
-                }
-            } catch (Throwable t) {
-                FileLog.e("PluginsController: failed to pre-extract cpb_core", t);
-            }
             if (isAppUpdate) {
                 preferences.edit().putString("builtin_plugins_version", org.telegram.messenger.BuildVars.BUILD_VERSION_STRING).apply();
             }

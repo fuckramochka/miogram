@@ -101,23 +101,27 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
         // 5. Description Card
         LinearLayout descCard = new LinearLayout(context);
         descCard.setOrientation(LinearLayout.VERTICAL);
-        GradientDrawable cardBg = new GradientDrawable();
-        cardBg.setShape(GradientDrawable.RECTANGLE);
-        cardBg.setCornerRadius(AndroidUtilities.dp(14));
-        cardBg.setColor(Theme.getColor(Theme.key_windowBackgroundGray));
-        descCard.setBackground(cardBg);
-        descCard.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
+        descCard.setBackground(app.miogram.bridge.ui.ame.MiogramAmeAesthetic.createAmeCardDrawable(16));
+        descCard.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(16), AndroidUtilities.dp(18), AndroidUtilities.dp(16));
 
         TextView descText = new TextView(context);
         descText.setTextSize(14);
-        descText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-        descText.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
+        descText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        descText.setLineSpacing(AndroidUtilities.dp(3), 1.0f);
         descText.setGravity(Gravity.CENTER);
 
         if (isFounder) {
-            descText.setText("Цей ексклюзивний піксельний бейдж належить творцю та розробнику Miogram. Він символізує оригінальну кібер-естетику Needy Girl Overdose, безмежну кастомізацію та унікальність нашого месенджера.");
+            descText.setText(app.miogram.bridge.MiogramLocale.get(
+                    "Цей ексклюзивний піксельний бейдж належить творцю та розробнику Miogram. Він символізує оригінальну кібер-естетику Needy Girl Overdose, безмежну кастомізацію та унікальність нашого месенджера. †昇天†",
+                    "Этот эксклюзивный пиксельный бейдж принадлежит создателю и разработчику Miogram. Он символизирует оригинальную кибер-эстетику Needy Girl Overdose, безграничную кастомизацию и уникальность нашего мессенджера. †昇天†",
+                    "This exclusive pixel badge belongs to the creator & developer of Miogram. It symbolizes the cyber aesthetic of Needy Girl Overdose, boundless customization, and uniqueness. †BLESS†"
+            ));
         } else {
-            descText.setText("Цей користувач має унікальну відзнаку в системі Miogram.");
+            descText.setText(app.miogram.bridge.MiogramLocale.get(
+                    "Цей користувач має унікальну відзнаку в системі Miogram.",
+                    "Этот пользователь имеет уникальное отличие в системе Miogram.",
+                    "This user holds a unique distinction in the Miogram system."
+            ));
         }
         descCard.addView(descText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
@@ -125,17 +129,13 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
 
         // 6. Action Button: Close
         TextView okButton = new TextView(context);
-        okButton.setText("Зрозуміло");
-        okButton.setTextSize(15);
+        okButton.setText(app.miogram.bridge.MiogramLocale.get("Зрозуміло ໒꒱", "Понятно ໒꒱", "Got it ໒꒱"));
+        okButton.setTextSize(15.5f);
         okButton.setTypeface(AndroidUtilities.bold());
         okButton.setTextColor(Color.WHITE);
         okButton.setGravity(Gravity.CENTER);
-        GradientDrawable btnBg = new GradientDrawable();
-        btnBg.setShape(GradientDrawable.RECTANGLE);
-        btnBg.setCornerRadius(AndroidUtilities.dp(12));
-        btnBg.setColor(Color.parseColor("#FF55A3"));
-        okButton.setBackground(btnBg);
-        okButton.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14));
+        okButton.setBackground(app.miogram.bridge.ui.ame.MiogramAmeAesthetic.createAmeButtonDrawable(16));
+        okButton.setPadding(0, AndroidUtilities.dp(15), 0, AndroidUtilities.dp(15));
         okButton.setOnClickListener(v -> dismiss());
 
         root.addView(okButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));

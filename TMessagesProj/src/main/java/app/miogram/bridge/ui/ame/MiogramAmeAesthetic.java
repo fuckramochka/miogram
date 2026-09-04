@@ -8,7 +8,12 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
+import android.graphics.drawable.StateListDrawable;
+import android.content.res.ColorStateList;
+import android.os.Build;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -35,7 +40,13 @@ public class MiogramAmeAesthetic {
     public static final int COLOR_AME_LAVENDER = 0xFFE0AAFF;
     public static final int COLOR_AME_PURPLE = 0xFF9D4EDD;
     public static final int COLOR_AME_DARK = 0xFF120F1D;
+    public static final int COLOR_AME_DARK_BG = 0xFF0E0C1A;
     public static final int COLOR_AME_CARD = 0x26FF70A6;
+    public static final int COLOR_AME_CARD_BG = 0x2E21163B;
+    public static final int COLOR_AME_GLASS_STROKE = 0x47FF70A6;
+    public static final int COLOR_AME_BUTTON_GLASS = 0x331C1335;
+    public static final int COLOR_AME_BUTTON_STROKE = 0x40FF70A6;
+    public static final int COLOR_AME_BUTTON_PRESSED = 0x559D4EDD;
     public static final int COLOR_AME_GOLD = 0xFFFFD166;
 
     private static final Paint haloPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -147,6 +158,95 @@ public class MiogramAmeAesthetic {
         );
         gd.setCornerRadius(AndroidUtilities.dp(16));
         gd.setStroke(AndroidUtilities.dp(1.2f), COLOR_AME_CYAN);
+        return gd;
+    }
+
+    public static int getAmeThemeColor(int key) {
+        if (key == Theme.key_chats_actionBackground) return COLOR_AME_PINK;
+        if (key == Theme.key_chats_actionPressedBackground) return COLOR_AME_PURPLE;
+        if (key == Theme.key_chats_actionIcon) return 0xFFFFFFFF;
+        if (key == Theme.key_switchTrackChecked) return 0x99FF70A6;
+        if (key == Theme.key_switchThumbChecked) return COLOR_AME_CYAN;
+        if (key == Theme.key_chats_unreadCounter) return COLOR_AME_PINK;
+        if (key == Theme.key_chats_unreadCounterMuted) return 0x809D4EDD;
+        if (key == Theme.key_chats_unreadCounterText) return 0xFFFFFFFF;
+        if (key == Theme.key_featuredStickers_addButton) return COLOR_AME_PINK;
+        if (key == Theme.key_featuredStickers_addButtonPressed) return COLOR_AME_PURPLE;
+        if (key == Theme.key_dialogButton) return COLOR_AME_PINK;
+        if (key == Theme.key_dialogButtonSelector) return 0x26FF70A6;
+        if (key == Theme.key_windowBackgroundWhiteValueText) return COLOR_AME_CYAN;
+        if (key == Theme.key_windowBackgroundWhiteLinkText) return COLOR_AME_CYAN;
+        if (key == Theme.key_windowBackgroundWhiteBlueText || key == Theme.key_windowBackgroundWhiteBlueText2 || key == Theme.key_windowBackgroundWhiteBlueText4) return COLOR_AME_PINK;
+        if (key == Theme.key_listSelector) return 0x22FF70A6;
+        return 0;
+    }
+
+    public static Drawable createAmeButtonDrawable(float cornerRadiusDp) {
+        GradientDrawable normal = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{COLOR_AME_PINK, COLOR_AME_PURPLE}
+        );
+        normal.setCornerRadius(AndroidUtilities.dp(cornerRadiusDp));
+
+        GradientDrawable pressed = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{COLOR_AME_PURPLE, COLOR_AME_PINK}
+        );
+        pressed.setCornerRadius(AndroidUtilities.dp(cornerRadiusDp));
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            GradientDrawable mask = new GradientDrawable();
+            mask.setCornerRadius(AndroidUtilities.dp(cornerRadiusDp));
+            mask.setColor(0xFFFFFFFF);
+            return new RippleDrawable(
+                    ColorStateList.valueOf(0x33FFFFFF),
+                    normal,
+                    mask
+            );
+        } else {
+            StateListDrawable sld = new StateListDrawable();
+            sld.addState(new int[]{android.R.attr.state_pressed}, pressed);
+            sld.addState(new int[0], normal);
+            return sld;
+        }
+    }
+
+    public static Drawable createAmeGlassButtonDrawable(float cornerRadiusDp) {
+        GradientDrawable normal = new GradientDrawable();
+        normal.setShape(GradientDrawable.RECTANGLE);
+        normal.setColor(COLOR_AME_BUTTON_GLASS);
+        normal.setCornerRadius(AndroidUtilities.dp(cornerRadiusDp));
+        normal.setStroke(AndroidUtilities.dp(1.2f), COLOR_AME_BUTTON_STROKE);
+
+        GradientDrawable pressed = new GradientDrawable();
+        pressed.setShape(GradientDrawable.RECTANGLE);
+        pressed.setColor(COLOR_AME_BUTTON_PRESSED);
+        pressed.setCornerRadius(AndroidUtilities.dp(cornerRadiusDp));
+        pressed.setStroke(AndroidUtilities.dp(1.2f), COLOR_AME_PINK);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            GradientDrawable mask = new GradientDrawable();
+            mask.setCornerRadius(AndroidUtilities.dp(cornerRadiusDp));
+            mask.setColor(0xFFFFFFFF);
+            return new RippleDrawable(
+                    ColorStateList.valueOf(0x33FF70A6),
+                    normal,
+                    mask
+            );
+        } else {
+            StateListDrawable sld = new StateListDrawable();
+            sld.addState(new int[]{android.R.attr.state_pressed}, pressed);
+            sld.addState(new int[0], normal);
+            return sld;
+        }
+    }
+
+    public static Drawable createAmeCardDrawable(float cornerRadiusDp) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        gd.setColor(COLOR_AME_CARD_BG);
+        gd.setCornerRadius(AndroidUtilities.dp(cornerRadiusDp));
+        gd.setStroke(AndroidUtilities.dp(1f), COLOR_AME_GLASS_STROKE);
         return gd;
     }
 }
