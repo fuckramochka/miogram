@@ -48,6 +48,9 @@ public class MiogramCustomProfileManager {
     public static final int SHAPE_HEART = 4;
     public static final int SHAPE_DIAMOND = 5;
 
+    public static void init(Context context) {
+    }
+
     private static SharedPreferences getPrefs() {
         Context ctx = ApplicationLoader.applicationContext;
         return ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
