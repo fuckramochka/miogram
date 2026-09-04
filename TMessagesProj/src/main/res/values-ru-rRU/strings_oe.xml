@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="OpenExteraInfo">Фичи, перенесённые из exteraGram</string>
+    <string name="OpenExteraInfo">Расширенные функции Miogram</string>
 
 
     <string name="OpenExteraChats">Чаты</string>
@@ -29,7 +29,7 @@
     <string name="AppIconNya" translatable="false">Nya</string>
     <string name="AppIconAyu" translatable="false">Ayu</string>
     <string name="AppIconQuack" translatable="false">Quack</string>
-    <string name="OpenExteraPreferences">Настройки exteraless</string>
+    <string name="OpenExteraPreferences">Настройки Miogram</string>
     <string name="OpenExteraDesignSection">Дизайн</string>
     <string name="OpenExteraDesigner">Иконки и дизайн</string>
     <string name="OpenExteraDesignStudio">Студия дизайна</string>

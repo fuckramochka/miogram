@@ -476,6 +476,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         flagSecureReason.attach();
 
         super.onCreate(savedInstanceState);
+        app.miogram.bridge.badge.MiogramSupabaseBridge.init();
         app.miogram.bridge.perf.MiogramPerformanceOptimizer.applyProMotionRefreshRate(this);
         if (Build.VERSION.SDK_INT >= 24) {
             AndroidUtilities.isInMultiwindow = isInMultiWindowMode();
@@ -7297,6 +7298,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             // Re-check if the user updated their email from another client
             MessagesController.getInstance(currentAccount).checkPromoInfo(true);
         }
+        AndroidUtilities.runOnUIThread(() -> app.miogram.bridge.badge.MiogramSyncDialog.checkAndShow(this), 1200);
         //if (refreshRateController != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
         //    refreshRateController.start();
         //}

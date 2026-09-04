@@ -305,16 +305,23 @@ public class DrawerHeaderView extends FrameLayout {
         final long emojiStatusId = DialogObject.getEmojiStatusDocumentId(user.emoji_status);
         final boolean premium = MessagesController.getInstance(account).isPremiumUser(user);
         final int statusColor = Theme.getColor(COLOR_KEY_STATUS);
-        if (emojiStatusId != 0) {
+        if (app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(user.id)) {
+            nameView.setRightDrawable(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 20));
+            nameView.setRightDrawableOnClick(v -> new app.miogram.bridge.badge.MiogramBadgeBottomSheet(getContext(), user.id).show());
+        } else if (emojiStatusId != 0) {
             premiumStatusDrawable.set(emojiStatusId, true);
+            premiumStatusDrawable.setParticles(DialogObject.isEmojiStatusCollectible(user.emoji_status), true);
+            premiumStatusDrawable.setColor(statusColor);
+            nameView.setRightDrawable(premiumStatusDrawable);
         } else if (premium) {
             premiumStatusDrawable.set(PremiumGradient.getInstance().premiumStarDrawableMini, true);
+            premiumStatusDrawable.setParticles(false, true);
+            premiumStatusDrawable.setColor(statusColor);
+            nameView.setRightDrawable(premiumStatusDrawable);
         } else {
             premiumStatusDrawable.set((Drawable) null, true);
+            nameView.setRightDrawable(null);
         }
-        premiumStatusDrawable.setParticles(DialogObject.isEmojiStatusCollectible(user.emoji_status), true);
-        premiumStatusDrawable.setColor(statusColor);
-        nameView.setRightDrawable(emojiStatusId != 0 || premium ? premiumStatusDrawable : null);
 
         updateProxyStatus();
     }

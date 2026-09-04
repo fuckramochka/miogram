@@ -11234,7 +11234,7 @@
     <string name="MiogramPluginsTitle">WASM plugins</string>
     <string name="MiogramPluginsNoRuntime">WASM plugins (runtime missing in this build)</string>
     <string name="MiogramVisualsTitle">Liquid glass (AGSL)</string>
-    <string name="MiogramToggleExtera">exteraless features</string>
+    <string name="MiogramToggleExtera">Miogram features</string>
     <string name="MiogramToggleNagram">Nagram settings</string>
     <string name="MiogramToggleAyu">AyuMoments quick access</string>
     <string name="MiogramKeyDialogTitle">Gemini API key</string>

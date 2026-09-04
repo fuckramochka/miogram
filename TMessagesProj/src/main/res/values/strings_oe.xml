@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Строки фич, перенесённых из exteraGram. -->
 <resources>
-    <string name="OpenExtera" translatable="false">exteraless</string>
-    <string name="OpenExteraInfo">Features ported from exteraGram</string>
+    <string name="OpenExtera" translatable="false">Miogram</string>
+    <string name="OpenExteraInfo">Miogram Enhanced Features</string>
 
 
     <string name="OpenExteraChats">Chats</string>
@@ -31,7 +31,7 @@
     <string name="AppIconNya" translatable="false">Nya</string>
     <string name="AppIconAyu" translatable="false">Ayu</string>
     <string name="AppIconQuack" translatable="false">Quack</string>
-    <string name="OpenExteraPreferences">exteraless Preferences</string>
+    <string name="OpenExteraPreferences">Miogram Preferences</string>
     <string name="OpenExteraDesignSection">Design</string>
     <string name="OpenExteraDesigner">Icons and design</string>
     <string name="OpenExteraDesignStudio">Design studio</string>

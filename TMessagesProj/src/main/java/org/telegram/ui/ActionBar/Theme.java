@@ -9171,12 +9171,6 @@ public class Theme {
                 return iosColor;
             }
         }
-        if (app.miogram.bridge.ui.ame.MiogramAmeAesthetic.isAmeEnabled(null)) {
-            int ameColor = app.miogram.bridge.ui.ame.MiogramAmeAesthetic.getAmeThemeColor(key);
-            if (ameColor != 0) {
-                return ameColor;
-            }
-        }
         if (provider != null) {
             return provider.getColor(key);
         }
@@ -9255,12 +9249,6 @@ public class Theme {
             int iosColor = getIosPresetColor(key);
             if (iosColor != 0) {
                 return iosColor;
-            }
-        }
-        if (app.miogram.bridge.ui.ame.MiogramAmeAesthetic.isAmeEnabled(null)) {
-            int ameColor = app.miogram.bridge.ui.ame.MiogramAmeAesthetic.getAmeThemeColor(key);
-            if (ameColor != 0) {
-                return ameColor;
             }
         }
         if (key_divider == key && !resolvingDividerColor && app.exteraless.appearance.AppearanceConfig.dividerHidden()) {

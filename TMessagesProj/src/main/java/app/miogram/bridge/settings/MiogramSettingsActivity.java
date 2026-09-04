@@ -7,10 +7,14 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.R;
+import org.telegram.messenger.UserConfig;
 import org.telegram.ui.Cells.TextCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
 
 import app.miogram.bridge.MiogramLocale;
+import app.miogram.bridge.badge.MiogramBadgeBottomSheet;
+import app.miogram.bridge.badge.MiogramBadgeManager;
+import app.miogram.bridge.badge.MiogramBadgeType;
 import app.miogram.bridge.ui.MiogramAiSettingsActivity;
 import app.miogram.bridge.ui.MiogramChatsSettingsActivity;
 import app.miogram.bridge.ui.MiogramPerformanceActivity;
@@ -23,13 +27,18 @@ import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 
 /**
  * Unified Main Miogram Settings Hub with dynamic multilingual localization.
+ * Exposes full styling, navigation, icon packs, chats, privacy, cloud badges, and system controls.
  */
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     private int headerCategoriesRow;
+    private int badgesRow;
     private int visualsRow;
+    private int navigationRow;
+    private int iconPacksRow;
     private int chatsRow;
     private int privacyRow;
+    private int generalRow;
     private int translatorRow;
     private int performanceRow;
     private int categoriesInfoRow;
@@ -50,9 +59,13 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         super.updateRows();
 
         headerCategoriesRow = addRow();
+        badgesRow = addRow();
         visualsRow = addRow();
+        navigationRow = addRow();
+        iconPacksRow = addRow();
         chatsRow = addRow();
         privacyRow = addRow();
+        generalRow = addRow();
         translatorRow = addRow();
         performanceRow = addRow();
         categoriesInfoRow = addRow();
@@ -66,12 +79,21 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == visualsRow) {
+        if (position == badgesRow) {
+            long currentUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+            new MiogramBadgeBottomSheet(this, currentUserId).show();
+        } else if (position == visualsRow) {
             presentFragment(new MiogramVisualsActivity());
+        } else if (position == navigationRow) {
+            presentFragment(new app.exteraless.settings.OpenExteraAppNavigationActivity());
+        } else if (position == iconPacksRow) {
+            presentFragment(new app.exteraless.icons.IconPacksActivity());
         } else if (position == chatsRow) {
             presentFragment(new MiogramChatsSettingsActivity());
         } else if (position == privacyRow) {
             presentFragment(new MiogramPrivacySettingsActivity());
+        } else if (position == generalRow) {
+            presentFragment(new app.exteraless.settings.OpenExteraGeneralActivity());
         } else if (position == translatorRow) {
             presentFragment(new NekoTranslatorSettingsActivity());
         } else if (position == performanceRow) {
@@ -107,26 +129,35 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerCategoriesRow) {
-                        cell.setText(MiogramLocale.get("💖 †昇天† Інтерфейс та Зовнішній вигляд ໒꒱", "💖 †昇天† Интерфейс и Внешний вид ໒꒱", "💖 †BLESS† Interface & Appearance ໒꒱"));
+                        cell.setText(MiogramLocale.get("Зовнішній вигляд та функції", "Внешний вид и функции", "Appearance & Features"));
                     } else if (position == headerAdvancedRow) {
-                        cell.setText(MiogramLocale.get("Інструменти та Сервіси", "Инструменты и Сервисы", "Tools & Services"));
+                        cell.setText(MiogramLocale.get("Система та Інструменти", "Система и Инструменты", "System & Tools"));
                     }
                     break;
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
-                    if (position == visualsRow) {
-                        app.miogram.bridge.divine.MiogramDivineEngine.Preset current = app.miogram.bridge.divine.MiogramDivineEngine.getCurrentPreset(getParentActivity());
+                    if (position == badgesRow) {
+                        long currentUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+                        MiogramBadgeType type = MiogramBadgeManager.getBadgeType(currentUserId);
                         cell.setTextAndValueAndIcon(
-                                MiogramLocale.get("Налаштування інтерфейсу", "Настройки интерфейса", "Interface Settings"),
-                                app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(current),
-                                R.drawable.msg_theme,
+                                MiogramLocale.get("Бейджі та Спільнота", "Бейджи и Сообщество", "Badges & Community"),
+                                type.getCode() + " • " + type.getTitle(),
+                                R.drawable.msg_fave,
                                 true
                         );
+                    } else if (position == visualsRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Зовнішній вигляд та стиль", "Внешний вид и стиль", "Appearance & Style"), R.drawable.msg_theme, true);
+                    } else if (position == navigationRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Навігація та Меню", "Навигация и Меню", "Navigation & Menu"), R.drawable.msg_folders, true);
+                    } else if (position == iconPacksRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Паки іконок", "Паки иконок", "Icon Packs"), R.drawable.msg_emoji, true);
                     } else if (position == chatsRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Чати та Медіа", "Чаты и Медиа", "Chats & Media"), R.drawable.msg_camera, true);
                     } else if (position == privacyRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Конфіденційність та Ghost Mode", "Конфиденциальность и Ghost Mode", "Privacy & Ghost Mode"), R.drawable.msg_secret, true);
+                    } else if (position == generalRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Розширені налаштування", "Расширенные настройки", "Advanced Preferences"), R.drawable.msg_settings, true);
                     } else if (position == translatorRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Перекладач", "Переводчик", "Translator"), R.drawable.msg_translate, true);
                     } else if (position == performanceRow) {
@@ -134,7 +165,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     } else if (position == aiRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Miogram AI", "Miogram AI", "Miogram AI"), R.drawable.msg_bot, true);
                     } else if (position == pluginsRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Плагіни Miogram", "Плагины Miogram", "Plugins"), R.drawable.msg_folders, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Плагіни Miogram", "Плагины Miogram", "Plugins"), R.drawable.msg_open, true);
                     } else if (position == updaterRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Перевірити оновлення Miogram", "Проверить обновления Miogram", "Check for Updates"), R.drawable.msg_retry, false);
                     }
@@ -143,9 +174,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == categoriesInfoRow) {
-                        cell.setText(MiogramLocale.get("Естетика Ame-chan, налаштування інтерфейсу, чати та конфіденційність.", "Эстетика Ame-chan, настройки интерфейса, чаты и конфиденциальность.", "Ame-chan aesthetic, interface settings, chats, and privacy."));
+                        cell.setText(MiogramLocale.get("Налаштування 10 стилів бейджів, хмарна синхронізація, навігація, паки іконок та параметри чатів.", "Настройки 10 стилей бейджей, облачная синхронизация, навигация, паки иконок и параметры чатов.", "Customize 10 badge styles, community cloud sync, navigation, icon packs, and chats."));
                     } else if (position == advancedInfoRow) {
-                        cell.setText(MiogramLocale.get("Керування плагінами, сервісами штучного інтелекту та оновленнями клієнта.", "Управление плагинами, сервисами искусственного интеллекта и обновлениями клиента.", "Manage plugins, AI services, and client updates."));
+                        cell.setText(MiogramLocale.get("Керування плагінами, сервісами штучного інтелекту та оновленнями Miogram.", "Управление плагинами, сервисами искусственного интеллекта и обновлениями Miogram.", "Manage plugins, AI services, and Miogram updates."));
                     }
                     break;
                 }

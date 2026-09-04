@@ -162,22 +162,7 @@ public class MiogramAmeAesthetic {
     }
 
     public static int getAmeThemeColor(int key) {
-        if (key == Theme.key_chats_actionBackground) return COLOR_AME_PINK;
-        if (key == Theme.key_chats_actionPressedBackground) return COLOR_AME_PURPLE;
-        if (key == Theme.key_chats_actionIcon) return 0xFFFFFFFF;
-        if (key == Theme.key_switchTrackChecked || key == Theme.key_switch2TrackChecked || key == Theme.key_switchTrackBlueChecked) return 0x99FF70A6;
-        if (key == Theme.key_switchTrackBlueThumbChecked) return COLOR_AME_CYAN;
-        if (key == Theme.key_chats_unreadCounter) return COLOR_AME_PINK;
-        if (key == Theme.key_chats_unreadCounterMuted) return 0x809D4EDD;
-        if (key == Theme.key_chats_unreadCounterText) return 0xFFFFFFFF;
-        if (key == Theme.key_featuredStickers_addButton) return COLOR_AME_PINK;
-        if (key == Theme.key_featuredStickers_addButtonPressed) return COLOR_AME_PURPLE;
-        if (key == Theme.key_dialogButton) return COLOR_AME_PINK;
-        if (key == Theme.key_dialogButtonSelector) return 0x26FF70A6;
-        if (key == Theme.key_windowBackgroundWhiteValueText) return COLOR_AME_CYAN;
-        if (key == Theme.key_windowBackgroundWhiteLinkText) return COLOR_AME_CYAN;
-        if (key == Theme.key_windowBackgroundWhiteBlueText || key == Theme.key_windowBackgroundWhiteBlueText2 || key == Theme.key_windowBackgroundWhiteBlueText4) return COLOR_AME_PINK;
-        if (key == Theme.key_listSelector) return 0x22FF70A6;
+        // Theme neutrality: return 0 to respect user-selected themes
         return 0;
     }
 
