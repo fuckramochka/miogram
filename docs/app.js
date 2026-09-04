@@ -126,34 +126,36 @@ const BADGE_CONFIGS = {
   }
 };
 
-// Particle definitions
-const PARTICLES = [
-  { x: 3, y: 3, phase: 0.1, speed: 1.0 },
-  { x: 24, y: 4, phase: 0.5, speed: 0.9 },
-  { x: 3, y: 18, phase: 0.75, speed: 1.1 },
-  { x: 24, y: 17, phase: 0.3, speed: 0.85 },
-  { x: 13.5, y: 1, phase: 0.85, speed: 1.2 },
-  { x: 13.5, y: 20, phase: 0.35, speed: 0.95 }
+// 8 Dynamic Flying Micro-Particles: {x, speed, sway, amp, isCross, offset}
+const DYNAMIC_PARTICLES = [
+  { x: 3.5,  speed: 0.00035, sway: 0.08, amp: 1.4, isCross: true,  offset: 0.05 },
+  { x: 24.5, speed: 0.00042, sway: 0.07, amp: 1.5, isCross: true,  offset: 0.35 },
+  { x: 5.0,  speed: 0.00028, sway: 0.09, amp: 1.2, isCross: false, offset: 0.65 },
+  { x: 23.0, speed: 0.00038, sway: 0.08, amp: 1.3, isCross: false, offset: 0.85 },
+  { x: 10.0, speed: 0.00045, sway: 0.06, amp: 1.0, isCross: false, offset: 0.20 },
+  { x: 18.0, speed: 0.00032, sway: 0.07, amp: 1.2, isCross: true,  offset: 0.50 },
+  { x: 14.0, speed: 0.00030, sway: 0.10, amp: 1.5, isCross: false, offset: 0.75 },
+  { x: 2.0,  speed: 0.00040, sway: 0.08, amp: 1.2, isCross: true,  offset: 0.90 }
 ];
 
 let animStart = performance.now();
 
 function renderLoop(time) {
   const elapsed = time - animStart;
-  const cycle = (elapsed % 2200) / 2200;
+  const cycle = (elapsed % 2400) / 2400;
   const angle = cycle * 2 * Math.PI;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const GRID_W = 28;
-  const GRID_H = 22;
+  const GRID_H = 24;
   const px = 8.5;
   const py = 8.5;
 
   const offsetX = (canvas.width - GRID_W * px) / 2;
   const offsetY = (canvas.height - GRID_H * py) / 2;
 
-  // Floating respiration hop
+  // Gentle floating respiration hop
   const bobY = Math.round(Math.sin(angle) * 1.0) * py;
 
   ctx.save();
@@ -163,7 +165,7 @@ function renderLoop(time) {
 
   // 1. Radiant Atmospheric Bloom
   const cx = 14 * px;
-  const cy = 11 * py;
+  const cy = 12 * py;
   const radGlow = ctx.createRadialGradient(cx, cy, 5, cx, cy, 120);
   radGlow.addColorStop(0, cfg.glow);
   radGlow.addColorStop(1, "transparent");
@@ -172,179 +174,266 @@ function renderLoop(time) {
   ctx.arc(cx, cy, 120, 0, Math.PI * 2);
   ctx.fill();
 
-  // 2. Render badge geometry
-  drawBadgeGeometry(ctx, px, py, currentBadgeId, cfg.accent, elapsed);
+  // 2. Dynamic Flying Micro-Particles
+  drawFlyingMicroParticles(ctx, px, py, elapsed, cfg.accent, cfg.secondary || cfg.accent);
 
-  // 3. Starlight Sparkle Crosses (✦)
-  drawSparkles(ctx, px, py, cycle, cfg.accent);
+  // 3. Render badge geometry (Heart in prominent foreground)
+  drawBadgeGeometry(ctx, px, py, currentBadgeId, cfg.accent, elapsed);
 
   ctx.restore();
   requestAnimationFrame(renderLoop);
 }
 
-function drawBadgeGeometry(c, px, py, id, accent, elapsed) {
-  // Common Heart
-  function drawHeart(fill, stroke) {
-    c.fillStyle = fill;
-    c.fillRect(10 * px, 7 * py, 3 * px, 1 * py);
-    c.fillRect(15 * px, 7 * py, 3 * px, 1 * py);
-    c.fillRect(9 * px, 8 * py, 10 * px, 2 * py);
-    c.fillRect(8 * px, 10 * py, 12 * px, 2 * py);
-    c.fillRect(9 * px, 12 * py, 10 * px, 1 * py);
-    c.fillRect(10 * px, 13 * py, 8 * px, 1 * py);
-    c.fillRect(11 * px, 14 * py, 6 * px, 1 * py);
-    c.fillRect(12 * px, 15 * py, 4 * px, 1 * py);
-    c.fillRect(13 * px, 16 * py, 2 * px, 1 * py);
+function drawFlyingMicroParticles(c, px, py, now, primaryColor, secondaryColor) {
+  for (let i = 0; i < DYNAMIC_PARTICLES.length; i++) {
+    const p = DYNAMIC_PARTICLES[i];
+    const travel = (now * p.speed + p.offset) % 1.0;
+    const y = (1.0 - travel) * 23;
+    const x = p.x + Math.sin(y * p.sway + now * 0.003) * p.amp;
 
-    // Glowing Contour
-    c.fillStyle = stroke;
-    c.fillRect(10 * px, 6 * py, 3 * px, 1 * py);
-    c.fillRect(15 * px, 6 * py, 3 * px, 1 * py);
-    c.fillRect(8 * px, 8 * py, 1 * px, 4 * py);
-    c.fillRect(19 * px, 8 * py, 1 * px, 4 * py);
-    c.fillRect(13 * px, 17 * py, 2 * px, 1 * py);
+    const alphaSin = Math.sin(travel * Math.PI);
+    if (alphaSin <= 0.08) continue;
+
+    c.save();
+    c.globalAlpha = alphaSin;
+    c.fillStyle = (i % 2 === 0) ? primaryColor : secondaryColor;
+
+    const cx = x * px;
+    const cy = y * py;
+
+    if (p.isCross) {
+      // Tiny 3x3 micro-cross: 1px center with 1px cardinal arms
+      c.fillRect(cx - 0.35 * px, cy - 1.1 * py, 0.7 * px, 2.2 * py);
+      c.fillRect(cx - 1.1 * px, cy - 0.35 * py, 2.2 * px, 0.7 * py);
+      c.fillStyle = "#FFFFFF";
+      c.fillRect(cx - 0.35 * px, cy - 0.35 * py, 0.7 * px, 0.7 * py);
+    } else {
+      // Tiny 2x2 micro-dot
+      c.fillRect(cx - 0.6 * px, cy - 0.6 * py, 1.2 * px, 1.2 * py);
+      c.fillStyle = "#FFFFFF";
+      c.fillRect(cx - 0.3 * px, cy - 0.3 * py, 0.6 * px, 0.6 * py);
+    }
+    c.restore();
+  }
+}
+
+function drawBadgeGeometry(c, px, py, id, accent, elapsed) {
+  function drawVisor(color) {
+    c.fillStyle = color;
+    c.fillRect(10.0 * px, 1.5 * py, 8.0 * px, 0.6 * py);
+    c.fillRect(9.0 * px, 2.5 * py, 10.0 * px, 0.6 * py);
+    c.fillRect(9.0 * px, 3.5 * py, 10.0 * px, 0.6 * py);
+    c.fillRect(10.0 * px, 4.5 * py, 8.0 * px, 0.6 * py);
+    c.fillRect(9.0 * px, 1.5 * py, 0.6 * px, 3.6 * py);
+    c.fillRect(18.4 * px, 1.5 * py, 0.6 * px, 3.6 * py);
+  }
+
+  function drawAngledWings(fill) {
+    c.fillStyle = fill;
+    // Left Wing (angled up-left)
+    c.fillRect(5.0 * px, 3.5 * py, 4.0 * px, 1.2 * py);
+    c.fillRect(3.0 * px, 4.7 * py, 6.0 * px, 1.2 * py);
+    c.fillRect(1.0 * px, 5.9 * py, 7.5 * px, 1.2 * py);
+    c.fillRect(0.0 * px, 7.1 * py, 8.5 * px, 1.2 * py);
+    c.fillRect(1.0 * px, 8.3 * py, 7.5 * px, 1.2 * py);
+    c.fillRect(3.0 * px, 9.5 * py, 5.5 * px, 1.2 * py);
+    c.fillRect(5.0 * px, 10.7 * py, 3.5 * px, 1.2 * py);
+
+    // Right Wing (angled up-right)
+    c.fillRect(19.0 * px, 3.5 * py, 4.0 * px, 1.2 * py);
+    c.fillRect(19.0 * px, 4.7 * py, 6.0 * px, 1.2 * py);
+    c.fillRect(19.5 * px, 5.9 * py, 7.5 * px, 1.2 * py);
+    c.fillRect(19.5 * px, 7.1 * py, 8.5 * px, 1.2 * py);
+    c.fillRect(19.5 * px, 8.3 * py, 7.5 * px, 1.2 * py);
+    c.fillRect(19.5 * px, 9.5 * py, 5.5 * px, 1.2 * py);
+    c.fillRect(19.5 * px, 10.7 * py, 3.5 * px, 1.2 * py);
+  }
+
+  function drawFullHeart(fill) {
+    c.fillStyle = fill;
+    // Left rounded lobe
+    c.fillRect(7.5 * px, 5.0 * py, 5.0 * px, 1.8 * py);
+    c.fillRect(7.0 * px, 6.8 * py, 6.0 * px, 1.7 * py);
+    // Right rounded lobe
+    c.fillRect(15.5 * px, 5.0 * py, 5.0 * px, 1.8 * py);
+    c.fillRect(15.0 * px, 6.8 * py, 6.0 * px, 1.7 * py);
+    // Main heart body
+    c.fillRect(6.5 * px, 8.5 * py, 15.0 * px, 3.5 * py);
+    // Standalone lower heart V
+    c.fillRect(7.5 * px, 12.0 * py, 13.0 * px, 1.5 * py);
+    c.fillRect(8.5 * px, 13.5 * py, 11.0 * px, 1.5 * py);
+    c.fillRect(9.5 * px, 15.0 * py, 9.0 * px, 1.5 * py);
+    c.fillRect(10.5 * px, 16.5 * py, 7.0 * px, 1.5 * py);
+    c.fillRect(11.5 * px, 18.0 * py, 5.0 * px, 1.5 * py);
+    c.fillRect(12.5 * px, 19.5 * py, 3.0 * px, 1.5 * py);
+    c.fillRect(13.3 * px, 21.0 * py, 1.4 * px, 1.0 * py);
+  }
+
+  function drawDualContours(leftCol, rightCol) {
+    c.fillStyle = leftCol;
+    c.fillRect(6.5 * px, 11.0 * py, 1.0 * px, 1.5 * py);
+    c.fillRect(7.5 * px, 12.5 * py, 1.0 * px, 1.5 * py);
+    c.fillRect(8.5 * px, 14.0 * py, 1.0 * px, 1.5 * py);
+    c.fillRect(9.5 * px, 15.5 * py, 1.0 * px, 1.5 * py);
+    c.fillRect(10.5 * px, 17.0 * py, 1.0 * px, 1.5 * py);
+    c.fillRect(11.5 * px, 18.5 * py, 1.0 * px, 1.5 * py);
+    c.fillRect(12.5 * px, 20.0 * py, 1.0 * px, 1.2 * py);
+    c.fillRect(13.3 * px, 21.0 * py, 0.7 * px, 1.0 * py);
+
+    c.fillStyle = rightCol;
+    c.fillRect(20.5 * px, 11.0 * py, 1.0 * px, 1.5 * py);
+    c.fillRect(19.5 * px, 12.5 * py, 1.0 * px, 1.5 * py);
+    c.fillRect(18.5 * px, 14.0 * py, 1.0 * px, 1.5 * py);
+    c.fillRect(17.5 * px, 15.5 * py, 1.0 * px, 1.5 * py);
+    c.fillRect(16.5 * px, 17.0 * py, 1.0 * px, 1.5 * py);
+    c.fillRect(15.5 * px, 18.5 * py, 1.0 * px, 1.5 * py);
+    c.fillRect(14.5 * px, 20.0 * py, 1.0 * px, 1.2 * py);
+    c.fillRect(14.0 * px, 21.0 * py, 0.7 * px, 1.0 * py);
   }
 
   function drawEyes(eyeColor) {
     c.fillStyle = eyeColor;
-    c.fillRect(11 * px, 9.5 * py, 1.5 * px, 1.5 * py);
-    c.fillRect(15.5 * px, 9.5 * py, 1.5 * px, 1.5 * py);
-  }
-
-  function drawWings(fill, tip) {
-    c.fillStyle = fill;
-    // Left Wing
-    c.fillRect(4 * px, 5 * py, 5 * px, 1 * py);
-    c.fillRect(3 * px, 6 * py, 7 * px, 1 * py);
-    c.fillRect(2 * px, 7 * py, 9 * px, 1 * py);
-    c.fillRect(1 * px, 8 * py, 10 * px, 1 * py);
-    c.fillRect(2 * px, 9 * py, 9 * px, 1 * py);
-    c.fillRect(3 * px, 10 * py, 7 * px, 1 * py);
-    c.fillRect(4 * px, 11 * py, 5 * px, 1 * py);
-    c.fillRect(6 * px, 12 * py, 3 * px, 1 * py);
-
-    // Right Wing
-    c.fillRect(19 * px, 5 * py, 5 * px, 1 * py);
-    c.fillRect(18 * px, 6 * py, 7 * px, 1 * py);
-    c.fillRect(17 * px, 7 * py, 9 * px, 1 * py);
-    c.fillRect(17 * px, 8 * py, 10 * px, 1 * py);
-    c.fillRect(17 * px, 9 * py, 9 * px, 1 * py);
-    c.fillRect(18 * px, 10 * py, 7 * px, 1 * py);
-    c.fillRect(19 * px, 11 * py, 5 * px, 1 * py);
-    c.fillRect(19 * px, 12 * py, 3 * px, 1 * py);
-
-    if (tip) {
-      c.fillStyle = tip;
-      c.fillRect(1 * px, 7 * py, 2 * px, 3 * py);
-      c.fillRect(25 * px, 7 * py, 2 * px, 3 * py);
-    }
+    c.fillRect(9.0 * px, 8.5 * py, 1.8 * px, 3.0 * py);
+    c.fillRect(16.5 * px, 9.5 * py, 1.6 * px, 1.6 * py);
   }
 
   if (id === "original") {
-    // Visor
+    drawVisor("#00F0FF");
+    drawAngledWings("#F6F8FE");
+    // Cyan left tip, Pink right tip
     c.fillStyle = "#00F0FF";
-    c.fillRect(10 * px, 3 * py, 8 * px, 1 * py);
-    c.fillRect(12 * px, 4 * py, 4 * px, 1 * py);
-    drawWings("#F0FDFE", "#FF55A3");
-    drawHeart("#0F141C", "#00F0FF");
+    c.fillRect(0.0 * px, 7.1 * py, 1.5 * px, 1.2 * py);
+    c.fillRect(1.0 * px, 5.9 * py, 1.2 * px, 1.2 * py);
+    c.fillRect(1.0 * px, 8.3 * py, 1.2 * px, 1.2 * py);
+    c.fillStyle = "#FF2A93";
+    c.fillRect(26.5 * px, 7.1 * py, 1.5 * px, 1.2 * py);
+    c.fillRect(25.8 * px, 5.9 * py, 1.2 * px, 1.2 * py);
+    c.fillRect(25.8 * px, 8.3 * py, 1.2 * px, 1.2 * py);
+    drawFullHeart("#080B10");
+    drawDualContours("#00F0FF", "#FF2A93");
     drawEyes("#FFFFFF");
   } else if (id === "pink") {
+    drawVisor("#FF2A93");
+    drawAngledWings("#FFF0F6");
     c.fillStyle = "#FF2A93";
-    c.fillRect(10 * px, 3 * py, 8 * px, 1 * py);
-    drawWings("#FFF0F7", "#FF2A93");
-    drawHeart("#1B0F1C", "#FF2A93");
+    c.fillRect(0.0 * px, 7.1 * py, 1.5 * px, 1.2 * py);
+    c.fillRect(26.5 * px, 7.1 * py, 1.5 * px, 1.2 * py);
+    drawFullHeart("#140816");
+    drawDualContours("#FF2A93", "#FF2A93");
     c.fillStyle = "#FF2A93";
-    c.fillRect(11 * px, 12 * py, 6 * px, 1 * py);
+    c.fillRect(11.0 * px, 13.5 * py, 6.0 * px, 1.0 * py);
+    c.fillRect(12.0 * px, 15.5 * py, 4.0 * px, 1.0 * py);
     drawEyes("#FFE5F0");
   } else if (id === "cyan") {
+    drawVisor("#00E5FF");
+    drawAngledWings("#E0F7FA");
     c.fillStyle = "#00E5FF";
-    c.fillRect(10 * px, 3 * py, 8 * px, 1 * py);
-    drawWings("#E0F7FA", "#00E5FF");
-    drawHeart("#0A1822", "#00E5FF");
+    c.fillRect(0.0 * px, 7.1 * py, 2.0 * px, 1.2 * py);
+    c.fillRect(26.0 * px, 7.1 * py, 2.0 * px, 1.2 * py);
+    drawFullHeart("#06121B");
+    drawDualContours("#00E5FF", "#00E5FF");
     drawEyes("#FFFFFF");
   } else if (id === "dark") {
-    c.fillStyle = "#9D4EDD";
-    c.fillRect(11 * px, 3 * py, 6 * px, 1 * py);
-    drawWings("#1B142A", "#C77DFF");
-    drawHeart("#120B20", "#9D4EDD");
+    drawVisor("#9D4EDD");
+    drawAngledWings("#1B142A");
+    c.fillStyle = "#C77DFF";
+    c.fillRect(0.0 * px, 7.1 * py, 2.0 * px, 1.2 * py);
+    c.fillRect(26.0 * px, 7.1 * py, 2.0 * px, 1.2 * py);
+    drawFullHeart("#10091C");
+    drawDualContours("#C77DFF", "#9D4EDD");
     drawEyes("#E0AAFF");
   } else if (id === "angel") {
     // Halo
     c.fillStyle = "#FFFFFF";
-    c.fillRect(10 * px, 1 * py, 8 * px, 1 * py);
-    c.fillRect(8 * px, 2 * py, 2 * px, 1 * py);
-    c.fillRect(18 * px, 2 * py, 2 * px, 1 * py);
-    drawWings("#FAFAFE", "#B8C0EC");
-    drawHeart("#C3BEF0", "#FFFFFF");
+    c.fillRect(10.5 * px, 1.2 * py, 7.0 * px, 0.8 * py);
+    c.fillRect(9.0 * px, 2.0 * py, 1.5 * px, 0.8 * py);
+    c.fillRect(17.5 * px, 2.0 * py, 1.5 * px, 0.8 * py);
+    drawAngledWings("#FAFAFE");
+    c.fillStyle = "#B8C0EC";
+    c.fillRect(0.0 * px, 7.1 * py, 1.5 * px, 1.2 * py);
+    c.fillRect(26.5 * px, 7.1 * py, 1.5 * px, 1.2 * py);
+    drawFullHeart("#C3BEF0");
+    drawDualContours("#FFFFFF", "#FFFFFF");
     drawEyes("#FFFFFF");
   } else if (id === "devil") {
     // Horns
     c.fillStyle = "#FF0055";
-    c.fillRect(9 * px, 4 * py, 2 * px, 3 * py);
-    c.fillRect(8 * px, 3 * py, 2 * px, 2 * py);
-    c.fillRect(17 * px, 4 * py, 2 * px, 3 * py);
-    c.fillRect(18 * px, 3 * py, 2 * px, 2 * py);
-    drawWings("#FF3377", "#B8003D");
-    drawHeart("#1C0A15", "#FF0055");
+    c.fillRect(7.5 * px, 2.8 * py, 2.0 * px, 2.2 * py);
+    c.fillRect(6.5 * px, 2.0 * py, 1.5 * px, 1.6 * py);
+    c.fillRect(18.5 * px, 2.8 * py, 2.0 * px, 2.2 * py);
+    c.fillRect(20.0 * px, 2.0 * py, 1.5 * px, 1.6 * py);
+    // Bat Wings
+    c.fillStyle = "#FF3377";
+    c.fillRect(1.0 * px, 5.0 * py, 7.5 * px, 2.5 * py);
+    c.fillRect(0.0 * px, 7.5 * py, 8.5 * px, 2.0 * py);
+    c.fillRect(2.0 * px, 9.5 * py, 6.5 * px, 2.0 * py);
+    c.fillRect(19.5 * px, 5.0 * py, 7.5 * px, 2.5 * py);
+    c.fillRect(19.5 * px, 7.5 * py, 8.5 * px, 2.0 * py);
+    c.fillRect(19.5 * px, 9.5 * py, 6.5 * px, 2.0 * py);
+    drawFullHeart("#180712");
+    drawDualContours("#FF0055", "#FF0055");
     drawEyes("#FFB3C6");
   } else if (id === "rainbow") {
     const rainbow = ["#FF3377", "#9D4EDD", "#00B4D8", "#06D6A0", "#FFD166"];
     for (let i = 0; i < 5; i++) {
       c.fillStyle = rainbow[i];
-      c.fillRect(4 * px, (5 + i * 1.5) * py, 5 * px, 1.5 * py);
-      c.fillRect(19 * px, (5 + i * 1.5) * py, 5 * px, 1.5 * py);
+      c.fillRect((5 - i) * px, (3.5 + i * 1.5) * py, (4 + i) * px, 1.5 * py);
+      c.fillRect(19 * px, (3.5 + i * 1.5) * py, (4 + i) * px, 1.5 * py);
     }
-    drawHeart("#10141E", "#FFD166");
+    drawFullHeart("#0D1018");
+    drawDualContours("#FFD166", "#FFD166");
     drawEyes("#FFFFFF");
   } else if (id === "outline") {
     c.strokeStyle = "#00F0FF";
     c.lineWidth = 1.5;
-    c.strokeRect(4 * px, 5 * py, 5 * px, 7 * py);
-    c.strokeRect(19 * px, 5 * py, 5 * px, 7 * py);
-    c.strokeRect(9 * px, 7 * py, 10 * px, 9 * py);
+    drawVisor("#00F0FF");
+    c.strokeRect(0 * px, 6 * py, 8 * px, 5 * py);
+    c.strokeRect(20 * px, 6 * py, 8 * px, 5 * py);
+    drawDualContours("#00F0FF", "#00F0FF");
+    c.fillStyle = "#00F0FF";
+    c.fillRect(13.2 * px, 11.0 * py, 1.6 * px, 1.6 * py);
     drawEyes("#00F0FF");
   } else if (id === "glitch") {
-    // Magenta Left
+    c.save();
+    c.translate(-1.5 * px, 0);
     c.fillStyle = "rgba(255, 0, 85, 0.7)";
-    c.fillRect(3 * px, 5 * py, 5 * px, 7 * py);
-    // Cyan Right
+    drawAngledWings("rgba(255, 0, 85, 0.7)");
+    c.fillRect(6.5 * px, 5.0 * py, 7.5 * px, 16.0 * py);
+    c.restore();
+
+    c.save();
+    c.translate(1.5 * px, 0);
     c.fillStyle = "rgba(0, 240, 255, 0.7)";
-    c.fillRect(20 * px, 5 * py, 5 * px, 7 * py);
-    drawWings("#FFFFFF", "#00F0FF");
-    drawHeart("#10121C", "#00F0FF");
+    drawAngledWings("rgba(0, 240, 255, 0.7)");
+    c.fillRect(14.0 * px, 5.0 * py, 7.5 * px, 16.0 * py);
+    c.restore();
+
+    drawAngledWings("#FFFFFF");
+    drawFullHeart("#0C0E18");
+    c.fillStyle = "#FF0055";
+    c.fillRect(1.0 * px, 7.5 * py, 26.0 * px, 1.0 * py);
+    c.fillStyle = "#00F0FF";
+    c.fillRect(2.0 * px, 13.5 * py, 24.0 * px, 1.0 * py);
     drawEyes("#FFFFFF");
   } else if (id === "premium") {
     // Crown
     c.fillStyle = "#FFD700";
-    c.fillRect(10 * px, 2 * py, 2 * px, 3 * py);
-    c.fillRect(13 * px, 1 * py, 2 * px, 4 * py);
-    c.fillRect(16 * px, 2 * py, 2 * px, 3 * py);
-    c.fillRect(10 * px, 5 * py, 8 * px, 1 * py);
-    drawWings("#FFE066", "#CC8800");
-    drawHeart("#1B1408", "#FFD700");
+    c.fillRect(10.5 * px, 1.8 * py, 2.0 * px, 3.0 * py);
+    c.fillRect(13.0 * px, 0.8 * py, 2.0 * px, 4.0 * py);
+    c.fillRect(15.5 * px, 1.8 * py, 2.0 * px, 3.0 * py);
+    c.fillRect(10.5 * px, 4.8 * py, 7.0 * px, 1.0 * py);
+    c.fillStyle = "#FF2A93";
+    c.fillRect(13.4 * px, 2.5 * py, 1.2 * px, 1.2 * py);
+    drawAngledWings("#FFE066");
+    c.fillStyle = "#CC8800";
+    c.fillRect(3.0 * px, 7.1 * py, 4.0 * px, 1.0 * py);
+    c.fillRect(21.0 * px, 7.1 * py, 4.0 * px, 1.0 * py);
+    drawFullHeart("#161106");
+    drawDualContours("#FFD700", "#FFD700");
     c.fillStyle = "#FFD700";
-    c.fillRect(10 * px, 11 * py, 8 * px, 1 * py);
+    c.fillRect(9.0 * px, 11.5 * py, 10.0 * px, 1.0 * py);
+    c.fillRect(10.5 * px, 13.8 * py, 7.0 * px, 1.0 * py);
     drawEyes("#FFF5B8");
-  }
-}
-
-function drawSparkles(c, px, py, phase, color) {
-  for (const p of PARTICLES) {
-    const t = (phase * p.speed + p.phase) % 1.0;
-    const alpha = Math.sin(t * Math.PI);
-    if (alpha <= 0.05) continue;
-
-    const sx = p.x * px;
-    const sy = p.y * py;
-
-    c.save();
-    c.globalAlpha = alpha;
-    c.fillStyle = color;
-    c.fillRect(sx, sy - 1.5 * py, 1 * px, 3 * py);
-    c.fillRect(sx - 1.5 * px, sy, 3 * px, 1 * py);
-    c.fillStyle = "#FFFFFF";
-    c.fillRect(sx, sy, 1 * px, 1 * py);
-    c.restore();
   }
 }
 
