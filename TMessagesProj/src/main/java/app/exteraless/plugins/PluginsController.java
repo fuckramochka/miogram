@@ -130,8 +130,8 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
         try {
             File pluginsDir = getPluginsDir();
             pluginsDir.mkdirs();
-            int lastCopiedCode = preferences.getInt("builtin_plugins_build_code", -1);
-            boolean isAppUpdate = (lastCopiedCode != org.telegram.messenger.BuildVars.OFFICIAL_VERSION_CODE);
+            String lastCopiedVersion = preferences.getString("builtin_plugins_version", "");
+            boolean isAppUpdate = !org.telegram.messenger.BuildVars.BUILD_VERSION_STRING.equals(lastCopiedVersion);
             String[] assets = appContext.getAssets().list("plugins");
             if (assets != null) {
                 for (String name : assets) {
@@ -166,7 +166,7 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
                 FileLog.e("PluginsController: failed to pre-extract cpb_core", t);
             }
             if (isAppUpdate) {
-                preferences.edit().putInt("builtin_plugins_build_code", org.telegram.messenger.BuildVars.OFFICIAL_VERSION_CODE).apply();
+                preferences.edit().putString("builtin_plugins_version", org.telegram.messenger.BuildVars.BUILD_VERSION_STRING).apply();
             }
         } catch (Throwable t) {
             FileLog.e("PluginsController: failed to copy builtin plugins", t);
