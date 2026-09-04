@@ -12,9 +12,6 @@ import org.telegram.ui.Cells.TextCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
 
 import app.miogram.bridge.MiogramLocale;
-import app.miogram.bridge.badge.MiogramBadgeBottomSheet;
-import app.miogram.bridge.badge.MiogramBadgeManager;
-import app.miogram.bridge.badge.MiogramBadgeType;
 import app.miogram.bridge.ui.MiogramAiSettingsActivity;
 import app.miogram.bridge.ui.MiogramChatsSettingsActivity;
 import app.miogram.bridge.ui.MiogramPerformanceActivity;
@@ -32,7 +29,6 @@ import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     private int headerCategoriesRow;
-    private int badgesRow;
     private int visualsRow;
     private int navigationRow;
     private int iconPacksRow;
@@ -59,7 +55,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         super.updateRows();
 
         headerCategoriesRow = addRow();
-        badgesRow = addRow();
         visualsRow = addRow();
         navigationRow = addRow();
         iconPacksRow = addRow();
@@ -79,10 +74,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == badgesRow) {
-            long currentUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
-            new MiogramBadgeBottomSheet(this, currentUserId).show();
-        } else if (position == visualsRow) {
+        if (position == visualsRow) {
             presentFragment(new MiogramVisualsActivity());
         } else if (position == navigationRow) {
             presentFragment(new app.exteraless.settings.OpenExteraAppNavigationActivity());
@@ -137,18 +129,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
-                    if (position == badgesRow) {
-                        long currentUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
-                        boolean hasBadge = MiogramBadgeManager.hasArrow(currentUserId);
-                        MiogramBadgeType type = MiogramBadgeManager.getBadgeType(currentUserId);
-                        String val = hasBadge ? (type.getCode() + " • " + type.getTitle()) : MiogramLocale.get("Каталог 10 стилів", "Каталог 10 стилей", "10 Styles Catalog");
-                        cell.setTextAndValueAndIcon(
-                                MiogramLocale.get("Бейджі та Спільнота", "Бейджи и Сообщество", "Badges & Community"),
-                                val,
-                                R.drawable.msg_fave,
-                                true
-                        );
-                    } else if (position == visualsRow) {
+                    if (position == visualsRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Зовнішній вигляд та стиль", "Внешний вид и стиль", "Appearance & Style"), R.drawable.msg_theme, true);
                     } else if (position == navigationRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Навігація та Меню", "Навигация и Меню", "Navigation & Menu"), R.drawable.msg_folders, true);
@@ -176,7 +157,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == categoriesInfoRow) {
-                        cell.setText(MiogramLocale.get("Налаштування 10 стилів бейджів, хмарна синхронізація, навігація, паки іконок та параметри чатів.", "Настройки 10 стилей бейджей, облачная синхронизация, навигация, паки иконок и параметры чатов.", "Customize 10 badge styles, community cloud sync, navigation, icon packs, and chats."));
+                        cell.setText(MiogramLocale.get("Зовнішній вигляд, персоналізація, навігація, паки іконок та розширені параметри чатів.", "Внешний вид, персонализация, навигация, паки иконок и расширенные параметры чатов.", "Appearance, customization, navigation, icon packs, and enhanced chat options."));
                     } else if (position == advancedInfoRow) {
                         cell.setText(MiogramLocale.get("Керування плагінами, сервісами штучного інтелекту та оновленнями Miogram.", "Управление плагинами, сервисами искусственного интеллекта и обновлениями Miogram.", "Manage plugins, AI services, and Miogram updates."));
                     }

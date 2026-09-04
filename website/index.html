@@ -2,276 +2,328 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Miogram — Next-Gen Telegram Client with Zero-Trust Security & Cyber Pixel Badges</title>
-  <meta name="description" content="Miogram is an advanced, high-performance Telegram client engineered for privacy, hardware-backed security, WebAssembly plugins, and 10 canonical community badges.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Miogram — ʚ♡ɞ Needy Cyber Anime Telegram Client</title>
+  <meta name="description" content="Miogram is an advanced, high-performance Telegram client inspired by Needy Streamer Overload cyber pixel aesthetic, Zero-Trust security, and 10 canonical community badges.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <div class="glow-orb orb-1"></div>
-  <div class="glow-orb orb-2"></div>
-  <div class="glow-orb orb-3"></div>
+<body class="nso-theme">
+  <div class="crt-scanlines"></div>
+  <div class="pixel-stars"></div>
 
-  <!-- Navigation -->
-  <header class="navbar">
-    <div class="nav-container">
-      <div class="nav-brand">
-        <span class="brand-heart">ʚ♡ɞ</span>
-        <span class="brand-text">Miogram</span>
+  <!-- Retro Anime OS Top Taskbar -->
+  <header class="os-taskbar">
+    <div class="taskbar-container">
+      <div class="taskbar-left">
+        <div class="taskbar-start-btn">
+          <span class="start-heart">ʚ♡ɞ</span>
+          <span class="start-text">Miogram</span>
+        </div>
+        <div class="taskbar-tab active">
+          <span>ʚ♡ɞ Miogram_App.exe</span>
+        </div>
       </div>
-      <nav class="nav-links">
-        <a href="#badges" data-i18n="nav_badges">Бейджики</a>
-        <a href="#security" data-i18n="nav_security">Безпека</a>
-        <a href="#wasm" data-i18n="nav_wasm">WASM Двигун</a>
-        <a href="#design" data-i18n="nav_design">Рідке Скло</a>
-        <button id="langToggle" class="lang-btn" aria-label="Перемкнути мову">
-          <span id="langFlag">🇺🇦</span>
-          <span id="langText">UA</span>
-        </button>
-        <a href="#download" class="nav-cta" data-i18n="nav_download">Завантажити APK</a>
-      </nav>
+      <div class="taskbar-right">
+        <!-- 3-Language Switcher -->
+        <div class="lang-switch-group">
+          <button class="lang-pill active" data-lang="uk" aria-label="Українська">UA</button>
+          <button class="lang-pill" data-lang="en" aria-label="English">EN</button>
+          <button class="lang-pill" data-lang="ru" aria-label="Русский">RU</button>
+        </div>
+        <div class="taskbar-clock" id="taskbarClock">00:00</div>
+      </div>
     </div>
   </header>
 
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="hero-content">
-      <div class="hero-pill">
-        <span class="pill-dot"></span>
-        <span data-i18n="hero_pill">Реліз версії 1.0 • Готовий до Android 15+</span>
-      </div>
-      <h1 class="hero-title">
-        <span data-i18n="hero_title_1">Більше, ніж просто</span> <span class="gradient-text" data-i18n="hero_title_2">месенджер.</span>
-      </h1>
-      <p class="hero-subtitle" data-i18n="hero_subtitle">
-        Telegram-клієнт нового покоління із захистом від примусу Zero-Trust,
-        WebAssembly Rust плагінами, AGSL GPU-шейдерами Liquid Glass та
-        ексклюзивною хмарною екосистемою з 10 бейджиків спільноти.
-      </p>
-      <div class="hero-actions">
-        <a href="#download" id="hero-download-btn" class="btn btn-primary">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          <span id="hero-download-text" data-i18n="btn_download">Завантажити останній APK</span>
-        </a>
-        <a href="https://github.com/fuckramochka/miogram" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
-          </svg>
-          <span data-i18n="btn_source">Вихідний код</span>
-        </a>
-      </div>
-      <div class="hero-stats">
-        <div class="stat-item highlight-stat">
-          <span class="stat-num" id="liveUserCount">...</span>
-          <span class="stat-label" id="liveUserLabel" data-i18n="stat_users">Учасників спільноти</span>
+  <main class="desktop-workspace">
+    <!-- Window 1: Main App Window -->
+    <section class="nso-window hero-window">
+      <div class="window-titlebar">
+        <div class="titlebar-left">
+          <span class="titlebar-icon">ʚ♡ɞ</span>
+          <span class="titlebar-text">Miogram_v1.0.exe • †INTERNET ANGEL†</span>
         </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-num">&lt; 1ms</span>
-          <span class="stat-label" data-i18n="stat_wasm">Запуск WASM плагінів</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-num">Argon2id</span>
-          <span class="stat-label" data-i18n="stat_kdf">KDF сховища примусу</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-num">120 FPS</span>
-          <span class="stat-label" data-i18n="stat_gpu">AGSL GPU шейдери</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-num">10 Badges</span>
-          <span class="stat-label" data-i18n="stat_badges">Хмарна синхронізація</span>
+        <div class="titlebar-controls">
+          <button class="win-btn win-min" aria-label="Minimize">_</button>
+          <button class="win-btn win-max" aria-label="Maximize">□</button>
+          <button class="win-btn win-close" aria-label="Close">✕</button>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- Interactive 10 Badges Showcase -->
-  <section id="badges" class="badges-section">
-    <div class="section-container">
-      <div class="section-header">
-        <span class="section-tag" data-i18n="badge_tag">✦ ІДЕНТИЧНІСТЬ СПІЛЬНОТИ</span>
-        <h2 class="section-title" data-i18n="badge_title">10 Канонічних Піксельних Бейджиків</h2>
-        <p class="section-desc" data-i18n="badge_desc">
-          Натхненні естетикою Needy Streamer Overload та ретро піксель-артом PC-98.
-          Створені з неоновими контурами, атмосферним світінням, спекулярним відблиском та літаючими зірковими іскорками (✦).
+      <div class="window-body hero-body">
+        <div class="kawaii-ribbon">
+          <span class="sparkle-star">★</span>
+          <span data-i18n="hero_pill">INTERNET ANGEL OVERDOSE • Android 15+ Ready</span>
+          <span class="sparkle-star">★</span>
+        </div>
+
+        <h1 class="hero-headline">
+          <span data-i18n="hero_title_1">Більше, ніж просто</span>
+          <span class="glitch-text" data-text="месенджер." data-i18n="hero_title_2">месенджер ໒꒱</span>
+        </h1>
+
+        <p class="hero-desc" data-i18n="hero_subtitle">
+          Telegram-клієнт у культовій піксельній естетиці Needy Streamer Overload.
+          Потужний захист від примусу Zero-Trust, WebAssembly Rust плагіни,
+          GPU-шейдери Liquid Glass та жива екосистема з 10 бейджиків спільноти.
         </p>
+
+        <div class="hero-actions-row">
+          <a href="#download" id="hero-download-btn" class="pixel-btn pixel-btn-primary">
+            <span class="btn-icon">💾</span>
+            <span id="hero-download-text" data-i18n="btn_download">Завантажити останній APK</span>
+          </a>
+          <a href="https://github.com/fuckramochka/miogram" target="_blank" rel="noopener noreferrer" class="pixel-btn pixel-btn-secondary">
+            <span class="btn-icon">📁</span>
+            <span data-i18n="btn_source">Вихідний код GitHub</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Window 2: Retro Status Monitor -->
+    <section class="nso-window stats-window">
+      <div class="window-titlebar stats-titlebar">
+        <div class="titlebar-left">
+          <span class="titlebar-icon">📈</span>
+          <span class="titlebar-text" data-i18n="stats_window_title">Status_Monitor.sys • Network & Performance</span>
+        </div>
+        <div class="titlebar-controls">
+          <button class="win-btn win-min">_</button>
+          <button class="win-btn win-close">✕</button>
+        </div>
       </div>
 
-      <div class="badge-interactive-container">
-        <!-- Live Animated Canvas Display -->
-        <div class="badge-stage">
-          <canvas id="badgeCanvas" width="360" height="280"></canvas>
-          <div class="badge-info-card">
-            <span id="badgeNumber" class="badge-code">01 — ORIGINAL</span>
-            <h3 id="badgeTitle" class="badge-name">Класичне Кібер-Серце</h3>
-            <p id="badgeDesc" class="badge-lore">
-              Канонічне крилате серце Miogram з візором-антеною, обсидіановим ядром, сяючим бірюзовим контуром та рожевими пір'ями. Найперша відзнака екосистеми.
-            </p>
+      <div class="window-body stats-body">
+        <div class="stats-pixel-grid">
+          <div class="stat-card highlight-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-num" id="liveUserCount">...</div>
+            <div class="stat-label" data-i18n="stat_users">Учасників спільноти</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-num">&lt; 1ms</div>
+            <div class="stat-label" data-i18n="stat_wasm">Запуск WASM плагінів</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🛡️</div>
+            <div class="stat-num">Argon2id</div>
+            <div class="stat-label" data-i18n="stat_kdf">KDF сховища примусу</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">✨</div>
+            <div class="stat-num">120 FPS</div>
+            <div class="stat-label" data-i18n="stat_gpu">AGSL GPU шейдери</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">☁️</div>
+            <div class="stat-num">10 Badges</div>
+            <div class="stat-label" data-i18n="stat_badges">Supabase хмарний синк</div>
           </div>
         </div>
+      </div>
+    </section>
 
-        <!-- 10 Clickable Badge Selector Tiles -->
-        <div class="badge-selector-grid">
-          <button class="badge-tile active" data-id="original" data-num="01">
-            <span class="tile-num">01</span>
-            <span class="tile-name">ORIGINAL</span>
-            <span class="tile-tag">Класичний</span>
-          </button>
-          <button class="badge-tile" data-id="pink" data-num="02">
-            <span class="tile-num">02</span>
-            <span class="tile-name">PINK</span>
-            <span class="tile-tag">Неон</span>
-          </button>
-          <button class="badge-tile" data-id="cyan" data-num="03">
-            <span class="tile-num">03</span>
-            <span class="tile-name">CYAN</span>
-            <span class="tile-tag">Кібер</span>
-          </button>
-          <button class="badge-tile" data-id="dark" data-num="04">
-            <span class="tile-num">04</span>
-            <span class="tile-name">DARK</span>
-            <span class="tile-tag">Оксамит</span>
-          </button>
-          <button class="badge-tile" data-id="angel" data-num="05">
-            <span class="tile-num">05</span>
-            <span class="tile-name">ANGEL</span>
-            <span class="tile-tag">Німб</span>
-          </button>
-          <button class="badge-tile" data-id="devil" data-num="06">
-            <span class="tile-num">06</span>
-            <span class="tile-name">DEVIL</span>
-            <span class="tile-tag">Роги</span>
-          </button>
-          <button class="badge-tile" data-id="rainbow" data-num="07">
-            <span class="tile-num">07</span>
-            <span class="tile-name">RAINBOW</span>
-            <span class="tile-tag">Призма</span>
-          </button>
-          <button class="badge-tile" data-id="outline" data-num="08">
-            <span class="tile-num">08</span>
-            <span class="tile-name">OUTLINE</span>
-            <span class="tile-tag">Каркас</span>
-          </button>
-          <button class="badge-tile" data-id="glitch" data-num="09">
-            <span class="tile-num">09</span>
-            <span class="tile-name">GLITCH</span>
-            <span class="tile-tag">CRT Глітч</span>
-          </button>
-          <button class="badge-tile" data-id="premium" data-num="10">
-            <span class="tile-num">10</span>
-            <span class="tile-name">PREMIUM</span>
-            <span class="tile-tag">Золото</span>
-          </button>
+    <!-- Window 3: Interactive 10 Badges Showcase -->
+    <section id="badges" class="nso-window gallery-window">
+      <div class="window-titlebar gallery-titlebar">
+        <div class="titlebar-left">
+          <span class="titlebar-icon">✧</span>
+          <span class="titlebar-text" data-i18n="badge_window_title">Badge_Gallery.exe • 10 Pixel Styles</span>
+        </div>
+        <div class="titlebar-controls">
+          <button class="win-btn win-min">_</button>
+          <button class="win-btn win-max">□</button>
+          <button class="win-btn win-close">✕</button>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- Key Architecture Features -->
-  <section id="security" class="features-section">
-    <div class="section-container">
-      <div class="section-header">
-        <span class="section-tag" data-i18n="feat_tag">✦ ПІД КАПОТОМ</span>
-        <h2 class="section-title" data-i18n="feat_title">Архітектурна Досконалість</h2>
-      </div>
-
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon icon-cyan">🛡️</div>
-          <h3 data-i18n="feat_1_title">PIN Примусу & Подвійне Дно</h3>
-          <p data-i18n="feat_1_desc">Два різні PIN-коди. Введення екстреного PIN-коду миттєво відкриває нейтральний екран-приманку без розшифровки майстер-ключів. Захищено Argon2id RFC 9106, ізоляцією StrongBox TEE та SQLCipher.</p>
+      <div class="window-body gallery-body">
+        <div class="gallery-intro">
+          <h2 class="gallery-title" data-i18n="badge_title">10 Канонічних Піксельних Бейджиків</h2>
+          <p class="gallery-desc" data-i18n="badge_desc">
+            Натхненні Needy Streamer Overload та ретро PC-98 піксель-артом.
+            Атмосферне сяйво, спекулярні відблиски та живі мікро-партікли (✦).
+          </p>
         </div>
 
-        <div class="feature-card" id="wasm">
-          <div class="feature-icon icon-pink">⚡</div>
-          <h3 data-i18n="feat_2_title">WebAssembly (WASM) Rust Плагіни</h3>
-          <p data-i18n="feat_2_desc">Заміна громіздких інтерпретаторів на нативний WebAssembly Micro Runtime (WAMR). Холодний запуск &lt; 1мс, споживання RAM знижено з 60 МБ до 150 КБ, криптографічний підпис коду Ed25519.</p>
-        </div>
-
-        <div class="feature-card" id="design">
-          <div class="feature-icon icon-purple">✨</div>
-          <h3 data-i18n="feat_3_title">Просторове Рідке Скло (AGSL)</h3>
-          <p data-i18n="feat_3_desc">Апаратно прискорені GPU-шейдери з імітацією заломлення світла, хроматичної дисперсії та глянцю на стабільних 120 FPS. Повна нейтральність до користувацьких тем.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon icon-gold">🎵</div>
-          <h3 data-i18n="feat_4_title">Ергономіка Apple Music + Spotify</h3>
-          <p data-i18n="feat_4_desc">Вбудований плеєр 1:1 в стилі карток Apple Music із живими міні-басовими візуалізаторами, жестовою перемоткою та текстами пісень у поєднанні з аудіо Telegram.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon icon-cyan">🌐</div>
-          <h3 data-i18n="feat_5_title">Хмарна Екосистема Бейджиків Supabase</h3>
-          <p data-i18n="feat_5_desc">Глобальне розпізнавання бейджиків, історія отримання та хроніка на базі Supabase PostgREST з локальним кешуванням для 0мс офлайн-відображення та суворою ізоляцією акаунтів.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon icon-pink">🧠</div>
-          <h3 data-i18n="feat_6_title">Приватний AI Роутер & Whisper на Пристрої</h3>
-          <p data-i18n="feat_6_desc">Автоматичне regex-маскування номерів карток, телефонів і паролів перед хмарними запитами. Повністю офлайн-транскрипція Whisper STT на базі нейропроцесорів NPU.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Download Section with GitHub Releases API -->
-  <section id="download" class="download-section">
-    <div class="section-container">
-      <div class="download-box">
-        <span class="section-tag" data-i18n="dl_tag">✦ ПРЯМЕ ЗАВАНТАЖЕННЯ</span>
-        <h2 class="download-title" data-i18n="dl_title">Отримати Miogram для Android</h2>
-        <p class="download-desc" data-i18n="dl_desc">
-          Офіційні збірки криптографічно підписані та зібрані безпосередньо в GitHub Actions CI з вирівнюванням 16 KB ELF для Android 15+.
-        </p>
-
-        <div class="release-card" id="releaseInfoCard">
-          <div class="release-header">
-            <div>
-              <span class="release-badge" id="releaseTag">Завантаження версії...</span>
-              <span class="release-date" id="releaseDate"></span>
+        <div class="gallery-layout">
+          <!-- CRT Monitor Stage -->
+          <div class="crt-monitor-frame">
+            <div class="crt-bezel">
+              <div class="crt-screen">
+                <canvas id="badgeCanvas" width="280" height="220"></canvas>
+              </div>
             </div>
-            <span class="release-status" data-i18n="dl_verified">🟢 Верифікована збірка</span>
+            <div class="badge-lore-card">
+              <div class="lore-code" id="badgeNumber">01 — ORIGINAL</div>
+              <h3 class="lore-title" id="badgeTitle">Класичне Кібер-Серце</h3>
+              <p class="lore-text" id="badgeDesc">
+                Канонічне крилате серце Miogram з візором-антеною, обсидіановим ядром, сяючим бірюзовим контуром та рожевими пір'ями.
+              </p>
+            </div>
           </div>
 
-          <div class="release-notes" id="releaseNotes">
+          <!-- Pixel Selector Grid -->
+          <div class="badge-selector-grid">
+            <button class="badge-tile active" data-id="original" data-num="01">
+              <span class="tile-num">01</span>
+              <span class="tile-name">ORIGINAL</span>
+              <span class="tile-tag">Класичний</span>
+            </button>
+            <button class="badge-tile" data-id="pink" data-num="02">
+              <span class="tile-num">02</span>
+              <span class="tile-name">PINK</span>
+              <span class="tile-tag">Неон</span>
+            </button>
+            <button class="badge-tile" data-id="cyan" data-num="03">
+              <span class="tile-num">03</span>
+              <span class="tile-name">CYAN</span>
+              <span class="tile-tag">Кібер</span>
+            </button>
+            <button class="badge-tile" data-id="dark" data-num="04">
+              <span class="tile-num">04</span>
+              <span class="tile-name">DARK</span>
+              <span class="tile-tag">Оксамит</span>
+            </button>
+            <button class="badge-tile" data-id="angel" data-num="05">
+              <span class="tile-num">05</span>
+              <span class="tile-name">ANGEL</span>
+              <span class="tile-tag">Німб</span>
+            </button>
+            <button class="badge-tile" data-id="devil" data-num="06">
+              <span class="tile-num">06</span>
+              <span class="tile-name">DEVIL</span>
+              <span class="tile-tag">Роги</span>
+            </button>
+            <button class="badge-tile" data-id="rainbow" data-num="07">
+              <span class="tile-num">07</span>
+              <span class="tile-name">RAINBOW</span>
+              <span class="tile-tag">Призма</span>
+            </button>
+            <button class="badge-tile" data-id="outline" data-num="08">
+              <span class="tile-num">08</span>
+              <span class="tile-name">OUTLINE</span>
+              <span class="tile-tag">Каркас</span>
+            </button>
+            <button class="badge-tile" data-id="glitch" data-num="09">
+              <span class="tile-num">09</span>
+              <span class="tile-name">GLITCH</span>
+              <span class="tile-tag">CRT Глітч</span>
+            </button>
+            <button class="badge-tile" data-id="premium" data-num="10">
+              <span class="tile-num">10</span>
+              <span class="tile-name">PREMIUM</span>
+              <span class="tile-tag">Золото</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Window 4: Architecture Specifications -->
+    <section id="security" class="nso-window features-window">
+      <div class="window-titlebar features-titlebar">
+        <div class="titlebar-left">
+          <span class="titlebar-icon">⚙️</span>
+          <span class="titlebar-text" data-i18n="feat_window_title">System_Architecture.txt • Features</span>
+        </div>
+        <div class="titlebar-controls">
+          <button class="win-btn win-min">_</button>
+          <button class="win-btn win-close">✕</button>
+        </div>
+      </div>
+
+      <div class="window-body features-body">
+        <h2 class="features-title" data-i18n="feat_title">Архітектурна Досконалість</h2>
+        <div class="features-grid">
+          <div class="feat-box">
+            <div class="feat-badge-icon">🛡️</div>
+            <h3 data-i18n="feat_1_title">PIN Примусу & Подвійне Дно</h3>
+            <p data-i18n="feat_1_desc">Два різні PIN-коди. Введення екстреного PIN-коду відкриває нейтральний екран без майстер-ключів. Захищено Argon2id RFC 9106, StrongBox TEE та SQLCipher.</p>
+          </div>
+          <div class="feat-box" id="wasm">
+            <div class="feat-badge-icon">⚡</div>
+            <h3 data-i18n="feat_2_title">WebAssembly (WASM) Rust Плагіни</h3>
+            <p data-i18n="feat_2_desc">Швидкий WebAssembly Micro Runtime (WAMR). Холодний старт &lt; 1мс, RAM 150 КБ, криптографічний підпис Ed25519.</p>
+          </div>
+          <div class="feat-box" id="design">
+            <div class="feat-badge-icon">✨</div>
+            <h3 data-i18n="feat_3_title">Просторове Рідке Скло (AGSL)</h3>
+            <p data-i18n="feat_3_desc">GPU-шейдери з імітацією заломлення світла та хроматичної дисперсії на стабільних 120 FPS без перебивання тем.</p>
+          </div>
+          <div class="feat-box">
+            <div class="feat-badge-icon">🎵</div>
+            <h3 data-i18n="feat_4_title">Ергономіка Apple Music + Spotify</h3>
+            <p data-i18n="feat_4_desc">Вбудований 1:1 Apple Music card player із живими міні-басовими візуалізаторами, жестовою перемоткою та текстами пісень.</p>
+          </div>
+          <div class="feat-box">
+            <div class="feat-badge-icon">🌐</div>
+            <h3 data-i18n="feat_5_title">Хмарна Екосистема Бейджиків Supabase</h3>
+            <p data-i18n="feat_5_desc">Глобальне розпізнавання бейджиків та хроніка на базі Supabase PostgREST з 0мс офлайн-кешем та суворою ізоляцією акаунтів.</p>
+          </div>
+          <div class="feat-box">
+            <div class="feat-badge-icon">🧠</div>
+            <h3 data-i18n="feat_6_title">Приватний AI Роутер & Whisper на Пристрої</h3>
+            <p data-i18n="feat_6_desc">Regex-маскування номерів карток, телефонів і паролів перед хмарними викликами. Повністю офлайн Whisper STT на базі NPU.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Window 5: Download & Releases -->
+    <section id="download" class="nso-window download-window">
+      <div class="window-titlebar download-titlebar">
+        <div class="titlebar-left">
+          <span class="titlebar-icon">💾</span>
+          <span class="titlebar-text" data-i18n="dl_window_title">Setup_Installer.exe • Official Release</span>
+        </div>
+        <div class="titlebar-controls">
+          <button class="win-btn win-min">_</button>
+          <button class="win-btn win-close">✕</button>
+        </div>
+      </div>
+
+      <div class="window-body download-body">
+        <h2 class="dl-head" data-i18n="dl_title">Отримати Miogram для Android</h2>
+        <p class="dl-desc" data-i18n="dl_desc">
+          Офіційні збірки криптографічно підписані та зібрані в GitHub Actions CI з вирівнюванням 16 KB ELF для Android 15+.
+        </p>
+
+        <div class="installer-card" id="releaseInfoCard">
+          <div class="installer-meta">
+            <span class="ver-chip" id="releaseTag">Завантаження версії...</span>
+            <span class="date-chip" id="releaseDate"></span>
+            <span class="secure-chip" data-i18n="dl_verified">🟢 Верифікована збірка</span>
+          </div>
+
+          <div class="release-log-box" id="releaseNotes">
             Отримання останнього журналу змін з GitHub...
           </div>
 
-          <div class="release-downloads" id="releaseAssets">
-            <a href="https://github.com/fuckramochka/miogram/releases/latest" id="primaryApkLink" class="btn btn-primary btn-large">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
+          <div class="installer-action">
+            <a href="https://github.com/fuckramochka/miogram/releases/latest" id="primaryApkLink" class="pixel-btn pixel-btn-primary pixel-btn-lg">
+              <span class="btn-icon">⚡</span>
               <span id="primaryApkText" data-i18n="btn_download">Завантажити останній APK</span>
             </a>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
+  </main>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="footer-container">
-      <div class="footer-left">
-        <p class="footer-brand">ʚ♡ɞ Miogram</p>
-        <p class="footer-sub" data-i18n="footer_text">Створено з ♡ автором <a href="https://t.me/dkramochka" target="_blank" rel="noopener">@dkramochka</a> та спільнотою Miogram.</p>
+  <!-- Retro Desktop Footer Taskbar -->
+  <footer class="os-footer-taskbar">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span>ʚ♡ɞ Miogram OS</span>
+        <span class="sub-credit" data-i18n="footer_text">Створено з ♡ автором @dkramochka та спільнотою Miogram.</span>
       </div>
-      <div class="footer-right">
+      <div class="footer-links">
         <a href="https://github.com/fuckramochka/miogram" target="_blank" rel="noopener">GitHub</a>
         <a href="https://t.me/dkramochka" target="_blank" rel="noopener">Telegram</a>
         <a href="https://github.com/fuckramochka/miogram/blob/main/LICENSE" target="_blank" rel="noopener">GPLv3 License</a>

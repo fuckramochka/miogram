@@ -207,419 +207,188 @@ public class MiogramArrowDrawable extends Drawable {
     }
 
     // -------------------------------------------------------------
+    // Core Geometry Helpers (1:1 with website/app.js)
+    // -------------------------------------------------------------
+    private void drawWings(Canvas canvas, float px, float py, int fillColor, int fringeColor) {
+        paintFill.setColor(fillColor);
+        canvas.drawRect(4 * px, 5 * py, 9 * px, 6 * py, paintFill);
+        canvas.drawRect(3 * px, 6 * py, 9 * px, 7 * py, paintFill);
+        canvas.drawRect(1 * px, 7 * py, 9 * px, 10 * py, paintFill);
+        canvas.drawRect(2 * px, 10 * py, 8 * px, 11 * py, paintFill);
+        canvas.drawRect(4 * px, 11 * py, 7 * px, 13 * py, paintFill);
+
+        canvas.drawRect(19 * px, 5 * py, 24 * px, 6 * py, paintFill);
+        canvas.drawRect(19 * px, 6 * py, 25 * px, 7 * py, paintFill);
+        canvas.drawRect(19 * px, 7 * py, 27 * px, 10 * py, paintFill);
+        canvas.drawRect(20 * px, 10 * py, 26 * px, 11 * py, paintFill);
+        canvas.drawRect(21 * px, 11 * py, 24 * px, 13 * py, paintFill);
+
+        paintAccent.setColor(fringeColor);
+        canvas.drawRect(1 * px, 8 * py, 3 * px, 10 * py, paintAccent);
+        canvas.drawRect(25 * px, 8 * py, 27 * px, 10 * py, paintAccent);
+        canvas.drawRect(4 * px, 12 * py, 7 * px, 13 * py, paintAccent);
+        canvas.drawRect(21 * px, 12 * py, 24 * px, 13 * py, paintAccent);
+    }
+
+    private void drawHeart(Canvas canvas, float px, float py, int coreColor, int contourColor) {
+        paintFill.setColor(coreColor);
+        canvas.drawRect(10 * px, 7 * py, 13 * px, 8 * py, paintFill);
+        canvas.drawRect(15 * px, 7 * py, 18 * px, 8 * py, paintFill);
+        canvas.drawRect(9 * px, 8 * py, 19 * px, 10 * py, paintFill);
+        canvas.drawRect(8 * px, 10 * py, 20 * px, 12 * py, paintFill);
+        canvas.drawRect(9 * px, 12 * py, 19 * px, 13 * py, paintFill);
+        canvas.drawRect(10 * px, 13 * py, 18 * px, 14 * py, paintFill);
+        canvas.drawRect(11 * px, 14 * py, 17 * px, 15 * py, paintFill);
+        canvas.drawRect(12 * px, 15 * py, 16 * px, 16 * py, paintFill);
+        canvas.drawRect(13 * px, 16 * py, 15 * px, 17 * py, paintFill);
+
+        paintAccent.setColor(contourColor);
+        canvas.drawRect(10 * px, 6 * py, 13 * px, 7 * py, paintAccent);
+        canvas.drawRect(15 * px, 6 * py, 18 * px, 7 * py, paintAccent);
+        canvas.drawRect(8 * px, 8 * py, 9 * px, 12 * py, paintAccent);
+        canvas.drawRect(19 * px, 8 * py, 20 * px, 12 * py, paintAccent);
+    }
+
+    private void drawEyes(Canvas canvas, float px, float py, int eyeColor) {
+        paintEyes.setColor(eyeColor);
+        canvas.drawRect(11 * px, 9.5f * py, 12.5f * px, 11 * py, paintEyes);
+        canvas.drawRect(15.5f * px, 9.5f * py, 17 * px, 11 * py, paintEyes);
+    }
+
+    // -------------------------------------------------------------
     // 01 — ORIGINAL (Classic Winged Heart + Visor)
     // -------------------------------------------------------------
     private void drawOriginalBadge(Canvas canvas, float px, float py, float phase) {
-        // Glowing Visor Antenna
         paintAccent.setColor(0xFF00F0FF);
         canvas.drawRect(10 * px, 3 * py, 18 * px, 4 * py, paintAccent);
         canvas.drawRect(12 * px, 4 * py, 16 * px, 5 * py, paintAccent);
-
-        // White feathered wings with subtle cyan shading
-        paintFill.setColor(0xFFF0FDFE);
-        drawClassicWings(canvas, px, py, paintFill);
-
-        // Translucent cyan feather shade
-        paintShade.setColor(0x3300F0FF);
-        canvas.drawRect(4 * px, 7 * py, 9 * px, 10 * py, paintShade);
-        canvas.drawRect(19 * px, 7 * py, 24 * px, 10 * py, paintShade);
-
-        // Hot pink wing tips
-        paintAccent.setColor(0xFFFF55A3);
-        canvas.drawRect(1 * px, 7 * py, 3 * px, 10 * py, paintAccent);
-        canvas.drawRect(25 * px, 7 * py, 27 * px, 10 * py, paintAccent);
-
-        // Heart: Obsidian with vibrant cyan glowing contour & white eyes
-        paintFill.setColor(0xFF0F141C);
-        drawShapedHeart(canvas, px, py, paintFill);
-
-        paintAccent.setColor(0xFF00F0FF);
-        drawHeartContour(canvas, px, py, paintAccent);
-
-        // Specular highlight on heart
-        paintAccent.setColor(0x66FFFFFF);
-        canvas.drawRect(10 * px, 9 * py, 12 * px, 10 * py, paintAccent);
-
-        drawPixelEyes(canvas, px, py, Color.WHITE);
+        drawWings(canvas, px, py, 0xFFF0FDFE, 0xFFFF55A3);
+        drawHeart(canvas, px, py, 0xFF0F141C, 0xFF00F0FF);
+        drawEyes(canvas, px, py, Color.WHITE);
     }
 
     // -------------------------------------------------------------
     // 02 — PINK (Neon Pink Style with Chevrons)
     // -------------------------------------------------------------
     private void drawPinkBadge(Canvas canvas, float px, float py, float phase) {
-        // Pink Visor
         paintAccent.setColor(0xFFFF2A93);
         canvas.drawRect(10 * px, 3 * py, 18 * px, 4 * py, paintAccent);
-        canvas.drawRect(12 * px, 4 * py, 16 * px, 5 * py, paintAccent);
-
-        // White-to-pink gradient wings
-        paintFill.setColor(0xFFFFF0F7);
-        drawClassicWings(canvas, px, py, paintFill);
-
-        paintShade.setColor(0x44FF2A93);
-        canvas.drawRect(3 * px, 7 * py, 9 * px, 10 * py, paintShade);
-        canvas.drawRect(19 * px, 7 * py, 25 * px, 10 * py, paintShade);
-
+        drawWings(canvas, px, py, 0xFFFFF0F7, 0xFFFF2A93);
+        drawHeart(canvas, px, py, 0xFF1B0F1C, 0xFFFF2A93);
         paintAccent.setColor(0xFFFF2A93);
-        canvas.drawRect(1 * px, 7 * py, 3 * px, 10 * py, paintAccent);
-        canvas.drawRect(25 * px, 7 * py, 27 * px, 10 * py, paintAccent);
-
-        // Heart: Obsidian with pink chevron rim & pink ribs
-        paintFill.setColor(0xFF1B0F1C);
-        drawShapedHeart(canvas, px, py, paintFill);
-
-        paintAccent.setColor(0xFFFF2A93);
-        drawHeartContour(canvas, px, py, paintAccent);
-        // Chevron V-lines inside
         canvas.drawRect(11 * px, 12 * py, 17 * px, 13 * py, paintAccent);
-        canvas.drawRect(12 * px, 14 * py, 16 * px, 15 * py, paintAccent);
-
-        drawPixelEyes(canvas, px, py, 0xFFFFE5F0);
+        drawEyes(canvas, px, py, 0xFFFFE5F0);
     }
 
     // -------------------------------------------------------------
-    // 03 — CYAN (Electric Cyber Sky-Blue)
+    // 03 — CYAN (Electric Cyber Winged Heart)
     // -------------------------------------------------------------
     private void drawCyanBadge(Canvas canvas, float px, float py, float phase) {
-        // Electric Cyan Visor
         paintAccent.setColor(0xFF00E5FF);
         canvas.drawRect(10 * px, 3 * py, 18 * px, 4 * py, paintAccent);
-        canvas.drawRect(12 * px, 4 * py, 16 * px, 5 * py, paintAccent);
-
-        // Vibrant Cyan Wings
-        paintFill.setColor(0xFFE0F7FA);
-        drawClassicWings(canvas, px, py, paintFill);
-
-        paintShade.setColor(0x5500E5FF);
-        canvas.drawRect(3 * px, 7 * py, 9 * px, 10 * py, paintShade);
-        canvas.drawRect(19 * px, 7 * py, 25 * px, 10 * py, paintShade);
-
-        paintAccent.setColor(0xFF00E5FF);
-        canvas.drawRect(1 * px, 7 * py, 3 * px, 10 * py, paintAccent);
-        canvas.drawRect(25 * px, 7 * py, 27 * px, 10 * py, paintAccent);
-
-        // Heart: Obsidian with neon cyan rim & eyes
-        paintFill.setColor(0xFF0A1822);
-        drawShapedHeart(canvas, px, py, paintFill);
-
-        drawHeartContour(canvas, px, py, paintAccent);
-        drawPixelEyes(canvas, px, py, Color.WHITE);
+        drawWings(canvas, px, py, 0xFFE0F7FA, 0xFF00E5FF);
+        drawHeart(canvas, px, py, 0xFF0A1822, 0xFF00E5FF);
+        drawEyes(canvas, px, py, Color.WHITE);
     }
 
     // -------------------------------------------------------------
-    // 04 — DARK (Velvet Obsidian + Magenta Glow)
+    // 04 — DARK (Midnight Obsidian & Violet)
     // -------------------------------------------------------------
     private void drawDarkBadge(Canvas canvas, float px, float py, float phase) {
-        // Purple Visor
         paintAccent.setColor(0xFF9D4EDD);
         canvas.drawRect(11 * px, 3 * py, 17 * px, 4 * py, paintAccent);
-
-        // Obsidian Wings with purple shading
-        paintFill.setColor(0xFF1B142A);
-        drawClassicWings(canvas, px, py, paintFill);
-
-        // Glowing velvet purple edges
-        paintAccent.setColor(0xFFC77DFF);
-        canvas.drawRect(1 * px, 7 * py, 3 * px, 10 * py, paintAccent);
-        canvas.drawRect(25 * px, 7 * py, 27 * px, 10 * py, paintAccent);
-        canvas.drawRect(4 * px, 5 * py, 6 * px, 6 * py, paintAccent);
-        canvas.drawRect(22 * px, 5 * py, 24 * px, 6 * py, paintAccent);
-
-        // Heart: Deep midnight violet with radiant rim
-        paintFill.setColor(0xFF120B20);
-        drawShapedHeart(canvas, px, py, paintFill);
-
-        paintAccent.setColor(0xFF9D4EDD);
-        drawHeartContour(canvas, px, py, paintAccent);
-
-        drawPixelEyes(canvas, px, py, 0xFFE0AAFF);
+        drawWings(canvas, px, py, 0xFF1B142A, 0xFFC77DFF);
+        drawHeart(canvas, px, py, 0xFF120B20, 0xFF9D4EDD);
+        drawEyes(canvas, px, py, 0xFFE0AAFF);
     }
 
     // -------------------------------------------------------------
-    // 05 — ANGEL (Floating Halo + Lavender Heart)
+    // 05 — ANGEL (Halo & Seraphim Wings)
     // -------------------------------------------------------------
     private void drawAngelBadge(Canvas canvas, float px, float py, float phase) {
-        // Floating Halo Ring with radiant glow
-        float haloY = (float) Math.round(Math.sin((phase + 0.3) * 2 * Math.PI) * 0.6) * py;
-        canvas.save();
-        canvas.translate(0, haloY);
-
-        paintAccent.setColor(0x55E0AAFF);
-        canvas.drawRect(8 * px, 0 * py, 20 * px, 3 * py, paintAccent);
-
+        // Halo
         paintAccent.setColor(Color.WHITE);
         canvas.drawRect(10 * px, 1 * py, 18 * px, 2 * py, paintAccent);
         canvas.drawRect(8 * px, 2 * py, 10 * px, 3 * py, paintAccent);
         canvas.drawRect(18 * px, 2 * py, 20 * px, 3 * py, paintAccent);
-        canvas.restore();
-
-        // Fluffy Pure White Wings with subtle lavender tint
-        paintFill.setColor(0xFFFAFAFE);
-        drawClassicWings(canvas, px, py, paintFill);
-
-        paintAccent.setColor(0xFFB8C0EC);
-        canvas.drawRect(2 * px, 8 * py, 4 * px, 10 * py, paintAccent);
-        canvas.drawRect(24 * px, 8 * py, 26 * px, 10 * py, paintAccent);
-
-        // Heart: Soft pastel periwinkle/lavender with white contour
-        paintFill.setColor(0xFFC3BEF0);
-        drawShapedHeart(canvas, px, py, paintFill);
-
-        paintAccent.setColor(Color.WHITE);
-        drawHeartContour(canvas, px, py, paintAccent);
-
-        drawPixelEyes(canvas, px, py, Color.WHITE);
+        drawWings(canvas, px, py, 0xFFFAFAFE, 0xFFB8C0EC);
+        drawHeart(canvas, px, py, 0xFFC3BEF0, Color.WHITE);
+        drawEyes(canvas, px, py, Color.WHITE);
     }
 
     // -------------------------------------------------------------
-    // 06 — DEVIL (Devil Horns + Pointed Bat Wings)
+    // 06 — DEVIL (Horns & Bat Wings)
     // -------------------------------------------------------------
     private void drawDevilBadge(Canvas canvas, float px, float py, float phase) {
-        // Pointed Devil Horns
+        // Horns
         paintAccent.setColor(0xFFFF0055);
         canvas.drawRect(9 * px, 4 * py, 11 * px, 7 * py, paintAccent);
         canvas.drawRect(8 * px, 3 * py, 10 * px, 5 * py, paintAccent);
         canvas.drawRect(17 * px, 4 * py, 19 * px, 7 * py, paintAccent);
         canvas.drawRect(18 * px, 3 * py, 20 * px, 5 * py, paintAccent);
-
-        // Scalloped Pointed Bat Wings
-        paintFill.setColor(0xFFFF3377);
-        drawBatWings(canvas, px, py, paintFill);
-
-        paintShade.setColor(0xFFB8003D);
-        canvas.drawRect(3 * px, 7 * py, 8 * px, 9 * py, paintShade);
-        canvas.drawRect(20 * px, 7 * py, 25 * px, 9 * py, paintShade);
-
-        // Heart: Obsidian with hot magenta/crimson contour
-        paintFill.setColor(0xFF1C0A15);
-        drawShapedHeart(canvas, px, py, paintFill);
-
-        paintAccent.setColor(0xFFFF0055);
-        drawHeartContour(canvas, px, py, paintAccent);
-
-        drawPixelEyes(canvas, px, py, 0xFFFFB3C6);
+        drawWings(canvas, px, py, 0xFFFF3377, 0xFFB8003D);
+        drawHeart(canvas, px, py, 0xFF1C0A15, 0xFFFF0055);
+        drawEyes(canvas, px, py, 0xFFFFB3C6);
     }
 
     // -------------------------------------------------------------
-    // 07 — RAINBOW (Prismatic 5-Color Spectrum)
+    // 07 — RAINBOW (Prismatic Rainbow Feathers)
     // -------------------------------------------------------------
     private void drawRainbowBadge(Canvas canvas, float px, float py, float phase) {
-        // Prismatic Rainbow Spectrum Wings
-        int[] rainbow = {0xFFFF3377, 0xFF9D4EDD, 0xFF00B4D8, 0xFF06D6A0, 0xFFFFD166};
-        drawRainbowWings(canvas, px, py, rainbow);
-
-        // Heart: Obsidian with golden glowing rim
-        paintFill.setColor(0xFF10141E);
-        drawShapedHeart(canvas, px, py, paintFill);
-
-        paintAccent.setColor(0xFFFFD166);
-        drawHeartContour(canvas, px, py, paintAccent);
-
-        drawPixelEyes(canvas, px, py, Color.WHITE);
+        int[] rainbow = new int[]{0xFFFF3377, 0xFF9D4EDD, 0xFF00B4D8, 0xFF06D6A0, 0xFFFFD166};
+        for (int i = 0; i < 5; i++) {
+            paintAccent.setColor(rainbow[i]);
+            canvas.drawRect(4 * px, (5 + i * 1.5f) * py, 9 * px, (6.5f + i * 1.5f) * py, paintAccent);
+            canvas.drawRect(19 * px, (5 + i * 1.5f) * py, 24 * px, (6.5f + i * 1.5f) * py, paintAccent);
+        }
+        drawHeart(canvas, px, py, 0xFF10141E, 0xFFFFD166);
+        drawEyes(canvas, px, py, Color.WHITE);
     }
 
     // -------------------------------------------------------------
-    // 08 — OUTLINE (Glowing Wireframe Cyber Contour)
+    // 08 — OUTLINE (Minimalist Cyber Wireframe)
     // -------------------------------------------------------------
     private void drawOutlineBadge(Canvas canvas, float px, float py, float phase) {
-        paintAccent.setColor(0xFF00F0FF);
-        drawWireframeWings(canvas, px, py, paintAccent);
-
-        canvas.drawRect(11 * px, 3 * py, 17 * px, 4 * py, paintAccent);
-        drawHeartContour(canvas, px, py, paintAccent);
-
-        // Center pixel starlight core
-        canvas.drawRect(13 * px, 11 * py, 15 * px, 13 * py, paintAccent);
-        drawPixelEyes(canvas, px, py, 0xFF00F0FF);
+        paintStroke.setColor(0xFF00F0FF);
+        paintStroke.setStrokeWidth(1.5f * px);
+        canvas.drawRect(4 * px, 5 * py, 9 * px, 12 * py, paintStroke);
+        canvas.drawRect(19 * px, 5 * py, 24 * px, 12 * py, paintStroke);
+        canvas.drawRect(9 * px, 7 * py, 19 * px, 16 * py, paintStroke);
+        drawEyes(canvas, px, py, 0xFF00F0FF);
     }
 
     // -------------------------------------------------------------
-    // 09 — GLITCH (Split RGB Chromatic Aberration)
+    // 09 — GLITCH (Chromatic RGB Displacement)
     // -------------------------------------------------------------
     private void drawGlitchBadge(Canvas canvas, float px, float py, float phase, long now) {
-        float jitter = (now % 300 < 50) ? 1.4f * px : 0.9f * px;
-
-        // Magenta Shift (Left)
-        canvas.save();
-        canvas.translate(-jitter, -0.5f * py);
-        paintAccent.setColor(0xCCFF0055);
-        drawLeftWing(canvas, px, py, paintAccent);
-        drawLeftHeart(canvas, px, py, paintAccent);
-        canvas.restore();
-
-        // Cyan Shift (Right)
-        canvas.save();
-        canvas.translate(jitter, 0.5f * py);
-        paintAccent.setColor(0xCC00F0FF);
-        drawRightWing(canvas, px, py, paintAccent);
-        drawRightHeart(canvas, px, py, paintAccent);
-        canvas.restore();
-
-        // White/dark core
-        paintFill.setColor(0xEEFFFFFF);
-        drawClassicWings(canvas, px, py, paintFill);
-
-        paintFill.setColor(0xFF10121C);
-        drawShapedHeart(canvas, px, py, paintFill);
-
-        // Scanlines
-        paintAccent.setColor(0xFFFF0055);
-        canvas.drawRect(2 * px, 8 * py, 26 * px, 9 * py, paintAccent);
-        paintAccent.setColor(0xFF00F0FF);
-        canvas.drawRect(3 * px, 13 * py, 25 * px, 14 * py, paintAccent);
-
-        drawPixelEyes(canvas, px, py, Color.WHITE);
+        // Magenta Left
+        paintAccent.setColor(0xB3FF0055);
+        canvas.drawRect(3 * px, 5 * py, 8 * px, 12 * py, paintAccent);
+        // Cyan Right
+        paintAccent.setColor(0xB300F0FF);
+        canvas.drawRect(20 * px, 5 * py, 25 * px, 12 * py, paintAccent);
+        drawWings(canvas, px, py, Color.WHITE, 0xFF00F0FF);
+        drawHeart(canvas, px, py, 0xFF10121C, 0xFF00F0FF);
+        drawEyes(canvas, px, py, Color.WHITE);
     }
 
     // -------------------------------------------------------------
-    // 10 — PREMIUM (Golden Crown + Golden Wings)
+    // 10 — PREMIUM (Royal Golden Crown & Armor)
     // -------------------------------------------------------------
     private void drawPremiumBadge(Canvas canvas, float px, float py, float phase) {
-        // Royal 3-Peak Golden Crown
+        // Crown
         paintAccent.setColor(0xFFFFD700);
         canvas.drawRect(10 * px, 2 * py, 12 * px, 5 * py, paintAccent);
         canvas.drawRect(13 * px, 1 * py, 15 * px, 5 * py, paintAccent);
         canvas.drawRect(16 * px, 2 * py, 18 * px, 5 * py, paintAccent);
         canvas.drawRect(10 * px, 5 * py, 18 * px, 6 * py, paintAccent);
-
-        // Crown jewels
-        paintShade.setColor(0xFFFF2A93);
-        canvas.drawRect(13.5f * px, 2.5f * py, 14.5f * px, 3.5f * py, paintShade);
-
-        // Golden Wings
-        paintFill.setColor(0xFFFFE066);
-        drawClassicWings(canvas, px, py, paintFill);
-
-        // Dark feather slits
-        paintShade.setColor(0xFFCC8800);
-        canvas.drawRect(4 * px, 8 * py, 8 * px, 9 * py, paintShade);
-        canvas.drawRect(20 * px, 8 * py, 24 * px, 9 * py, paintShade);
-        canvas.drawRect(3 * px, 10 * py, 7 * px, 11 * py, paintShade);
-        canvas.drawRect(21 * px, 10 * py, 25 * px, 11 * py, paintShade);
-
-        // Heart: Obsidian with golden armor ribs
-        paintFill.setColor(0xFF1B1408);
-        drawShapedHeart(canvas, px, py, paintFill);
-
+        drawWings(canvas, px, py, 0xFFFFE066, 0xFFCC8800);
+        drawHeart(canvas, px, py, 0xFF1B1408, 0xFFFFD700);
         paintAccent.setColor(0xFFFFD700);
-        drawHeartContour(canvas, px, py, paintAccent);
         canvas.drawRect(10 * px, 11 * py, 18 * px, 12 * py, paintAccent);
-        canvas.drawRect(11 * px, 13 * py, 17 * px, 14 * py, paintAccent);
-
-        drawPixelEyes(canvas, px, py, 0xFFFFF5B8);
+        drawEyes(canvas, px, py, 0xFFFFF5B8);
     }
 
-    // -------------------------------------------------------------
-    // Core Geometry Routines
-    // -------------------------------------------------------------
-    private void drawClassicWings(Canvas canvas, float px, float py, Paint paint) {
-        drawLeftWing(canvas, px, py, paint);
-        drawRightWing(canvas, px, py, paint);
-    }
-
-    private void drawLeftWing(Canvas canvas, float px, float py, Paint paint) {
-        canvas.drawRect(4 * px, 5 * py, 9 * px, 6 * py, paint);
-        canvas.drawRect(3 * px, 6 * py, 10 * px, 7 * py, paint);
-        canvas.drawRect(2 * px, 7 * py, 11 * px, 8 * py, paint);
-        canvas.drawRect(1 * px, 8 * py, 11 * px, 9 * py, paint);
-        canvas.drawRect(2 * px, 9 * py, 11 * px, 10 * py, paint);
-        canvas.drawRect(3 * px, 10 * py, 10 * px, 11 * py, paint);
-        canvas.drawRect(4 * px, 11 * py, 9 * px, 12 * py, paint);
-        canvas.drawRect(6 * px, 12 * py, 9 * px, 13 * py, paint);
-    }
-
-    private void drawRightWing(Canvas canvas, float px, float py, Paint paint) {
-        canvas.drawRect(19 * px, 5 * py, 24 * px, 6 * py, paint);
-        canvas.drawRect(18 * px, 6 * py, 25 * px, 7 * py, paint);
-        canvas.drawRect(17 * px, 7 * py, 26 * px, 8 * py, paint);
-        canvas.drawRect(17 * px, 8 * py, 27 * px, 9 * py, paint);
-        canvas.drawRect(17 * px, 9 * py, 26 * px, 10 * py, paint);
-        canvas.drawRect(18 * px, 10 * py, 25 * px, 11 * py, paint);
-        canvas.drawRect(19 * px, 11 * py, 24 * px, 12 * py, paint);
-        canvas.drawRect(19 * px, 12 * py, 22 * px, 13 * py, paint);
-    }
-
-    private void drawBatWings(Canvas canvas, float px, float py, Paint paint) {
-        canvas.drawRect(2 * px, 5 * py, 10 * px, 7 * py, paint);
-        canvas.drawRect(1 * px, 7 * py, 11 * px, 9 * py, paint);
-        canvas.drawRect(3 * px, 9 * py, 11 * px, 11 * py, paint);
-        canvas.drawRect(5 * px, 11 * py, 9 * px, 13 * py, paint);
-
-        canvas.drawRect(18 * px, 5 * py, 26 * px, 7 * py, paint);
-        canvas.drawRect(17 * px, 7 * py, 27 * px, 9 * py, paint);
-        canvas.drawRect(17 * px, 9 * py, 25 * px, 11 * py, paint);
-        canvas.drawRect(19 * px, 11 * py, 23 * px, 13 * py, paint);
-    }
-
-    private void drawRainbowWings(Canvas canvas, float px, float py, int[] colors) {
-        paintAccent.setColor(colors[0]);
-        canvas.drawRect(4 * px, 5 * py, 9 * px, 6 * py, paintAccent);
-        canvas.drawRect(19 * px, 5 * py, 24 * px, 6 * py, paintAccent);
-
-        paintAccent.setColor(colors[1]);
-        canvas.drawRect(3 * px, 6 * py, 10 * px, 7 * py, paintAccent);
-        canvas.drawRect(18 * px, 6 * py, 25 * px, 7 * py, paintAccent);
-
-        paintAccent.setColor(colors[2]);
-        canvas.drawRect(2 * px, 7 * py, 11 * px, 8 * py, paintAccent);
-        canvas.drawRect(17 * px, 7 * py, 26 * px, 8 * py, paintAccent);
-
-        paintAccent.setColor(colors[3]);
-        canvas.drawRect(1 * px, 8 * py, 11 * px, 10 * py, paintAccent);
-        canvas.drawRect(17 * px, 8 * py, 27 * px, 10 * py, paintAccent);
-
-        paintAccent.setColor(colors[4]);
-        canvas.drawRect(3 * px, 10 * py, 10 * px, 13 * py, paintAccent);
-        canvas.drawRect(18 * px, 10 * py, 25 * px, 13 * py, paintAccent);
-    }
-
-    private void drawWireframeWings(Canvas canvas, float px, float py, Paint paint) {
-        canvas.drawRect(4 * px, 5 * py, 9 * px, 6 * py, paint);
-        canvas.drawRect(3 * px, 6 * py, 4 * px, 7 * py, paint);
-        canvas.drawRect(1 * px, 7 * py, 2 * px, 10 * py, paint);
-        canvas.drawRect(2 * px, 10 * py, 4 * px, 11 * py, paint);
-        canvas.drawRect(4 * px, 11 * py, 7 * px, 13 * py, paint);
-
-        canvas.drawRect(19 * px, 5 * py, 24 * px, 6 * py, paint);
-        canvas.drawRect(24 * px, 6 * py, 25 * px, 7 * py, paint);
-        canvas.drawRect(26 * px, 7 * py, 27 * px, 10 * py, paint);
-        canvas.drawRect(24 * px, 10 * py, 26 * px, 11 * py, paint);
-        canvas.drawRect(21 * px, 11 * py, 24 * px, 13 * py, paint);
-    }
-
-    private void drawShapedHeart(Canvas canvas, float px, float py, Paint paint) {
-        canvas.drawRect(10 * px, 7 * py, 13 * px, 8 * py, paint);
-        canvas.drawRect(15 * px, 7 * py, 18 * px, 8 * py, paint);
-        canvas.drawRect(9 * px, 8 * py, 19 * px, 10 * py, paint);
-        canvas.drawRect(8 * px, 10 * py, 20 * px, 12 * py, paint);
-        canvas.drawRect(9 * px, 12 * py, 19 * px, 13 * py, paint);
-        canvas.drawRect(10 * px, 13 * py, 18 * px, 14 * py, paint);
-        canvas.drawRect(11 * px, 14 * py, 17 * px, 15 * py, paint);
-        canvas.drawRect(12 * px, 15 * py, 16 * px, 16 * py, paint);
-        canvas.drawRect(13 * px, 16 * py, 15 * px, 17 * py, paint);
-    }
-
-    private void drawLeftHeart(Canvas canvas, float px, float py, Paint paint) {
-        canvas.drawRect(9 * px, 7 * py, 14 * px, 16 * py, paint);
-    }
-
-    private void drawRightHeart(Canvas canvas, float px, float py, Paint paint) {
-        canvas.drawRect(14 * px, 7 * py, 19 * px, 16 * py, paint);
-    }
-
-    private void drawHeartContour(Canvas canvas, float px, float py, Paint paint) {
-        canvas.drawRect(10 * px, 6 * py, 13 * px, 7 * py, paint);
-        canvas.drawRect(15 * px, 6 * py, 18 * px, 7 * py, paint);
-        canvas.drawRect(8 * px, 8 * py, 9 * px, 12 * py, paint);
-        canvas.drawRect(19 * px, 8 * py, 20 * px, 12 * py, paint);
-        // Bottom pixel removed: natural clean heart tip
-    }
-
-    private void drawPixelEyes(Canvas canvas, float px, float py, int eyeColor) {
-        paintEyes.setColor(eyeColor);
-        canvas.drawRect(11 * px, 9.5f * py, 12.5f * px, 11 * py, paintEyes);
-        canvas.drawRect(15.5f * px, 9.5f * py, 17 * px, 11 * py, paintEyes);
-    }
 
     private void drawTwinklingSparkles(Canvas canvas, float px, float py, long now) {
         int sparkleColor;

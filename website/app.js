@@ -1,7 +1,7 @@
-// Miogram Official Portal App
+// Miogram — Needy Streamer Overload (NSO) Anime OS Web Client
 // 1. GitHub Releases API Client
 // 2. Supabase Live Community User Counter
-// 3. Multilingual Localization Engine (UK / EN)
+// 3. Trilingual Localization Engine (UK / EN / RU)
 // 4. Interactive Canvas Pixel Badge Renderer with Bloom & Dynamic Flying Particles
 
 const REPO_OWNER = "fuckramochka";
@@ -13,88 +13,116 @@ const SUPABASE_URL = "https://dbxsnjoeyiqvqtrluvwu.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRieHNuam9leWlxdnF0cmx1dnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDI1MzEsImV4cCI6MjEwNDExODUzMX0.KJ0kvON1HXZu4MzlZjapSJEhEzWYlEqQoNEstWCgIjA";
 
 // -------------------------------------------------------------
-// Localization Dictionaries (UK / EN)
+// Trilingual Dictionaries (UK / EN / RU)
 // -------------------------------------------------------------
 const I18N = {
   uk: {
-    nav_badges: "Бейджики",
-    nav_security: "Безпека",
-    nav_wasm: "WASM Двигун",
-    nav_design: "Рідке Скло",
-    nav_download: "Завантажити APK",
-    hero_pill: "Реліз версії 1.0 • Готовий до Android 15+",
+    hero_pill: "INTERNET ANGEL OVERDOSE • Android 15+ Ready",
     hero_title_1: "Більше, ніж просто",
-    hero_title_2: "месенджер.",
-    hero_subtitle: "Telegram-клієнт нового покоління із захистом від примусу Zero-Trust, WebAssembly Rust плагінами, AGSL GPU-шейдерами Liquid Glass та ексклюзивною хмарною екосистемою з 10 бейджиків спільноти.",
+    hero_title_2: "месенджер ໒꒱",
+    hero_subtitle: "Telegram-клієнт у культовій піксельній естетиці Needy Streamer Overload. Потужний захист від примусу Zero-Trust, WebAssembly Rust плагіни, GPU-шейдери Liquid Glass та жива екосистема з 10 бейджиків спільноти.",
     btn_download: "Завантажити останній APK",
-    btn_source: "Вихідний код",
+    btn_source: "Вихідний код GitHub",
+    stats_window_title: "Status_Monitor.sys • Network & Performance",
     stat_users: "Учасників спільноти",
     stat_wasm: "Запуск WASM плагінів",
     stat_kdf: "KDF сховища примусу",
     stat_gpu: "AGSL GPU шейдери",
-    stat_badges: "Хмарна синхронізація",
-    badge_tag: "✦ ІДЕНТИЧНІСТЬ СПІЛЬНОТИ",
+    stat_badges: "Supabase хмарний синк",
+    badge_window_title: "Badge_Gallery.exe • 10 Pixel Styles",
     badge_title: "10 Канонічних Піксельних Бейджиків",
-    badge_desc: "Натхненні естетикою Needy Streamer Overload та ретро піксель-артом PC-98. Створені з неоновими контурами, атмосферним світінням, спекулярним відблиском та літаючими зірковими іскорками (✦).",
-    feat_tag: "✦ ПІД КАПОТОМ",
+    badge_desc: "Натхненні Needy Streamer Overload та ретро PC-98 піксель-артом. Атмосферне сяйво, спекулярні відблиски та живі мікро-партікли (✦).",
+    feat_window_title: "System_Architecture.txt • Features",
     feat_title: "Архітектурна Досконалість",
     feat_1_title: "PIN Примусу & Подвійне Дно",
-    feat_1_desc: "Два різні PIN-коди. Введення екстреного PIN-коду миттєво відкриває нейтральний екран-приманку без розшифровки майстер-ключів. Захищено Argon2id RFC 9106, ізоляцією StrongBox TEE та SQLCipher.",
+    feat_1_desc: "Два різні PIN-коди. Введення екстреного PIN-коду відкриває нейтральний екран без майстер-ключів. Захищено Argon2id RFC 9106, StrongBox TEE та SQLCipher.",
     feat_2_title: "WebAssembly (WASM) Rust Плагіни",
-    feat_2_desc: "Заміна громіздких інтерпретаторів на нативний WebAssembly Micro Runtime (WAMR). Холодний запуск < 1мс, споживання RAM знижено з 60 МБ до 150 КБ, криптографічний підпис коду Ed25519.",
+    feat_2_desc: "Швидкий WebAssembly Micro Runtime (WAMR). Холодний старт < 1мс, RAM 150 КБ, криптографічний підпис Ed25519.",
     feat_3_title: "Просторове Рідке Скло (AGSL)",
-    feat_3_desc: "Апаратно прискорені GPU-шейдери з імітацією заломлення світла, хроматичної дисперсії та глянцю на стабільних 120 FPS. Повна нейтральність до користувацьких тем.",
+    feat_3_desc: "GPU-шейдери з імітацією заломлення світла та хроматичної дисперсії на стабільних 120 FPS без перебивання тем.",
     feat_4_title: "Ергономіка Apple Music + Spotify",
-    feat_4_desc: "Вбудований плеєр 1:1 в стилі карток Apple Music із живими міні-басовими візуалізаторами, жестовою перемоткою та текстами пісень у поєднанні з аудіо Telegram.",
+    feat_4_desc: "Вбудований 1:1 Apple Music card player із живими міні-басовими візуалізаторами, жестовою перемоткою та текстами пісень.",
     feat_5_title: "Хмарна Екосистема Бейджиків Supabase",
-    feat_5_desc: "Глобальне розпізнавання бейджиків, історія отримання та хроніка на базі Supabase PostgREST з локальним кешуванням для 0мс офлайн-відображення та суворою ізоляцією акаунтів.",
+    feat_5_desc: "Глобальне розпізнавання бейджиків та хроніка на базі Supabase PostgREST з 0мс офлайн-кешем та суворою ізоляцією акаунтів.",
     feat_6_title: "Приватний AI Роутер & Whisper на Пристрої",
-    feat_6_desc: "Автоматичне regex-маскування номерів карток, телефонів і паролів перед хмарними запитами. Повністю офлайн-транскрипція Whisper STT на базі нейропроцесорів NPU.",
-    dl_tag: "✦ ПРЯМЕ ЗАВАНТАЖЕННЯ",
+    feat_6_desc: "Regex-маскування номерів карток, телефонів і паролів перед хмарними викликами. Повністю офлайн Whisper STT на базі NPU.",
+    dl_window_title: "Setup_Installer.exe • Official Release",
     dl_title: "Отримати Miogram для Android",
-    dl_desc: "Офіційні збірки криптографічно підписані та зібрані безпосередньо в GitHub Actions CI з вирівнюванням 16 KB ELF для Android 15+.",
+    dl_desc: "Офіційні збірки криптографічно підписані та зібрані в GitHub Actions CI з вирівнюванням 16 KB ELF для Android 15+.",
     dl_verified: "🟢 Верифікована збірка",
     footer_text: "Створено з ♡ автором @dkramochka та спільнотою Miogram."
   },
   en: {
-    nav_badges: "Badges",
-    nav_security: "Security",
-    nav_wasm: "WASM Engine",
-    nav_design: "Liquid Glass",
-    nav_download: "Download APK",
-    hero_pill: "Version 1.0 Release • Android 15+ Ready",
+    hero_pill: "INTERNET ANGEL OVERDOSE • Android 15+ Ready",
     hero_title_1: "More than just a",
-    hero_title_2: "messenger.",
-    hero_subtitle: "Next-generation Telegram client powered by Zero-Trust Duress Protection, WebAssembly Rust Plugins, Liquid Glass AGSL Shaders, and an exclusive Supabase-powered 10-badge community ecosystem.",
+    hero_title_2: "messenger ໒꒱",
+    hero_subtitle: "Next-gen Telegram client styled in iconic Needy Streamer Overload cyber pixel aesthetic. Featuring Zero-Trust Duress Protection, WebAssembly Rust Plugins, Liquid Glass GPU Shaders, and a 10-badge community ecosystem.",
     btn_download: "Download Latest APK",
-    btn_source: "Source Code",
+    btn_source: "GitHub Source Code",
+    stats_window_title: "Status_Monitor.sys • Network & Performance",
     stat_users: "Community Members",
     stat_wasm: "WASM Plugin Boot",
     stat_kdf: "Duress Vault KDF",
     stat_gpu: "AGSL GPU Shaders",
     stat_badges: "Supabase Cloud Sync",
-    badge_tag: "✦ COMMUNITY IDENTITY",
+    badge_window_title: "Badge_Gallery.exe • 10 Pixel Styles",
     badge_title: "10 Canonical Pixel Badges",
-    badge_desc: "Inspired by the cyber aesthetic of Needy Streamer Overload and retro PC-98 pixel art. Crafted with luminous neon contours, atmospheric bloom, specular shading, and twinkling starlight cross particles (✦).",
-    feat_tag: "✦ UNDER THE HOOD",
+    badge_desc: "Inspired by Needy Streamer Overload and retro PC-98 pixel art. Luminous neon contours, atmospheric bloom, specular shading, and dynamic starlight particles (✦).",
+    feat_window_title: "System_Architecture.txt • Features",
     feat_title: "Architectural Excellence",
     feat_1_title: "Duress PIN & Double Bottom Vault",
-    feat_1_desc: "Two distinct PINs. Entering your emergency PIN instantly loads a neutral decoy screen without decrypting the master keys. Protected with Argon2id RFC 9106, StrongBox TEE hardware isolation, and SQLCipher.",
+    feat_1_desc: "Two distinct PINs. Entering your panic code loads a decoy screen without decrypting master keys. Protected with Argon2id RFC 9106, StrongBox TEE, and SQLCipher.",
     feat_2_title: "WebAssembly (WASM) Rust Plugins",
-    feat_2_desc: "Replacing bulky interpreters with native WebAssembly Micro Runtime (WAMR). Cold boot time < 1ms, RAM usage down from 60 MB to 150 KB, and Ed25519 cryptographic code signing.",
+    feat_2_desc: "High-performance WebAssembly Micro Runtime (WAMR). Cold boot < 1ms, RAM footprint 150 KB, Ed25519 signature verification.",
     feat_3_title: "Spatial Liquid Glass (AGSL)",
-    feat_3_desc: "Hardware-accelerated GPU shaders simulating light refraction, chromatic edge dispersion, and specular gloss at a rock-solid 120 FPS. Fully theme-neutral without overriding custom user palettes.",
+    feat_3_desc: "Hardware-accelerated GPU shaders simulating light refraction and chromatic dispersion at 120 FPS without theme hijacking.",
     feat_4_title: "Apple Music + Spotify Ergonomics",
-    feat_4_desc: "Built-in 1:1 Apple Music card player featuring live mini-bass visualizers, gesture scrubbing, and lyrics integration seamlessly merged with Telegram audio.",
+    feat_4_desc: "Built-in 1:1 Apple Music card player with live mini-bass visualizers, gesture scrubbing, and lyrics integration.",
     feat_5_title: "Supabase Cloud Badge Ecosystem",
-    feat_5_desc: "Global badge resolution, lore histories, and acquisition stories powered by PostgREST and cached locally for instant 0ms offline display with multi-account isolation.",
+    feat_5_desc: "Global badge resolution, lore histories, and acquisition records powered by Supabase PostgREST with 0ms offline caching.",
     feat_6_title: "Private AI Router & On-Device Whisper",
-    feat_6_desc: "Automatic regex sanitization shields your credit cards, phone numbers, and passwords before cloud calls. Fully offline Whisper STT transcription running on device NPUs.",
-    dl_tag: "✦ DIRECT DOWNLOAD",
+    feat_6_desc: "Automatic regex sanitization shields cards, phone numbers, and credentials before cloud calls. Offline Whisper STT on NPUs.",
+    dl_window_title: "Setup_Installer.exe • Official Release",
     dl_title: "Get Miogram for Android",
-    dl_desc: "Official builds are cryptographically signed and built directly from our GitHub Actions CI pipeline with 16 KB ELF alignment for Android 15+.",
+    dl_desc: "Official builds are cryptographically signed and built directly from GitHub Actions CI with 16 KB ELF alignment for Android 15+.",
     dl_verified: "🟢 Verified Build",
     footer_text: "Built with ♡ by @dkramochka and the Miogram Community."
+  },
+  ru: {
+    hero_pill: "INTERNET ANGEL OVERDOSE • Android 15+ Ready",
+    hero_title_1: "Больше, чем просто",
+    hero_title_2: "мессенджер ໒꒱",
+    hero_subtitle: "Telegram-клиент в культовой пиксельной эстетике Needy Streamer Overload. Мощная защита от принуждения Zero-Trust, WebAssembly Rust плагины, GPU-шейдеры Liquid Glass и живая экосистема из 10 бейджиков сообщества.",
+    btn_download: "Скачать последний APK",
+    btn_source: "Исходный код GitHub",
+    stats_window_title: "Status_Monitor.sys • Network & Performance",
+    stat_users: "Участников сообщества",
+    stat_wasm: "Запуск WASM плагинов",
+    stat_kdf: "KDF хранилища сейфа",
+    stat_gpu: "AGSL GPU шейдеры",
+    stat_badges: "Supabase облачный синк",
+    badge_window_title: "Badge_Gallery.exe • 10 Pixel Styles",
+    badge_title: "10 Канонических Пиксельных Бейджиков",
+    badge_desc: "Вдохновлены Needy Streamer Overload и ретро PC-98 пиксель-артом. Атмосферное свечение, спекулярные блики и живые микро-партиклы (✦).",
+    feat_window_title: "System_Architecture.txt • Features",
+    feat_title: "Архитектурное Совершенство",
+    feat_1_title: "PIN Принуждения & Двойное Дно",
+    feat_1_desc: "Два разных PIN-кода. Ввод тревожного PIN открывает нейтральный экран без мастер-ключей. Защищено Argon2id RFC 9106, StrongBox TEE и SQLCipher.",
+    feat_2_title: "WebAssembly (WASM) Rust Плагины",
+    feat_2_desc: "Быстрый WebAssembly Micro Runtime (WAMR). Холодный старт < 1мс, RAM 150 КБ, криптографическая подпись Ed25519.",
+    feat_3_title: "Пространственное Жидкое Стекло (AGSL)",
+    feat_3_desc: "GPU-шейдеры с имитацией преломления света и хроматической дисперсии на стабильных 120 FPS без перебивания тем.",
+    feat_4_title: "Эргономика Apple Music + Spotify",
+    feat_4_desc: "Встроенный плеер 1:1 в стиле Apple Music с живыми мини-басовыми визуализаторами, перемоткой жестами и текстами песен.",
+    feat_5_title: "Облачная Экосистема Бейджиков Supabase",
+    feat_5_desc: "Глобальное распознавание бейджиков и история на базе Supabase PostgREST с 0мс офлайн-кешем и строгой изоляцией аккаунтов.",
+    feat_6_title: "Приватный AI Роутер & Whisper на Устройстве",
+    feat_6_desc: "Regex-маскирование номеров карт, телефонов и паролей перед отправкой в облако. Полностью офлайн Whisper STT на NPU.",
+    dl_window_title: "Setup_Installer.exe • Official Release",
+    dl_title: "Получить Miogram для Android",
+    dl_desc: "Официальные сборки криптографически подписаны и собраны в GitHub Actions CI с выравниванием 16 KB ELF для Android 15+.",
+    dl_verified: "🟢 Верифицированная сборка",
+    footer_text: "Создано с ♡ автором @dkramochka и сообществом Miogram."
   }
 };
 
@@ -122,24 +150,32 @@ const BADGE_LORE = {
     outline: { title: "Wireframe Cyber", tag: "Wireframe", lore: "Minimalist 1px glowing cyber wireframe contour with bloom and transparent hollow center." },
     glitch: { title: "Chromatic Glitch", tag: "Cyber CRT", lore: "Chromatic RGB displacement (magenta left, cyan right) with animated CRT scanline jitters." },
     premium: { title: "Royal Golden Crown", tag: "Royal Gold", lore: "Radiant 3-peak royal golden crown, amber wings with horizontal slits, and golden chest armor." }
+  },
+  ru: {
+    original: { title: "Классическое Кибер-Сердце", tag: "Классика", lore: "Каноническое крылатое сердце Miogram с визором-антенной, обсидиановым ядром, светящимся бирюзовым контуром и розовыми перьями. Первая награда экосистемы." },
+    pink: { title: "Неоновый Оверлоад", tag: "Неон", lore: "Неоново-розовый стиль с ребрами сердца цвета фуксии и пастельными градиентными крыльями. Атмосфера Needy Streamer Overload." },
+    cyan: { title: "Кибер Пространство", tag: "Кибер", lore: "Электрические небесно-голубые крылья с сияющей бирюзовой аурой и звездным светом. Символ молниеносной скорости." },
+    dark: { title: "Полуночный Обсидиан", tag: "Бархат", lore: "Ночные обсидиановые крылья с бархатной фиолетовой каймой. Создан для ценителей глубокой темной темы." },
+    angel: { title: "Небесный Серафим", tag: "Нимб", lore: "Пушистые белоснежные крылья с парящим нимбом и нежным лавандовым сердцем." },
+    devil: { title: "Игривый Демон", tag: "Рожки", lore: "Острые малиновые рожки, зубчатые крылья летучей мыши и яркий розовый контур." },
+    rainbow: { title: "Призматический Спектр", tag: "Призма", lore: "Плавный 5-цветный радужный спектр перьев с золотой каймой и разноцветными искорками." },
+    outline: { title: "Кибер Каркас", tag: "Каркас", lore: "Минималистичный 1px каркасный контур с неоновым свечением и прозрачным центром." },
+    glitch: { title: "Хроматический Глитч", tag: "CRT Глитч", lore: "Хроматическое смещение RGB (малиновый слева, бирюзовый справа) с анимированными микро-подергиваниями CRT-сканирования." },
+    premium: { title: "Королевское Золото", tag: "Золото", lore: "Сияющая 3-зубчатая золотая корона, янтарные крылья и роскошная золотая броня." }
   }
 };
 
-let currentLang = localStorage.getItem("miogram_lang") || (navigator.language.startsWith("uk") ? "uk" : "en");
+let currentLang = localStorage.getItem("miogram_lang") || (navigator.language.startsWith("ru") ? "ru" : (navigator.language.startsWith("uk") ? "uk" : "en"));
 
 function switchLanguage(lang) {
   currentLang = lang;
   localStorage.setItem("miogram_lang", lang);
   document.documentElement.lang = lang;
 
-  const flagEl = document.getElementById("langFlag");
-  const textEl = document.getElementById("langText");
-  if (flagEl && textEl) {
-    flagEl.textContent = lang === "uk" ? "🇺🇦" : "🇬🇧";
-    textEl.textContent = lang.toUpperCase();
-  }
+  document.querySelectorAll(".lang-pill").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-lang") === lang);
+  });
 
-  // Update text elements with data-i18n
   const dict = I18N[lang] || I18N.en;
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.getAttribute("data-i18n");
@@ -148,7 +184,6 @@ function switchLanguage(lang) {
     }
   });
 
-  // Update badges tiles
   const loreDict = BADGE_LORE[lang] || BADGE_LORE.en;
   document.querySelectorAll(".badge-tile").forEach(tile => {
     const id = tile.getAttribute("data-id");
@@ -158,7 +193,6 @@ function switchLanguage(lang) {
     }
   });
 
-  // Update active badge display
   updateActiveBadgeInfo();
 }
 
@@ -171,7 +205,7 @@ async function fetchLiveUsers() {
 
   try {
     let count = 0;
-    // 1. Try miogram_users table
+    // 1. Try miogram_users
     let res = await fetch(`${SUPABASE_URL}/rest/v1/miogram_users?select=user_id`, {
       headers: {
         "apikey": SUPABASE_ANON,
@@ -188,7 +222,7 @@ async function fetchLiveUsers() {
       }
     }
 
-    // 2. Fallback to miogram_badges table if miogram_users is empty
+    // 2. Fallback to miogram_badges
     if (!count || count === 0) {
       res = await fetch(`${SUPABASE_URL}/rest/v1/miogram_badges?select=user_id`, {
         headers: {
@@ -254,7 +288,6 @@ async function fetchLatestRelease() {
     releaseDateEl.textContent = dateStr ? `• Released ${dateStr}` : "";
     releaseNotesEl.textContent = notes;
 
-    // Search for apk asset
     let apkUrl = FALLBACK_URL;
     let apkSize = "";
     if (data.assets && data.assets.length > 0) {
@@ -300,7 +333,6 @@ const BADGE_CONFIGS = {
   premium:  { accent: "#FFD700", glow: "rgba(255, 215, 0, 0.4)" }
 };
 
-// Dynamic Upward Flying Micro Particles
 const DYNAMIC_PARTICLES = [
   { x: 3.5,  speed: 0.00030, sway: 0.28, amp: 1.2, isCross: false, offset: 0.12 },
   { x: 7.0,  speed: 0.00045, sway: 0.35, amp: 1.6, isCross: true,  offset: 0.48 },
@@ -335,7 +367,7 @@ function renderBadge() {
   // Background Radial Bloom
   const cfg = BADGE_CONFIGS[currentBadgeId] || BADGE_CONFIGS.original;
   const pulse = Math.sin(now * 0.003) * 0.05 + 0.95;
-  const grad = ctx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, 140 * pulse);
+  const grad = ctx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, 130 * pulse);
   grad.addColorStop(0, cfg.glow);
   grad.addColorStop(1, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = grad;
@@ -526,13 +558,23 @@ document.querySelectorAll(".badge-tile").forEach(tile => {
   });
 });
 
-// Language Switcher Button Click
-const langToggleBtn = document.getElementById("langToggle");
-if (langToggleBtn) {
-  langToggleBtn.addEventListener("click", () => {
-    const newLang = currentLang === "uk" ? "en" : "uk";
-    switchLanguage(newLang);
+// Language Pills Click
+document.querySelectorAll(".lang-pill").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const lang = btn.getAttribute("data-lang");
+    switchLanguage(lang);
   });
+});
+
+// Retro Clock
+function updateClock() {
+  const clockEl = document.getElementById("taskbarClock");
+  if (!clockEl) return;
+  const d = new Date();
+  const h = String(d.getHours()).padStart(2, "0");
+  const m = String(d.getMinutes()).padStart(2, "0");
+  const s = String(d.getSeconds()).padStart(2, "0");
+  clockEl.textContent = `${h}:${m}:${s}`;
 }
 
 // Initialization
@@ -540,5 +582,7 @@ document.addEventListener("DOMContentLoaded", () => {
   switchLanguage(currentLang);
   fetchLatestRelease();
   fetchLiveUsers();
+  updateClock();
+  setInterval(updateClock, 1000);
   requestAnimationFrame(renderBadge);
 });
