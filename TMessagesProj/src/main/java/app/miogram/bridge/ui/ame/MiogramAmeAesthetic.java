@@ -165,8 +165,8 @@ public class MiogramAmeAesthetic {
         if (key == Theme.key_chats_actionBackground) return COLOR_AME_PINK;
         if (key == Theme.key_chats_actionPressedBackground) return COLOR_AME_PURPLE;
         if (key == Theme.key_chats_actionIcon) return 0xFFFFFFFF;
-        if (key == Theme.key_switchTrackChecked) return 0x99FF70A6;
-        if (key == Theme.key_switchThumbChecked) return COLOR_AME_CYAN;
+        if (key == Theme.key_switchTrackChecked || key == Theme.key_switch2TrackChecked || key == Theme.key_switchTrackBlueChecked) return 0x99FF70A6;
+        if (key == Theme.key_switchTrackBlueThumbChecked) return COLOR_AME_CYAN;
         if (key == Theme.key_chats_unreadCounter) return COLOR_AME_PINK;
         if (key == Theme.key_chats_unreadCounterMuted) return 0x809D4EDD;
         if (key == Theme.key_chats_unreadCounterText) return 0xFFFFFFFF;
