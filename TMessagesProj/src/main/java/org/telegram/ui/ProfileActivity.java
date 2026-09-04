@@ -1435,10 +1435,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     backgroundPaint.setAlpha((int) (0xFF * progressToGradient));
                     canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
                 }
-                app.miogram.bridge.profile.MiogramCustomProfileManager.drawBanner(canvas, getMeasuredWidth(), y1, userId);
-                if (avatarContainer != null && app.miogram.bridge.profile.MiogramCustomProfileManager.shouldApplyToUser(userId)) {
-                    app.miogram.bridge.profile.MiogramCustomProfileManager.drawThoughtBubble(canvas, avatarContainer.getX(), avatarContainer.getY(), avatarContainer.getWidth());
-                }
                 if (hasEmoji) {
                     final float loadedScale = emojiLoadedT.set(isEmojiLoaded());
                     boolean shoudIgnore = openAnimationInProgress && playProfileAnimation == 2;
@@ -2702,7 +2698,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 } else if (id == message_filter){
                     presentFragment(new RegexChatFiltersListActivity(chatId != 0 ? -chatId : userId));
                 } else if (id == miogram_customize_profile) {
-                    presentFragment(new app.miogram.bridge.profile.MiogramCustomProfileActivity());
+                    app.exteraless.plugins.PluginsController.openPluginSettings("custom_profile");
                 } else if (id == delete_topic) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                     builder.setTitle(LocaleController.getPluralString("DeleteTopics", 1));
@@ -4051,7 +4047,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         presentFragment(new SettingsActivity());
                         break;
                     case ProfileActionsView.KEY_CUSTOM_PROFILE:
-                        presentFragment(new app.miogram.bridge.profile.MiogramCustomProfileActivity());
+                        app.exteraless.plugins.PluginsController.openPluginSettings("custom_profile");
                         break;
                 }
             });
@@ -5609,26 +5605,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     info.addAction(new AccessibilityNodeInfo.AccessibilityAction(AccessibilityNodeInfo.ACTION_LONG_CLICK, LocaleController.getString(R.string.AccDescrOpenInPhotoViewer)));
                 } else {
                     info.setVisibleToUser(false);
-                }
-            }
-
-            @Override
-            public void draw(Canvas canvas) {
-                boolean custom = app.miogram.bridge.profile.MiogramCustomProfileManager.shouldApplyToUser(userId);
-                if (custom && app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShape() != app.miogram.bridge.profile.MiogramCustomProfileManager.SHAPE_CIRCLE) {
-                    android.graphics.Path path = app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShapePath(getWidth(), getHeight(), app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShape());
-                    if (path != null) {
-                        canvas.save();
-                        canvas.clipPath(path);
-                        super.draw(canvas);
-                        canvas.restore();
-                        app.miogram.bridge.profile.MiogramCustomProfileManager.drawAvatarGlowAndBorder(canvas, getWidth(), getHeight(), app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShape());
-                        return;
-                    }
-                }
-                super.draw(canvas);
-                if (custom) {
-                    app.miogram.bridge.profile.MiogramCustomProfileManager.drawAvatarGlowAndBorder(canvas, getWidth(), getHeight(), app.miogram.bridge.profile.MiogramCustomProfileManager.getAvatarShape());
                 }
             }
 

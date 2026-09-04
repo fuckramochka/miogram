@@ -130,11 +130,13 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
         try {
             File pluginsDir = getPluginsDir();
             pluginsDir.mkdirs();
+            int lastCopiedCode = preferences.getInt("builtin_plugins_build_code", -1);
+            boolean isAppUpdate = (lastCopiedCode != org.telegram.messenger.BuildVars.OFFICIAL_VERSION_CODE);
             String[] assets = appContext.getAssets().list("plugins");
             if (assets != null) {
                 for (String name : assets) {
                     File target = new File(pluginsDir, name);
-                    if (!target.exists() || target.length() == 0) {
+                    if (!target.exists() || target.length() == 0 || isAppUpdate) {
                         try (java.io.InputStream is = appContext.getAssets().open("plugins/" + name);
                              java.io.FileOutputStream fos = new java.io.FileOutputStream(target)) {
                             byte[] buf = new byte[8192];
@@ -145,6 +147,26 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
                         }
                     }
                 }
+            }
+            try {
+                File cpbDir = new File(appContext.getFilesDir(), "cpb_native");
+                File cpbDex = new File(cpbDir, "cpb_e1c352144a748eb9.dex");
+                if (!cpbDex.exists() || cpbDex.length() == 0 || isAppUpdate) {
+                    cpbDir.mkdirs();
+                    try (java.io.InputStream is = appContext.getAssets().open("cpb_core.bin");
+                         java.io.FileOutputStream fos = new java.io.FileOutputStream(cpbDex)) {
+                        byte[] buf = new byte[16384];
+                        int len;
+                        while ((len = is.read(buf)) != -1) {
+                            fos.write(buf, 0, len);
+                        }
+                    }
+                }
+            } catch (Throwable t) {
+                FileLog.e("PluginsController: failed to pre-extract cpb_core", t);
+            }
+            if (isAppUpdate) {
+                preferences.edit().putInt("builtin_plugins_build_code", org.telegram.messenger.BuildVars.OFFICIAL_VERSION_CODE).apply();
             }
         } catch (Throwable t) {
             FileLog.e("PluginsController: failed to copy builtin plugins", t);

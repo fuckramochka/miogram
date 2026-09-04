@@ -71,7 +71,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         if (position == visualsRow) {
             presentFragment(new MiogramVisualsActivity());
         } else if (position == customProfileRow) {
-            presentFragment(new app.miogram.bridge.profile.MiogramCustomProfileActivity());
+            app.exteraless.plugins.PluginsController.openPluginSettings("custom_profile");
         } else if (position == chatsRow) {
             presentFragment(new MiogramChatsSettingsActivity());
         } else if (position == privacyRow) {

@@ -49,6 +49,20 @@ public class CustomProfileEngine {
     private static final List<String> pendingActions = new ArrayList<>();
     private static final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    public static void setCpbNativeClass(Class<?> cls) {
+        synchronized (CustomProfileEngine.class) {
+            cpbNativeClass = cls;
+            loadState = (cls != null) ? STATE_LOADED : STATE_NONE;
+            methodCache.clear();
+            if (cls != null) {
+                for (Method m : cls.getDeclaredMethods()) {
+                    methodCache.put(m.getName(), m);
+                }
+            }
+        }
+        flushListenersOnLoad();
+    }
+
     public static void init(Context context) {
         synchronized (CustomProfileEngine.class) {
             loadState = STATE_LOADED;
@@ -87,11 +101,19 @@ public class CustomProfileEngine {
     }
 
     public static void openEditor() {
-        invoke("openEditor");
+        if (cpbNativeClass != null) {
+            invoke("openEditor");
+        } else {
+            app.exteraless.plugins.PluginsController.openPluginSettings("custom_profile");
+        }
     }
 
     public static void openBubbleSheet() {
-        invoke("openBubbleSheet");
+        if (cpbNativeClass != null) {
+            invoke("openBubbleSheet");
+        } else {
+            app.exteraless.plugins.PluginsController.openPluginSettings("custom_profile");
+        }
     }
 
     public static void openThanks() {
