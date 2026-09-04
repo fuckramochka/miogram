@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Miogram — Next-Gen Telegram Client with Zero-Trust Security & Cyber Pixel Badges</title>
+  <meta name="description" content="Miogram is an advanced, high-performance Telegram client engineered for privacy, hardware-backed security, WebAssembly plugins, and 10 canonical community badges.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  <div class="glow-orb orb-3"></div>
+
+  <!-- Navigation -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <span class="brand-heart">ʚ♡ɞ</span>
+        <span class="brand-text">Miogram</span>
+      </div>
+      <nav class="nav-links">
+        <a href="#badges">Badges</a>
+        <a href="#security">Security</a>
+        <a href="#wasm">WASM Engine</a>
+        <a href="#design">Liquid Glass</a>
+        <a href="#download" class="nav-cta">Download APK</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-pill">
+        <span class="pill-dot"></span>
+        <span>Version 1.0 Release • Android 15+ Ready</span>
+      </div>
+      <h1 class="hero-title">
+        More than just a <span class="gradient-text">messenger.</span>
+      </h1>
+      <p class="hero-subtitle">
+        Next-generation Telegram client powered by Zero-Trust Duress Protection,
+        WebAssembly Rust Plugins, Liquid Glass AGSL Shaders, and an exclusive
+        Supabase-powered 10-badge community ecosystem.
+      </p>
+      <div class="hero-actions">
+        <a href="#download" id="hero-download-btn" class="btn btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span id="hero-download-text">Download Latest APK</span>
+        </a>
+        <a href="https://github.com/fuckramochka/miogram" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          <span>Source Code</span>
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <span class="stat-num">&lt; 1ms</span>
+          <span class="stat-label">WASM Plugin Boot</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num">Argon2id</span>
+          <span class="stat-label">Duress Vault KDF</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num">120 FPS</span>
+          <span class="stat-label">AGSL GPU Shaders</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num">10 Badges</span>
+          <span class="stat-label">Supabase Cloud Sync</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive 10 Badges Showcase -->
+  <section id="badges" class="badges-section">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">✦ COMMUNITY IDENTITY</span>
+        <h2 class="section-title">10 Canonical Pixel Badges</h2>
+        <p class="section-desc">
+          Inspired by the cyber aesthetic of <em>Needy Streamer Overload</em> and retro PC-98 pixel art.
+          Crafted with luminous neon contours, atmospheric bloom, specular shading, and twinkling starlight cross particles (✦).
+        </p>
+      </div>
+
+      <div class="badge-interactive-container">
+        <!-- Live Animated Canvas Display -->
+        <div class="badge-stage">
+          <canvas id="badgeCanvas" width="360" height="280"></canvas>
+          <div class="badge-info-card">
+            <span id="badgeNumber" class="badge-code">01 — ORIGINAL</span>
+            <h3 id="badgeTitle" class="badge-name">Classical Cyber Heart</h3>
+            <p id="badgeDesc" class="badge-lore">
+              Canonical Miogram winged heart with antenna visor, obsidian core, electric cyan glowing contour, and pink feather tips. The inaugural distinction of the ecosystem.
+            </p>
+          </div>
+        </div>
+
+        <!-- 10 Clickable Badge Selector Tiles -->
+        <div class="badge-selector-grid">
+          <button class="badge-tile active" data-id="original" data-num="01" data-name="ORIGINAL" data-lore="Canonical Miogram winged heart with antenna visor, obsidian core, electric cyan glowing contour, and pink feather tips.">
+            <span class="tile-num">01</span>
+            <span class="tile-name">ORIGINAL</span>
+            <span class="tile-tag">Classic</span>
+          </button>
+          <button class="badge-tile" data-id="pink" data-num="02" data-name="PINK" data-lore="Neon pink style with hot pink chevron heart ribs and pastel gradient wings. True Needy Streamer Overload vibe.">
+            <span class="tile-num">02</span>
+            <span class="tile-name">PINK</span>
+            <span class="tile-tag">Neon</span>
+          </button>
+          <button class="badge-tile" data-id="cyan" data-num="03" data-name="CYAN" data-lore="Electric sky-blue wings with radiant cyan aura and luminous starlight. Symbolizes cutting-edge speed.">
+            <span class="tile-num">03</span>
+            <span class="tile-name">CYAN</span>
+            <span class="tile-tag">Cyber</span>
+          </button>
+          <button class="badge-tile" data-id="dark" data-num="04" data-name="DARK" data-lore="Midnight obsidian wings with glowing velvet violet fringe. Crafted for dark mode connoisseurs.">
+            <span class="tile-num">04</span>
+            <span class="tile-name">DARK</span>
+            <span class="tile-tag">Velvet</span>
+          </button>
+          <button class="badge-tile" data-id="angel" data-num="05" data-name="ANGEL" data-lore="Fluffy pure white wings with a floating glowing halo ring and soft lavender periwinkle heart.">
+            <span class="tile-num">05</span>
+            <span class="tile-name">ANGEL</span>
+            <span class="tile-tag">Halo</span>
+          </button>
+          <button class="badge-tile" data-id="devil" data-num="06" data-name="DEVIL" data-lore="Playful pointed devil horns, scalloped crimson bat wings, and hot pink glowing contour.">
+            <span class="tile-num">06</span>
+            <span class="tile-name">DEVIL</span>
+            <span class="tile-tag">Horns</span>
+          </button>
+          <button class="badge-tile" data-id="rainbow" data-num="07" data-name="RAINBOW" data-lore="Smooth 5-color prismatic rainbow spectrum feathers with golden halo trim and multi-color sparkles.">
+            <span class="tile-num">07</span>
+            <span class="tile-name">RAINBOW</span>
+            <span class="tile-tag">Prism</span>
+          </button>
+          <button class="badge-tile" data-id="outline" data-num="08" data-name="OUTLINE" data-lore="Minimalist 1px glowing cyber wireframe contour with bloom and transparent hollow center.">
+            <span class="tile-num">08</span>
+            <span class="tile-name">OUTLINE</span>
+            <span class="tile-tag">Wireframe</span>
+          </button>
+          <button class="badge-tile" data-id="glitch" data-num="09" data-name="GLITCH" data-lore="Chromatic RGB displacement (magenta left, cyan right) with animated CRT scanline jitters.">
+            <span class="tile-num">09</span>
+            <span class="tile-name">GLITCH</span>
+            <span class="tile-tag">Cyber CRT</span>
+          </button>
+          <button class="badge-tile" data-id="premium" data-num="10" data-name="PREMIUM" data-lore="Radiant 3-peak royal golden crown, amber wings with horizontal slits, and golden chest armor.">
+            <span class="tile-num">10</span>
+            <span class="tile-name">PREMIUM</span>
+            <span class="tile-tag">Royal Gold</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Architecture Features -->
+  <section id="security" class="features-section">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">✦ UNDER THE HOOD</span>
+        <h2 class="section-title">Architectural Excellence</h2>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon icon-cyan">🛡️</div>
+          <h3>Duress PIN & Double Bottom Vault</h3>
+          <p>Two distinct PINs. Entering your emergency PIN instantly loads a neutral decoy screen without decrypting the master keys. Protected with Argon2id RFC 9106, StrongBox TEE hardware isolation, and SQLCipher.</p>
+        </div>
+
+        <div class="feature-card" id="wasm">
+          <div class="feature-icon icon-pink">⚡</div>
+          <h3>WebAssembly (WASM) Rust Plugins</h3>
+          <p>Replacing bulky interpreters with native WebAssembly Micro Runtime (WAMR). Cold boot time &lt; 1ms, RAM usage down from 60 MB to 150 KB, and Ed25519 cryptographic code signing.</p>
+        </div>
+
+        <div class="feature-card" id="design">
+          <div class="feature-icon icon-purple">✨</div>
+          <h3>Spatial Liquid Glass (AGSL)</h3>
+          <p>Hardware-accelerated GPU shaders simulating light refraction, chromatic edge dispersion, and specular gloss at a rock-solid 120 FPS. Fully theme-neutral without overriding custom user palettes.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon icon-gold">🎵</div>
+          <h3>Apple Music + Spotify Ergonomics</h3>
+          <p>Built-in 1:1 Apple Music card player featuring live mini-bass visualizers, gesture scrubbing, and lyrics integration seamlessly merged with Telegram audio.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon icon-cyan">🌐</div>
+          <h3>Supabase Cloud Badge Ecosystem</h3>
+          <p>Global badge resolution, lore histories, and acquisition stories powered by PostgREST and cached locally for instant 0ms offline display with multi-account isolation.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon icon-pink">🧠</div>
+          <h3>Private AI Router & On-Device Whisper</h3>
+          <p>Automatic regex sanitization shields your credit cards, phone numbers, and passwords before cloud calls. Fully offline Whisper STT transcription running on device NPUs.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download Section with GitHub Releases API -->
+  <section id="download" class="download-section">
+    <div class="section-container">
+      <div class="download-box">
+        <span class="section-tag">✦ DIRECT DOWNLOAD</span>
+        <h2 class="download-title">Get Miogram for Android</h2>
+        <p class="download-desc">
+          Official builds are cryptographically signed and built directly from our GitHub Actions CI pipeline with 16 KB ELF alignment for Android 15+.
+        </p>
+
+        <div class="release-card" id="releaseInfoCard">
+          <div class="release-header">
+            <div>
+              <span class="release-badge" id="releaseTag">Loading version...</span>
+              <span class="release-date" id="releaseDate"></span>
+            </div>
+            <span class="release-status">🟢 Verified Build</span>
+          </div>
+
+          <div class="release-notes" id="releaseNotes">
+            Fetching latest release notes from GitHub...
+          </div>
+
+          <div class="release-downloads" id="releaseAssets">
+            <a href="https://github.com/fuckramochka/miogram/releases/latest" id="primaryApkLink" class="btn btn-primary btn-large">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span id="primaryApkText">Download Latest APK</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-left">
+        <p class="footer-brand">ʚ♡ɞ Miogram</p>
+        <p class="footer-sub">Built with ♡ by <a href="https://t.me/dkramochka" target="_blank" rel="noopener">@dkramochka</a> and the Miogram Community.</p>
+      </div>
+      <div class="footer-right">
+        <a href="https://github.com/fuckramochka/miogram" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://t.me/dkramochka" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://github.com/fuckramochka/miogram/blob/main/LICENSE" target="_blank" rel="noopener">GPLv3 License</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

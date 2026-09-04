@@ -2,13 +2,13 @@ package app.miogram.bridge.badge;
 
 import android.graphics.drawable.Drawable;
 
-import org.telegram.messenger.UserConfig;
+import androidx.annotation.Nullable;
 
 import app.miogram.bridge.MiogramLocale;
 
 /**
  * Manager for prestigious Miogram badges and community statuses.
- * Integrates dynamic cloud resolution via Supabase and local instant caching.
+ * Integrates real-time cloud resolution via Supabase and strict per-account isolation.
  * ID 8011880648 is the designated Miogram Founder & Architect.
  */
 public class MiogramBadgeManager {
@@ -19,30 +19,16 @@ public class MiogramBadgeManager {
         if (userId == FOUNDER_USER_ID) {
             return true;
         }
-        MiogramBadgeType cloudBadge = MiogramSupabaseBridge.getCachedBadge(userId);
-        if (cloudBadge != null) {
-            return true;
-        }
-        long currentUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
-        if (userId == currentUserId && MiogramSupabaseBridge.isSyncEnabled(null)) {
-            return true;
-        }
-        return false;
+        return MiogramSupabaseBridge.hasCloudBadge(userId);
     }
 
     public static MiogramBadgeType getBadgeType(long userId) {
-        MiogramBadgeType cloudBadge = MiogramSupabaseBridge.getCachedBadge(userId);
-        if (cloudBadge != null) {
-            return cloudBadge;
-        }
-        if (userId == FOUNDER_USER_ID) {
-            return MiogramBadgeType.ORIGINAL;
-        }
-        long currentUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
-        if (userId == currentUserId) {
-            return MiogramSupabaseBridge.getSelectedBadge(null);
-        }
-        return MiogramBadgeType.ORIGINAL;
+        return MiogramSupabaseBridge.getCachedBadgeType(userId);
+    }
+
+    @Nullable
+    public static MiogramSupabaseBridge.BadgeRecord getBadgeRecord(long userId) {
+        return MiogramSupabaseBridge.getBadgeRecord(userId);
     }
 
     public static Drawable getArrowDrawable(long userId) {
@@ -54,9 +40,13 @@ public class MiogramBadgeManager {
     }
 
     public static String getBadgeTitle(long userId) {
+        MiogramSupabaseBridge.BadgeRecord record = getBadgeRecord(userId);
+        if (record != null && record.title != null) {
+            return record.title;
+        }
         MiogramBadgeType type = getBadgeType(userId);
         if (userId == FOUNDER_USER_ID) {
-            return MiogramLocale.get("Засновник Miogram", "Создатель Miogram", "Miogram Founder") + " (" + type.getCode() + ")";
+            return MiogramLocale.get("Засновник & Архітектор Miogram ໒꒱", "Создатель и Архитектор Miogram ໒꒱", "Miogram Founder & Architect ໒꒱");
         }
         return MiogramLocale.get("Користувач Miogram", "Пользователь Miogram", "Miogram Community") + " (" + type.getCode() + ")";
     }

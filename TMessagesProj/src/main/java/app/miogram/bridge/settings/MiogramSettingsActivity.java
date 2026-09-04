@@ -139,10 +139,12 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     TextCell cell = (TextCell) holder.itemView;
                     if (position == badgesRow) {
                         long currentUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+                        boolean hasBadge = MiogramBadgeManager.hasArrow(currentUserId);
                         MiogramBadgeType type = MiogramBadgeManager.getBadgeType(currentUserId);
+                        String val = hasBadge ? (type.getCode() + " • " + type.getTitle()) : MiogramLocale.get("Каталог 10 стилів", "Каталог 10 стилей", "10 Styles Catalog");
                         cell.setTextAndValueAndIcon(
                                 MiogramLocale.get("Бейджі та Спільнота", "Бейджи и Сообщество", "Badges & Community"),
-                                type.getCode() + " • " + type.getTitle(),
+                                val,
                                 R.drawable.msg_fave,
                                 true
                         );

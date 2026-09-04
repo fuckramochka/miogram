@@ -29,11 +29,13 @@ public class MiogramSyncDialog {
         ));
 
         builder.setPositiveButton(MiogramLocale.get("Увімкнути (Рекомендовано)", "Включить (Рекомендуется)", "Enable (Recommended)"), (dialog, which) -> {
-            MiogramSupabaseBridge.setSyncEnabled(activity, true);
+            long curUserId = org.telegram.messenger.UserConfig.getInstance(org.telegram.messenger.UserConfig.selectedAccount).getClientUserId();
+            MiogramSupabaseBridge.setSyncEnabledForAccount(activity, curUserId, true);
         });
 
         builder.setNegativeButton(MiogramLocale.get("Пізніше", "Позже", "Later"), (dialog, which) -> {
-            MiogramSupabaseBridge.setSyncEnabled(activity, false);
+            long curUserId = org.telegram.messenger.UserConfig.getInstance(org.telegram.messenger.UserConfig.selectedAccount).getClientUserId();
+            MiogramSupabaseBridge.setSyncEnabledForAccount(activity, curUserId, false);
         });
 
         builder.show();
