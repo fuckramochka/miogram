@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'docs/**'
+      - 'website/**'
+      - '*.md'
+      - 'supabase_schema.sql'
   workflow_dispatch:
 
 concurrency:

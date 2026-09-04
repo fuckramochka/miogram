@@ -165,7 +165,7 @@ def fetch_weather(city: str):
 
 ## 6. Testing & Sideloading Plugins
 
-1. In Miogram, go to **Settings -> Ïëàã³íè Miogram (Plugins)**.
+1. In Miogram, go to **Settings -> ÐŸÐ»Ð°Ð³Ñ–Ð½Ð¸ Miogram (Plugins)**.
 2. Tap **Install from File (.zip / .mioplugin)**.
 3. Select your plugin archive.
-4. Miogram will verify permissions and activate the plugin immediately in runtime without restarting the app.
+4. Miogram will verify permissions and activate the plugin immediately in runtime without restarting the app.
