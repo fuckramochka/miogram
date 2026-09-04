@@ -1,13 +1,238 @@
 // Miogram Official Portal App
 // 1. GitHub Releases API Client
-// 2. Interactive Canvas Pixel Badge Renderer with Bloom & Starlight Particles
+// 2. Supabase Live Community User Counter
+// 3. Multilingual Localization Engine (UK / EN)
+// 4. Interactive Canvas Pixel Badge Renderer with Bloom & Dynamic Flying Particles
 
 const REPO_OWNER = "fuckramochka";
 const REPO_NAME = "miogram";
 const API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`;
 const FALLBACK_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest`;
 
-// Fetch Latest Release
+const SUPABASE_URL = "https://dbxsnjoeyiqvqtrluvwu.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRieHNuam9leWlxdnF0cmx1dnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDI1MzEsImV4cCI6MjEwNDExODUzMX0.KJ0kvON1HXZu4MzlZjapSJEhEzWYlEqQoNEstWCgIjA";
+
+// -------------------------------------------------------------
+// Localization Dictionaries (UK / EN)
+// -------------------------------------------------------------
+const I18N = {
+  uk: {
+    nav_badges: "Бейджики",
+    nav_security: "Безпека",
+    nav_wasm: "WASM Двигун",
+    nav_design: "Рідке Скло",
+    nav_download: "Завантажити APK",
+    hero_pill: "Реліз версії 1.0 • Готовий до Android 15+",
+    hero_title_1: "Більше, ніж просто",
+    hero_title_2: "месенджер.",
+    hero_subtitle: "Telegram-клієнт нового покоління із захистом від примусу Zero-Trust, WebAssembly Rust плагінами, AGSL GPU-шейдерами Liquid Glass та ексклюзивною хмарною екосистемою з 10 бейджиків спільноти.",
+    btn_download: "Завантажити останній APK",
+    btn_source: "Вихідний код",
+    stat_users: "Учасників спільноти",
+    stat_wasm: "Запуск WASM плагінів",
+    stat_kdf: "KDF сховища примусу",
+    stat_gpu: "AGSL GPU шейдери",
+    stat_badges: "Хмарна синхронізація",
+    badge_tag: "✦ ІДЕНТИЧНІСТЬ СПІЛЬНОТИ",
+    badge_title: "10 Канонічних Піксельних Бейджиків",
+    badge_desc: "Натхненні естетикою Needy Streamer Overload та ретро піксель-артом PC-98. Створені з неоновими контурами, атмосферним світінням, спекулярним відблиском та літаючими зірковими іскорками (✦).",
+    feat_tag: "✦ ПІД КАПОТОМ",
+    feat_title: "Архітектурна Досконалість",
+    feat_1_title: "PIN Примусу & Подвійне Дно",
+    feat_1_desc: "Два різні PIN-коди. Введення екстреного PIN-коду миттєво відкриває нейтральний екран-приманку без розшифровки майстер-ключів. Захищено Argon2id RFC 9106, ізоляцією StrongBox TEE та SQLCipher.",
+    feat_2_title: "WebAssembly (WASM) Rust Плагіни",
+    feat_2_desc: "Заміна громіздких інтерпретаторів на нативний WebAssembly Micro Runtime (WAMR). Холодний запуск < 1мс, споживання RAM знижено з 60 МБ до 150 КБ, криптографічний підпис коду Ed25519.",
+    feat_3_title: "Просторове Рідке Скло (AGSL)",
+    feat_3_desc: "Апаратно прискорені GPU-шейдери з імітацією заломлення світла, хроматичної дисперсії та глянцю на стабільних 120 FPS. Повна нейтральність до користувацьких тем.",
+    feat_4_title: "Ергономіка Apple Music + Spotify",
+    feat_4_desc: "Вбудований плеєр 1:1 в стилі карток Apple Music із живими міні-басовими візуалізаторами, жестовою перемоткою та текстами пісень у поєднанні з аудіо Telegram.",
+    feat_5_title: "Хмарна Екосистема Бейджиків Supabase",
+    feat_5_desc: "Глобальне розпізнавання бейджиків, історія отримання та хроніка на базі Supabase PostgREST з локальним кешуванням для 0мс офлайн-відображення та суворою ізоляцією акаунтів.",
+    feat_6_title: "Приватний AI Роутер & Whisper на Пристрої",
+    feat_6_desc: "Автоматичне regex-маскування номерів карток, телефонів і паролів перед хмарними запитами. Повністю офлайн-транскрипція Whisper STT на базі нейропроцесорів NPU.",
+    dl_tag: "✦ ПРЯМЕ ЗАВАНТАЖЕННЯ",
+    dl_title: "Отримати Miogram для Android",
+    dl_desc: "Офіційні збірки криптографічно підписані та зібрані безпосередньо в GitHub Actions CI з вирівнюванням 16 KB ELF для Android 15+.",
+    dl_verified: "🟢 Верифікована збірка",
+    footer_text: "Створено з ♡ автором @dkramochka та спільнотою Miogram."
+  },
+  en: {
+    nav_badges: "Badges",
+    nav_security: "Security",
+    nav_wasm: "WASM Engine",
+    nav_design: "Liquid Glass",
+    nav_download: "Download APK",
+    hero_pill: "Version 1.0 Release • Android 15+ Ready",
+    hero_title_1: "More than just a",
+    hero_title_2: "messenger.",
+    hero_subtitle: "Next-generation Telegram client powered by Zero-Trust Duress Protection, WebAssembly Rust Plugins, Liquid Glass AGSL Shaders, and an exclusive Supabase-powered 10-badge community ecosystem.",
+    btn_download: "Download Latest APK",
+    btn_source: "Source Code",
+    stat_users: "Community Members",
+    stat_wasm: "WASM Plugin Boot",
+    stat_kdf: "Duress Vault KDF",
+    stat_gpu: "AGSL GPU Shaders",
+    stat_badges: "Supabase Cloud Sync",
+    badge_tag: "✦ COMMUNITY IDENTITY",
+    badge_title: "10 Canonical Pixel Badges",
+    badge_desc: "Inspired by the cyber aesthetic of Needy Streamer Overload and retro PC-98 pixel art. Crafted with luminous neon contours, atmospheric bloom, specular shading, and twinkling starlight cross particles (✦).",
+    feat_tag: "✦ UNDER THE HOOD",
+    feat_title: "Architectural Excellence",
+    feat_1_title: "Duress PIN & Double Bottom Vault",
+    feat_1_desc: "Two distinct PINs. Entering your emergency PIN instantly loads a neutral decoy screen without decrypting the master keys. Protected with Argon2id RFC 9106, StrongBox TEE hardware isolation, and SQLCipher.",
+    feat_2_title: "WebAssembly (WASM) Rust Plugins",
+    feat_2_desc: "Replacing bulky interpreters with native WebAssembly Micro Runtime (WAMR). Cold boot time < 1ms, RAM usage down from 60 MB to 150 KB, and Ed25519 cryptographic code signing.",
+    feat_3_title: "Spatial Liquid Glass (AGSL)",
+    feat_3_desc: "Hardware-accelerated GPU shaders simulating light refraction, chromatic edge dispersion, and specular gloss at a rock-solid 120 FPS. Fully theme-neutral without overriding custom user palettes.",
+    feat_4_title: "Apple Music + Spotify Ergonomics",
+    feat_4_desc: "Built-in 1:1 Apple Music card player featuring live mini-bass visualizers, gesture scrubbing, and lyrics integration seamlessly merged with Telegram audio.",
+    feat_5_title: "Supabase Cloud Badge Ecosystem",
+    feat_5_desc: "Global badge resolution, lore histories, and acquisition stories powered by PostgREST and cached locally for instant 0ms offline display with multi-account isolation.",
+    feat_6_title: "Private AI Router & On-Device Whisper",
+    feat_6_desc: "Automatic regex sanitization shields your credit cards, phone numbers, and passwords before cloud calls. Fully offline Whisper STT transcription running on device NPUs.",
+    dl_tag: "✦ DIRECT DOWNLOAD",
+    dl_title: "Get Miogram for Android",
+    dl_desc: "Official builds are cryptographically signed and built directly from our GitHub Actions CI pipeline with 16 KB ELF alignment for Android 15+.",
+    dl_verified: "🟢 Verified Build",
+    footer_text: "Built with ♡ by @dkramochka and the Miogram Community."
+  }
+};
+
+const BADGE_LORE = {
+  uk: {
+    original: { title: "Класичне Кібер-Серце", tag: "Класичний", lore: "Канонічне крилате серце Miogram з візором-антеною, обсидіановим ядром, сяючим бірюзовим контуром та рожевими пір'ями. Найперша відзнака екосистеми." },
+    pink: { title: "Неоновий Оверлоад", tag: "Неон", lore: "Неоново-рожевий стиль з ребрами серця кольору фуксії та пастельними градієнтними крилами. Атмосфера Needy Streamer Overload." },
+    cyan: { title: "Кібер Простір", tag: "Кібер", lore: "Електричні небесно-блакитні крила з осяйною бірюзовою аурою та зоряним світлом. Символізує блискавичну швидкість." },
+    dark: { title: "Опівнічний Обсидіан", tag: "Оксамит", lore: "Нічні обсидіанові крила з оксамитовою фіолетовою каймою. Створено для поціновувачів глибокої темної теми." },
+    angel: { title: "Небесний Серафим", tag: "Німб", lore: "Пухнасті білосніжні крила з ширяючим німбом та ніжним лавандовим серцем." },
+    devil: { title: "Грайливий Демон", tag: "Роги", lore: "Гострі малинові ріжки, зубчасті крила кажана та яскравий рожевий контур." },
+    rainbow: { title: "Призматичний Спектр", tag: "Призма", lore: "Плавний 5-колірний райдужний спектр пір'я із золотою каймою та різнокольоровими іскорками." },
+    outline: { title: "Кібер Каркас", tag: "Каркас", lore: "Мінімалістичний 1px каркасний контур із неоновим світінням та прозорим центром." },
+    glitch: { title: "Хроматичний Глітч", tag: "CRT Глітч", lore: "Хроматичне зміщення RGB (малиновий зліва, бірюзовий справа) з анімованими мікро-тремтіннями CRT-сканування." },
+    premium: { title: "Королівське Золото", tag: "Золото", lore: "Сяюча 3-зубчаста золота корона, бурштинові крила та розкішна золота броня." }
+  },
+  en: {
+    original: { title: "Classical Cyber Heart", tag: "Classic", lore: "Canonical Miogram winged heart with antenna visor, obsidian core, electric cyan glowing contour, and pink feather tips. The inaugural distinction of the ecosystem." },
+    pink: { title: "Neon Overload", tag: "Neon", lore: "Neon pink style with hot pink chevron heart ribs and pastel gradient wings. True Needy Streamer Overload vibe." },
+    cyan: { title: "Cyber Horizon", tag: "Cyber", lore: "Electric sky-blue wings with radiant cyan aura and luminous starlight. Symbolizes cutting-edge speed." },
+    dark: { title: "Midnight Velvet", tag: "Velvet", lore: "Midnight obsidian wings with glowing velvet violet fringe. Crafted for dark mode connoisseurs." },
+    angel: { title: "Seraphim Halo", tag: "Halo", lore: "Fluffy pure white wings with a floating glowing halo ring and soft lavender periwinkle heart." },
+    devil: { title: "Playful Devil", tag: "Horns", lore: "Playful pointed devil horns, scalloped crimson bat wings, and hot pink glowing contour." },
+    rainbow: { title: "Prismatic Rainbow", tag: "Prism", lore: "Smooth 5-color prismatic rainbow spectrum feathers with golden halo trim and multi-color sparkles." },
+    outline: { title: "Wireframe Cyber", tag: "Wireframe", lore: "Minimalist 1px glowing cyber wireframe contour with bloom and transparent hollow center." },
+    glitch: { title: "Chromatic Glitch", tag: "Cyber CRT", lore: "Chromatic RGB displacement (magenta left, cyan right) with animated CRT scanline jitters." },
+    premium: { title: "Royal Golden Crown", tag: "Royal Gold", lore: "Radiant 3-peak royal golden crown, amber wings with horizontal slits, and golden chest armor." }
+  }
+};
+
+let currentLang = localStorage.getItem("miogram_lang") || (navigator.language.startsWith("uk") ? "uk" : "en");
+
+function switchLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem("miogram_lang", lang);
+  document.documentElement.lang = lang;
+
+  const flagEl = document.getElementById("langFlag");
+  const textEl = document.getElementById("langText");
+  if (flagEl && textEl) {
+    flagEl.textContent = lang === "uk" ? "🇺🇦" : "🇬🇧";
+    textEl.textContent = lang.toUpperCase();
+  }
+
+  // Update text elements with data-i18n
+  const dict = I18N[lang] || I18N.en;
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (dict[key]) {
+      el.textContent = dict[key];
+    }
+  });
+
+  // Update badges tiles
+  const loreDict = BADGE_LORE[lang] || BADGE_LORE.en;
+  document.querySelectorAll(".badge-tile").forEach(tile => {
+    const id = tile.getAttribute("data-id");
+    if (loreDict[id]) {
+      const tagSpan = tile.querySelector(".tile-tag");
+      if (tagSpan) tagSpan.textContent = loreDict[id].tag;
+    }
+  });
+
+  // Update active badge display
+  updateActiveBadgeInfo();
+}
+
+// -------------------------------------------------------------
+// Supabase Live Community User Counter
+// -------------------------------------------------------------
+async function fetchLiveUsers() {
+  const countEl = document.getElementById("liveUserCount");
+  if (!countEl) return;
+
+  try {
+    let count = 0;
+    // 1. Try miogram_users table
+    let res = await fetch(`${SUPABASE_URL}/rest/v1/miogram_users?select=user_id`, {
+      headers: {
+        "apikey": SUPABASE_ANON,
+        "Authorization": `Bearer ${SUPABASE_ANON}`,
+        "Range": "0-0",
+        "Prefer": "count=exact"
+      }
+    });
+
+    if (res.ok) {
+      const cr = res.headers.get("content-range");
+      if (cr && cr.includes("/")) {
+        count = parseInt(cr.split("/")[1], 10);
+      }
+    }
+
+    // 2. Fallback to miogram_badges table if miogram_users is empty
+    if (!count || count === 0) {
+      res = await fetch(`${SUPABASE_URL}/rest/v1/miogram_badges?select=user_id`, {
+        headers: {
+          "apikey": SUPABASE_ANON,
+          "Authorization": `Bearer ${SUPABASE_ANON}`,
+          "Range": "0-0",
+          "Prefer": "count=exact"
+        }
+      });
+      if (res.ok) {
+        const cr = res.headers.get("content-range");
+        if (cr && cr.includes("/")) {
+          count = parseInt(cr.split("/")[1], 10);
+        }
+      }
+    }
+
+    if (count > 0) {
+      animateCounter(countEl, count);
+    } else {
+      countEl.textContent = "1";
+    }
+  } catch (err) {
+    console.warn("Could not fetch user count from Supabase:", err);
+    countEl.textContent = "1";
+  }
+}
+
+function animateCounter(el, target) {
+  let current = 0;
+  const step = Math.max(1, Math.floor(target / 20));
+  const timer = setInterval(() => {
+    current += step;
+    if (current >= target) {
+      current = target;
+      clearInterval(timer);
+    }
+    el.textContent = current.toLocaleString();
+  }, 40);
+}
+
+// -------------------------------------------------------------
+// Fetch Latest Release from GitHub API
+// -------------------------------------------------------------
 async function fetchLatestRelease() {
   const releaseTagEl = document.getElementById("releaseTag");
   const releaseDateEl = document.getElementById("releaseDate");
@@ -61,131 +286,94 @@ const ctx = canvas.getContext("2d");
 let currentBadgeId = "original";
 let currentBadgeNum = "01";
 let currentBadgeName = "ORIGINAL";
-let currentBadgeLore = "Canonical Miogram winged heart with antenna visor, obsidian core, electric cyan glowing contour, and pink feather tips. The inaugural distinction of the ecosystem.";
 
 const BADGE_CONFIGS = {
-  original: {
-    accent: "#00F0FF",
-    glow: "rgba(0, 240, 255, 0.4)",
-    title: "Classical Cyber Heart",
-    name: "01 — ORIGINAL"
-  },
-  pink: {
-    accent: "#FF2A93",
-    glow: "rgba(255, 42, 147, 0.4)",
-    title: "Neon Cyber Pink",
-    name: "02 — PINK"
-  },
-  cyan: {
-    accent: "#00E5FF",
-    glow: "rgba(0, 229, 255, 0.4)",
-    title: "Electric Sky Blue",
-    name: "03 — CYAN"
-  },
-  dark: {
-    accent: "#C77DFF",
-    glow: "rgba(157, 78, 221, 0.4)",
-    title: "Midnight Obsidian",
-    name: "04 — DARK"
-  },
-  angel: {
-    accent: "#FFFFFF",
-    glow: "rgba(224, 170, 255, 0.35)",
-    title: "Floating Halo Angel",
-    name: "05 — ANGEL"
-  },
-  devil: {
-    accent: "#FF0055",
-    glow: "rgba(255, 0, 85, 0.4)",
-    title: "Playful Devil Bat",
-    name: "06 — DEVIL"
-  },
-  rainbow: {
-    accent: "#FFD166",
-    glow: "rgba(255, 209, 102, 0.4)",
-    title: "Prismatic Spectrum",
-    name: "07 — RAINBOW"
-  },
-  outline: {
-    accent: "#00F0FF",
-    glow: "rgba(0, 240, 255, 0.3)",
-    title: "Minimal Cyber Wireframe",
-    name: "08 — OUTLINE"
-  },
-  glitch: {
-    accent: "#00F0FF",
-    glow: "rgba(0, 240, 255, 0.35)",
-    title: "Split Chromatic Aberration",
-    name: "09 — GLITCH"
-  },
-  premium: {
-    accent: "#FFD700",
-    glow: "rgba(255, 215, 0, 0.45)",
-    title: "Royal Golden Crown",
-    name: "10 — PREMIUM"
-  }
+  original: { accent: "#00F0FF", glow: "rgba(0, 240, 255, 0.4)" },
+  pink:     { accent: "#FF2A93", glow: "rgba(255, 42, 147, 0.4)" },
+  cyan:     { accent: "#00E5FF", glow: "rgba(0, 229, 255, 0.4)" },
+  dark:     { accent: "#C77DFF", glow: "rgba(199, 125, 255, 0.4)" },
+  angel:    { accent: "#FFFFFF", glow: "rgba(255, 255, 255, 0.4)" },
+  devil:    { accent: "#FF006E", glow: "rgba(255, 0, 110, 0.4)" },
+  rainbow:  { accent: "#FFD166", glow: "rgba(255, 209, 102, 0.4)" },
+  outline:  { accent: "#00F0FF", glow: "rgba(0, 240, 255, 0.4)" },
+  glitch:   { accent: "#00F0FF", glow: "rgba(0, 240, 255, 0.4)" },
+  premium:  { accent: "#FFD700", glow: "rgba(255, 215, 0, 0.4)" }
 };
 
-// 6 Dynamic Flying Micro-Particles: {x, speed, sway, amp, isCross, offset}
+// Dynamic Upward Flying Micro Particles
 const DYNAMIC_PARTICLES = [
-  { x: 2.5,  speed: 0.00035, sway: 0.08, amp: 1.2, isCross: true,  offset: 0.05 },
-  { x: 24.5, speed: 0.00042, sway: 0.07, amp: 1.2, isCross: true,  offset: 0.45 },
-  { x: 3.5,  speed: 0.00028, sway: 0.09, amp: 1.0, isCross: false, offset: 0.70 },
-  { x: 23.5, speed: 0.00038, sway: 0.08, amp: 1.0, isCross: false, offset: 0.25 },
-  { x: 13.5, speed: 0.00045, sway: 0.06, amp: 1.4, isCross: false, offset: 0.85 },
-  { x: 13.5, speed: 0.00032, sway: 0.07, amp: 1.2, isCross: true,  offset: 0.35 }
+  { x: 3.5,  speed: 0.00030, sway: 0.28, amp: 1.2, isCross: false, offset: 0.12 },
+  { x: 7.0,  speed: 0.00045, sway: 0.35, amp: 1.6, isCross: true,  offset: 0.48 },
+  { x: 11.5, speed: 0.00038, sway: 0.22, amp: 1.0, isCross: false, offset: 0.74 },
+  { x: 16.5, speed: 0.00042, sway: 0.25, amp: 1.1, isCross: false, offset: 0.29 },
+  { x: 21.0, speed: 0.00048, sway: 0.33, amp: 1.5, isCross: true,  offset: 0.85 },
+  { x: 24.5, speed: 0.00032, sway: 0.30, amp: 1.3, isCross: false, offset: 0.61 }
 ];
 
-let animStart = performance.now();
+function updateActiveBadgeInfo() {
+  const loreDict = BADGE_LORE[currentLang] || BADGE_LORE.en;
+  const info = loreDict[currentBadgeId] || loreDict.original;
 
-function renderLoop(time) {
-  const elapsed = time - animStart;
-  const cycle = (elapsed % 2200) / 2200;
-  const angle = cycle * 2 * Math.PI;
+  const numberEl = document.getElementById("badgeNumber");
+  const titleEl = document.getElementById("badgeTitle");
+  const descEl = document.getElementById("badgeDesc");
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  const GRID_W = 28;
-  const GRID_H = 22;
-  const px = 8.5;
-  const py = 8.5;
-
-  const offsetX = (canvas.width - GRID_W * px) / 2;
-  const offsetY = (canvas.height - GRID_H * py) / 2;
-
-  // Floating respiration hop
-  const bobY = Math.round(Math.sin(angle) * 1.0) * py;
-
-  ctx.save();
-  ctx.translate(offsetX, offsetY + bobY);
-
-  const cfg = BADGE_CONFIGS[currentBadgeId] || BADGE_CONFIGS.original;
-
-  // 1. Radiant Atmospheric Bloom
-  const cx = 14 * px;
-  const cy = 11 * py;
-  const radGlow = ctx.createRadialGradient(cx, cy, 5, cx, cy, 120);
-  radGlow.addColorStop(0, cfg.glow);
-  radGlow.addColorStop(1, "transparent");
-  ctx.fillStyle = radGlow;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 120, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 2. Render badge geometry
-  drawBadgeGeometry(ctx, px, py, currentBadgeId, cfg.accent, elapsed);
-
-  // 3. Dynamic Flying Micro-Particles
-  drawDynamicSparkles(ctx, px, py, elapsed, cfg.accent);
-
-  ctx.restore();
-  requestAnimationFrame(renderLoop);
+  if (numberEl) numberEl.textContent = `${currentBadgeNum} — ${currentBadgeName}`;
+  if (titleEl) titleEl.textContent = info.title;
+  if (descEl) descEl.textContent = info.lore;
 }
 
-function drawBadgeGeometry(c, px, py, id, accent, elapsed) {
-  // Common Heart
-  function drawHeart(fill, stroke) {
-    c.fillStyle = fill;
+function renderBadge() {
+  const now = performance.now();
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const px = w / 28;
+  const py = h / 22;
+
+  // Background Radial Bloom
+  const cfg = BADGE_CONFIGS[currentBadgeId] || BADGE_CONFIGS.original;
+  const pulse = Math.sin(now * 0.003) * 0.05 + 0.95;
+  const grad = ctx.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, 140 * pulse);
+  grad.addColorStop(0, cfg.glow);
+  grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Draw Specific Badge Geometry
+  drawBadgeGeometry(ctx, currentBadgeId, px, py);
+
+  // Draw Dynamic Upward Flying Particles
+  drawDynamicSparkles(ctx, px, py, now, cfg.accent);
+
+  requestAnimationFrame(renderBadge);
+}
+
+function drawBadgeGeometry(c, id, px, py) {
+  function drawWings(fillColor, fringeColor) {
+    c.fillStyle = fillColor;
+    c.fillRect(4 * px, 5 * py, 5 * px, 1 * py);
+    c.fillRect(3 * px, 6 * py, 6 * px, 1 * py);
+    c.fillRect(1 * px, 7 * py, 8 * px, 3 * py);
+    c.fillRect(2 * px, 10 * py, 6 * px, 1 * py);
+    c.fillRect(4 * px, 11 * py, 3 * px, 2 * py);
+
+    c.fillRect(19 * px, 5 * py, 5 * px, 1 * py);
+    c.fillRect(19 * px, 6 * py, 6 * px, 1 * py);
+    c.fillRect(19 * px, 7 * py, 8 * px, 3 * py);
+    c.fillRect(20 * px, 10 * py, 6 * px, 1 * py);
+    c.fillRect(21 * px, 11 * py, 3 * px, 2 * py);
+
+    c.fillStyle = fringeColor;
+    c.fillRect(1 * px, 8 * py, 2 * px, 2 * py);
+    c.fillRect(25 * px, 8 * py, 2 * px, 2 * py);
+    c.fillRect(4 * px, 12 * py, 3 * px, 1 * py);
+    c.fillRect(21 * px, 12 * py, 3 * px, 1 * py);
+  }
+
+  function drawHeart(coreColor, contourColor) {
+    c.fillStyle = coreColor;
     c.fillRect(10 * px, 7 * py, 3 * px, 1 * py);
     c.fillRect(15 * px, 7 * py, 3 * px, 1 * py);
     c.fillRect(9 * px, 8 * py, 10 * px, 2 * py);
@@ -196,8 +384,7 @@ function drawBadgeGeometry(c, px, py, id, accent, elapsed) {
     c.fillRect(12 * px, 15 * py, 4 * px, 1 * py);
     c.fillRect(13 * px, 16 * py, 2 * px, 1 * py);
 
-    // Glowing Contour (bottom colored pixel removed for clean natural heart tip)
-    c.fillStyle = stroke;
+    c.fillStyle = contourColor;
     c.fillRect(10 * px, 6 * py, 3 * px, 1 * py);
     c.fillRect(15 * px, 6 * py, 3 * px, 1 * py);
     c.fillRect(8 * px, 8 * py, 1 * px, 4 * py);
@@ -210,37 +397,7 @@ function drawBadgeGeometry(c, px, py, id, accent, elapsed) {
     c.fillRect(15.5 * px, 9.5 * py, 1.5 * px, 1.5 * py);
   }
 
-  function drawWings(fill, tip) {
-    c.fillStyle = fill;
-    // Left Wing
-    c.fillRect(4 * px, 5 * py, 5 * px, 1 * py);
-    c.fillRect(3 * px, 6 * py, 7 * px, 1 * py);
-    c.fillRect(2 * px, 7 * py, 9 * px, 1 * py);
-    c.fillRect(1 * px, 8 * py, 10 * px, 1 * py);
-    c.fillRect(2 * px, 9 * py, 9 * px, 1 * py);
-    c.fillRect(3 * px, 10 * py, 7 * px, 1 * py);
-    c.fillRect(4 * px, 11 * py, 5 * px, 1 * py);
-    c.fillRect(6 * px, 12 * py, 3 * px, 1 * py);
-
-    // Right Wing
-    c.fillRect(19 * px, 5 * py, 5 * px, 1 * py);
-    c.fillRect(18 * px, 6 * py, 7 * px, 1 * py);
-    c.fillRect(17 * px, 7 * py, 9 * px, 1 * py);
-    c.fillRect(17 * px, 8 * py, 10 * px, 1 * py);
-    c.fillRect(17 * px, 9 * py, 9 * px, 1 * py);
-    c.fillRect(18 * px, 10 * py, 7 * px, 1 * py);
-    c.fillRect(19 * px, 11 * py, 5 * px, 1 * py);
-    c.fillRect(19 * px, 12 * py, 3 * px, 1 * py);
-
-    if (tip) {
-      c.fillStyle = tip;
-      c.fillRect(1 * px, 7 * py, 2 * px, 3 * py);
-      c.fillRect(25 * px, 7 * py, 2 * px, 3 * py);
-    }
-  }
-
   if (id === "original") {
-    // Visor
     c.fillStyle = "#00F0FF";
     c.fillRect(10 * px, 3 * py, 8 * px, 1 * py);
     c.fillRect(12 * px, 4 * py, 4 * px, 1 * py);
@@ -303,10 +460,8 @@ function drawBadgeGeometry(c, px, py, id, accent, elapsed) {
     c.strokeRect(9 * px, 7 * py, 10 * px, 9 * py);
     drawEyes("#00F0FF");
   } else if (id === "glitch") {
-    // Magenta Left
     c.fillStyle = "rgba(255, 0, 85, 0.7)";
     c.fillRect(3 * px, 5 * py, 5 * px, 7 * py);
-    // Cyan Right
     c.fillStyle = "rgba(0, 240, 255, 0.7)";
     c.fillRect(20 * px, 5 * py, 5 * px, 7 * py);
     drawWings("#FFFFFF", "#00F0FF");
@@ -363,20 +518,27 @@ document.querySelectorAll(".badge-tile").forEach(tile => {
     document.querySelectorAll(".badge-tile").forEach(t => t.classList.remove("active"));
     tile.classList.add("active");
 
-    currentBadgeId = tile.dataset.id;
-    currentBadgeNum = tile.dataset.num;
-    currentBadgeName = tile.dataset.name;
-    currentBadgeLore = tile.dataset.lore;
+    currentBadgeId = tile.getAttribute("data-id");
+    currentBadgeNum = tile.getAttribute("data-num");
+    currentBadgeName = tile.querySelector(".tile-name") ? tile.querySelector(".tile-name").textContent : currentBadgeId.toUpperCase();
 
-    const cfg = BADGE_CONFIGS[currentBadgeId] || BADGE_CONFIGS.original;
-    document.getElementById("badgeNumber").textContent = cfg.name;
-    document.getElementById("badgeTitle").textContent = cfg.title;
-    document.getElementById("badgeDesc").textContent = currentBadgeLore;
+    updateActiveBadgeInfo();
   });
 });
 
-// Initialize on Load
-window.addEventListener("DOMContentLoaded", () => {
+// Language Switcher Button Click
+const langToggleBtn = document.getElementById("langToggle");
+if (langToggleBtn) {
+  langToggleBtn.addEventListener("click", () => {
+    const newLang = currentLang === "uk" ? "en" : "uk";
+    switchLanguage(newLang);
+  });
+}
+
+// Initialization
+document.addEventListener("DOMContentLoaded", () => {
+  switchLanguage(currentLang);
   fetchLatestRelease();
-  requestAnimationFrame(renderLoop);
+  fetchLiveUsers();
+  requestAnimationFrame(renderBadge);
 });

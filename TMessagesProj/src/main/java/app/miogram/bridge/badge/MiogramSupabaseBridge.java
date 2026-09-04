@@ -9,6 +9,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.UserConfig;
@@ -21,6 +22,9 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * Cloud Bridge connecting Miogram clients to the Supabase community badge database.
@@ -55,8 +59,8 @@ public class MiogramSupabaseBridge {
     private static final String KEY_SELECTED_BADGE = "badge_selected_style_";
     private static final String KEY_CACHE_JSON = "badge_cache_json_v2";
 
-    public static final String DEFAULT_SUPABASE_URL = "https://miogram-badges.supabase.co";
-    public static final String DEFAULT_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.placeholder_anon_key";
+    public static final String DEFAULT_SUPABASE_URL = "https://dbxsnjoeyiqvqtrluvwu.supabase.co";
+    public static final String DEFAULT_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRieHNuam9leWlxdnF0cmx1dnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDI1MzEsImV4cCI6MjEwNDExODUzMX0.KJ0kvON1HXZu4MzlZjapSJEhEzWYlEqQoNEstWCgIjA";
 
     private static final LongSparseArray<BadgeRecord> badgeCache = new LongSparseArray<>();
     private static boolean initialized = false;
@@ -93,6 +97,9 @@ public class MiogramSupabaseBridge {
 
         // 3. Trigger asynchronous background fetch from Supabase
         fetchBadgesFromCloud(null);
+
+        // 4. Report active user account(s) presence and collect ID into database
+        reportCurrentUserPresence();
     }
 
     public static boolean hasCloudBadge(long userId) {
@@ -307,6 +314,72 @@ public class MiogramSupabaseBridge {
             }
             if (onComplete != null) {
                 AndroidUtilities.runOnUIThread(onComplete);
+            }
+        });
+    }
+
+    public static void reportCurrentUserPresence() {
+        Utilities.globalQueue.postRunnable(() -> {
+            try {
+                for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
+                    if (UserConfig.getInstance(a).isClientActivated()) {
+                        long uid = UserConfig.getInstance(a).getClientUserId();
+                        if (uid != 0) {
+                            reportUserPresence(uid);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                FileLog.e(e);
+            }
+        });
+    }
+
+    public static void reportUserPresence(long userId) {
+        if (userId == 0) return;
+        Utilities.globalQueue.postRunnable(() -> {
+            HttpURLConnection connection = null;
+            try {
+                // 1. Try to record presence in miogram_users
+                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_users";
+                URL url = new URL(endpoint);
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+                connection.setConnectTimeout(8000);
+                connection.setReadTimeout(8000);
+                connection.setRequestProperty("apikey", DEFAULT_ANON_KEY);
+                connection.setRequestProperty("Authorization", "Bearer " + DEFAULT_ANON_KEY);
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setRequestProperty("Prefer", "resolution=merge-duplicates");
+
+                String isoDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date());
+
+                JSONObject body = new JSONObject();
+                body.put("user_id", userId);
+                body.put("last_seen_at", isoDate);
+                body.put("client_version", "Miogram " + BuildVars.BUILD_VERSION_STRING);
+
+                byte[] outBytes = body.toString().getBytes(StandardCharsets.UTF_8);
+                connection.setFixedLengthStreamingMode(outBytes.length);
+                OutputStream os = connection.getOutputStream();
+                os.write(outBytes);
+                os.flush();
+                os.close();
+
+                int code = connection.getResponseCode();
+                FileLog.d("MiogramSupabaseBridge presence reported: " + code);
+
+                // 2. If table miogram_users does not exist yet (404), ensure the user is registered in miogram_badges
+                if (code == 404) {
+                    syncUserBadgeToCloud(userId, "original", true, null);
+                }
+            } catch (Exception e) {
+                FileLog.e(e);
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
             }
         });
     }

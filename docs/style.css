@@ -605,3 +605,32 @@ body {
   .footer-container { flex-direction: column; gap: 20px; text-align: center; }
   .nav-links a:not(.nav-cta) { display: none; }
 }
+
+/* Language Switcher */
+.lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bg-card-border);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lang-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: rgba(0, 240, 255, 0.4);
+  color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
+.highlight-stat .stat-num {
+  color: var(--accent-cyan);
+  text-shadow: 0 0 16px rgba(0, 240, 255, 0.6);
+}

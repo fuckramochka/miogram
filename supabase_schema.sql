@@ -1,4 +1,4 @@
-﻿-- ==========================================================
+-- ==========================================================
 -- Miogram Supabase Database Schema
 -- Table: miogram_badges
 -- Purpose: Global badge resolution, community presence & badge lore
@@ -60,3 +60,37 @@ set badge_id = excluded.badge_id,
     obtained_reason = excluded.obtained_reason,
     is_active = excluded.is_active,
     updated_at = timezone('utc'::text, now());
+
+-- ==========================================================
+-- Table: miogram_users
+-- Purpose: Real-time user presence tracking & live community counter
+-- ==========================================================
+create table if not exists public.miogram_users (
+    user_id bigint primary key,
+    registered_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    last_seen_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    client_version text default 'Miogram 1.0'
+);
+
+alter table public.miogram_users enable row level security;
+
+drop policy if exists "Allow public read users" on public.miogram_users;
+create policy "Allow public read users"
+    on public.miogram_users
+    for select
+    using (true);
+
+drop policy if exists "Allow public insert users" on public.miogram_users;
+create policy "Allow public insert users"
+    on public.miogram_users
+    for insert
+    with check (true);
+
+drop policy if exists "Allow public update users" on public.miogram_users;
+create policy "Allow public update users"
+    on public.miogram_users
+    for update
+    using (true);
+
+create index if not exists idx_miogram_users_last_seen on public.miogram_users (last_seen_at desc);
+
