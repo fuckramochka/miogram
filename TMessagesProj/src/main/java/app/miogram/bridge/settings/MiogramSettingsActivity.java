@@ -155,7 +155,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
                     if (position == customUiRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Кастом Юай ໒꒱ (Студія інтерфейсу)", "Кастом Юай ໒꒱ (Студия интерфейса)", "Custom UI ໒꒱ (Interface Studio)"), R.drawable.msg_theme, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Додаткові функції ໒꒱ (Кастомне оформлення)", "Дополнительные функции ໒꒱ (Кастомное оформление)", "Extra Features ໒꒱ (Custom UI)"), R.drawable.msg_theme, true);
                     } else if (position == multichatRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Мультичат (Split-Screen) 🪟", "Мультичат (Split-Screen) 🪟", "Multi-Chat (Split-Screen) 🪟"), R.drawable.msg_fave, true);
                     } else if (position == badgeStudioRow) {

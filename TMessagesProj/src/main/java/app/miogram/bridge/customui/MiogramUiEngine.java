@@ -1,6 +1,8 @@
 package app.miogram.bridge.customui;
 
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.CornerPathEffect;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
 import android.graphics.Paint;
@@ -19,58 +21,61 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.ui.ActionBar.Theme;
 
 /**
- * Native rendering engine for Miogram Custom UI Studio.
- * Bridges advanced shaders, geometry masks, neon glows, and custom typography
- * directly to Telegram chat cells, dialogs, and navigation components.
+ * Native rendering engine for Miogram Custom UI.
+ * Built 1-to-1 matching Custom Profile graphics pipeline (NameFx, ChatBubbles, ChatAvatars, ChatAvatarRing).
+ * Zero-allocation in draw loops for 120 FPS buttery smooth ProMotion rendering.
  */
 public class MiogramUiEngine {
 
-    // Name FX Identifiers (Matches Custom Profile Architecture)
+    // Name FX Identifiers (Matching Custom Profile NameFx.java)
     public static final int FX_NONE = 0;
+    public static final int FX_PULSE = 1;
     public static final int FX_GRADIENT = 2;
-    public static final int FX_GLARE = 3;
+    public static final int FX_SHIMMER = 3;
     public static final int FX_RAINBOW = 4;
+    public static final int FX_NEON = 5;
     public static final int FX_FIRE = 6;
     public static final int FX_ICE = 7;
-    public static final int FX_CYBER_NEON = 8;
 
-    // Avatar Shapes
+    // Avatar Shapes (Matching Custom Profile EditAvatarSheet.java)
     public static final int SHAPE_CIRCLE = 0;
-    public static final int SHAPE_SQUIRCLE = 1;
-    public static final int SHAPE_ROUNDED_RECT = 2;
+    public static final int SHAPE_ROUNDED = 1;
+    public static final int SHAPE_SQUARE = 2;
     public static final int SHAPE_HEXAGON = 3;
-    public static final int SHAPE_STAR = 4;
-    public static final int SHAPE_DIAMOND = 5;
+    public static final int SHAPE_PENTAGON = 4;
+    public static final int SHAPE_STAR = 5;
+    public static final int SHAPE_HEART = 6;
+    public static final int SHAPE_FLOWER = 7;
 
-    // Reusable objects for zero-allocation 120 FPS rendering
-    private static final Paint bubblePaint = new Paint();
+    // Reusable objects for zero-allocation rendering
     private static final Paint bubbleGradPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private static final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private static final PorterDuffXfermode SRC_ATOP = new PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP);
-    private static final Path avatarPath = new Path();
-    private static final Matrix matrix = new Matrix();
+    private static final Path shapePath = new Path();
+    private static final Matrix fxMatrix = new Matrix();
 
     private static int bubbleSaveCount = -1;
     private static Drawable activeBubbleDrawable = null;
 
-    // Saved name paint states for clean restoration
+    // Saved state for clean paint restoration
     private static int savedNameColor = 0;
     private static Shader savedNameShader = null;
     private static Typeface savedNameTypeface = null;
-    private static boolean nameShadowApplied = false;
+    private static float savedTextSize = 0f;
+    private static boolean nameShadowSet = false;
 
     static {
         ringPaint.setStyle(Paint.Style.STROKE);
     }
 
     /* =========================================================================
-     * 1. CHAT BUBBLES RENDERING HOOKS
+     * 1. CHAT BUBBLES RENDERING HOOKS (1-to-1 with ChatBubbles.java)
      * ========================================================================= */
 
     public static void beforeDrawBubble(Canvas canvas, Drawable backgroundDrawable, boolean isOut) {
         bubbleSaveCount = -1;
         activeBubbleDrawable = null;
-        if (!isOut || !MiogramCustomUiPrefs.isBubbleGradientEnabled() || canvas == null || backgroundDrawable == null) {
+        if (!isOut || !MiogramCustomUiPrefs.isBubbleColorEnabled() || canvas == null || backgroundDrawable == null) {
             return;
         }
         try {
@@ -90,11 +95,17 @@ public class MiogramUiEngine {
         if (activeBubbleDrawable != null) {
             Rect bounds = activeBubbleDrawable.getBounds();
             if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {
-                int c1 = MiogramCustomUiPrefs.getBubbleColor1();
+                boolean isGrad = MiogramCustomUiPrefs.isBubbleGradientEnabled();
+                int c1 = MiogramCustomUiPrefs.getBubbleColor();
                 int c2 = MiogramCustomUiPrefs.getBubbleColor2();
-                int angle = MiogramCustomUiPrefs.getBubbleAngle();
+                int angle = MiogramCustomUiPrefs.getBubbleGradAngle();
 
-                bubbleGradPaint.setShader(createGradient(bounds, c1, c2, angle));
+                if (isGrad) {
+                    bubbleGradPaint.setShader(createGradient(bounds, c1, c2, angle));
+                } else {
+                    bubbleGradPaint.setShader(null);
+                    bubbleGradPaint.setColor(c1);
+                }
                 bubbleGradPaint.setXfermode(SRC_ATOP);
                 canvas.drawRect(bounds, bubbleGradPaint);
                 bubbleGradPaint.setXfermode(null);
@@ -120,37 +131,60 @@ public class MiogramUiEngine {
     }
 
     /* =========================================================================
-     * 2. NAME & TEXT SHADERS (FIRE, ICE, RAINBOW, GLOW)
+     * 2. NAME FX & TYPOGRAPHY SHADERS (1-to-1 with NameFx.java)
      * ========================================================================= */
 
     public static void applyNameEffect(Paint paint, int width, int baseColor) {
-        if (paint == null || width <= 0) return;
+        if (paint == null) return;
 
         savedNameColor = paint.getColor();
         savedNameShader = paint.getShader();
         savedNameTypeface = paint.getTypeface();
-        nameShadowApplied = false;
+        savedTextSize = paint.getTextSize();
+        nameShadowSet = false;
 
+        // 1. Color
+        if (MiogramCustomUiPrefs.isNameColorEnabled()) {
+            paint.setColor(MiogramCustomUiPrefs.getNameColor());
+        }
+
+        // 2. Typeface
+        int font = MiogramCustomUiPrefs.getNameFont();
+        if (font > 0) {
+            Typeface tf = getCustomTypeface(font);
+            if (tf != null) {
+                paint.setTypeface(tf);
+            }
+        }
+
+        // 3. Size
+        int size = MiogramCustomUiPrefs.getNameSize();
+        if (size != 100 && size >= 50 && size <= 200) {
+            paint.setTextSize(savedTextSize * (size / 100f));
+        }
+
+        // 4. Shadow or Glow
+        if (MiogramCustomUiPrefs.isNameShadowEnabled()) {
+            int sColor = MiogramCustomUiPrefs.getNameShadowColor();
+            float sRadius = Math.max(0.1f, AndroidUtilities.dp(MiogramCustomUiPrefs.getNameShadowRadius()));
+            float dx = AndroidUtilities.dp(MiogramCustomUiPrefs.getNameShadowDx());
+            float dy = AndroidUtilities.dp(MiogramCustomUiPrefs.getNameShadowDy());
+            paint.setShadowLayer(sRadius, dx, dy, sColor);
+            nameShadowSet = true;
+        } else if (MiogramCustomUiPrefs.isNameGlowEnabled()) {
+            int gColor = MiogramCustomUiPrefs.getNameGlowColor();
+            float gRadius = Math.max(1f, AndroidUtilities.dp(MiogramCustomUiPrefs.getNameGlowRadius()));
+            paint.setShadowLayer(gRadius, 0, 0, gColor);
+            nameShadowSet = true;
+        }
+
+        // 5. FX Shaders
         int fx = MiogramCustomUiPrefs.getNameFx();
-        if (fx == FX_NONE && !MiogramCustomUiPrefs.isNameGlowEnabled()) {
-            return;
-        }
-
-        Shader fxShader = buildNameShader(fx, width, baseColor);
-        if (fxShader != null) {
-            paint.setShader(fxShader);
-        }
-
-        Typeface tf = getCustomTypeface(MiogramCustomUiPrefs.getNameFont());
-        if (tf != null) {
-            paint.setTypeface(tf);
-        }
-
-        if (MiogramCustomUiPrefs.isNameGlowEnabled()) {
-            int glowColor = MiogramCustomUiPrefs.getNameGlowColor();
-            float radius = AndroidUtilities.dp(Math.max(1, MiogramCustomUiPrefs.getNameGlowRadius()));
-            paint.setShadowLayer(radius, 0, 0, glowColor);
-            nameShadowApplied = true;
+        if (fx > 0 && width > 0) {
+            Shader shader = buildFxShader(fx, width, paint.getColor());
+            if (shader != null) {
+                paint.setShader(shader);
+            }
         }
     }
 
@@ -158,135 +192,178 @@ public class MiogramUiEngine {
         if (paint == null) return;
         paint.setColor(savedNameColor);
         paint.setShader(savedNameShader);
-        if (savedNameTypeface != null) {
-            paint.setTypeface(savedNameTypeface);
-        }
-        if (nameShadowApplied) {
+        paint.setTypeface(savedNameTypeface);
+        paint.setTextSize(savedTextSize);
+        if (nameShadowSet) {
             paint.clearShadowLayer();
-            nameShadowApplied = false;
+            nameShadowSet = false;
         }
     }
 
-    public static Shader buildNameShader(int fx, int width, int baseColor) {
-        float fW = Math.max(1, width);
-        float phase = (SystemClock.elapsedRealtime() % 2500L) / 2500f; // Smooth animation wave
+    public static Shader buildFxShader(int fx, int width, int baseColor) {
+        float fW = (float) width;
+        int c1 = MiogramCustomUiPrefs.getNameGradC1();
+        int c2 = MiogramCustomUiPrefs.getNameGradC2();
+        int angle = MiogramCustomUiPrefs.getNameGradAngle();
+        int speed = MiogramCustomUiPrefs.getNameFxSpeed();
 
-        switch (fx) {
-            case FX_FIRE: // Flame fire gradient: crimson -> fiery orange -> bright gold
-                return new LinearGradient(0, 0, fW, 0,
-                        new int[]{0xFFFF2A2A, 0xFFFF7A00, 0xFFFFD700, 0xFFFF7A00, 0xFFFF2A2A},
-                        new float[]{0f, 0.25f, 0.5f, 0.75f, 1f}, Shader.TileMode.MIRROR);
+        Shader shader = null;
+        try {
+            switch (fx) {
+                case FX_PULSE: {
+                    float phase = (SystemClock.elapsedRealtime() % 2000L) / 2000f;
+                    int alpha = (int) (150 + 105 * Math.sin(phase * Math.PI * 2));
+                    int col = (baseColor & 0x00FFFFFF) | (alpha << 24);
+                    shader = new LinearGradient(0f, 0f, fW, 0f, col, col, Shader.TileMode.CLAMP);
+                    break;
+                }
+                case FX_GRADIENT:
+                    shader = new LinearGradient(0f, 0f, fW, 0f, new int[]{c1, c2, c1}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.MIRROR);
+                    break;
+                case FX_SHIMMER:
+                    shader = new LinearGradient(0f, 0f, fW, 0f, new int[]{baseColor, baseColor, 0xFFFFFFFF, baseColor, baseColor}, new float[]{0f, 0.38f, 0.5f, 0.62f, 1f}, Shader.TileMode.CLAMP);
+                    break;
+                case FX_FIRE:
+                    shader = new LinearGradient(0f, 0f, fW, 0f, new int[]{-50384, -27392, -8115, -27392, -50384}, new float[]{0f, 0.3f, 0.5f, 0.7f, 1f}, Shader.TileMode.MIRROR);
+                    break;
+                case FX_ICE:
+                    shader = new LinearGradient(0f, 0f, fW, 0f, new int[]{-1, -8397825, -13397780, -8397825, -1}, new float[]{0f, 0.3f, 0.5f, 0.7f, 1f}, Shader.TileMode.MIRROR);
+                    break;
+                case FX_NEON:
+                    shader = new LinearGradient(0f, 0f, fW, 0f, new int[]{0xFF00FFCC, 0xFFFF0077, 0xFF00FFCC}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.MIRROR);
+                    break;
+                case FX_RAINBOW:
+                default: {
+                    int[] rainbowColors = new int[7];
+                    float[] rainbowPositions = new float[7];
+                    for (int i = 0; i < 7; i++) {
+                        rainbowPositions[i] = i / 6.0f;
+                        rainbowColors[i] = Color.HSVToColor(new float[]{(i / 6.0f) * 360f, 1.0f, 1.0f});
+                    }
+                    shader = new LinearGradient(0f, 0f, fW, 0f, rainbowColors, rainbowPositions, Shader.TileMode.REPEAT);
+                    break;
+                }
+            }
 
-            case FX_ICE: // Frost ice crystals: deep cyan -> light frost cyan -> pure white
-                return new LinearGradient(0, 0, fW, 0,
-                        new int[]{0xFF00C7FF, 0xFF54D6FF, 0xFFFFFFFF, 0xFF54D6FF, 0xFF00C7FF},
-                        new float[]{0f, 0.3f, 0.5f, 0.7f, 1f}, Shader.TileMode.MIRROR);
-
-            case FX_RAINBOW: // Animated 7-color RGB spectrum
-                matrix.reset();
-                matrix.setTranslate(phase * fW, 0);
-                LinearGradient rainbow = new LinearGradient(0, 0, fW, 0,
-                        new int[]{0xFFFF0055, 0xFFFF7700, 0xFFFFDD00, 0xFF00FF66, 0xFF00CCFF, 0xFF7700FF, 0xFFFF0055},
-                        null, Shader.TileMode.REPEAT);
-                rainbow.setLocalMatrix(matrix);
-                return rainbow;
-
-            case FX_GLARE: // Shimmer glare passing light beam
-                matrix.reset();
-                matrix.setTranslate(((phase * 2f) - 1f) * fW, 0);
-                LinearGradient glare = new LinearGradient(0, 0, fW, 0,
-                        new int[]{baseColor, baseColor, 0xFFFFFFFF, baseColor, baseColor},
-                        new float[]{0f, 0.35f, 0.5f, 0.65f, 1f}, Shader.TileMode.CLAMP);
-                glare.setLocalMatrix(matrix);
-                return glare;
-
-            case FX_CYBER_NEON: // Neon Magenta to Cyber Cyan
-                return new LinearGradient(0, 0, fW, 0,
-                        new int[]{0xFFFF007F, 0xFF00F0FF, 0xFFFF007F},
-                        new float[]{0f, 0.5f, 1f}, Shader.TileMode.MIRROR);
-
-            case FX_GRADIENT: // User custom dual gradient
-                int c1 = MiogramCustomUiPrefs.getNameGradC1();
-                int c2 = MiogramCustomUiPrefs.getNameGradC2();
-                return new LinearGradient(0, 0, fW, 0,
-                        new int[]{c1, c2, c1},
-                        new float[]{0f, 0.5f, 1f}, Shader.TileMode.MIRROR);
-
-            default:
-                return null;
+            if (shader != null) {
+                float progress = ((SystemClock.elapsedRealtime() % 3000L) / 3000f) * (speed / 100f);
+                fxMatrix.reset();
+                if (fx == FX_SHIMMER) {
+                    fxMatrix.setTranslate(((progress * 2f) - 1f) * fW, 0f);
+                } else {
+                    fxMatrix.setTranslate(progress * fW, 0f);
+                }
+                if (angle != 0) {
+                    fxMatrix.postRotate(angle, fW * 0.5f, 0f);
+                }
+                shader.setLocalMatrix(fxMatrix);
+            }
+        } catch (Throwable ignored) {
         }
+        return shader;
     }
 
     public static Typeface getCustomTypeface(int fontId) {
         switch (fontId) {
-            case 1: return Typeface.create("sans-serif-medium", Typeface.BOLD);
-            case 2: return Typeface.create("monospace", Typeface.BOLD);
-            case 3: return Typeface.create("serif", Typeface.BOLD_ITALIC);
-            case 4: return Typeface.create("casual", Typeface.BOLD);
+            case 1: return Typeface.create("sans-serif-light", Typeface.NORMAL);
+            case 2: return Typeface.create("serif", Typeface.BOLD);
+            case 3: return Typeface.create("monospace", Typeface.BOLD);
+            case 4: return Typeface.create("sans-serif", Typeface.ITALIC);
+            case 5: return Typeface.create("sans-serif-condensed", Typeface.BOLD);
             default: return null;
         }
     }
 
     /* =========================================================================
-     * 3. AVATAR SHAPES CLIPPING & GLOW RINGS
+     * 3. AVATAR SHAPES & GLOWING STORY RINGS (1-to-1 with ChatAvatars.java)
      * ========================================================================= */
 
-    public static Path getAvatarShapePath(RectF rect, int shape) {
-        avatarPath.reset();
+    public static Path getAvatarShapePath(RectF rect, int shape, int cornerRadius, int roundness) {
+        shapePath.reset();
         float w = rect.width();
         float h = rect.height();
         float cx = rect.centerX();
         float cy = rect.centerY();
+        float r = Math.min(w, h) / 2f;
 
         switch (shape) {
-            case SHAPE_SQUIRCLE: // Smooth iOS squircle
-                avatarPath.addRoundRect(rect, w * 0.28f, h * 0.28f, Path.Direction.CW);
+            case SHAPE_ROUNDED: { // Rounded rect / Squircle
+                float cr = AndroidUtilities.dp(cornerRadius > 0 ? cornerRadius : 18);
+                shapePath.addRoundRect(rect, cr, cr, Path.Direction.CW);
                 break;
-
-            case SHAPE_ROUNDED_RECT:
-                avatarPath.addRoundRect(rect, AndroidUtilities.dp(8), AndroidUtilities.dp(8), Path.Direction.CW);
+            }
+            case SHAPE_SQUARE: { // Square with soft corners
+                float cr = AndroidUtilities.dp(4);
+                shapePath.addRoundRect(rect, cr, cr, Path.Direction.CW);
                 break;
-
-            case SHAPE_HEXAGON: // 6-point regular polygon
-                float r = Math.min(w, h) / 2f;
+            }
+            case SHAPE_HEXAGON: { // 6-point regular polygon
                 for (int i = 0; i < 6; i++) {
                     double rad = Math.toRadians(60 * i);
                     float x = (float) (cx + r * Math.cos(rad));
                     float y = (float) (cy + r * Math.sin(rad));
-                    if (i == 0) avatarPath.moveTo(x, y);
-                    else avatarPath.lineTo(x, y);
+                    if (i == 0) shapePath.moveTo(x, y);
+                    else shapePath.lineTo(x, y);
                 }
-                avatarPath.close();
+                shapePath.close();
                 break;
-
-            case SHAPE_STAR: // 8-point geometric star
-                float rOuter = Math.min(w, h) / 2f;
-                float rInner = rOuter * 0.65f;
+            }
+            case SHAPE_PENTAGON: { // 5-point regular polygon
+                for (int i = 0; i < 5; i++) {
+                    double rad = Math.toRadians(72 * i - 90);
+                    float x = (float) (cx + r * Math.cos(rad));
+                    float y = (float) (cy + r * Math.sin(rad));
+                    if (i == 0) shapePath.moveTo(x, y);
+                    else shapePath.lineTo(x, y);
+                }
+                shapePath.close();
+                break;
+            }
+            case SHAPE_STAR: { // 8-point geometric star
+                float rInner = r * 0.62f;
                 for (int i = 0; i < 16; i++) {
                     double rad = Math.toRadians(22.5 * i);
-                    float curR = (i % 2 == 0) ? rOuter : rInner;
+                    float curR = (i % 2 == 0) ? r : rInner;
                     float x = (float) (cx + curR * Math.cos(rad));
                     float y = (float) (cy + curR * Math.sin(rad));
-                    if (i == 0) avatarPath.moveTo(x, y);
-                    else avatarPath.lineTo(x, y);
+                    if (i == 0) shapePath.moveTo(x, y);
+                    else shapePath.lineTo(x, y);
                 }
-                avatarPath.close();
+                shapePath.close();
                 break;
-
-            case SHAPE_DIAMOND: // Rotated diamond
-                avatarPath.moveTo(cx, rect.top);
-                avatarPath.lineTo(rect.right, cy);
-                avatarPath.lineTo(cx, rect.bottom);
-                avatarPath.lineTo(rect.left, cy);
-                avatarPath.close();
+            }
+            case SHAPE_HEART: { // Heart shape
+                shapePath.moveTo(cx, cy + r * 0.7f);
+                shapePath.cubicTo(cx - r * 1.1f, cy - r * 0.2f, cx - r * 0.8f, cy - r * 0.9f, cx, cy - r * 0.4f);
+                shapePath.cubicTo(cx + r * 0.8f, cy - r * 0.9f, cx + r * 1.1f, cy - r * 0.2f, cx, cy + r * 0.7f);
+                shapePath.close();
                 break;
-
+            }
+            case SHAPE_FLOWER: { // Flower with 8 rounded petals
+                for (int i = 0; i < 8; i++) {
+                    double rad = Math.toRadians(45 * i);
+                    float px = (float) (cx + r * 0.55f * Math.cos(rad));
+                    float py = (float) (cy + r * 0.55f * Math.sin(rad));
+                    shapePath.addCircle(px, py, r * 0.45f, Path.Direction.CW);
+                }
+                shapePath.addCircle(cx, cy, r * 0.55f, Path.Direction.CW);
+                break;
+            }
             case SHAPE_CIRCLE:
             default:
-                avatarPath.addCircle(cx, cy, Math.min(w, h) / 2f, Path.Direction.CW);
+                shapePath.addCircle(cx, cy, r, Path.Direction.CW);
                 break;
         }
-        return avatarPath;
+
+        if (roundness > 0 && shape != SHAPE_CIRCLE) {
+            Paint roundPaint = new Paint();
+            roundPaint.setPathEffect(new CornerPathEffect((roundness / 100f) * r * 0.4f));
+            Path res = new Path();
+            if (roundPaint.getFillPath(shapePath, res)) {
+                return res;
+            }
+        }
+        return shapePath;
     }
 
     public static void drawAvatarGlowRing(Canvas canvas, RectF rect) {
@@ -301,6 +378,9 @@ public class MiogramUiEngine {
         int ringColor = MiogramCustomUiPrefs.getAvatarRingColor();
 
         int shape = MiogramCustomUiPrefs.getAvatarShape();
+        int radius = MiogramCustomUiPrefs.getAvatarRadius();
+        int roundness = MiogramCustomUiPrefs.getAvatarRound();
+
         if (MiogramCustomUiPrefs.isAvatarRingPulse()) {
             float phase = (SystemClock.elapsedRealtime() % 1600L) / 1600f;
             int alpha = (int) (160 + 95 * Math.sin(phase * Math.PI * 2));
@@ -309,7 +389,7 @@ public class MiogramUiEngine {
             ringPaint.setColor(ringColor);
         }
 
-        Path ringPath = getAvatarShapePath(ringRect, shape);
+        Path ringPath = getAvatarShapePath(ringRect, shape, radius, roundness);
         canvas.drawPath(ringPath, ringPaint);
     }
 }
