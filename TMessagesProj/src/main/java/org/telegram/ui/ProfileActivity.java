@@ -2900,6 +2900,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                             BulletinFactory.createSaveToGalleryBulletin(ProfileActivity.this, isVideo, null).show();
                         });
                     }
+                } else if (id == 13303809) {
+                    app.miogram.bridge.customui.MiogramCustomUiActivity.ProfileEditMenu.showForHeader(ProfileActivity.this, otherItem);
+                } else if (id == 13303812) {
+                    app.miogram.bridge.customui.MiogramCustomUiActivity.ExtraFeaturesSheet.show(getParentActivity() != null ? getParentActivity() : getContext());
                 } else if (id == edit_info) {
                     presentFragment(new UserInfoActivity());
                 } else if (id == edit_color) {
@@ -4921,6 +4925,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
             @Override
             public boolean onItemClick(View view, int position) {
+                if (UserObject.isUserSelf(getMessagesController().getUser(userId)) && view != null && position != versionRow) {
+                    app.miogram.bridge.customui.MiogramCustomUiActivity.ProfileEditMenu.showForRow(ProfileActivity.this, view);
+                    return true;
+                }
                 if (position == versionRow) {
                     pressCount++;
                     if (pressCount >= 2 || BuildVars.DEBUG_PRIVATE_VERSION) {
@@ -5656,6 +5664,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         });
         avatarImage.setHasStories(needInsetForStories());
         avatarImage.setOnLongClickListener(v -> {
+            if (UserObject.isUserSelf(getMessagesController().getUser(userId))) {
+                app.miogram.bridge.customui.MiogramCustomUiActivity.ProfileEditMenu.showForHeader(ProfileActivity.this, avatarImage);
+                return true;
+            }
             if (avatarBig != null || isTopic) {
                 return false;
             }
@@ -12582,6 +12594,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     otherItem.addSubItem(clear_cache, R.drawable.msg_delete, getString(R.string.ClearCache));
                     updateItemsUsername();
                 }
+                otherItem.addSubItem(13303809, R.drawable.msg_theme, app.miogram.bridge.MiogramLocale.get("Оформити профіль", "Оформить профиль", "Customize profile"));
+                otherItem.addSubItem(13303812, R.drawable.msg_palette, app.miogram.bridge.MiogramLocale.get("Всі налаштування оформлення", "Все настройки оформления", "All appearance settings"));
                 selfUser = true;
             } else {
                 /*if (user.bot && user.bot_can_edit) {
