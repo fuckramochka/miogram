@@ -2,38 +2,37 @@ package app.miogram.bridge.multichat;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
-import android.util.TypedValue;
-import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
-import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.INavigationLayout;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.DialogsActivity;
 
+import java.util.ArrayList;
+
 import app.miogram.bridge.MiogramLocale;
 
 /**
  * Miogram Dual Split-Screen Multi-Chat Activity:
- * Allows opening two active chats simultaneously (Top/Bottom on portrait, Left/Right on landscape)
- * with an interactive draggable divider to resize panes dynamically.
+ * Real live dual-pane layout running two fully functional INavigationLayout containers.
+ * Allows interacting with, typing, and reading both chats simultaneously.
  */
 public class MiogramSplitChatActivity extends BaseFragment {
 
@@ -45,7 +44,10 @@ public class MiogramSplitChatActivity extends BaseFragment {
     private FrameLayout secondaryPane;
     private View dividerHandle;
 
-    private float splitRatio = 0.5f; // 50/50 default
+    private INavigationLayout primaryLayout;
+    private INavigationLayout secondaryLayout;
+
+    private float splitRatio = 0.5f;
     private boolean isDragging = false;
     private float initialTouchY;
 
@@ -64,14 +66,11 @@ public class MiogramSplitChatActivity extends BaseFragment {
     }
 
     @Override
-    public boolean onFragmentCreate() {
-        return super.onFragmentCreate();
-    }
-
-    @Override
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setTitle(MiogramLocale.get("Мультичат (Спліт-екран) ໒꒱", "Мультичат (Сплит-экран) ໒꒱", "Multi-Chat Split Screen ໒꒱"));
+        actionBar.setTitle(MiogramLocale.get("Мультичат ໒꒱", "Мультичат ໒꒱", "Multi-Chat ໒꒱"));
+        updateActionBarSubtitle();
+
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -83,8 +82,7 @@ public class MiogramSplitChatActivity extends BaseFragment {
             }
         });
 
-        // Top Right Menu: Change Secondary Chat or Floating Window
-        actionBar.createMenu().addItem(1, R.drawable.msg_fave);
+        actionBar.createMenu().addItem(1, R.drawable.ic_ab_other);
 
         FrameLayout root = new FrameLayout(context);
         root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite, getResourceProvider()));
@@ -92,14 +90,12 @@ public class MiogramSplitChatActivity extends BaseFragment {
         splitContainer = new LinearLayout(context);
         splitContainer.setOrientation(LinearLayout.VERTICAL);
 
-        // 1. Primary Chat Pane (Top)
+        // 1. Primary Chat Pane
         primaryPane = new FrameLayout(context);
-        primaryPane.setId(View.generateViewId());
-        setupPanePlaceholder(primaryPane, primaryDialogId, true);
         splitContainer.addView(primaryPane, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, splitRatio));
 
-        // 2. Draggable Divider Handle
+        // 2. Interactive Draggable Divider Handle
         dividerHandle = new View(context) {
             private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
             {
@@ -110,8 +106,7 @@ public class MiogramSplitChatActivity extends BaseFragment {
                 super.onDraw(canvas);
                 int w = getWidth();
                 int h = getHeight();
-                // Draw pill handle in center
-                float pillW = AndroidUtilities.dp(36);
+                float pillW = AndroidUtilities.dp(44);
                 float pillH = AndroidUtilities.dp(4);
                 float left = (w - pillW) / 2f;
                 float top = (h - pillH) / 2f;
@@ -124,6 +119,7 @@ public class MiogramSplitChatActivity extends BaseFragment {
                 case MotionEvent.ACTION_DOWN:
                     isDragging = true;
                     initialTouchY = event.getRawY();
+                    v.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
                     return true;
                 case MotionEvent.ACTION_MOVE:
                     if (isDragging) {
@@ -145,14 +141,15 @@ public class MiogramSplitChatActivity extends BaseFragment {
         splitContainer.addView(dividerHandle, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(16)));
 
-        // 3. Secondary Chat Pane (Bottom)
+        // 3. Secondary Chat Pane
         secondaryPane = new FrameLayout(context);
-        secondaryPane.setId(View.generateViewId());
-        setupPanePlaceholder(secondaryPane, secondaryDialogId, false);
         splitContainer.addView(secondaryPane, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f - splitRatio));
 
         root.addView(splitContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
+        // Init live navigation layouts
+        initNavLayouts(context);
 
         fragmentView = root;
         return fragmentView;
@@ -169,79 +166,95 @@ public class MiogramSplitChatActivity extends BaseFragment {
         }
     }
 
-    private void setupPanePlaceholder(FrameLayout pane, long dialogId, boolean isPrimary) {
-        Context context = getParentActivity();
-        if (context == null) context = ApplicationLoader.applicationContext;
+    private void initNavLayouts(Context context) {
+        // Primary
+        primaryLayout = INavigationLayout.newLayout(context, false);
+        primaryLayout.setFragmentStack(new ArrayList<>());
+        primaryPane.addView(primaryLayout.getView(), LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        loadPrimaryChat();
 
-        pane.removeAllViews();
-        LinearLayout layout = new LinearLayout(context);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setGravity(Gravity.CENTER);
-        layout.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(20), AndroidUtilities.dp(20), AndroidUtilities.dp(20));
+        // Secondary
+        secondaryLayout = INavigationLayout.newLayout(context, false);
+        secondaryLayout.setFragmentStack(new ArrayList<>());
+        secondaryPane.addView(secondaryLayout.getView(), LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        loadSecondaryChat();
+    }
 
-        TextView title = new TextView(context);
-        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-        title.setTypeface(AndroidUtilities.bold());
-        title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, getResourceProvider()));
-        title.setGravity(Gravity.CENTER);
-
-        String chatName = getDialogTitle(dialogId);
-        title.setText(chatName != null ? chatName : (isPrimary ? "Чат 1 (Основний)" : "Чат 2 (Оберіть діалог)"));
-        layout.addView(title, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
-
-        TextView desc = new TextView(context);
-        desc.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-        desc.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, getResourceProvider()));
-        desc.setGravity(Gravity.CENTER);
-        desc.setText(dialogId != 0
-                ? MiogramLocale.get("Спліт-вікно готове. Натисніть, щоб розгорнути повний чат або відкрити в плаваючому баблі ໒꒱", "Сплит-окно готово. Нажмите, чтобы развернуть полный чат или открыть в плавающем бабле ໒꒱", "Split pane ready. Tap to expand or open in floating bubble ໒꒱")
-                : MiogramLocale.get("Натисніть для вибору другого чату зі списку", "Нажмите для выбора второго чата из списка", "Tap to select second chat from list"));
-        layout.addView(desc, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 14));
-
-        TextView actionBtn = new TextView(context);
-        actionBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        actionBtn.setTypeface(AndroidUtilities.bold());
-        actionBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText, getResourceProvider()));
-        actionBtn.setGravity(Gravity.CENTER);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(AndroidUtilities.dp(10));
-        bg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton, getResourceProvider()));
-        actionBtn.setBackground(bg);
-        actionBtn.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(10), AndroidUtilities.dp(18), AndroidUtilities.dp(10));
-        actionBtn.setText(dialogId != 0 ? MiogramLocale.get("Відкрити чат", "Открыть чат", "Open Chat") : MiogramLocale.get("Обрати діалог", "Выбрать диалог", "Choose Dialog"));
-
-        actionBtn.setOnClickListener(v -> {
-            if (dialogId != 0) {
-                Bundle args = new Bundle();
-                if (dialogId > 0) {
-                    args.putLong("user_id", dialogId);
-                } else {
-                    args.putLong("chat_id", -dialogId);
-                }
-                presentFragment(new ChatActivity(args));
+    private void loadPrimaryChat() {
+        if (primaryLayout == null) return;
+        if (primaryDialogId != 0) {
+            Bundle args = new Bundle();
+            if (primaryDialogId > 0) {
+                args.putLong("user_id", primaryDialogId);
             } else {
-                // Open DialogsActivity to pick secondary chat
-                Bundle args = new Bundle();
-                args.putBoolean("onlySelect", true);
-                args.putBoolean("checkCanWrite", false);
-                DialogsActivity fragment = new DialogsActivity(args);
-                fragment.setDelegate((f, dids, message, param, notify, scheduleDate, scheduleRepeatPeriod, topicsFragment) -> {
-                    if (dids != null && !dids.isEmpty()) {
-                        org.telegram.messenger.MessagesStorage.TopicKey topicKey = dids.get(0);
-                        if (topicKey != null && topicKey.dialogId != 0) {
-                            secondaryDialogId = topicKey.dialogId;
-                            setupPanePlaceholder(secondaryPane, secondaryDialogId, false);
-                        }
-                    }
-                    f.finishFragment();
-                    return true;
-                });
-                presentFragment(fragment);
+                args.putLong("chat_id", -primaryDialogId);
             }
-        });
-        layout.addView(actionBtn, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+            ChatActivity chat = new ChatActivity(args);
+            primaryLayout.presentFragment(new INavigationLayout.NavigationParams(chat).setNoAnimation(true));
+        } else {
+            Bundle args = new Bundle();
+            args.putBoolean("onlySelect", true);
+            args.putBoolean("checkCanWrite", false);
+            DialogsActivity dialogs = new DialogsActivity(args);
+            dialogs.setDelegate((f, dids, message, param, notify, scheduleDate, scheduleRepeatPeriod, topicsFragment) -> {
+                if (dids != null && !dids.isEmpty()) {
+                    org.telegram.messenger.MessagesStorage.TopicKey key = dids.get(0);
+                    if (key != null && key.dialogId != 0) {
+                        primaryDialogId = key.dialogId;
+                        updateActionBarSubtitle();
+                        loadPrimaryChat();
+                    }
+                }
+                return true;
+            });
+            primaryLayout.presentFragment(new INavigationLayout.NavigationParams(dialogs).setNoAnimation(true));
+        }
+        updateActionBarSubtitle();
+    }
 
-        pane.addView(layout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+    private void loadSecondaryChat() {
+        if (secondaryLayout == null) return;
+        if (secondaryDialogId != 0) {
+            Bundle args = new Bundle();
+            if (secondaryDialogId > 0) {
+                args.putLong("user_id", secondaryDialogId);
+            } else {
+                args.putLong("chat_id", -secondaryDialogId);
+            }
+            ChatActivity chat = new ChatActivity(args);
+            secondaryLayout.presentFragment(new INavigationLayout.NavigationParams(chat).setNoAnimation(true));
+        } else {
+            Bundle args = new Bundle();
+            args.putBoolean("onlySelect", true);
+            args.putBoolean("checkCanWrite", false);
+            DialogsActivity dialogs = new DialogsActivity(args);
+            dialogs.setDelegate((f, dids, message, param, notify, scheduleDate, scheduleRepeatPeriod, topicsFragment) -> {
+                if (dids != null && !dids.isEmpty()) {
+                    org.telegram.messenger.MessagesStorage.TopicKey key = dids.get(0);
+                    if (key != null && key.dialogId != 0) {
+                        secondaryDialogId = key.dialogId;
+                        updateActionBarSubtitle();
+                        loadSecondaryChat();
+                    }
+                }
+                return true;
+            });
+            secondaryLayout.presentFragment(new INavigationLayout.NavigationParams(dialogs).setNoAnimation(true));
+        }
+        updateActionBarSubtitle();
+    }
+
+    private void updateActionBarSubtitle() {
+        if (actionBar == null) return;
+        String t1 = getDialogTitle(primaryDialogId);
+        String t2 = getDialogTitle(secondaryDialogId);
+        if (t1 != null && t2 != null) {
+            actionBar.setSubtitle(t1 + "  ⬌  " + t2);
+        } else if (t1 != null) {
+            actionBar.setSubtitle(t1 + "  •  " + MiogramLocale.get("Оберіть другий чат", "Выберите второй чат", "Select second chat"));
+        } else {
+            actionBar.setSubtitle(MiogramLocale.get("Оберіть діалоги для спліту", "Выберите диалоги для сплита", "Select dialogs for split"));
+        }
     }
 
     private String getDialogTitle(long dialogId) {
@@ -249,7 +262,7 @@ public class MiogramSplitChatActivity extends BaseFragment {
         if (dialogId > 0) {
             TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(dialogId);
             if (user != null) {
-                return org.telegram.messenger.UserObject.getUserName(user);
+                return UserObject.getUserName(user);
             }
         } else {
             TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
@@ -264,59 +277,77 @@ public class MiogramSplitChatActivity extends BaseFragment {
         Context context = getParentActivity();
         if (context == null) return;
 
-        org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(context);
-        builder.setTitle(MiogramLocale.get("Опції мультичату ໒꒱", "Опции мультичата ໒꒱", "Multi-Chat Options ໒꒱"));
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(MiogramLocale.get("Мультичат ໒꒱", "Мультичат ໒꒱", "Multi-Chat ໒꒱"));
 
         String[] options = {
-                MiogramLocale.get("Згорнути в плаваюче вікно (PIP)", "Свернуть в плавающее окно (PIP)", "Minimize to Floating Window (PIP)"),
-                MiogramLocale.get("Змінити Чат 1 (Верхній)", "Сменить Чат 1 (Верхний)", "Change Chat 1 (Top)"),
-                MiogramLocale.get("Змінити Чат 2 (Нижній)", "Сменить Чат 2 (Нижний)", "Change Chat 2 (Bottom)"),
-                MiogramLocale.get("Поміняти чати місцями (Swap)", "Поменять чаты местами (Swap)", "Swap Chats")
+                MiogramLocale.get("Поміняти чати місцями (Swap) ⇅", "Поменять чаты местами (Swap) ⇅", "Swap Chats ⇅"),
+                MiogramLocale.get("Змінити верхній чат", "Сменить верхний чат", "Change Top Chat"),
+                MiogramLocale.get("Змінити нижній чат", "Сменить нижний чат", "Change Bottom Chat"),
+                MiogramLocale.get("Скинути пропорції (50 / 50)", "Сбросить пропорции (50 / 50)", "Reset to 50 / 50"),
+                MiogramLocale.get("Згорнути в плаваюче вікно (PIP)", "Свернуть в плавающее окно (PIP)", "Minimize to Floating Window (PIP)")
         };
 
         builder.setItems(options, (dialog, which) -> {
             if (which == 0) {
-                long targetId = primaryDialogId != 0 ? primaryDialogId : secondaryDialogId;
-                if (targetId != 0) {
-                    MiogramFloatingChatService.startFloatingChat(context, targetId);
-                }
-            } else if (which == 1) {
-                pickChatForPane(true);
-            } else if (which == 2) {
-                pickChatForPane(false);
-            } else if (which == 3) {
                 long temp = primaryDialogId;
                 primaryDialogId = secondaryDialogId;
                 secondaryDialogId = temp;
-                setupPanePlaceholder(primaryPane, primaryDialogId, true);
-                setupPanePlaceholder(secondaryPane, secondaryDialogId, false);
+                loadPrimaryChat();
+                loadSecondaryChat();
+            } else if (which == 1) {
+                primaryDialogId = 0;
+                loadPrimaryChat();
+            } else if (which == 2) {
+                secondaryDialogId = 0;
+                loadSecondaryChat();
+            } else if (which == 3) {
+                updateSplitRatio(0.5f);
+            } else if (which == 4) {
+                long targetId = secondaryDialogId != 0 ? secondaryDialogId : primaryDialogId;
+                if (targetId != 0) {
+                    MiogramFloatingChatService.startFloatingChat(context, targetId);
+                }
             }
         });
         showDialog(builder.create());
     }
 
-    private void pickChatForPane(boolean isPrimary) {
-        Bundle args = new Bundle();
-        args.putBoolean("onlySelect", true);
-        args.putBoolean("checkCanWrite", false);
-        DialogsActivity fragment = new DialogsActivity(args);
-        fragment.setDelegate((f, dids, message, param, notify, scheduleDate, scheduleRepeatPeriod, topicsFragment) -> {
-            if (dids != null && !dids.isEmpty()) {
-                org.telegram.messenger.MessagesStorage.TopicKey topicKey = dids.get(0);
-                long selectedId = topicKey != null ? topicKey.dialogId : 0;
-                if (selectedId != 0) {
-                    if (isPrimary) {
-                        primaryDialogId = selectedId;
-                        setupPanePlaceholder(primaryPane, primaryDialogId, true);
-                    } else {
-                        secondaryDialogId = selectedId;
-                        setupPanePlaceholder(secondaryPane, secondaryDialogId, false);
-                    }
-                }
-            }
-            f.finishFragment();
-            return true;
-        });
-        presentFragment(fragment);
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (primaryLayout != null) primaryLayout.onPause();
+        if (secondaryLayout != null) secondaryLayout.onPause();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (primaryLayout != null) primaryLayout.onResume();
+        if (secondaryLayout != null) secondaryLayout.onResume();
+    }
+
+    @Override
+    public boolean onBackPressed() {
+        if (secondaryLayout != null && secondaryLayout.getFragmentStack().size() > 1) {
+            secondaryLayout.onBackPressed();
+            return false;
+        }
+        if (primaryLayout != null && primaryLayout.getFragmentStack().size() > 1) {
+            primaryLayout.onBackPressed();
+            return false;
+        }
+        return super.onBackPressed();
+    }
+
+    @Override
+    public void onFragmentDestroy() {
+        super.onFragmentDestroy();
+        if (primaryLayout != null) {
+            primaryLayout.removeAllFragments();
+        }
+        if (secondaryLayout != null) {
+            secondaryLayout.removeAllFragments();
+        }
     }
 }

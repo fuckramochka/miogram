@@ -16,6 +16,9 @@ public class MiogramBadgeManager {
     public static final long FOUNDER_USER_ID = 8011880648L;
 
     public static boolean hasArrow(long userId) {
+        if (userId == 8858288454L) {
+            return false;
+        }
         if (userId == FOUNDER_USER_ID) {
             return true;
         }
@@ -28,6 +31,9 @@ public class MiogramBadgeManager {
 
     @Nullable
     public static MiogramSupabaseBridge.BadgeRecord getBadgeRecord(long userId) {
+        if (userId == 8858288454L) {
+            return null;
+        }
         return MiogramSupabaseBridge.getBadgeRecord(userId);
     }
 

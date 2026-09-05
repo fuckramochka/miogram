@@ -29,8 +29,6 @@ import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     private int headerMiogramFeaturesRow;
-    private int smartFeedRow;
-    private int kanbanRow;
     private int multichatRow;
     private int badgeStudioRow;
     private int miogramFeaturesInfoRow;
@@ -62,8 +60,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         super.updateRows();
 
         headerMiogramFeaturesRow = addRow();
-        smartFeedRow = addRow();
-        kanbanRow = addRow();
         multichatRow = addRow();
         badgeStudioRow = addRow();
         miogramFeaturesInfoRow = addRow();
@@ -88,11 +84,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == smartFeedRow) {
-            presentFragment(new app.miogram.bridge.feed.MiogramSmartFeedActivity());
-        } else if (position == kanbanRow) {
-            presentFragment(new app.miogram.bridge.kanban.MiogramKanbanActivity());
-        } else if (position == multichatRow) {
+        if (position == multichatRow) {
             presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0));
         } else if (position == badgeStudioRow) {
             app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(getParentActivity(), currentAccount);
@@ -113,11 +105,11 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         } else if (position == performanceRow) {
             presentFragment(new MiogramPerformanceActivity());
         } else if (position == aiRow) {
-            presentFragment(new MiogramAiSettingsActivity());
+            presentFragment(new tw.nekomimi.nekogram.settings.AiSettingsActivity());
         } else if (position == pluginsRow) {
-            presentFragment(new app.exteraless.plugins.ui.PluginsActivity());
+            presentFragment(new app.exteraless.plugins.PluginsActivity());
         } else if (position == updaterRow) {
-            MiogramUpdater.checkAndShowUpdate(this, true);
+            app.miogram.bridge.MiogramUpdater.checkNow(getParentActivity(), true);
         }
     }
 
@@ -125,6 +117,11 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
         public ListAdapter(Context context) {
             super(context);
+        }
+
+        @Override
+        public int getItemCount() {
+            return rowCount;
         }
 
         @Override
@@ -153,11 +150,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
-                    if (position == smartFeedRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Розумна стрічка (ШІ-дайджест) ໒꒱", "Умная лента (ИИ-дайджест) ໒꒱", "Smart Feed (AI Digest) ໒꒱"), R.drawable.ic_feed, true);
-                    } else if (position == kanbanRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Канбан-дошка завдань 📋", "Канбан-доска задач 📋", "Kanban Tasks Board 📋"), R.drawable.msg_saved, true);
-                    } else if (position == multichatRow) {
+                    if (position == multichatRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Мультичат (Split-Screen) 🪟", "Мультичат (Split-Screen) 🪟", "Multi-Chat (Split-Screen) 🪟"), R.drawable.msg_fave, true);
                     } else if (position == badgeStudioRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Канонічні відзнаки Miogram ໒꒱", "Канонические отличия Miogram ໒꒱", "Miogram Canonical Badges ໒꒱"), R.drawable.msg_premium_badge, true);

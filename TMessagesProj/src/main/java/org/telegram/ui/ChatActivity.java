@@ -1834,6 +1834,10 @@ public class ChatActivity extends BaseFragment implements
     private final static int scheduled = 63;
     private final static int edit_quick_reply = 64;
 
+    private final static int miogram_open_kanban = 4401;
+    private final static int miogram_split_screen = 4402;
+    private final static int miogram_add_to_kanban = 4403;
+
     private ActionBarMenuItem actionModeOtherItem; // NekoX
 
     private final static int copy_business_link = 65;
@@ -4230,6 +4234,29 @@ public class ChatActivity extends BaseFragment implements
                     } else {
                         hideTagSelector();
                     }
+                } else if (id == miogram_add_to_kanban) {
+                    for (int a = 1; a >= 0; a--) {
+                        for (int b = 0; b < selectedMessagesIds[a].size(); b++) {
+                            MessageObject obj = selectedMessagesIds[a].valueAt(b);
+                            if (obj != null) {
+                                String text = obj.messageText != null ? obj.messageText.toString() : "Завдання";
+                                app.miogram.bridge.kanban.MiogramKanbanStorage.addItem(
+                                        text.length() > 60 ? text.substring(0, 60) + "..." : text,
+                                        text,
+                                        0,
+                                        dialog_id,
+                                        obj.getId()
+                                );
+                            }
+                        }
+                    }
+                    hideActionMode();
+                    if (BulletinFactory.canShowBulletin(ChatActivity.this)) {
+                        BulletinFactory.of(ChatActivity.this).createSimpleBulletin(
+                                R.drawable.msg_saved,
+                                app.miogram.bridge.MiogramLocale.get("Додано в Канбан-нотатки 📋", "Добавлено в Канбан-заметки 📋", "Added to Kanban Notes 📋")
+                        ).show();
+                    }
                 } else if (id == save_to) {
                     ArrayList<MessageObject> messageObjects = new ArrayList<>();
                     for (int a = 1; a >= 0; a--) {
@@ -4331,6 +4358,10 @@ public class ChatActivity extends BaseFragment implements
                     } catch (Exception e) {
                         FileLog.e(e);
                     }
+                } else if (id == miogram_open_kanban) {
+                    presentFragment(new app.miogram.bridge.kanban.MiogramKanbanActivity());
+                } else if (id == miogram_split_screen) {
+                    presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(dialog_id, 0));
                 } else if (id == to_the_beginning) {
                     scrollToMessageId(1, 0, false, 0, true, 0);
                 } else if (id == to_the_message){
@@ -5006,7 +5037,9 @@ public class ChatActivity extends BaseFragment implements
             }
             if (currentUser != null && currentUser.self && getDialogId() != UserObject.VERIFY) {
                 headerItem.lazilyAddSubItem(add_shortcut, R.drawable.msg_home, LocaleController.getString(R.string.AddShortcut));
+                headerItem.lazilyAddSubItem(miogram_open_kanban, R.drawable.msg_saved, app.miogram.bridge.MiogramLocale.get("Канбан-дошка 📋", "Канбан-доска 📋", "Kanban Board 📋"));
             }
+            headerItem.lazilyAddSubItem(miogram_split_screen, R.drawable.msg_fave, app.miogram.bridge.MiogramLocale.get("Розділити екран (Мультичат) ໒꒱", "Разделить экран (Мультичат) ໒꒱", "Split Screen (Multi-Chat) ໒꒱"));
             if (!isTopic && !ChatObject.isMonoForum(currentChat)) {
                 clearHistoryItem = headerItem.lazilyAddSubItem(clear_history, R.drawable.msg_clear,
                     LocaleController.getString(UserObject.isBotForum(currentUser) ? R.string.ClearAllHistory : R.string.ClearHistory));
@@ -11164,6 +11197,7 @@ public class ChatActivity extends BaseFragment implements
         actionModeOtherItem.addSubItem(nkbtn_unpin, R.drawable.msg_unpin, LocaleController.getString(R.string.UnpinMessage));
         if (!noforward) {
             actionModeOtherItem.addSubItem(nkbtn_savemessage, R.drawable.menu_saved, LocaleController.getString(R.string.AddToSavedMessages));
+            actionModeOtherItem.addSubItem(miogram_add_to_kanban, R.drawable.msg_saved, app.miogram.bridge.MiogramLocale.get("Додати в Канбан 📋", "Добавить в Канбан 📋", "Add to Kanban 📋"));
             if (canSendMessages) actionModeOtherItem.addSubItem(nkbtn_repeat, R.drawable.msg_repeat, LocaleController.getString(R.string.Repeat));
         }
         if (canSendMessages) {

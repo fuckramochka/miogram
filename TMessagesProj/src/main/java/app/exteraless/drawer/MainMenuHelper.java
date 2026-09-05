@@ -263,10 +263,10 @@ public final class MainMenuHelper {
                 return new MenuItemInfo(R.drawable.msg_qrcode, LocaleController.getString(R.string.AuthAnotherClient),
                         () -> openQrScanner(fragment), null);
             case SMART_FEED:
-                return new MenuItemInfo(R.drawable.ic_feed, "Розумна стрічка ໒꒱",
+                return new MenuItemInfo(R.drawable.ic_feed, app.miogram.bridge.MiogramLocale.get("Новини Miogram ໒꒱", "Новости Miogram ໒꒱", "Miogram News ໒꒱"),
                         () -> fragment.presentFragment(new app.miogram.bridge.feed.MiogramSmartFeedActivity()), null);
             case KANBAN:
-                return new MenuItemInfo(R.drawable.msg_saved, "Канбан-дошка 📋",
+                return new MenuItemInfo(R.drawable.msg_saved, app.miogram.bridge.MiogramLocale.get("Канбан-нотатки 📋", "Канбан-заметки 📋", "Kanban Notes 📋"),
                         () -> fragment.presentFragment(new app.miogram.bridge.kanban.MiogramKanbanActivity()), null);
             case SPLIT_CHAT:
                 return new MenuItemInfo(R.drawable.msg_fave, "Мультичат 🪟",

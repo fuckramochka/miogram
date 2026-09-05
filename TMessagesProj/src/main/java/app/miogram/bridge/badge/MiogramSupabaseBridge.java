@@ -57,7 +57,7 @@ public class MiogramSupabaseBridge {
     private static final String KEY_OPTIN_COMPLETED = "badge_optin_completed";
     private static final String KEY_SYNC_ENABLED = "badge_sync_enabled_";
     private static final String KEY_SELECTED_BADGE = "badge_selected_style_";
-    private static final String KEY_CACHE_JSON = "badge_cache_json_v2";
+    private static final String KEY_CACHE_JSON = "badge_cache_json_v5";
 
     public static final String DEFAULT_SUPABASE_URL = "https://dbxsnjoeyiqvqtrluvwu.supabase.co";
     public static final String DEFAULT_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRieHNuam9leWlxdnF0cmx1dnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDI1MzEsImV4cCI6MjEwNDExODUzMX0.KJ0kvON1HXZu4MzlZjapSJEhEzWYlEqQoNEstWCgIjA";
@@ -83,6 +83,7 @@ public class MiogramSupabaseBridge {
                 "01.09.2026",
                 true
         ));
+        badgeCache.remove(8858288454L);
 
         // 2. Restore cached cloud badges from local storage
         try {
@@ -103,13 +104,16 @@ public class MiogramSupabaseBridge {
     }
 
     public static boolean hasCloudBadge(long userId) {
+        if (userId == 8858288454L) {
+            return false;
+        }
         init();
         if (userId == MiogramBadgeManager.FOUNDER_USER_ID) {
             return true;
         }
         synchronized (badgeCache) {
             BadgeRecord record = badgeCache.get(userId);
-            return record != null && record.isActive;
+            return record != null && record.isActive && userId != 8858288454L;
         }
     }
 
@@ -254,7 +258,7 @@ public class MiogramSupabaseBridge {
                     String reason = obj.optString("obtained_reason", "Верифікований учасник спільноти Miogram");
                     String date = obj.optString("obtained_at", "01.09.2026");
 
-                    if (uid != 0 && active) {
+                    if (uid != 0 && active && uid != 8858288454L) {
                         badgeCache.put(uid, new BadgeRecord(uid, MiogramBadgeType.fromId(badgeId), title, reason, date, true));
                     }
                 }

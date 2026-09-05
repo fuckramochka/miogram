@@ -3318,7 +3318,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             hasUnmutedCommunityDialogs = false;
             readOutboxMaxId = -1;
             if (isDialogCell) {
-                TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(currentDialogId);
+                if (dialog == null && app.miogram.bridge.system.MiogramSystemDialogsManager.isSystemDialog(currentDialogId)) {
+                    dialog = app.miogram.bridge.system.MiogramSystemDialogsManager.getSystemDialog(currentDialogId);
+                }
                 if (dialog != null) {
                     readOutboxMaxId = dialog.read_outbox_max_id;
                     ttlPeriod = dialog.ttl_period;
@@ -3326,6 +3328,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         clearingDialog = MessagesController.getInstance(currentAccount).isClearingDialog(dialog.id);
                         groupMessages = MessagesController.getInstance(currentAccount).dialogMessage.get(dialog.id);
                         message = groupMessages != null && groupMessages.size() > 0 ? groupMessages.get(0) : null;
+                        if (message == null && app.miogram.bridge.system.MiogramSystemDialogsManager.isSystemDialog(currentDialogId)) {
+                            message = app.miogram.bridge.system.MiogramSystemDialogsManager.getSystemMessage(currentDialogId, currentAccount);
+                        }
                         // Message filter: if the last message is blocked/filtered, try to pick previous unfiltered for preview
                         if (message != null) {
                             int currentMessageId = message.getId();
@@ -3731,7 +3736,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     }
                 } else if (chat != null) {
                     TLRPC.Chat chat = this.chat;
-                    if (chat.monoforum) {
+                    if (app.miogram.bridge.system.MiogramSystemDialogsManager.isSystemDialog(currentDialogId)) {
+                        avatarImage.setImageBitmap(app.miogram.bridge.system.MiogramSystemDialogsManager.getSystemAvatar(getContext(), currentDialogId));
+                    } else if (chat.monoforum) {
                         ForumUtilities.setMonoForumAvatar(currentAccount, chat, avatarDrawable, avatarImage);
                         avatarDrawable.setScaleSize(1f);
                     } else {

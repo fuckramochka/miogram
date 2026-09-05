@@ -8261,6 +8261,15 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             return;
         }
 
+        if (dialogId == app.miogram.bridge.system.MiogramSystemDialogsManager.DIALOG_ID_FEED) {
+            presentFragment(new app.miogram.bridge.feed.MiogramSmartFeedActivity());
+            return;
+        }
+        if (dialogId == app.miogram.bridge.system.MiogramSystemDialogsManager.DIALOG_ID_KANBAN) {
+            presentFragment(new app.miogram.bridge.kanban.MiogramKanbanActivity());
+            return;
+        }
+
         if (onlySelect) {
             if (!validateSlowModeDialog(dialogId)) {
                 return;
@@ -11301,6 +11310,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     }
                     return filtered;
                 }
+            }
+            if (folderId == 0 && !onlySelect && !app.miogram.bridge.vault.MiogramDoubleBottomManager.isDuressActive()) {
+                ArrayList<TLRPC.Dialog> augmented = new ArrayList<>(list);
+                app.miogram.bridge.system.MiogramSystemDialogsManager.injectSystemDialogs(augmented, currentAccount);
+                return augmented;
             }
             return list;
         } else if (dialogsType == DIALOGS_TYPE_WIDGET || dialogsType == DIALOGS_TYPE_IMPORT_HISTORY) {
