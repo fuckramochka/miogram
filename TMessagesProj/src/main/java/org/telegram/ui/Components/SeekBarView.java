@@ -291,6 +291,7 @@ public class SeekBarView extends FrameLayout {
                     hoverDrawable.setState(StateSet.NOTHING);
                 }
                 delegate.onSeekBarPressed(false);
+                app.miogram.bridge.customui.MiogramHaptic.release(this);
                 pressed = false;
                 AndroidUtilities.runOnUIThread(() -> pressedDelayed = false, 50);
                 invalidate();
@@ -317,6 +318,7 @@ public class SeekBarView extends FrameLayout {
                         }
                         thumbDX = (int) (ev.getX() - thumbX);
                         pressed = pressedDelayed = true;
+                        app.miogram.bridge.customui.MiogramHaptic.grab(this);
                         delegate.onSeekBarPressed(true);
                         if (Build.VERSION.SDK_INT >= 21 && hoverDrawable != null) {
                             hoverDrawable.setState(pressedState);
@@ -328,11 +330,20 @@ public class SeekBarView extends FrameLayout {
                 }
             } else {
                 if (pressed) {
+                    int oldThumbX = thumbX;
                     thumbX = (int) (ev.getX() - thumbDX);
-                    if (thumbX < minThumbX()) {
+                    if (thumbX <= minThumbX()) {
                         thumbX = minThumbX();
-                    } else if (thumbX > getMeasuredWidth() - selectorWidth) {
+                        if (oldThumbX != minThumbX()) {
+                            app.miogram.bridge.customui.MiogramHaptic.edge(this);
+                        }
+                    } else if (thumbX >= getMeasuredWidth() - selectorWidth) {
                         thumbX = getMeasuredWidth() - selectorWidth;
+                        if (oldThumbX != getMeasuredWidth() - selectorWidth) {
+                            app.miogram.bridge.customui.MiogramHaptic.edge(this);
+                        }
+                    } else {
+                        app.miogram.bridge.customui.MiogramHaptic.tick(this);
                     }
                     if (reportChanges) {
                         if (twoSided) {

@@ -17,6 +17,9 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.SystemClock;
 
+import android.text.TextPaint;
+import android.text.TextUtils;
+import android.view.View;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.ui.ActionBar.Theme;
 
@@ -116,6 +119,23 @@ public class MiogramUiEngine {
         } catch (Throwable ignored) {
         }
         bubbleSaveCount = -1;
+
+        if (MiogramCustomUiPrefs.isBubbleGlowEnabled() && canvas != null && backgroundDrawable != null) {
+            Rect bounds = backgroundDrawable.getBounds();
+            if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {
+                Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                int glowColor = MiogramCustomUiPrefs.getBubbleGlowColor();
+                glowPaint.setColor(glowColor);
+                glowPaint.setStyle(Paint.Style.STROKE);
+                glowPaint.setStrokeWidth(AndroidUtilities.dpf2(2f));
+                float r = Math.max(0.1f, AndroidUtilities.dp(MiogramCustomUiPrefs.getBubbleGlowRadius()));
+                glowPaint.setShadowLayer(r, 0, 0, glowColor);
+                RectF glowRect = new RectF(bounds);
+                int rad = MiogramCustomUiPrefs.getBubbleRadius();
+                float corner = AndroidUtilities.dpf2(rad > 0 ? rad : 16f);
+                canvas.drawRoundRect(glowRect, corner, corner, glowPaint);
+            }
+        }
     }
 
     public static LinearGradient createGradient(Rect rect, int c1, int c2, int angle) {
@@ -380,5 +400,113 @@ public class MiogramUiEngine {
 
         Path ringPath = getAvatarShapePath(reusableRingRect, shape, radius, roundness);
         canvas.drawPath(ringPath, ringPaint);
+    }
+
+    // Profile Text Types
+    public static final int TYPE_NAME = 1;
+    public static final int TYPE_BIO = 2;
+    public static final int TYPE_PHONE = 3;
+    public static final int TYPE_USERNAME = 4;
+
+    private static final TextPaint thoughtTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint thoughtBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final RectF thoughtRect = new RectF();
+    private static final RectF avatarTmpRect = new RectF();
+
+    public static int getCustomTextColor(int type, int defaultColor) {
+        switch (type) {
+            case TYPE_NAME:
+                return MiogramCustomUiPrefs.isColorName() ? MiogramCustomUiPrefs.getColorName() : defaultColor;
+            case TYPE_BIO:
+                return MiogramCustomUiPrefs.isColorBio() ? MiogramCustomUiPrefs.getColorBio() : defaultColor;
+            case TYPE_PHONE:
+                return MiogramCustomUiPrefs.isColorPhone() ? MiogramCustomUiPrefs.getColorPhone() : defaultColor;
+            case TYPE_USERNAME:
+                return MiogramCustomUiPrefs.isColorUsername() ? MiogramCustomUiPrefs.getColorUsername() : defaultColor;
+            default:
+                return defaultColor;
+        }
+    }
+
+    public static void drawProfileAvatarExtras(Canvas canvas, View avatarView) {
+        if (canvas == null || avatarView == null) return;
+        int w = avatarView.getWidth();
+        int h = avatarView.getHeight();
+        if (w <= 0 || h <= 0) return;
+
+        avatarTmpRect.set(0, 0, w, h);
+
+        // 1. Draw glowing ring
+        if (MiogramCustomUiPrefs.isAvatarRingEnabled()) {
+            drawAvatarGlowRing(canvas, avatarTmpRect);
+        }
+
+        // 2. Draw thought bubble
+        String thought = MiogramCustomUiPrefs.getThoughtText();
+        if (!TextUtils.isEmpty(thought)) {
+            thoughtTextPaint.setTextSize(AndroidUtilities.dpf2(13f));
+            int font = MiogramCustomUiPrefs.getThoughtFont();
+            if (font > 0) {
+                Typeface tf = getCustomTypeface(font);
+                if (tf != null) thoughtTextPaint.setTypeface(tf);
+            }
+            thoughtTextPaint.setColor(MiogramCustomUiPrefs.getThoughtTextColor());
+
+            float padX = AndroidUtilities.dpf2(10f);
+            float padY = AndroidUtilities.dpf2(6f);
+            float textW = thoughtTextPaint.measureText(thought);
+            float bubbleW = textW + (padX * 2f);
+            float bubbleH = AndroidUtilities.dpf2(26f);
+
+            float cx = w / 2f;
+            float left = cx - (bubbleW / 2f);
+            float top = -bubbleH - AndroidUtilities.dpf2(4f);
+            float right = left + bubbleW;
+            float bottom = top + bubbleH;
+
+            thoughtRect.set(left, top, right, bottom);
+
+            thoughtBgPaint.setColor(MiogramCustomUiPrefs.getThoughtBgColor());
+            if (MiogramCustomUiPrefs.isThoughtShadowEnabled()) {
+                int sColor = MiogramCustomUiPrefs.getThoughtShadowColor();
+                float sRadius = Math.max(0.1f, AndroidUtilities.dp(MiogramCustomUiPrefs.getThoughtShadowRadius()));
+                float dx = AndroidUtilities.dp(MiogramCustomUiPrefs.getThoughtShadowDx());
+                float dy = AndroidUtilities.dp(MiogramCustomUiPrefs.getThoughtShadowDy());
+                thoughtBgPaint.setShadowLayer(sRadius, dx, dy, sColor);
+            } else {
+                thoughtBgPaint.clearShadowLayer();
+            }
+
+            canvas.drawRoundRect(thoughtRect, AndroidUtilities.dpf2(13f), AndroidUtilities.dpf2(13f), thoughtBgPaint);
+
+            // Draw speech tail
+            Path tail = new Path();
+            tail.moveTo(cx - AndroidUtilities.dpf2(5f), bottom);
+            tail.lineTo(cx + AndroidUtilities.dpf2(5f), bottom);
+            tail.lineTo(cx, bottom + AndroidUtilities.dpf2(5f));
+            tail.close();
+            canvas.drawPath(tail, thoughtBgPaint);
+
+            float baseline = ((bubbleH / 2f) + top) - ((thoughtTextPaint.descent() + thoughtTextPaint.ascent()) / 2f);
+            canvas.drawText(thought, left + padX, baseline, thoughtTextPaint);
+        }
+    }
+
+    public static void drawProfileBackground(Canvas canvas, int width, int height) {
+        if (canvas == null || width <= 0 || height <= 0 || !MiogramCustomUiPrefs.isBgEnabled()) return;
+        int color = MiogramCustomUiPrefs.getBgColor();
+        int alpha = (int) (255 * (MiogramCustomUiPrefs.getBgAlpha() / 100f));
+        int finalColor = (color & 0x00FFFFFF) | (alpha << 24);
+        canvas.drawColor(finalColor);
+    }
+
+    public static void drawProfileBanner(Canvas canvas, int width, int height) {
+        if (canvas == null || width <= 0 || height <= 0 || !MiogramCustomUiPrefs.isBannerEnabled()) return;
+        int color = MiogramCustomUiPrefs.getBannerColor();
+        int alpha = (int) (255 * (MiogramCustomUiPrefs.getBannerAlpha() / 100f));
+        int finalColor = (color & 0x00FFFFFF) | (alpha << 24);
+        Paint paint = new Paint();
+        paint.setColor(finalColor);
+        canvas.drawRect(0, 0, width, height, paint);
     }
 }

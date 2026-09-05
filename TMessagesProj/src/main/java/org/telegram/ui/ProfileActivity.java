@@ -3121,6 +3121,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 return false;
             }
 
+            @Override
+            protected void dispatchDraw(Canvas canvas) {
+                if (myProfile || (userId != 0 && userId == getUserConfig().getClientUserId()) || UserObject.isUserSelf(getMessagesController().getUser(userId))) {
+                    app.miogram.bridge.customui.MiogramUiEngine.drawProfileBackground(canvas, getWidth(), getHeight());
+                    app.miogram.bridge.customui.MiogramUiEngine.drawProfileBanner(canvas, getWidth(), extraHeight);
+                }
+                super.dispatchDraw(canvas);
+            }
+
             private boolean wasPortrait;
 
             @Override
@@ -5615,6 +5624,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 super.dispatchDraw(canvas);
                 if (animatedEmojiDrawable != null && animatedEmojiDrawable.getImageReceiver() != null) {
                     animatedEmojiDrawable.getImageReceiver().startAnimation();
+                }
+                if (myProfile || (userId != 0 && userId == getUserConfig().getClientUserId()) || UserObject.isUserSelf(getMessagesController().getUser(userId))) {
+                    app.miogram.bridge.customui.MiogramUiEngine.drawProfileAvatarExtras(canvas, this);
                 }
             }
         };
@@ -11098,13 +11110,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 if (user != null && !user.restriction_reason.isEmpty()) {
                     restrictionReasonRow = rowCount++;
                 }
-                if (!isBot && (hasPhone || !hasInfo) && !hideNumber) {
+                boolean isSelfProfile = myProfile || (userId != 0 && userId == getUserConfig().getClientUserId()) || UserObject.isUserSelf(user);
+                if (!isBot && (hasPhone || !hasInfo) && !hideNumber && (!isSelfProfile || !app.miogram.bridge.customui.MiogramCustomUiPrefs.isHideRowPhone())) {
                     phoneRow = rowCount++;
                 }
-                if (userInfo != null && !TextUtils.isEmpty(userInfo.about)) {
+                if (userInfo != null && !TextUtils.isEmpty(userInfo.about) && (!isSelfProfile || !app.miogram.bridge.customui.MiogramCustomUiPrefs.isHideRowBio())) {
                     userInfoRow = rowCount++;
                 }
-                if (user != null && username != null) {
+                if (user != null && username != null && (!isSelfProfile || !app.miogram.bridge.customui.MiogramCustomUiPrefs.isHideRowUsername())) {
                     usernameRow = rowCount++;
                 }
                 if (NaConfig.INSTANCE.getIdDcType().Int() != 0) {
@@ -11217,7 +11230,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     reportDividerRow = rowCount++;
                 }
 
-                if (hasMedia || (user != null && user.bot && user.bot_can_edit && user.bot_has_main_app) || userInfo != null && userInfo.common_chats_count != 0 || myProfile) {
+                if ((hasMedia || (user != null && user.bot && user.bot_can_edit && user.bot_has_main_app) || userInfo != null && userInfo.common_chats_count != 0 || myProfile) && (!myProfile || !app.miogram.bridge.customui.MiogramCustomUiPrefs.isHideMediaTabs())) {
                     sharedMediaRow = rowCount++;
                 } else if (lastSectionRow == -1 && needSendMessage) {
                     sendMessageRow = rowCount++;
@@ -14093,6 +14106,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         }
                         isFragmentPhoneNumber = phoneNumber != null && phoneNumber.matches("888\\d{8}");
                         detailCell.setTextAndValue(text, LocaleController.getString(isFragmentPhoneNumber ? R.string.AnonymousNumber : R.string.PhoneMobile), false);
+                        if (myProfile || (userId != 0 && userId == getUserConfig().getClientUserId()) || UserObject.isUserSelf(user)) {
+                            if (app.miogram.bridge.customui.MiogramCustomUiPrefs.isColorPhone()) {
+                                detailCell.textView.setTextColor(app.miogram.bridge.customui.MiogramCustomUiPrefs.getColorPhone());
+                            }
+                        }
                     } else if (position == noteRow) {
                         final TLRPC.UserFull userInfo = getMessagesController().getUserFull(userId);
                         if (userInfo == null) return;
@@ -14170,6 +14188,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                             usernames = new ArrayList<>();
                         }
                         detailCell.setTextAndValue(text, alsoUsernamesString(username, usernames, value), infoEndRowEmpty == -1 && (isTopic || bizHoursRow != -1 || bizLocationRow != -1) && birthdayRow < 0);
+                        if (myProfile || (userId != 0 && userId == getUserConfig().getClientUserId()) || UserObject.isUserSelf(getMessagesController().getUser(userId))) {
+                            if (app.miogram.bridge.customui.MiogramCustomUiPrefs.isColorUsername()) {
+                                detailCell.textView.setTextColor(app.miogram.bridge.customui.MiogramCustomUiPrefs.getColorUsername());
+                            }
+                        }
                     } else if (position == idDcRow) {
                         long id = getId(true);
                         int dc = getDc();
@@ -14270,9 +14293,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 case VIEW_TYPE_ABOUT_LINK:
                     AboutLinkCell aboutLinkCell = (AboutLinkCell) holder.itemView;
                     if (position == userInfoRow) {
-                        // TLRPC.User user = userInfo.user != null ? userInfo.user : getMessagesController().getUser(userInfo.id);
-                        // boolean addlinks = isBot || (user != null && user.premium && userInfo.about != null);
                         aboutLinkCell.setTextAndValue(MessageHelper.zalgoFilter(userInfo.about), LocaleController.getString(R.string.UserBio), true);
+                        if (myProfile || (userId != 0 && userId == getUserConfig().getClientUserId()) || UserObject.isUserSelf(getMessagesController().getUser(userId))) {
+                            if (app.miogram.bridge.customui.MiogramCustomUiPrefs.isColorBio()) {
+                                aboutLinkCell.setCustomTextColor(app.miogram.bridge.customui.MiogramCustomUiPrefs.getColorBio());
+                            }
+                        }
                     } else if (position == channelInfoRow) {
                         String text = chatInfo.about;
                         while (text.contains("\n\n\n")) {

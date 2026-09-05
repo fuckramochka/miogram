@@ -5446,6 +5446,14 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 restoreCountTextPaint = true;
             } else {
                 paint = drawCounterMuted || currentDialogFolderId != 0 ? Theme.dialogs_countGrayPaint : Theme.dialogs_countPaint;
+                if (app.miogram.bridge.customui.MiogramCustomUiPrefs.isUiBadgeCustom()) {
+                    paint.setColor(app.miogram.bridge.customui.MiogramCustomUiPrefs.getUiBadgeColor());
+                    Theme.dialogs_countTextPaint2.setColor(app.miogram.bridge.customui.MiogramCustomUiPrefs.getUiBadgeTextColor());
+                    if (app.miogram.bridge.customui.MiogramCustomUiPrefs.isUiBadgeGlow()) {
+                        paint.setShadowLayer(AndroidUtilities.dp(6), 0, 0, app.miogram.bridge.customui.MiogramCustomUiPrefs.getUiBadgeColor());
+                    }
+                    restoreCountTextPaint = true;
+                }
             }
 
             if (countOldLayout == null || unreadCount == 0) {
@@ -5570,6 +5578,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 canvas.restore();
             }
             if (restoreCountTextPaint) {
+                if (paint != null) paint.clearShadowLayer();
                 Theme.dialogs_countTextPaint2.setColor(Theme.getColor(Theme.key_chats_unreadCounterText));
             }
         }

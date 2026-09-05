@@ -581,6 +581,30 @@ public class MiogramCustomUiPrefs {
     public static void setProfilePalette(String palette) {
         setString(KEY_PROFILE_PALETTE, palette);
     }
+    public static boolean isColorName() {
+        return isNameColorEnabled();
+    }
+    public static int getColorName() {
+        return getNameColor();
+    }
+    public static boolean isColorBio() {
+        return getInt("profile_bio_color", -1) != -1;
+    }
+    public static int getColorBio() {
+        return getInt("profile_bio_color", 0xFFE0E0E0);
+    }
+    public static boolean isColorPhone() {
+        return getInt("profile_phone_color", -1) != -1;
+    }
+    public static int getColorPhone() {
+        return getInt("profile_phone_color", 0xFFFFFFFF);
+    }
+    public static boolean isColorUsername() {
+        return getInt("profile_username_color", -1) != -1;
+    }
+    public static int getColorUsername() {
+        return getInt("profile_username_color", 0xFFFFFFFF);
+    }
     public static boolean isProviderEngine() {
         return getBool(KEY_PROVIDER_ENGINE, false);
     }

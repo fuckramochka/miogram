@@ -1608,6 +1608,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
             super.show();
         }
         setShowing(true);
+        app.miogram.bridge.customui.MiogramHaptic.zipIn(containerView);
         if (focusable) {
             getWindow().setSoftInputMode(focusableSoftInputMode);
         }
@@ -2157,6 +2158,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
             return;
         }
         dismissed = true;
+        app.miogram.bridge.customui.MiogramHaptic.zipOut(containerView);
         if (onHideListener != null) {
             onHideListener.onDismiss(this);
         }

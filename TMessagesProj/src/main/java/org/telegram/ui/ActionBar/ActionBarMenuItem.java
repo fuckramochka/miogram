@@ -1851,7 +1851,11 @@ public class ActionBarMenuItem extends FrameLayout {
 
     @Override
     public void setOnClickListener(@Nullable OnClickListener l) {
-        super.setOnClickListener(onClickListener = l);
+        super.setOnClickListener(v -> {
+            app.miogram.bridge.customui.MiogramHaptic.tap(v);
+            if (l != null) l.onClick(v);
+        });
+        onClickListener = l;
     }
 
     private void checkClearButton() {

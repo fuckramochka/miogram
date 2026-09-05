@@ -85,6 +85,12 @@ public class AboutLinkCell extends FrameLayout {
     private FrameLayout showMoreTextBackgroundView;
     private FrameLayout bottomShadow;
     private Drawable showMoreBackgroundDrawable;
+    private Integer customTextColor = null;
+
+    public void setCustomTextColor(Integer color) {
+        this.customTextColor = color;
+        invalidate();
+    }
 
     private LinkSpanDrawable pressedLink;
     private float pressedLinkYOffset;
@@ -301,6 +307,9 @@ public class AboutLinkCell extends FrameLayout {
         canvas.translate(0, textY = dp(8));
 
         try {
+            if (customTextColor != null) {
+                Theme.profile_aboutTextPaint.setColor(customTextColor);
+            }
             Theme.profile_aboutTextPaint.linkColor = processColor(Theme.getColor(Theme.key_chat_messageLinkIn, resourcesProvider));
             if (firstThreeLinesLayout == null || !shouldExpand) {
                 if (textLayout != null) {

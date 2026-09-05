@@ -1,6 +1,7 @@
 package app.exteraless.drawer;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
@@ -93,10 +94,17 @@ public class DrawerHeaderView extends FrameLayout {
     public DrawerHeaderView(Context context) {
         super(context);
 
-        avatarView = new BackupImageView(context);
+        avatarView = new BackupImageView(context) {
+            @Override
+            protected void dispatchDraw(Canvas canvas) {
+                super.dispatchDraw(canvas);
+                app.miogram.bridge.customui.MiogramUiEngine.drawProfileAvatarExtras(canvas, this);
+            }
+        };
         avatarView.setRoundRadius(AppearanceConfig.getAvatarCorners(AndroidUtilities.dp(72)));
         addView(avatarView, LayoutHelper.createFrame(72, 72.0f, Gravity.LEFT | Gravity.TOP, 16.0f, 16.0f, 0.0f, 0.0f));
         avatarView.setOnClickListener(v -> {
+            app.miogram.bridge.customui.MiogramHaptic.tap(v);
             if (onNavigateToProfile != null) {
                 onNavigateToProfile.run();
             }
@@ -288,6 +296,9 @@ public class DrawerHeaderView extends FrameLayout {
         avatarView.getImageReceiver().setCurrentAccount(account);
         avatarView.setForUserOrChat(user, avatarDrawable);
         nameView.setText(ContactsController.formatName(user.first_name, user.last_name));
+        if (app.miogram.bridge.customui.MiogramCustomUiPrefs.isNameColorEnabled()) {
+            nameView.setTextColor(app.miogram.bridge.customui.MiogramCustomUiPrefs.getNameColor());
+        }
         premiumStatusDrawable.setCurrentAccount(account);
 
         final String username = DialogObject.getPublicUsername(user);

@@ -1138,6 +1138,7 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
                                 view.playSoundEffect(SoundEffectConstants.CLICK);
                             } catch (Exception ignore) {}
                             view.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_CLICKED);
+                            app.miogram.bridge.customui.MiogramHaptic.tap(view);
                             if (onItemClickListener != null) {
                                 onItemClickListener.onItemClick(view, position);
                             } else if (onItemClickListenerExtended != null) {
@@ -1158,6 +1159,7 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
                                         } catch (Exception ignore) {}
                                         view.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_CLICKED);
                                         if (position != -1) {
+                                            app.miogram.bridge.customui.MiogramHaptic.tap(view);
                                             if (onItemClickListener != null) {
                                                 onItemClickListener.onItemClick(view, position);
                                             } else if (onItemClickListenerExtended != null) {
@@ -1187,6 +1189,7 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
                     View child = currentChildView;
                     if (onItemLongClickListener != null) {
                         if (onItemLongClickListener.onItemClick(currentChildView, currentChildPosition)) {
+                            app.miogram.bridge.customui.MiogramHaptic.select(child);
                             try {
                                 if (!NekoConfig.disableVibration.Bool()) child.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
                             } catch (Exception ignored) {}
@@ -1194,6 +1197,7 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
                         }
                     } else {
                         if (onItemLongClickListenerExtended.onItemClick(currentChildView, currentChildPosition, event.getX() - currentChildView.getX(), event.getY() - currentChildView.getY())) {
+                            app.miogram.bridge.customui.MiogramHaptic.select(child);
                             try {
                                 if (!NekoConfig.disableVibration.Bool()) child.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
                             } catch (Exception ignored) {}

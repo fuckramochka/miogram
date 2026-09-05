@@ -376,6 +376,7 @@ public class Switch extends View {
         if (checked != isChecked) {
             isChecked = checked;
             if (attachedToWindow && animated) {
+                app.miogram.bridge.customui.MiogramHaptic.toggle(this, checked);
                 animateToCheckedState(checked);
             } else {
                 cancelCheckAnimator();
