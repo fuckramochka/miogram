@@ -192,7 +192,7 @@ public class PluginsActivity extends BaseFragment {
             tab.setOnClickListener(v -> {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 if (filter == FILTER_CATALOG) {
-                    presentFragment(new app.exteraless.plugins.ui.PluginsStoreActivity());
+                    Browser.openUrl(getParentActivity(), "https://github.com/fuckramochka/mioplugin");
                     return;
                 }
                 currentFilter = filter;

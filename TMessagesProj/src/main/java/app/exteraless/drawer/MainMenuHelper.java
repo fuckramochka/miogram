@@ -272,7 +272,7 @@ public final class MainMenuHelper {
                 return new MenuItemInfo(R.drawable.msg_fave, "Мультичат 🪟",
                         () -> fragment.presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0)), null);
             case BADGE_STUDIO:
-                return new MenuItemInfo(R.drawable.msg_premium_pro, "Відзнаки Miogram ໒꒱",
+                return new MenuItemInfo(R.drawable.msg_premium_badge, "Відзнаки Miogram ໒꒱",
                         () -> app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(fragment.getParentActivity(), currentAccount), null);
             case GHOST_MODE:
                 return new MenuItemInfo(R.drawable.ayu_ghost, ghostModeTitle(),

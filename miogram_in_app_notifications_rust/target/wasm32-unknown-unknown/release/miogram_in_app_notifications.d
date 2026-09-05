@@ -1,1 +1,0 @@
-C:\Users\crime\Documents\Default\ Project\exteraless\miogram_in_app_notifications_rust\target\wasm32-unknown-unknown\release\miogram_in_app_notifications.wasm: C:\Users\crime\Documents\Default\ Project\exteraless\miogram_in_app_notifications_rust\src\lib.rs

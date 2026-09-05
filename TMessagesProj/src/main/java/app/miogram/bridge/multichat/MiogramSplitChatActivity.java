@@ -87,7 +87,7 @@ public class MiogramSplitChatActivity extends BaseFragment {
         actionBar.createMenu().addItem(1, R.drawable.msg_fave);
 
         FrameLayout root = new FrameLayout(context);
-        root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider));
+        root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite, getResourceProvider()));
 
         splitContainer = new LinearLayout(context);
         splitContainer.setOrientation(LinearLayout.VERTICAL);
@@ -103,7 +103,7 @@ public class MiogramSplitChatActivity extends BaseFragment {
         dividerHandle = new View(context) {
             private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
             {
-                paint.setColor(Theme.getColor(Theme.key_sheet_scrollUp, resourcesProvider));
+                paint.setColor(Theme.getColor(Theme.key_sheet_scrollUp, getResourceProvider()));
             }
             @Override
             protected void onDraw(Canvas canvas) {
@@ -118,7 +118,7 @@ public class MiogramSplitChatActivity extends BaseFragment {
                 canvas.drawRoundRect(left, top, left + pillW, top + pillH, AndroidUtilities.dp(2), AndroidUtilities.dp(2), paint);
             }
         };
-        dividerHandle.setBackgroundColor(Theme.getColor(Theme.key_divider, resourcesProvider));
+        dividerHandle.setBackgroundColor(Theme.getColor(Theme.key_divider, getResourceProvider()));
         dividerHandle.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
@@ -182,7 +182,7 @@ public class MiogramSplitChatActivity extends BaseFragment {
         TextView title = new TextView(context);
         title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         title.setTypeface(AndroidUtilities.bold());
-        title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
+        title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, getResourceProvider()));
         title.setGravity(Gravity.CENTER);
 
         String chatName = getDialogTitle(dialogId);
@@ -191,7 +191,7 @@ public class MiogramSplitChatActivity extends BaseFragment {
 
         TextView desc = new TextView(context);
         desc.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-        desc.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, resourcesProvider));
+        desc.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, getResourceProvider()));
         desc.setGravity(Gravity.CENTER);
         desc.setText(dialogId != 0
                 ? MiogramLocale.get("Спліт-вікно готове. Натисніть, щоб розгорнути повний чат або відкрити в плаваючому баблі ໒꒱", "Сплит-окно готово. Нажмите, чтобы развернуть полный чат или открыть в плавающем бабле ໒꒱", "Split pane ready. Tap to expand or open in floating bubble ໒꒱")
@@ -201,11 +201,11 @@ public class MiogramSplitChatActivity extends BaseFragment {
         TextView actionBtn = new TextView(context);
         actionBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         actionBtn.setTypeface(AndroidUtilities.bold());
-        actionBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText, resourcesProvider));
+        actionBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText, getResourceProvider()));
         actionBtn.setGravity(Gravity.CENTER);
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(AndroidUtilities.dp(10));
-        bg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
+        bg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton, getResourceProvider()));
         actionBtn.setBackground(bg);
         actionBtn.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(10), AndroidUtilities.dp(18), AndroidUtilities.dp(10));
         actionBtn.setText(dialogId != 0 ? MiogramLocale.get("Відкрити чат", "Открыть чат", "Open Chat") : MiogramLocale.get("Обрати діалог", "Выбрать диалог", "Choose Dialog"));
@@ -225,12 +225,16 @@ public class MiogramSplitChatActivity extends BaseFragment {
                 args.putBoolean("onlySelect", true);
                 args.putBoolean("checkCanWrite", false);
                 DialogsActivity fragment = new DialogsActivity(args);
-                fragment.setDelegate((f, dids, message, param) -> {
+                fragment.setDelegate((f, dids, message, param, notify, scheduleDate, scheduleRepeatPeriod, topicsFragment) -> {
                     if (dids != null && !dids.isEmpty()) {
-                        secondaryDialogId = dids.get(0);
-                        setupPanePlaceholder(secondaryPane, secondaryDialogId, false);
+                        org.telegram.messenger.MessagesStorage.TopicKey topicKey = dids.get(0);
+                        if (topicKey != null && topicKey.dialogId != 0) {
+                            secondaryDialogId = topicKey.dialogId;
+                            setupPanePlaceholder(secondaryPane, secondaryDialogId, false);
+                        }
                     }
                     f.finishFragment();
+                    return true;
                 });
                 presentFragment(fragment);
             }
@@ -296,17 +300,22 @@ public class MiogramSplitChatActivity extends BaseFragment {
         args.putBoolean("onlySelect", true);
         args.putBoolean("checkCanWrite", false);
         DialogsActivity fragment = new DialogsActivity(args);
-        fragment.setDelegate((f, dids, message, param) -> {
+        fragment.setDelegate((f, dids, message, param, notify, scheduleDate, scheduleRepeatPeriod, topicsFragment) -> {
             if (dids != null && !dids.isEmpty()) {
-                if (isPrimary) {
-                    primaryDialogId = dids.get(0);
-                    setupPanePlaceholder(primaryPane, primaryDialogId, true);
-                } else {
-                    secondaryDialogId = dids.get(0);
-                    setupPanePlaceholder(secondaryPane, secondaryDialogId, false);
+                org.telegram.messenger.MessagesStorage.TopicKey topicKey = dids.get(0);
+                long selectedId = topicKey != null ? topicKey.dialogId : 0;
+                if (selectedId != 0) {
+                    if (isPrimary) {
+                        primaryDialogId = selectedId;
+                        setupPanePlaceholder(primaryPane, primaryDialogId, true);
+                    } else {
+                        secondaryDialogId = selectedId;
+                        setupPanePlaceholder(secondaryPane, secondaryDialogId, false);
+                    }
                 }
             }
             f.finishFragment();
+            return true;
         });
         presentFragment(fragment);
     }

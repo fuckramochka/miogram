@@ -95,7 +95,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
         });
 
         ActionBarMenu menu = actionBar.createMenu();
-        menu.addItem(MENU_REFRESH, R.drawable.ic_ab_search); // Refresh icon
+        menu.addItem(MENU_REFRESH, R.drawable.msg_retry); // Refresh icon
         menu.addItem(MENU_SETTINGS, R.drawable.msg_settings_old);
 
         FrameLayout root = new FrameLayout(context);
@@ -273,7 +273,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
 
         Set<Long> currentTracked = new HashSet<>(MiogramSmartFeedService.getTrackedChannels());
 
-        BottomSheet.Builder builder = new BottomSheet.Builder(context);
+        org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(context);
         builder.setTitle("Оберіть канали для Smart Feed", true);
 
         LinearLayout container = new LinearLayout(context);
@@ -282,7 +282,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
 
         List<CheckBoxCell> cells = new ArrayList<>();
         for (TLRPC.Chat chat : availableChats) {
-            CheckBoxCell cell = new CheckBoxCell(context, 1, 21);
+            CheckBoxCell cell = new CheckBoxCell(context, 1, 21, null);
             cell.setBackground(Theme.getSelectorDrawable(false));
             long dialogId = -chat.id;
             boolean isChecked = currentTracked.contains(dialogId);
@@ -302,7 +302,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
 
         ScrollView scrollView = new ScrollView(context);
         scrollView.addView(container);
-        builder.setCustomView(scrollView);
+        builder.setView(scrollView);
 
         builder.setPositiveButton("Зберегти", (dialog, which) -> {
             MiogramSmartFeedService.setTrackedChannels(currentTracked);

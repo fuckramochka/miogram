@@ -46,6 +46,19 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
     private TextView dynamicLoreView;
     private final List<View> selectorCards = new ArrayList<>();
 
+    
+    public static MiogramBadgeBottomSheet show(Context context, long userId) {
+        MiogramBadgeBottomSheet sheet = new MiogramBadgeBottomSheet(context, userId);
+        sheet.show();
+        return sheet;
+    }
+
+    public static MiogramBadgeBottomSheet show(BaseFragment fragment, long userId) {
+        MiogramBadgeBottomSheet sheet = new MiogramBadgeBottomSheet(fragment, userId);
+        sheet.show();
+        return sheet;
+    }
+
     public MiogramBadgeBottomSheet(BaseFragment fragment, long userId) {
         super(fragment.getParentActivity(), false, fragment.getResourceProvider());
         this.targetUserId = userId;

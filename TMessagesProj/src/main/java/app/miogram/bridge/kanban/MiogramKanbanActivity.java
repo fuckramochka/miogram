@@ -64,7 +64,7 @@ public class MiogramKanbanActivity extends BaseFragment {
         actionBar.createMenu().addItem(1, R.drawable.msg_add);
 
         FrameLayout root = new FrameLayout(context);
-        root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray, resourcesProvider));
+        root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray, getResourceProvider()));
 
         HorizontalScrollView scroll = new HorizontalScrollView(context);
         scroll.setHorizontalScrollBarEnabled(false);
@@ -105,14 +105,14 @@ public class MiogramKanbanActivity extends BaseFragment {
             title.setText(getColumnTitle(colIndex));
             title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
             title.setTypeface(AndroidUtilities.bold());
-            title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
+            title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, getResourceProvider()));
             colHeader.addView(title, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
 
             TextView addBtn = new TextView(context);
             addBtn.setText("+");
             addBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
             addBtn.setTypeface(AndroidUtilities.bold());
-            addBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
+            addBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton, getResourceProvider()));
             addBtn.setPadding(AndroidUtilities.dp(6), 0, AndroidUtilities.dp(6), 0);
             addBtn.setOnClickListener(v -> showCreateCardDialogForColumn(colIndex));
             colHeader.addView(addBtn);
@@ -140,7 +140,7 @@ public class MiogramKanbanActivity extends BaseFragment {
                 TextView empty = new TextView(context);
                 empty.setText(MiogramLocale.get("Немає завдань", "Нет задач", "No tasks"));
                 empty.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
-                empty.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText4, resourcesProvider));
+                empty.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText4, getResourceProvider()));
                 empty.setGravity(Gravity.CENTER);
                 empty.setPadding(0, AndroidUtilities.dp(20), 0, AndroidUtilities.dp(20));
                 cardsContainer.addView(empty);
@@ -161,7 +161,7 @@ public class MiogramKanbanActivity extends BaseFragment {
 
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(AndroidUtilities.dp(12));
-        bg.setColor(Theme.getColor(Theme.key_dialogBackground, resourcesProvider));
+        bg.setColor(Theme.getColor(Theme.key_dialogBackground, getResourceProvider()));
         bg.setStroke(AndroidUtilities.dp(1), Color.argb(25, 128, 128, 128));
         card.setBackground(bg);
 
@@ -169,14 +169,14 @@ public class MiogramKanbanActivity extends BaseFragment {
         title.setText(item.title);
         title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13.5f);
         title.setTypeface(AndroidUtilities.bold());
-        title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
+        title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, getResourceProvider()));
         card.addView(title, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 4));
 
         if (!android.text.TextUtils.isEmpty(item.description)) {
             TextView desc = new TextView(context);
             desc.setText(item.description);
             desc.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
-            desc.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, resourcesProvider));
+            desc.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, getResourceProvider()));
             desc.setMaxLines(3);
             card.addView(desc, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
         }
@@ -190,7 +190,7 @@ public class MiogramKanbanActivity extends BaseFragment {
             TextView openChat = new TextView(context);
             openChat.setText("💬 " + MiogramLocale.get("Чат", "Чат", "Chat"));
             openChat.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
-            openChat.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
+            openChat.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton, getResourceProvider()));
             openChat.setPadding(0, 0, AndroidUtilities.dp(8), 0);
             openChat.setOnClickListener(v -> {
                 Bundle args = new Bundle();
@@ -207,7 +207,7 @@ public class MiogramKanbanActivity extends BaseFragment {
         TextView moveBtn = new TextView(context);
         moveBtn.setText("➡️ " + MiogramLocale.get("Перенести", "Перенести", "Move"));
         moveBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
-        moveBtn.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
+        moveBtn.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, getResourceProvider()));
         moveBtn.setPadding(0, 0, AndroidUtilities.dp(8), 0);
         moveBtn.setOnClickListener(v -> showMoveDialog(item));
         actions.addView(moveBtn);
