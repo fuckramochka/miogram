@@ -262,6 +262,18 @@ public final class MainMenuHelper {
             case QR:
                 return new MenuItemInfo(R.drawable.msg_qrcode, LocaleController.getString(R.string.AuthAnotherClient),
                         () -> openQrScanner(fragment), null);
+            case SMART_FEED:
+                return new MenuItemInfo(R.drawable.ic_feed, "Розумна стрічка ໒꒱",
+                        () -> fragment.presentFragment(new app.miogram.bridge.feed.MiogramSmartFeedActivity()), null);
+            case KANBAN:
+                return new MenuItemInfo(R.drawable.msg_saved, "Канбан-дошка 📋",
+                        () -> fragment.presentFragment(new app.miogram.bridge.kanban.MiogramKanbanActivity()), null);
+            case SPLIT_CHAT:
+                return new MenuItemInfo(R.drawable.msg_fave, "Мультичат 🪟",
+                        () -> fragment.presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0)), null);
+            case BADGE_STUDIO:
+                return new MenuItemInfo(R.drawable.msg_premium_pro, "Відзнаки Miogram ໒꒱",
+                        () -> app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(fragment.getParentActivity(), currentAccount), null);
             case GHOST_MODE:
                 return new MenuItemInfo(R.drawable.ayu_ghost, ghostModeTitle(),
                         () -> toggleGhostMode(fragment, currentAccount),

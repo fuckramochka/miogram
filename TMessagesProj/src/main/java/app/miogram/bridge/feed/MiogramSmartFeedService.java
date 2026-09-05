@@ -132,6 +132,11 @@ public class MiogramSmartFeedService {
      * uses Gemini AI to filter ads and squeeze context into crisp digest cards.
      */
     public static void generateWeeklyDigest(int currentAccount, FeedCallback callback) {
+        if (!MiogramAiService.hasApiKey()) {
+            callback.onError("Будь ласка, вкажіть API-ключ Gemini у Налаштуваннях Miogram -> Miogram AI для генерації розумної стрічки ໒꒱");
+            return;
+        }
+
         Set<Long> channelIds = getTrackedChannels();
         if (channelIds.isEmpty()) {
             callback.onError("Не обрано жодного каналу для розумної стрічки. Будь ласка, додайте канали у налаштуваннях.");
@@ -204,7 +209,7 @@ public class MiogramSmartFeedService {
                         + "3. Поверни суворий JSON-масив без markdown форматування, наприклад: [{"message_id": 10, "title": "Заголовок", "summary": "Вижимка...", "category": "Новини", "is_ad": false}]\n\n"
                         + promptPosts.toString();
 
-                MiogramAiService.summarizeText(aiPrompt, aiResult -> {
+                MiogramAiService.processFeedWithAi(aiPrompt, aiResult -> {
                     if (!TextUtils.isEmpty(aiResult)) {
                         try {
                             String cleanedJson = aiResult.trim();

@@ -28,6 +28,13 @@ import tw.nekomimi.nekogram.ui.cells.HeaderCell;
  */
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
+    private int headerMiogramFeaturesRow;
+    private int smartFeedRow;
+    private int kanbanRow;
+    private int multichatRow;
+    private int badgeStudioRow;
+    private int miogramFeaturesInfoRow;
+
     private int headerCategoriesRow;
     private int visualsRow;
     private int navigationRow;
@@ -54,6 +61,13 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     protected void updateRows() {
         super.updateRows();
 
+        headerMiogramFeaturesRow = addRow();
+        smartFeedRow = addRow();
+        kanbanRow = addRow();
+        multichatRow = addRow();
+        badgeStudioRow = addRow();
+        miogramFeaturesInfoRow = addRow();
+
         headerCategoriesRow = addRow();
         visualsRow = addRow();
         navigationRow = addRow();
@@ -74,7 +88,15 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == visualsRow) {
+        if (position == smartFeedRow) {
+            presentFragment(new app.miogram.bridge.feed.MiogramSmartFeedActivity());
+        } else if (position == kanbanRow) {
+            presentFragment(new app.miogram.bridge.kanban.MiogramKanbanActivity());
+        } else if (position == multichatRow) {
+            presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0));
+        } else if (position == badgeStudioRow) {
+            app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(getParentActivity(), currentAccount);
+        } else if (position == visualsRow) {
             presentFragment(new MiogramVisualsActivity());
         } else if (position == navigationRow) {
             presentFragment(new app.exteraless.settings.OpenExteraAppNavigationActivity());
@@ -107,9 +129,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == headerCategoriesRow || position == headerAdvancedRow) {
+            if (position == headerMiogramFeaturesRow || position == headerCategoriesRow || position == headerAdvancedRow) {
                 return TYPE_HEADER;
-            } else if (position == categoriesInfoRow || position == advancedInfoRow) {
+            } else if (position == miogramFeaturesInfoRow || position == categoriesInfoRow || position == advancedInfoRow) {
                 return TYPE_INFO_PRIVACY;
             }
             return TYPE_TEXT;
@@ -120,7 +142,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
             switch (holder.getItemViewType()) {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
-                    if (position == headerCategoriesRow) {
+                    if (position == headerMiogramFeaturesRow) {
+                        cell.setText(MiogramLocale.get("Ексклюзивні функції Miogram ໒꒱", "Эксклюзивные функции Miogram ໒꒱", "Miogram Exclusive Features ໒꒱"));
+                    } else if (position == headerCategoriesRow) {
                         cell.setText(MiogramLocale.get("Зовнішній вигляд та функції", "Внешний вид и функции", "Appearance & Features"));
                     } else if (position == headerAdvancedRow) {
                         cell.setText(MiogramLocale.get("Система та Інструменти", "Система и Инструменты", "System & Tools"));
@@ -129,7 +153,15 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
-                    if (position == visualsRow) {
+                    if (position == smartFeedRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Розумна стрічка (ШІ-дайджест) ໒꒱", "Умная лента (ИИ-дайджест) ໒꒱", "Smart Feed (AI Digest) ໒꒱"), R.drawable.ic_feed, true);
+                    } else if (position == kanbanRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Канбан-дошка завдань 📋", "Канбан-доска задач 📋", "Kanban Tasks Board 📋"), R.drawable.msg_saved, true);
+                    } else if (position == multichatRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Мультичат (Split-Screen) 🪟", "Мультичат (Split-Screen) 🪟", "Multi-Chat (Split-Screen) 🪟"), R.drawable.msg_fave, true);
+                    } else if (position == badgeStudioRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Канонічні відзнаки Miogram ໒꒱", "Канонические отличия Miogram ໒꒱", "Miogram Canonical Badges ໒꒱"), R.drawable.msg_premium_pro, true);
+                    } else if (position == visualsRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Зовнішній вигляд та стиль", "Внешний вид и стиль", "Appearance & Style"), R.drawable.msg_theme, true);
                     } else if (position == navigationRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Навігація та Меню", "Навигация и Меню", "Navigation & Menu"), R.drawable.msg_folders, true);
@@ -156,7 +188,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
-                    if (position == categoriesInfoRow) {
+                    if (position == miogramFeaturesInfoRow) {
+                        cell.setText(MiogramLocale.get("Розумна стрічка каналів з очищенням від реклами через Gemini AI, подвійні чати, канбан та 10 канонічних відзнак.", "Умная лента каналов с очисткой от рекламы через Gemini AI, двойные чаты, канбан и 10 канонических бейджей.", "Smart Feed with Gemini AI ad-filtering, dual split-screen chats, kanban organizer, and 10 canonical badges."));
+                    } else if (position == categoriesInfoRow) {
                         cell.setText(MiogramLocale.get("Зовнішній вигляд, персоналізація, навігація, паки іконок та розширені параметри чатів.", "Внешний вид, персонализация, навигация, паки иконок и расширенные параметры чатов.", "Appearance, customization, navigation, icon packs, and enhanced chat options."));
                     } else if (position == advancedInfoRow) {
                         cell.setText(MiogramLocale.get("Керування плагінами, сервісами штучного інтелекту та оновленнями Miogram.", "Управление плагинами, сервисами искусственного интеллекта и обновлениями Miogram.", "Manage plugins, AI services, and Miogram updates."));

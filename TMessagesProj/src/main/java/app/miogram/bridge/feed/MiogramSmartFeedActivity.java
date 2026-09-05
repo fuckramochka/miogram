@@ -234,7 +234,18 @@ public class MiogramSmartFeedActivity extends BaseFragment {
                     progressContainer.setVisibility(View.GONE);
                 }
                 if (getParentActivity() != null) {
-                    Toast.makeText(getParentActivity(), error, Toast.LENGTH_LONG).show();
+                    if (error != null && error.contains("API-ключ")) {
+                        AlertDialog.Builder b = new AlertDialog.Builder(getParentActivity());
+                        b.setTitle("Miogram AI ໒꒱");
+                        b.setMessage(error);
+                        b.setPositiveButton("Налаштувати AI", (d, w) -> {
+                            presentFragment(new app.miogram.bridge.ui.MiogramAiSettingsActivity());
+                        });
+                        b.setNegativeButton("Пізніше", null);
+                        showDialog(b.create());
+                    } else {
+                        Toast.makeText(getParentActivity(), error, Toast.LENGTH_LONG).show();
+                    }
                 }
             }
         });

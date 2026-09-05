@@ -279,8 +279,8 @@ public class MiogramKanbanActivity extends BaseFragment {
 
         builder.setView(layout);
         builder.setPositiveButton(MiogramLocale.get("Додати", "Добавить", "Add"), (dialog, which) -> {
-            String title = titleInput.getText().toString().trim();
-            String desc = descInput.getText().toString().trim();
+            String title = titleInput.getText() != null ? titleInput.getText().toString().trim() : "";
+            String desc = descInput.getText() != null ? descInput.getText().toString().trim() : "";
             if (!android.text.TextUtils.isEmpty(title)) {
                 MiogramKanbanStorage.addItem(title, desc, col, 0, 0);
                 rebuildColumns(context);

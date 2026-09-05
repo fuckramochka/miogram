@@ -149,6 +149,12 @@ public class MiogramFloatingChatService extends Service {
         expandBtn.setPadding(AndroidUtilities.dp(6), 0, AndroidUtilities.dp(6), 0);
         expandBtn.setOnClickListener(v -> {
             Intent appIntent = new Intent(this, LaunchActivity.class);
+            appIntent.setAction("com.tmessages.openchat" + Math.random() + Integer.MAX_VALUE);
+            if (dialogId > 0) {
+                appIntent.putExtra("userId", dialogId);
+            } else if (dialogId < 0) {
+                appIntent.putExtra("chatId", -dialogId);
+            }
             appIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(appIntent);
             stopSelf();
@@ -211,6 +217,12 @@ public class MiogramFloatingChatService extends Service {
         quickOpen.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
         quickOpen.setOnClickListener(v -> {
             Intent appIntent = new Intent(this, LaunchActivity.class);
+            appIntent.setAction("com.tmessages.openchat" + Math.random() + Integer.MAX_VALUE);
+            if (dialogId > 0) {
+                appIntent.putExtra("userId", dialogId);
+            } else if (dialogId < 0) {
+                appIntent.putExtra("chatId", -dialogId);
+            }
             appIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(appIntent);
             stopSelf();

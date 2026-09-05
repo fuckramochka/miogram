@@ -16,6 +16,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
@@ -76,6 +77,8 @@ public class MiogramSplitChatActivity extends BaseFragment {
             public void onItemClick(int id) {
                 if (id == -1) {
                     finishFragment();
+                } else if (id == 1) {
+                    showSplitOptionsMenu();
                 }
             }
         });
@@ -251,5 +254,60 @@ public class MiogramSplitChatActivity extends BaseFragment {
             }
         }
         return "ID " + dialogId;
+    }
+
+    private void showSplitOptionsMenu() {
+        Context context = getParentActivity();
+        if (context == null) return;
+
+        org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(context);
+        builder.setTitle(MiogramLocale.get("Опції мультичату ໒꒱", "Опции мультичата ໒꒱", "Multi-Chat Options ໒꒱"));
+
+        String[] options = {
+                MiogramLocale.get("Згорнути в плаваюче вікно (PIP)", "Свернуть в плавающее окно (PIP)", "Minimize to Floating Window (PIP)"),
+                MiogramLocale.get("Змінити Чат 1 (Верхній)", "Сменить Чат 1 (Верхний)", "Change Chat 1 (Top)"),
+                MiogramLocale.get("Змінити Чат 2 (Нижній)", "Сменить Чат 2 (Нижний)", "Change Chat 2 (Bottom)"),
+                MiogramLocale.get("Поміняти чати місцями (Swap)", "Поменять чаты местами (Swap)", "Swap Chats")
+        };
+
+        builder.setItems(options, (dialog, which) -> {
+            if (which == 0) {
+                long targetId = primaryDialogId != 0 ? primaryDialogId : secondaryDialogId;
+                if (targetId != 0) {
+                    MiogramFloatingChatService.startFloatingChat(context, targetId);
+                }
+            } else if (which == 1) {
+                pickChatForPane(true);
+            } else if (which == 2) {
+                pickChatForPane(false);
+            } else if (which == 3) {
+                long temp = primaryDialogId;
+                primaryDialogId = secondaryDialogId;
+                secondaryDialogId = temp;
+                setupPanePlaceholder(primaryPane, primaryDialogId, true);
+                setupPanePlaceholder(secondaryPane, secondaryDialogId, false);
+            }
+        });
+        showDialog(builder.create());
+    }
+
+    private void pickChatForPane(boolean isPrimary) {
+        Bundle args = new Bundle();
+        args.putBoolean("onlySelect", true);
+        args.putBoolean("checkCanWrite", false);
+        DialogsActivity fragment = new DialogsActivity(args);
+        fragment.setDelegate((f, dids, message, param) -> {
+            if (dids != null && !dids.isEmpty()) {
+                if (isPrimary) {
+                    primaryDialogId = dids.get(0);
+                    setupPanePlaceholder(primaryPane, primaryDialogId, true);
+                } else {
+                    secondaryDialogId = dids.get(0);
+                    setupPanePlaceholder(secondaryPane, secondaryDialogId, false);
+                }
+            }
+            f.finishFragment();
+        });
+        presentFragment(fragment);
     }
 }

@@ -265,4 +265,31 @@ public class MiogramAiService {
             }
         });
     }
+
+    /**
+     * Specialized raw execution for Smart Feed with ad-filtering and structured digest,
+     * maintaining the hierarchical fallback chain without overriding user instructions.
+     */
+    public static void processFeedWithAi(String customPrompt, Utilities.Callback<String> callback) {
+        generateContent(customPrompt, getModel(), (res, err) -> {
+            if (res != null) {
+                AndroidUtilities.runOnUIThread(() -> callback.run(res));
+            } else if (err != null && (err.contains("404") || err.contains("400") || err.contains("503"))) {
+                String curModel = getModel();
+                String fb = "gemini-3.1-flash-lite".equals(curModel) ? "gemini-2.5-flash" : "gemini-3.1-flash-lite";
+                generateContent(customPrompt, fb, (fb1Res, fb1Err) -> {
+                    if (fb1Res != null) {
+                        AndroidUtilities.runOnUIThread(() -> callback.run(fb1Res));
+                    } else {
+                        generateContent(customPrompt, "gemini-2.5-flash", (fb2Res, fb2Err) -> {
+                            AndroidUtilities.runOnUIThread(() -> callback.run(fb2Res));
+                        });
+                    }
+                });
+            } else {
+                AndroidUtilities.runOnUIThread(() -> callback.run(null));
+            }
+        });
+    }
+
 }
