@@ -247,33 +247,42 @@ public class MiogramCustomUiActivity extends BaseFragment {
         box.addView(checkGrad);
 
         // Group SOLID: Color
-        EditColorRow solidRow = new EditColorRow(context, "Колір пухирця", MiogramCustomUiPrefs.getBubbleColor(), true, () -> {
-            EditColorPicker.show(getParentActivity(), "Колір пухирця", MiogramCustomUiPrefs.getBubbleColor(), color -> {
+        final EditColorRow[] solidRow = new EditColorRow[1];
+        solidRow[0] = new EditColorRow(context, "Колір пухирця", MiogramCustomUiPrefs.getBubbleColor(), true, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Колір пухирця", MiogramCustomUiPrefs.getBubbleColor(), color -> {
                 MiogramCustomUiPrefs.setBubbleColor(color);
+                if (solidRow[0] != null) solidRow[0].setColor(color);
                 invalidateAll();
             });
         });
-        addToGroup("G_SOLID", solidRow);
-        box.addView(solidRow);
+        addToGroup("G_SOLID", solidRow[0]);
+        box.addView(solidRow[0]);
 
         // Group GRAD: Color 1, Color 2, Angle
-        EditColorRow c1Row = new EditColorRow(context, "Перший колір", MiogramCustomUiPrefs.getBubbleColor(), true, () -> {
-            EditColorPicker.show(getParentActivity(), "Перший колір", MiogramCustomUiPrefs.getBubbleColor(), color -> {
+        final EditColorRow[] c1Row = new EditColorRow[1];
+        c1Row[0] = new EditColorRow(context, "Перший колір", MiogramCustomUiPrefs.getBubbleColor(), true, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Перший колір", MiogramCustomUiPrefs.getBubbleColor(), color -> {
                 MiogramCustomUiPrefs.setBubbleColor(color);
+                if (c1Row[0] != null) c1Row[0].setColor(color);
                 invalidateAll();
             });
         });
-        addToGroup("G_GRAD", c1Row);
-        box.addView(c1Row);
+        addToGroup("G_GRAD", c1Row[0]);
+        box.addView(c1Row[0]);
 
-        EditColorRow c2Row = new EditColorRow(context, "Другий колір", MiogramCustomUiPrefs.getBubbleColor2(), true, () -> {
-            EditColorPicker.show(getParentActivity(), "Другий колір", MiogramCustomUiPrefs.getBubbleColor2(), color -> {
+        final EditColorRow[] c2Row = new EditColorRow[1];
+        c2Row[0] = new EditColorRow(context, "Другий колір", MiogramCustomUiPrefs.getBubbleColor2(), true, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Другий колір", MiogramCustomUiPrefs.getBubbleColor2(), color -> {
                 MiogramCustomUiPrefs.setBubbleColor2(color);
+                if (c2Row[0] != null) c2Row[0].setColor(color);
                 invalidateAll();
             });
         });
-        addToGroup("G_GRAD", c2Row);
-        box.addView(c2Row);
+        addToGroup("G_GRAD", c2Row[0]);
+        box.addView(c2Row[0]);
 
         View angleSlider = createSlider(context, "Напрямок", MiogramCustomUiPrefs.getBubbleGradAngle(), 0, 360, "°", angle -> {
             MiogramCustomUiPrefs.setBubbleGradAngle(angle);
@@ -293,13 +302,16 @@ public class MiogramCustomUiActivity extends BaseFragment {
         box.addView(radiusSlider);
 
         // Text Color
-        EditColorRow textRow = new EditColorRow(context, "Колір тексту", MiogramCustomUiPrefs.getBubbleTextColor(), false, () -> {
-            EditColorPicker.show(getParentActivity(), "Колір тексту", MiogramCustomUiPrefs.getBubbleTextColor(), color -> {
+        final EditColorRow[] textRow = new EditColorRow[1];
+        textRow[0] = new EditColorRow(context, "Колір тексту", MiogramCustomUiPrefs.getBubbleTextColor(), false, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Колір тексту", MiogramCustomUiPrefs.getBubbleTextColor(), color -> {
                 MiogramCustomUiPrefs.setBubbleTextColor(color);
+                if (textRow[0] != null) textRow[0].setColor(color);
                 invalidateAll();
             });
         });
-        box.addView(textRow);
+        box.addView(textRow[0]);
 
         // Header: Glow
         box.addView(createHeader(context, "СВІТІННЯ"));
@@ -311,14 +323,17 @@ public class MiogramCustomUiActivity extends BaseFragment {
         });
         box.addView(glowCheck);
 
-        EditColorRow bGlowRow = new EditColorRow(context, "Колір світіння", MiogramCustomUiPrefs.getBubbleGlowColor(), true, () -> {
-            EditColorPicker.show(getParentActivity(), "Колір світіння", MiogramCustomUiPrefs.getBubbleGlowColor(), color -> {
+        final EditColorRow[] bGlowRow = new EditColorRow[1];
+        bGlowRow[0] = new EditColorRow(context, "Колір світіння", MiogramCustomUiPrefs.getBubbleGlowColor(), true, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Колір світіння", MiogramCustomUiPrefs.getBubbleGlowColor(), color -> {
                 MiogramCustomUiPrefs.setBubbleGlowColor(color);
+                if (bGlowRow[0] != null) bGlowRow[0].setColor(color);
                 invalidateAll();
             });
         });
-        addToGroup("G_BUBBLE_GLOW", bGlowRow);
-        box.addView(bGlowRow);
+        addToGroup("G_BUBBLE_GLOW", bGlowRow[0]);
+        box.addView(bGlowRow[0]);
 
         View bGlowSlider = createSlider(context, "Радіус світіння", MiogramCustomUiPrefs.getBubbleGlowRadius(), 0, 30, "", r -> {
             MiogramCustomUiPrefs.setBubbleGlowRadius(r);
@@ -360,14 +375,17 @@ public class MiogramCustomUiActivity extends BaseFragment {
         });
         box.addView(checkColor);
 
-        EditColorRow nameColorRow = new EditColorRow(context, "Колір імені", MiogramCustomUiPrefs.getNameColor(), false, () -> {
-            EditColorPicker.show(getParentActivity(), "Колір імені", MiogramCustomUiPrefs.getNameColor(), color -> {
+        final EditColorRow[] nameColorRow = new EditColorRow[1];
+        nameColorRow[0] = new EditColorRow(context, "Колір імені", MiogramCustomUiPrefs.getNameColor(), false, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Колір імені", MiogramCustomUiPrefs.getNameColor(), color -> {
                 MiogramCustomUiPrefs.setNameColor(color);
+                if (nameColorRow[0] != null) nameColorRow[0].setColor(color);
                 invalidateAll();
             });
         });
-        addToGroup("G_NAME_COLOR", nameColorRow);
-        box.addView(nameColorRow);
+        addToGroup("G_NAME_COLOR", nameColorRow[0]);
+        box.addView(nameColorRow[0]);
 
         // Header: Glow
         box.addView(createHeader(context, "СВІТІННЯ"));
@@ -378,14 +396,17 @@ public class MiogramCustomUiActivity extends BaseFragment {
         });
         box.addView(checkGlow);
 
-        EditColorRow glowColorRow = new EditColorRow(context, "Колір світіння", MiogramCustomUiPrefs.getNameGlowColor(), true, () -> {
-            EditColorPicker.show(getParentActivity(), "Колір світіння", MiogramCustomUiPrefs.getNameGlowColor(), color -> {
+        final EditColorRow[] glowColorRow = new EditColorRow[1];
+        glowColorRow[0] = new EditColorRow(context, "Колір світіння", MiogramCustomUiPrefs.getNameGlowColor(), true, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Колір світіння", MiogramCustomUiPrefs.getNameGlowColor(), color -> {
                 MiogramCustomUiPrefs.setNameGlowColor(color);
+                if (glowColorRow[0] != null) glowColorRow[0].setColor(color);
                 invalidateAll();
             });
         });
-        addToGroup("G_NAME_GLOW", glowColorRow);
-        box.addView(glowColorRow);
+        addToGroup("G_NAME_GLOW", glowColorRow[0]);
+        box.addView(glowColorRow[0]);
 
         View glowRadiusSlider = createSlider(context, "Радіус", MiogramCustomUiPrefs.getNameGlowRadius(), 0, 40, "", r -> {
             MiogramCustomUiPrefs.setNameGlowRadius(r);
@@ -414,14 +435,17 @@ public class MiogramCustomUiActivity extends BaseFragment {
         });
         box.addView(checkShadow);
 
-        EditColorRow shadowColorRow = new EditColorRow(context, "Колір тіні", MiogramCustomUiPrefs.getNameShadowColor(), true, () -> {
-            EditColorPicker.show(getParentActivity(), "Колір тіні", MiogramCustomUiPrefs.getNameShadowColor(), color -> {
+        final EditColorRow[] shadowColorRow = new EditColorRow[1];
+        shadowColorRow[0] = new EditColorRow(context, "Колір тіні", MiogramCustomUiPrefs.getNameShadowColor(), true, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Колір тіні", MiogramCustomUiPrefs.getNameShadowColor(), color -> {
                 MiogramCustomUiPrefs.setNameShadowColor(color);
+                if (shadowColorRow[0] != null) shadowColorRow[0].setColor(color);
                 invalidateAll();
             });
         });
-        addToGroup("G_NAME_SHADOW", shadowColorRow);
-        box.addView(shadowColorRow);
+        addToGroup("G_NAME_SHADOW", shadowColorRow[0]);
+        box.addView(shadowColorRow[0]);
 
         View shadowBlurSlider = createSlider(context, "Розмиття", MiogramCustomUiPrefs.getNameShadowRadius(), 0, 40, "", b -> {
             MiogramCustomUiPrefs.setNameShadowRadius(b);
@@ -471,23 +495,29 @@ public class MiogramCustomUiActivity extends BaseFragment {
         addToGroup("G_NAME_SPEED", speedSlider);
         box.addView(speedSlider);
 
-        EditColorRow gradC1 = new EditColorRow(context, "Перший колір градієнта", MiogramCustomUiPrefs.getNameGradC1(), true, () -> {
-            EditColorPicker.show(getParentActivity(), "Перший колір градієнта", MiogramCustomUiPrefs.getNameGradC1(), color -> {
+        final EditColorRow[] gradC1 = new EditColorRow[1];
+        gradC1[0] = new EditColorRow(context, "Перший колір градієнта", MiogramCustomUiPrefs.getNameGradC1(), true, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Перший колір градієнта", MiogramCustomUiPrefs.getNameGradC1(), color -> {
                 MiogramCustomUiPrefs.setNameGradC1(color);
+                if (gradC1[0] != null) gradC1[0].setColor(color);
                 invalidateAll();
             });
         });
-        addToGroup("G_NAME_GRAD", gradC1);
-        box.addView(gradC1);
+        addToGroup("G_NAME_GRAD", gradC1[0]);
+        box.addView(gradC1[0]);
 
-        EditColorRow gradC2 = new EditColorRow(context, "Другий колір градієнта", MiogramCustomUiPrefs.getNameGradC2(), true, () -> {
-            EditColorPicker.show(getParentActivity(), "Другий колір градієнта", MiogramCustomUiPrefs.getNameGradC2(), color -> {
+        final EditColorRow[] gradC2 = new EditColorRow[1];
+        gradC2[0] = new EditColorRow(context, "Другий колір градієнта", MiogramCustomUiPrefs.getNameGradC2(), true, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Другий колір градієнта", MiogramCustomUiPrefs.getNameGradC2(), color -> {
                 MiogramCustomUiPrefs.setNameGradC2(color);
+                if (gradC2[0] != null) gradC2[0].setColor(color);
                 invalidateAll();
             });
         });
-        addToGroup("G_NAME_GRAD", gradC2);
-        box.addView(gradC2);
+        addToGroup("G_NAME_GRAD", gradC2[0]);
+        box.addView(gradC2[0]);
 
         View nameAngleSlider = createSlider(context, "Напрямок", MiogramCustomUiPrefs.getNameGradAngle(), 0, 360, "°", a -> {
             MiogramCustomUiPrefs.setNameGradAngle(a);
@@ -569,14 +599,17 @@ public class MiogramCustomUiActivity extends BaseFragment {
         });
         box.addView(checkRing);
 
-        EditColorRow ringColorRow = new EditColorRow(context, "Колір кільця", MiogramCustomUiPrefs.getAvatarRingColor(), true, () -> {
-            EditColorPicker.show(getParentActivity(), "Колір кільця", MiogramCustomUiPrefs.getAvatarRingColor(), color -> {
+        final EditColorRow[] ringColorRow = new EditColorRow[1];
+        ringColorRow[0] = new EditColorRow(context, "Колір кільця", MiogramCustomUiPrefs.getAvatarRingColor(), true, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Колір кільця", MiogramCustomUiPrefs.getAvatarRingColor(), color -> {
                 MiogramCustomUiPrefs.setAvatarRingColor(color);
+                if (ringColorRow[0] != null) ringColorRow[0].setColor(color);
                 invalidateAll();
             });
         });
-        addToGroup("G_AVATAR_RING", ringColorRow);
-        box.addView(ringColorRow);
+        addToGroup("G_AVATAR_RING", ringColorRow[0]);
+        box.addView(ringColorRow[0]);
 
         View ringWidthSlider = createSlider(context, "Товщина обводки", MiogramCustomUiPrefs.getAvatarRingWidth(), 1, 10, " dp", w -> {
             MiogramCustomUiPrefs.setAvatarRingWidth(w);
@@ -663,23 +696,29 @@ public class MiogramCustomUiActivity extends BaseFragment {
         });
         box.addView(checkBadge);
 
-        EditColorRow badgeBgRow = new EditColorRow(context, "Колір фону бейджа", MiogramCustomUiPrefs.getBadgeColor(), true, () -> {
-            EditColorPicker.show(getParentActivity(), "Колір фону бейджа", MiogramCustomUiPrefs.getBadgeColor(), color -> {
+        final EditColorRow[] badgeBgRow = new EditColorRow[1];
+        badgeBgRow[0] = new EditColorRow(context, "Колір фону бейджа", MiogramCustomUiPrefs.getBadgeColor(), true, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Колір фону бейджа", MiogramCustomUiPrefs.getBadgeColor(), color -> {
                 MiogramCustomUiPrefs.setBadgeColor(color);
+                if (badgeBgRow[0] != null) badgeBgRow[0].setColor(color);
                 invalidateAll();
             });
         });
-        addToGroup("G_UI_BADGE", badgeBgRow);
-        box.addView(badgeBgRow);
+        addToGroup("G_UI_BADGE", badgeBgRow[0]);
+        box.addView(badgeBgRow[0]);
 
-        EditColorRow badgeTextRow = new EditColorRow(context, "Колір цифр бейджа", MiogramCustomUiPrefs.getBadgeTextColor(), true, () -> {
-            EditColorPicker.show(getParentActivity(), "Колір цифр бейджа", MiogramCustomUiPrefs.getBadgeTextColor(), color -> {
+        final EditColorRow[] badgeTextRow = new EditColorRow[1];
+        badgeTextRow[0] = new EditColorRow(context, "Колір цифр бейджа", MiogramCustomUiPrefs.getBadgeTextColor(), true, () -> {
+            Context ctx = getParentActivity() != null ? getParentActivity() : context;
+            EditColorPicker.show(ctx, "Колір цифр бейджа", MiogramCustomUiPrefs.getBadgeTextColor(), color -> {
                 MiogramCustomUiPrefs.setBadgeTextColor(color);
+                if (badgeTextRow[0] != null) badgeTextRow[0].setColor(color);
                 invalidateAll();
             });
         });
-        addToGroup("G_UI_BADGE", badgeTextRow);
-        box.addView(badgeTextRow);
+        addToGroup("G_UI_BADGE", badgeTextRow[0]);
+        box.addView(badgeTextRow[0]);
 
         TextCheckCell badgeGlowCheck = createCheck(context, "Неоновий ореол бейджа", MiogramCustomUiPrefs.isBadgeGlowEnabled(), false, checked -> {
             MiogramCustomUiPrefs.setBadgeGlowEnabled(checked);
@@ -881,24 +920,28 @@ public class MiogramCustomUiActivity extends BaseFragment {
         public EditColorRow(Context context, String title, int color, boolean divider, final Runnable onClick) {
             super(context);
             this.title = title;
-            setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+            setClickable(true);
+            setFocusable(true);
+            setBackground(Theme.getSelectorDrawable(false));
 
             textCell = new TextCell(context);
-            textCell.setTextAndValue(title, String.format("#%06X", (0xFFFFFF & color)), divider);
+            textCell.setTextAndValue(title, "", divider);
             addView(textCell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
             band = new Band(context);
             band.setColor(color);
+            band.setClickable(false);
+            band.setFocusable(false);
             addView(band, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.RIGHT));
 
             if (onClick != null) {
+                setOnClickListener(v -> onClick.run());
                 textCell.setOnClickListener(v -> onClick.run());
             }
         }
 
         public void setColor(int color) {
             band.setColor(color);
-            textCell.setTextAndValue(title, String.format("#%06X", (0xFFFFFF & color)), true);
         }
 
         private static final class Band extends View {
@@ -938,9 +981,9 @@ public class MiogramCustomUiActivity extends BaseFragment {
                     shaderColor = color;
                 }
 
-                int save = canvas.saveLayer(null, null);
-                canvas.drawRect(0, 0, width, height, paint);
-                canvas.drawRect(0, 0, width, height, fade);
+                int save = canvas.saveLayer(0f, 0f, width, height, null);
+                canvas.drawRect(0f, 0f, width, height, paint);
+                canvas.drawRect(0f, 0f, width, height, fade);
                 canvas.restoreToCount(save);
             }
         }
@@ -955,6 +998,30 @@ public class MiogramCustomUiActivity extends BaseFragment {
             void accept(int color);
         }
 
+        static final class Alpha {
+            private int rgb;
+            private int value;
+
+            Alpha(int a, int col) {
+                this.value = Math.max(0, Math.min(255, a));
+                this.rgb = 0x00FFFFFF & col;
+            }
+
+            int mix(int col) {
+                this.rgb = 0x00FFFFFF & col;
+                return this.rgb | (this.value << 24);
+            }
+
+            int with(int a) {
+                this.value = Math.max(0, Math.min(255, a));
+                return (this.value << 24) | this.rgb;
+            }
+
+            int percent() {
+                return Math.round((this.value * 100.0f) / 255.0f);
+            }
+        }
+
         public static void show(Context context, String title, int currentColor, final ColorSink sink) {
             if (context == null) return;
             BottomSheet.Builder builder = new BottomSheet.Builder(context, false);
@@ -964,16 +1031,41 @@ public class MiogramCustomUiActivity extends BaseFragment {
             LinearLayout layout = new LinearLayout(context);
             layout.setOrientation(LinearLayout.VERTICAL);
 
+            final Alpha alpha = new Alpha(Color.alpha(currentColor), currentColor);
+
             ColorPicker picker = new ColorPicker(context, false, new ColorPicker.ColorPickerDelegate() {
                 @Override
                 public void setColor(int color, int num, boolean applyNow) {
                     if (sink != null) {
-                        sink.accept(color);
+                        sink.accept(alpha.mix(color));
                     }
                 }
             });
-            picker.setColor(currentColor);
+            picker.setType(-1, false, 1, 1, false, 0, false);
+            picker.setColor(currentColor | 0xFF000000, 0);
             layout.addView(picker, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 340));
+
+            // Opacity / Alpha Slider (Exact Custom Profile EditColorPicker.java)
+            final TextView alphaHeader = new TextView(context);
+            alphaHeader.setText("Прозорість — " + alpha.percent() + "%");
+            alphaHeader.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+            alphaHeader.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+            alphaHeader.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            alphaHeader.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(8), AndroidUtilities.dp(21), AndroidUtilities.dp(4));
+            layout.addView(alphaHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+            SeekBarView seekBar = new SeekBarView(context);
+            seekBar.setReportChanges(true);
+            seekBar.setProgress(alpha.percent() / 100f);
+            seekBar.setDelegate((stop, p) -> {
+                int percent = Math.round(p * 100f);
+                int newColor = alpha.with(Math.round(percent * 255f / 100f));
+                alphaHeader.setText("Прозорість — " + percent + "%");
+                if (sink != null) {
+                    sink.accept(newColor);
+                }
+            });
+            layout.addView(seekBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 38, 12, 0, 12, 12));
 
             builder.setCustomView(layout);
             builder.show();

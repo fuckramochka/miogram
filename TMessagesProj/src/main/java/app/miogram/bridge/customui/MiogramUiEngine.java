@@ -54,14 +54,16 @@ public class MiogramUiEngine {
     private static final Path shapePath = new Path();
     private static final Matrix fxMatrix = new Matrix();
 
+    private static final RectF reusableRingRect = new RectF();
+    private static final Paint roundPaint = new Paint();
+    private static final Path roundResPath = new Path();
+
     private static int bubbleSaveCount = -1;
-    private static Drawable activeBubbleDrawable = null;
 
     // Saved state for clean paint restoration
     private static int savedNameColor = 0;
     private static Shader savedNameShader = null;
     private static Typeface savedNameTypeface = null;
-    private static float savedTextSize = 0f;
     private static boolean nameShadowSet = false;
 
     static {
@@ -72,28 +74,25 @@ public class MiogramUiEngine {
      * 1. CHAT BUBBLES RENDERING HOOKS (1-to-1 with ChatBubbles.java)
      * ========================================================================= */
 
-    public static void beforeDrawBubble(Canvas canvas, Drawable backgroundDrawable, boolean isOut) {
+    public static void beforeDrawBubble(Canvas canvas, boolean isOut) {
         bubbleSaveCount = -1;
-        activeBubbleDrawable = null;
-        if (!isOut || !MiogramCustomUiPrefs.isBubbleColorEnabled() || canvas == null || backgroundDrawable == null) {
+        if (!isOut || !MiogramCustomUiPrefs.isBubbleColorEnabled() || canvas == null) {
             return;
         }
         try {
             bubbleSaveCount = canvas.saveLayer(null, null);
-            activeBubbleDrawable = backgroundDrawable;
         } catch (Throwable ignored) {
             bubbleSaveCount = -1;
         }
     }
 
-    public static void afterDrawBubble(Canvas canvas) {
+    public static void afterDrawBubble(Canvas canvas, Drawable backgroundDrawable) {
         if (bubbleSaveCount < 0 || canvas == null) {
             bubbleSaveCount = -1;
-            activeBubbleDrawable = null;
             return;
         }
-        if (activeBubbleDrawable != null) {
-            Rect bounds = activeBubbleDrawable.getBounds();
+        if (backgroundDrawable != null) {
+            Rect bounds = backgroundDrawable.getBounds();
             if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {
                 boolean isGrad = MiogramCustomUiPrefs.isBubbleGradientEnabled();
                 int c1 = MiogramCustomUiPrefs.getBubbleColor();
@@ -117,7 +116,6 @@ public class MiogramUiEngine {
         } catch (Throwable ignored) {
         }
         bubbleSaveCount = -1;
-        activeBubbleDrawable = null;
     }
 
     public static LinearGradient createGradient(Rect rect, int c1, int c2, int angle) {
@@ -140,7 +138,6 @@ public class MiogramUiEngine {
         savedNameColor = paint.getColor();
         savedNameShader = paint.getShader();
         savedNameTypeface = paint.getTypeface();
-        savedTextSize = paint.getTextSize();
         nameShadowSet = false;
 
         // 1. Color
@@ -157,13 +154,7 @@ public class MiogramUiEngine {
             }
         }
 
-        // 3. Size
-        int size = MiogramCustomUiPrefs.getNameSize();
-        if (size != 100 && size >= 50 && size <= 200) {
-            paint.setTextSize(savedTextSize * (size / 100f));
-        }
-
-        // 4. Shadow or Glow
+        // 3. Shadow or Glow
         if (MiogramCustomUiPrefs.isNameShadowEnabled()) {
             int sColor = MiogramCustomUiPrefs.getNameShadowColor();
             float sRadius = Math.max(0.1f, AndroidUtilities.dp(MiogramCustomUiPrefs.getNameShadowRadius()));
@@ -178,7 +169,7 @@ public class MiogramUiEngine {
             nameShadowSet = true;
         }
 
-        // 5. FX Shaders
+        // 4. FX Shaders
         int fx = MiogramCustomUiPrefs.getNameFx();
         if (fx > 0 && width > 0) {
             Shader shader = buildFxShader(fx, width, paint.getColor());
@@ -193,7 +184,6 @@ public class MiogramUiEngine {
         paint.setColor(savedNameColor);
         paint.setShader(savedNameShader);
         paint.setTypeface(savedNameTypeface);
-        paint.setTextSize(savedTextSize);
         if (nameShadowSet) {
             paint.clearShadowLayer();
             nameShadowSet = false;
@@ -356,11 +346,10 @@ public class MiogramUiEngine {
         }
 
         if (roundness > 0 && shape != SHAPE_CIRCLE) {
-            Paint roundPaint = new Paint();
             roundPaint.setPathEffect(new CornerPathEffect((roundness / 100f) * r * 0.4f));
-            Path res = new Path();
-            if (roundPaint.getFillPath(shapePath, res)) {
-                return res;
+            roundResPath.reset();
+            if (roundPaint.getFillPath(shapePath, roundResPath)) {
+                return roundResPath;
             }
         }
         return shapePath;
@@ -374,7 +363,7 @@ public class MiogramUiEngine {
         ringPaint.setStrokeWidth(stroke);
         float inset = stroke / 2f + AndroidUtilities.dp(1.5f);
 
-        RectF ringRect = new RectF(rect.left - inset, rect.top - inset, rect.right + inset, rect.bottom + inset);
+        reusableRingRect.set(rect.left - inset, rect.top - inset, rect.right + inset, rect.bottom + inset);
         int ringColor = MiogramCustomUiPrefs.getAvatarRingColor();
 
         int shape = MiogramCustomUiPrefs.getAvatarShape();
@@ -389,7 +378,7 @@ public class MiogramUiEngine {
             ringPaint.setColor(ringColor);
         }
 
-        Path ringPath = getAvatarShapePath(ringRect, shape, radius, roundness);
+        Path ringPath = getAvatarShapePath(reusableRingRect, shape, radius, roundness);
         canvas.drawPath(ringPath, ringPaint);
     }
 }
