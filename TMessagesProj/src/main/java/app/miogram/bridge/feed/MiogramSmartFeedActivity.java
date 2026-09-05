@@ -274,7 +274,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
         Set<Long> currentTracked = new HashSet<>(MiogramSmartFeedService.getTrackedChannels());
 
         org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(context);
-        builder.setTitle("Оберіть канали для Smart Feed", true);
+        builder.setTitle(MiogramLocale.get("Оберіть канали для Smart Feed", "Выберите каналы для Smart Feed", "Select channels for Smart Feed"));
 
         LinearLayout container = new LinearLayout(context);
         container.setOrientation(LinearLayout.VERTICAL);
