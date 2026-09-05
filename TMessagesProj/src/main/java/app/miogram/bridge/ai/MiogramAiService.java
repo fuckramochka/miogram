@@ -292,4 +292,33 @@ public class MiogramAiService {
         });
     }
 
+    /**
+     * General text generation for digests, analysis, and custom prompts.
+     */
+    public static void generateText(String prompt, Utilities.Callback2<String, String> callback) {
+        generateContent(prompt, getModel(), (res, err) -> {
+            if (res != null) {
+                callback.run(res, null);
+            } else if (err != null && (err.contains("404") || err.contains("400") || err.contains("503"))) {
+                String curModel = getModel();
+                String fb = "gemini-3.1-flash-lite".equals(curModel) ? "gemini-2.5-flash" : "gemini-3.1-flash-lite";
+                generateContent(prompt, fb, (fb1Res, fb1Err) -> {
+                    if (fb1Res != null) {
+                        callback.run(fb1Res, null);
+                    } else {
+                        generateContent(prompt, "gemini-2.5-flash", (fb2Res, fb2Err) -> {
+                            if (fb2Res != null) {
+                                callback.run(fb2Res, null);
+                            } else {
+                                callback.run(null, fb2Err != null ? fb2Err : err);
+                            }
+                        });
+                    }
+                });
+            } else {
+                callback.run(null, err);
+            }
+        });
+    }
+
 }

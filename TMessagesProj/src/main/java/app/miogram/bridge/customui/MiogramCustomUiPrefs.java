@@ -116,7 +116,11 @@ public class MiogramCustomUiPrefs {
     }
     public static void setBubbleRadius(int radius) {
         getPrefs().edit().putInt(KEY_BUBBLE_RADIUS, radius).apply();
-        SharedConfig.setBubbleRadius(radius);
+        SharedConfig.bubbleRadius = radius;
+        try {
+            org.telegram.messenger.MessagesController.getGlobalMainSettings().edit().putInt("bubbleRadius", radius).commit();
+        } catch (Throwable ignored) {
+        }
     }
     public static boolean isBubbleGlowEnabled() {
         return getPrefs().getBoolean(KEY_BUBBLE_GLOW_ENABLED, false);

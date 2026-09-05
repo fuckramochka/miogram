@@ -1171,7 +1171,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
             float x = (w - tw) / 2f;
             float y = h / 2f - (paint.descent() + paint.ascent()) / 2f;
 
-            MiogramUiEngine.applyNameEffect(paint, (int) tw, Theme.getColor(Theme.key_chat_name));
+            MiogramUiEngine.applyNameEffect(paint, (int) tw, Theme.getColor(Theme.key_chats_name));
             canvas.drawText(name, x, y, paint);
             MiogramUiEngine.restoreNameEffect(paint);
 
