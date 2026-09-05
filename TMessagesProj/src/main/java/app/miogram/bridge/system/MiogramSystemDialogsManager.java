@@ -63,7 +63,6 @@ public class MiogramSystemDialogsManager {
                 feedChat.broadcast = true;
                 feedChat.verified = true;
                 feedChat.creator = true;
-                feedChat.flags = TLRPC.CHAT_FLAG_IS_PUBLIC;
             }
             return feedChat;
         } else if (chatId == -DIALOG_ID_KANBAN) {
@@ -73,7 +72,6 @@ public class MiogramSystemDialogsManager {
                 kanbanChat.title = MiogramLocale.get("Канбан-нотатки 📋", "Канбан-заметки 📋", "Kanban Notes 📋");
                 kanbanChat.broadcast = false;
                 kanbanChat.creator = true;
-                kanbanChat.flags = TLRPC.CHAT_FLAG_IS_PUBLIC;
             }
             return kanbanChat;
         }

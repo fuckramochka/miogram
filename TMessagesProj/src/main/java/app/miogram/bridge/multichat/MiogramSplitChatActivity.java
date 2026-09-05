@@ -328,7 +328,7 @@ public class MiogramSplitChatActivity extends BaseFragment {
     }
 
     @Override
-    public boolean onBackPressed() {
+    public boolean onBackPressed(boolean invoked) {
         if (secondaryLayout != null && secondaryLayout.getFragmentStack().size() > 1) {
             secondaryLayout.onBackPressed();
             return false;
@@ -337,7 +337,7 @@ public class MiogramSplitChatActivity extends BaseFragment {
             primaryLayout.onBackPressed();
             return false;
         }
-        return super.onBackPressed();
+        return super.onBackPressed(invoked);
     }
 
     @Override

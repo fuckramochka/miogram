@@ -3318,6 +3318,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             hasUnmutedCommunityDialogs = false;
             readOutboxMaxId = -1;
             if (isDialogCell) {
+                TLRPC.Dialog dialog = MessagesController.getInstance(currentAccount).dialogs_dict.get(currentDialogId);
                 if (dialog == null && app.miogram.bridge.system.MiogramSystemDialogsManager.isSystemDialog(currentDialogId)) {
                     dialog = app.miogram.bridge.system.MiogramSystemDialogsManager.getSystemDialog(currentDialogId);
                 }

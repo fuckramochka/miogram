@@ -105,11 +105,11 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         } else if (position == performanceRow) {
             presentFragment(new MiogramPerformanceActivity());
         } else if (position == aiRow) {
-            presentFragment(new tw.nekomimi.nekogram.settings.AiSettingsActivity());
+            presentFragment(new MiogramAiSettingsActivity());
         } else if (position == pluginsRow) {
-            presentFragment(new app.exteraless.plugins.PluginsActivity());
+            presentFragment(new app.exteraless.plugins.ui.PluginsActivity());
         } else if (position == updaterRow) {
-            app.miogram.bridge.MiogramUpdater.checkNow(getParentActivity(), true);
+            MiogramUpdater.checkAndShowUpdate(this, true);
         }
     }
 
