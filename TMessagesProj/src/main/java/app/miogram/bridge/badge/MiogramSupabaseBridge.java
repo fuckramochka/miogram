@@ -267,7 +267,6 @@ public class MiogramSupabaseBridge {
                             "01.09.2026",
                             true
                     ));
-                }
             }
         } catch (Exception e) {
             FileLog.e(e);
