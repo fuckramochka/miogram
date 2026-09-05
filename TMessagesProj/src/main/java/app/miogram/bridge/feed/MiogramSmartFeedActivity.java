@@ -1,5 +1,6 @@
 package app.miogram.bridge.feed;
 
+import app.miogram.bridge.MiogramLocale;
 import android.animation.LayoutTransition;
 import android.content.Context;
 import android.content.Intent;

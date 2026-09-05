@@ -978,6 +978,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                 app.miogram.bridge.vault.MiogramDoubleBottomManager.setDuressActive(true);
                 int decoyAccount = app.miogram.bridge.vault.MiogramDoubleBottomManager.getDecoyAccount();
                 if (decoyAccount >= 0 && decoyAccount < UserConfig.MAX_ACCOUNT_COUNT && UserConfig.getInstance(decoyAccount).isClientActivated()) {
+                    MessagesController.getInstance(decoyAccount).loadDialogs(0, -1, 100, true);
                     if (getContext() instanceof LaunchActivity) {
                         ((LaunchActivity) getContext()).switchToAccount(decoyAccount, true);
                     }
@@ -990,7 +991,12 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                     }
                 }
                 finishUnlock(false);
-                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
+                AndroidUtilities.runOnUIThread(() -> {
+                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
+                    if (decoyAccount >= 0) {
+                        NotificationCenter.getInstance(decoyAccount).postNotificationName(NotificationCenter.dialogsNeedReload);
+                    }
+                }, 150);
                 return;
             }
             if (PasscodeHelper.checkPasscode((Activity) getContext(), password)) {

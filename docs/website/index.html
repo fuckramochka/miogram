@@ -1,271 +1,505 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Miogram — Next-Gen Telegram Client with Zero-Trust Security & Cyber Pixel Badges</title>
-  <meta name="description" content="Miogram is an advanced, high-performance Telegram client engineered for privacy, hardware-backed security, WebAssembly plugins, and 10 canonical community badges.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Miogram ໒꒱ — Needy Streamer Overload Telegram Client</title>
+  <meta name="description" content="Miogram — найніжніший Telegram-клієнт в естетиці Needy Streamer Overload. Gemini 3.5 AI, мультичат split-screen, плаваюче віконце PIP, розумна стрічка без реклами та 10 канонічних відзнак.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <div class="glow-orb orb-1"></div>
-  <div class="glow-orb orb-2"></div>
-  <div class="glow-orb orb-3"></div>
+<body class="modern-nso">
 
-  <!-- Navigation -->
-  <header class="navbar">
-    <div class="nav-container">
-      <div class="nav-brand">
+  <!-- Ambient Glowing Background Orbs -->
+  <div class="ambient-glow orb-pink"></div>
+  <div class="ambient-glow orb-cyan"></div>
+  <div class="ambient-glow orb-purple"></div>
+
+  <!-- Modern Floating Header -->
+  <header class="site-header">
+    <div class="header-inner container">
+      <a href="#" class="brand-logo" aria-label="Miogram Home">
         <span class="brand-heart">ʚ♡ɞ</span>
-        <span class="brand-text">Miogram</span>
-      </div>
-      <nav class="nav-links">
-        <a href="#badges">Badges</a>
-        <a href="#security">Security</a>
-        <a href="#wasm">WASM Engine</a>
-        <a href="#design">Liquid Glass</a>
-        <a href="#download" class="nav-cta">Download APK</a>
+        <span class="brand-name">Miogram <span class="brand-wing">໒꒱</span></span>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav class="desktop-nav" aria-label="Main Navigation">
+        <a href="#features" class="nav-link" data-i18n="nav_features">Функції</a>
+        <a href="#badge-studio" class="nav-link" data-i18n="nav_badges">Студія Відзнак</a>
+        <a href="#smart-feed" class="nav-link" data-i18n="nav_feed">Розумна Стрічка</a>
+        <a href="#multichat" class="nav-link" data-i18n="nav_multichat">Мультичат & PIP</a>
+        <a href="#community" class="nav-link" data-i18n="nav_community">Спільнота</a>
       </nav>
+
+      <!-- Language Switcher & Download CTA -->
+      <div class="header-actions">
+        <div class="lang-selector-wrapper">
+          <button class="lang-btn" id="langDropdownBtn" aria-label="Select Language">
+            <span id="currentLangLabel">UA</span>
+            <span class="dropdown-arrow">▾</span>
+          </button>
+          <div class="lang-dropdown" id="langDropdownMenu">
+            <button class="lang-opt" data-lang="uk">🇺🇦 Українська</button>
+            <button class="lang-opt" data-lang="en">🇬🇧 English</button>
+            <button class="lang-opt" data-lang="pl">🇵🇱 Polski</button>
+            <button class="lang-opt" data-lang="de">🇩🇪 Deutsch</button>
+            <button class="lang-opt" data-lang="ru">🌐 Русский</button>
+          </div>
+        </div>
+
+        <a href="#download" class="btn-primary header-download-btn">
+          <span class="btn-icon">⚡</span>
+          <span data-i18n="btn_header_download">Завантажити APK</span>
+        </a>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-btn" id="mobileMenuToggle" aria-label="Open Menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
     </div>
   </header>
 
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="hero-content">
-      <div class="hero-pill">
-        <span class="pill-dot"></span>
-        <span>Version 1.0 Release • Android 15+ Ready</span>
+  <!-- Mobile Drawer Menu -->
+  <div class="mobile-drawer" id="mobileDrawer">
+    <div class="drawer-header">
+      <div class="brand-logo">
+        <span class="brand-heart">ʚ♡ɞ</span>
+        <span class="brand-name">Miogram ໒꒱</span>
       </div>
-      <h1 class="hero-title">
-        More than just a <span class="gradient-text">messenger.</span>
-      </h1>
-      <p class="hero-subtitle">
-        Next-generation Telegram client powered by Zero-Trust Duress Protection,
-        WebAssembly Rust Plugins, Liquid Glass AGSL Shaders, and an exclusive
-        Supabase-powered 10-badge community ecosystem.
-      </p>
-      <div class="hero-actions">
-        <a href="#download" id="hero-download-btn" class="btn btn-primary">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          <span id="hero-download-text">Download Latest APK</span>
-        </a>
-        <a href="https://github.com/fuckramochka/miogram" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
-          </svg>
-          <span>Source Code</span>
-        </a>
-      </div>
-      <div class="hero-stats">
-        <div class="stat-item">
-          <span class="stat-num">&lt; 1ms</span>
-          <span class="stat-label">WASM Plugin Boot</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-num">Argon2id</span>
-          <span class="stat-label">Duress Vault KDF</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-num">120 FPS</span>
-          <span class="stat-label">AGSL GPU Shaders</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-num">10 Badges</span>
-          <span class="stat-label">Supabase Cloud Sync</span>
-        </div>
-      </div>
+      <button class="drawer-close-btn" id="drawerCloseBtn">✕</button>
     </div>
-  </section>
+    <div class="drawer-nav">
+      <a href="#features" class="drawer-link" data-i18n="nav_features">Функції</a>
+      <a href="#badge-studio" class="drawer-link" data-i18n="nav_badges">Студія Відзнак</a>
+      <a href="#smart-feed" class="drawer-link" data-i18n="nav_feed">Розумна Стрічка</a>
+      <a href="#multichat" class="drawer-link" data-i18n="nav_multichat">Мультичат & PIP</a>
+      <a href="#community" class="drawer-link" data-i18n="nav_community">Спільнота</a>
+      <a href="#download" class="drawer-btn-download" data-i18n="btn_download_apk">⚡ Завантажити APK</a>
+    </div>
+  </div>
 
-  <!-- Interactive 10 Badges Showcase -->
-  <section id="badges" class="badges-section">
-    <div class="section-container">
-      <div class="section-header">
-        <span class="section-tag">✦ COMMUNITY IDENTITY</span>
-        <h2 class="section-title">10 Canonical Pixel Badges</h2>
-        <p class="section-desc">
-          Inspired by the cyber aesthetic of <em>Needy Streamer Overload</em> and retro PC-98 pixel art.
-          Crafted with luminous neon contours, atmospheric bloom, specular shading, and twinkling starlight cross particles (✦).
+  <main>
+    <!-- HERO SECTION -->
+    <section class="hero-section container">
+      <div class="hero-content">
+        <div class="hero-pill">
+          <span class="sparkle-icon">✦</span>
+          <span data-i18n="hero_badge_pill">INTERNET ANGEL OVERDOSE • NSO 2026 EDITION</span>
+        </div>
+
+        <h1 class="hero-title">
+          <span class="text-white" data-i18n="hero_title_1">Найніжніший клієнт</span><br>
+          <span class="text-gradient" data-i18n="hero_title_2">нової ери ໒꒱</span>
+        </h1>
+
+        <p class="hero-subtitle" data-i18n="hero_subtitle">
+          Telegram-клієнт у культовій неоново-піксельній естетиці Needy Streamer Overload. Потужний Gemini 3.5 AI, мультичат split-screen, плаваючі віконця PIP, розумна стрічка без реклами та жива хмарна екосистема з 10 канонічних відзнак.
         </p>
-      </div>
 
-      <div class="badge-interactive-container">
-        <!-- Live Animated Canvas Display -->
-        <div class="badge-stage">
-          <canvas id="badgeCanvas" width="360" height="280"></canvas>
-          <div class="badge-info-card">
-            <span id="badgeNumber" class="badge-code">01 — ORIGINAL</span>
-            <h3 id="badgeTitle" class="badge-name">Classical Cyber Heart</h3>
-            <p id="badgeDesc" class="badge-lore">
-              Canonical Miogram winged heart with antenna visor, obsidian core, electric cyan glowing contour, and pink feather tips. The inaugural distinction of the ecosystem.
-            </p>
+        <div class="hero-actions">
+          <a href="#download" class="btn-hero-primary" id="heroDownloadBtn">
+            <span class="btn-glow"></span>
+            <span class="btn-text">
+              <span class="btn-main" data-i18n="btn_hero_download">Завантажити останній APK</span>
+              <span class="btn-sub" id="heroReleaseTag">v1.0.0 • Android 15+ 16KB ELF</span>
+            </span>
+          </a>
+          <a href="#badge-studio" class="btn-hero-secondary">
+            <span class="btn-icon">🎀</span>
+            <span data-i18n="btn_hero_badges">Студія 10 Стрілочок</span>
+          </a>
+          <a href="https://github.com/fuckramochka/miogram" target="_blank" rel="noopener" class="btn-hero-outline">
+            <span class="btn-icon">🐙</span>
+            <span>GitHub</span>
+          </a>
+        </div>
+
+        <!-- Live Community Counter -->
+        <div class="hero-counter-card glass-card">
+          <div class="counter-dot pulse"></div>
+          <div class="counter-info">
+            <span class="counter-number" id="liveUserCount">1,280+</span>
+            <span class="counter-label" data-i18n="hero_counter_label">верифікованих учасників у Supabase ໒꒱</span>
           </div>
         </div>
-
-        <!-- 10 Clickable Badge Selector Tiles -->
-        <div class="badge-selector-grid">
-          <button class="badge-tile active" data-id="original" data-num="01" data-name="ORIGINAL" data-lore="Canonical Miogram winged heart with antenna visor, obsidian core, electric cyan glowing contour, and pink feather tips.">
-            <span class="tile-num">01</span>
-            <span class="tile-name">ORIGINAL</span>
-            <span class="tile-tag">Classic</span>
-          </button>
-          <button class="badge-tile" data-id="pink" data-num="02" data-name="PINK" data-lore="Neon pink style with hot pink chevron heart ribs and pastel gradient wings. True Needy Streamer Overload vibe.">
-            <span class="tile-num">02</span>
-            <span class="tile-name">PINK</span>
-            <span class="tile-tag">Neon</span>
-          </button>
-          <button class="badge-tile" data-id="cyan" data-num="03" data-name="CYAN" data-lore="Electric sky-blue wings with radiant cyan aura and luminous starlight. Symbolizes cutting-edge speed.">
-            <span class="tile-num">03</span>
-            <span class="tile-name">CYAN</span>
-            <span class="tile-tag">Cyber</span>
-          </button>
-          <button class="badge-tile" data-id="dark" data-num="04" data-name="DARK" data-lore="Midnight obsidian wings with glowing velvet violet fringe. Crafted for dark mode connoisseurs.">
-            <span class="tile-num">04</span>
-            <span class="tile-name">DARK</span>
-            <span class="tile-tag">Velvet</span>
-          </button>
-          <button class="badge-tile" data-id="angel" data-num="05" data-name="ANGEL" data-lore="Fluffy pure white wings with a floating glowing halo ring and soft lavender periwinkle heart.">
-            <span class="tile-num">05</span>
-            <span class="tile-name">ANGEL</span>
-            <span class="tile-tag">Halo</span>
-          </button>
-          <button class="badge-tile" data-id="devil" data-num="06" data-name="DEVIL" data-lore="Playful pointed devil horns, scalloped crimson bat wings, and hot pink glowing contour.">
-            <span class="tile-num">06</span>
-            <span class="tile-name">DEVIL</span>
-            <span class="tile-tag">Horns</span>
-          </button>
-          <button class="badge-tile" data-id="rainbow" data-num="07" data-name="RAINBOW" data-lore="Smooth 5-color prismatic rainbow spectrum feathers with golden halo trim and multi-color sparkles.">
-            <span class="tile-num">07</span>
-            <span class="tile-name">RAINBOW</span>
-            <span class="tile-tag">Prism</span>
-          </button>
-          <button class="badge-tile" data-id="outline" data-num="08" data-name="OUTLINE" data-lore="Minimalist 1px glowing cyber wireframe contour with bloom and transparent hollow center.">
-            <span class="tile-num">08</span>
-            <span class="tile-name">OUTLINE</span>
-            <span class="tile-tag">Wireframe</span>
-          </button>
-          <button class="badge-tile" data-id="glitch" data-num="09" data-name="GLITCH" data-lore="Chromatic RGB displacement (magenta left, cyan right) with animated CRT scanline jitters.">
-            <span class="tile-num">09</span>
-            <span class="tile-name">GLITCH</span>
-            <span class="tile-tag">Cyber CRT</span>
-          </button>
-          <button class="badge-tile" data-id="premium" data-num="10" data-name="PREMIUM" data-lore="Radiant 3-peak royal golden crown, amber wings with horizontal slits, and golden chest armor.">
-            <span class="tile-num">10</span>
-            <span class="tile-name">PREMIUM</span>
-            <span class="tile-tag">Royal Gold</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Key Architecture Features -->
-  <section id="security" class="features-section">
-    <div class="section-container">
-      <div class="section-header">
-        <span class="section-tag">✦ UNDER THE HOOD</span>
-        <h2 class="section-title">Architectural Excellence</h2>
       </div>
 
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon icon-cyan">🛡️</div>
-          <h3>Duress PIN & Double Bottom Vault</h3>
-          <p>Two distinct PINs. Entering your emergency PIN instantly loads a neutral decoy screen without decrypting the master keys. Protected with Argon2id RFC 9106, StrongBox TEE hardware isolation, and SQLCipher.</p>
-        </div>
-
-        <div class="feature-card" id="wasm">
-          <div class="feature-icon icon-pink">⚡</div>
-          <h3>WebAssembly (WASM) Rust Plugins</h3>
-          <p>Replacing bulky interpreters with native WebAssembly Micro Runtime (WAMR). Cold boot time &lt; 1ms, RAM usage down from 60 MB to 150 KB, and Ed25519 cryptographic code signing.</p>
-        </div>
-
-        <div class="feature-card" id="design">
-          <div class="feature-icon icon-purple">✨</div>
-          <h3>Spatial Liquid Glass (AGSL)</h3>
-          <p>Hardware-accelerated GPU shaders simulating light refraction, chromatic edge dispersion, and specular gloss at a rock-solid 120 FPS. Fully theme-neutral without overriding custom user palettes.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon icon-gold">🎵</div>
-          <h3>Apple Music + Spotify Ergonomics</h3>
-          <p>Built-in 1:1 Apple Music card player featuring live mini-bass visualizers, gesture scrubbing, and lyrics integration seamlessly merged with Telegram audio.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon icon-cyan">🌐</div>
-          <h3>Supabase Cloud Badge Ecosystem</h3>
-          <p>Global badge resolution, lore histories, and acquisition stories powered by PostgREST and cached locally for instant 0ms offline display with multi-account isolation.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon icon-pink">🧠</div>
-          <h3>Private AI Router & On-Device Whisper</h3>
-          <p>Automatic regex sanitization shields your credit cards, phone numbers, and passwords before cloud calls. Fully offline Whisper STT transcription running on device NPUs.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Download Section with GitHub Releases API -->
-  <section id="download" class="download-section">
-    <div class="section-container">
-      <div class="download-box">
-        <span class="section-tag">✦ DIRECT DOWNLOAD</span>
-        <h2 class="download-title">Get Miogram for Android</h2>
-        <p class="download-desc">
-          Official builds are cryptographically signed and built directly from our GitHub Actions CI pipeline with 16 KB ELF alignment for Android 15+.
-        </p>
-
-        <div class="release-card" id="releaseInfoCard">
-          <div class="release-header">
-            <div>
-              <span class="release-badge" id="releaseTag">Loading version...</span>
-              <span class="release-date" id="releaseDate"></span>
+      <!-- Hero Phone / High-End Interactive Mockup -->
+      <div class="hero-visual">
+        <div class="phone-mockup-wrapper">
+          <div class="phone-glow-ring"></div>
+          
+          <!-- Floating Badge Chip Left -->
+          <div class="floating-badge-chip float-left">
+            <div class="chip-icon">✦</div>
+            <div class="chip-text">
+              <span class="chip-title">Канонічна стрілочка</span>
+              <span class="chip-sub">Supabase Cloud Sync</span>
             </div>
-            <span class="release-status">🟢 Verified Build</span>
           </div>
 
-          <div class="release-notes" id="releaseNotes">
-            Fetching latest release notes from GitHub...
+          <!-- Floating Badge Chip Right -->
+          <div class="floating-badge-chip float-right">
+            <div class="chip-icon">🛡️</div>
+            <div class="chip-text">
+              <span class="chip-title">Подвійне дно</span>
+              <span class="chip-sub">Argon2id + Decoy PIN</span>
+            </div>
           </div>
 
-          <div class="release-downloads" id="releaseAssets">
-            <a href="https://github.com/fuckramochka/miogram/releases/latest" id="primaryApkLink" class="btn btn-primary btn-large">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              <span id="primaryApkText">Download Latest APK</span>
-            </a>
+          <!-- Phone Mockup Body -->
+          <div class="phone-mockup">
+            <!-- Dynamic Island -->
+            <div class="phone-notch">
+              <span class="notch-indicator pulse"></span>
+              <span class="notch-title">Miogram ໒꒱</span>
+              <span class="notch-waves">ılılıll</span>
+            </div>
+
+            <!-- Phone Screen -->
+            <div class="phone-screen">
+              <!-- TG App Header -->
+              <div class="tg-app-header">
+                <div class="tg-header-left">
+                  <span class="tg-back-arrow">←</span>
+                  <div class="tg-avatar-wrap">
+                    <div class="tg-avatar">✦</div>
+                    <span class="tg-online-dot"></span>
+                  </div>
+                  <div class="tg-header-info">
+                    <div class="tg-header-title">
+                      <span>Miogram Community</span>
+                      <span class="tg-arrow-badge">໒꒱</span>
+                    </div>
+                    <div class="tg-header-sub">1,280+ онлайн • Needy Streamer Overload</div>
+                  </div>
+                </div>
+                <div class="tg-header-actions">
+                  <span>⋮</span>
+                </div>
+              </div>
+
+              <!-- TG Chat Area -->
+              <div class="tg-chat-viewport">
+                <!-- Hologram Canvas Banner -->
+                <div class="chat-hologram-banner">
+                  <div class="hologram-inner">
+                    <canvas id="heroBadgeCanvas" width="160" height="160"></canvas>
+                    <div class="hologram-label">
+                      <span id="heroBadgeName">Класичне Кібер-Серце ໒꒱</span>
+                      <span id="heroBadgeDesc">Офіційний канонічний стиль спільноти</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Chat Messages -->
+                <div class="chat-bubble incoming">
+                  <div class="bubble-sender">@fuckramochka <span class="badge-tag">FOUNDER ໒꒱</span></div>
+                  <div class="bubble-text">Ласкаво просимо до Miogram! Це клієнт нового покоління: розумна стрічка ШІ, мультичат та нативне подвійне дно.</div>
+                  <div class="bubble-time">13:37 ✓✓</div>
+                </div>
+
+                <!-- Split Divider -->
+                <div class="split-divider-indicator">
+                  <span class="split-line"></span>
+                  <span class="split-pill">🪟 Мультичат Split-Screen</span>
+                  <span class="split-line"></span>
+                </div>
+
+                <div class="chat-bubble outgoing">
+                  <div class="bubble-text">ШІ Gemini 3.5 очистив стрічку від реклами та підготував дайджест новин за тиждень! †昇天† 🎀</div>
+                  <div class="bubble-time">13:38 ✓✓</div>
+                </div>
+
+                <!-- Floating PIP Mini Window -->
+                <div class="floating-pip-preview">
+                  <div class="pip-header">
+                    <span>🪟 Міні-вікно PIP</span>
+                    <span class="pip-close">✕</span>
+                  </div>
+                  <div class="pip-body">
+                    <div class="pip-text">Активний діалог поверх інших додатків ໒꒱</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TG Input Bar -->
+              <div class="tg-input-bar">
+                <span class="tg-input-icon">📎</span>
+                <div class="tg-input-field">Повідомлення...</div>
+                <span class="tg-input-send">⚡</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="footer-container">
-      <div class="footer-left">
-        <p class="footer-brand">ʚ♡ɞ Miogram</p>
-        <p class="footer-sub">Built with ♡ by <a href="https://t.me/dkramochka" target="_blank" rel="noopener">@dkramochka</a> and the Miogram Community.</p>
+    <!-- BADGE STUDIO SECTION -->
+    <section class="section-container container" id="badge-studio">
+      <div class="section-head text-center">
+        <div class="section-pill">
+          <span class="pill-sparkle">✦</span>
+          <span data-i18n="badge_section_pill">10 CANONICAL ARROW STYLES</span>
+        </div>
+        <h2 class="section-title" data-i18n="badge_section_title">Студія Канонічних Відзнак ໒꒱</h2>
+        <p class="section-subtitle" data-i18n="badge_section_desc">
+          Оберіть будь-який стиль стрілочки для миттєвого інтерактивного перегляду. Кожна відзнака має офіційний сертифікат автентичності та синхронізується в додатку через Supabase.
+        </p>
       </div>
-      <div class="footer-right">
-        <a href="https://github.com/fuckramochka/miogram" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://t.me/dkramochka" target="_blank" rel="noopener">Telegram</a>
-        <a href="https://github.com/fuckramochka/miogram/blob/main/LICENSE" target="_blank" rel="noopener">GPLv3 License</a>
+
+      <div class="studio-grid">
+        <!-- Left: Live Canvas Renderer & Controls -->
+        <div class="studio-preview-col">
+          <div class="studio-canvas-card glass-card">
+            <div class="canvas-top-bar">
+              <span class="canvas-id" id="studioBadgeCode">01 — ORIGINAL</span>
+              <div class="canvas-controls">
+                <label class="ctrl-label">
+                  <span data-i18n="ctrl_bloom">Сяйво:</span>
+                  <input type="range" id="bloomSlider" min="10" max="60" value="35">
+                </label>
+                <button class="btn-toggle-sparkles active" id="sparkleToggleBtn" title="Частинки">✦</button>
+              </div>
+            </div>
+
+            <div class="studio-canvas-wrapper">
+              <canvas id="studioBadgeCanvas" width="340" height="340"></canvas>
+            </div>
+
+            <div class="palette-pills" id="studioPalette">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Official Certificate Card -->
+        <div class="studio-cert-col">
+          <div class="studio-cert-card glass-card">
+            <div class="cert-hologram-strip"></div>
+            
+            <div class="cert-header">
+              <span class="cert-badge-tag" data-i18n="cert_title">СЕРТИФІКАТ АВТЕНТИЧНОСТІ ໒꒱</span>
+              <span class="cert-seal">VERIFIED</span>
+            </div>
+
+            <div class="cert-body">
+              <div class="cert-quote-box">
+                <div class="quote-label" data-i18n="cert_citation_label">ОБҐРУНТУВАННЯ НАГОРОДЖЕННЯ:</div>
+                <div class="quote-text" id="certReason">
+                  Створено автором Miogram як першу канонічну відзнаку екосистеми з моменту заснування проекту (01.09.2026).
+                </div>
+              </div>
+
+              <div class="cert-meta-row">
+                <div class="meta-field">
+                  <span class="meta-label" data-i18n="cert_k_status">Хмарний статус:</span>
+                  <span class="meta-value status-active">
+                    <span class="counter-dot" style="display:inline-block; margin-right:4px;"></span>
+                    Активна в Supabase
+                  </span>
+                </div>
+                <div class="meta-field">
+                  <span class="meta-label" data-i18n="cert_k_style">Активний стиль:</span>
+                  <span class="meta-value text-gradient" id="certStyleName">Класичне Кібер-Серце</span>
+                </div>
+              </div>
+
+              <div class="cert-lore-box">
+                <div class="lore-label" data-i18n="cert_lore_label">✦ СИМВОЛІЗМ ТА ЗМІСТ:</div>
+                <div class="lore-text" id="certLore">
+                  Оригінальна стрілочка в неоново-рожевих тонах Інтернет-Янгола Аме-тян. Втілення естетики Needy Streamer Overload.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10 Badges Selector Grid -->
+      <div class="badges-selector-box">
+        <div class="selector-header">
+          <h3 class="selector-title" data-i18n="selector_title">Каталог 10 Стилів</h3>
+          <span class="selector-hint" data-i18n="selector_hint">Натисніть для вибору:</span>
+        </div>
+        <div class="badges-cards-grid" id="badgeCardsList">
+          <!-- Dynamically populated via app.js -->
+        </div>
+      </div>
+
+      <!-- User ID Lookup Card -->
+      <div class="user-lookup-card glass-card">
+        <h3 class="lookup-title" data-i18n="lookup_title">Перевірити свій Telegram ID у базі ໒꒱</h3>
+        <p class="lookup-desc" data-i18n="lookup_desc">Введіть ваш числовий Telegram ID для миттєвої перевірки статусу у Supabase:</p>
+        <div class="lookup-input-row">
+          <input type="text" id="lookupIdInput" class="lookup-input" placeholder="Наприклад: 8011880648">
+          <button id="lookupBtn" class="lookup-btn" data-i18n="btn_lookup">Перевірити</button>
+        </div>
+        <div id="lookupResult" class="lookup-result"></div>
+      </div>
+    </section>
+
+    <!-- SMART FEED & MULTICHAT SHOWCASE -->
+    <section class="section-container container" id="features">
+      <div class="section-head text-center">
+        <div class="section-pill">
+          <span class="pill-sparkle">✦</span>
+          <span>EXCLUSIVE INNOVATIONS</span>
+        </div>
+        <h2 class="section-title">Передові Можливості Miogram</h2>
+        <p class="section-subtitle">
+          Усе те, чого завжди бракувало у стандартному Telegram, переосмислено в естетиці Needy Streamer Overload.
+        </p>
+      </div>
+
+      <!-- Smart Feed Block -->
+      <div class="showcase-block" id="smart-feed">
+        <div class="showcase-text">
+          <div class="section-pill">
+            <span>GEMINI 3.5 AI</span>
+          </div>
+          <h3 class="section-title" data-i18n="feed_title">Розумна Стрічка (Smart Feed) ໒꒱</h3>
+          <p class="showcase-desc" data-i18n="feed_desc">
+            Більше ніякого рекламного сміття, скаму та нескінченного спаму. Miogram зчитує публікації ваших улюблених каналів за останній тиждень, пропускає через фільтр Gemini 3.5 Flash Lite та готує змістовні картки з фотографіями та ключовими тезами.
+          </p>
+          <div class="showcase-points">
+            <div class="point-item">
+              <span class="point-bullet">✦</span>
+              <div><span class="point-strong" data-i18n="feed_b1_title">100% Фільтрація реклами:</span> <span data-i18n="feed_b1_desc">ШІ видаляє промо-пости, казино, крипто-сигнали та реферальні посилання.</span></div>
+            </div>
+            <div class="point-item">
+              <span class="point-bullet">✦</span>
+              <div><span class="point-strong" data-i18n="feed_b2_title">Стисла вижимка зі збереженням контексту:</span> <span data-i18n="feed_b2_desc">Чіткі тези з головними подіями та авторським тоном.</span></div>
+            </div>
+            <div class="point-item">
+              <span class="point-bullet">✦</span>
+              <div><span class="point-strong" data-i18n="feed_b3_title">Збереження фото та медіа:</span> <span data-i18n="feed_b3_desc">Повнорозмірні фотографії прив'язуються до кожної важливої новини.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="showcase-card glass-card">
+          <div class="feature-icon-badge">🤖</div>
+          <h4 class="feature-title">AI Digest Engine</h4>
+          <p class="feature-desc">Аналізує до 50 каналів паралельно, кешує вижимку локально у форматі JSON і генерує персональний щоденний або тижневий журнал подій без реклами.</p>
+        </div>
+      </div>
+
+      <!-- Multi-Chat & PIP Block -->
+      <div class="showcase-block reverse" id="multichat">
+        <div class="showcase-text">
+          <div class="section-pill">
+            <span>DUAL-SCREEN & PIP</span>
+          </div>
+          <h3 class="section-title" data-i18n="multichat_title">Мультичат & Floating PIP</h3>
+          <p class="showcase-desc" data-i18n="multichat_desc">
+            Працюйте з двома діалогами одночасно! Розділіть екран на дві половини з перетягуваним розділювачем або згорніть чат у компактне плаваюче міні-віконце поверх браузера, YouTube чи ігор.
+          </p>
+          <div class="showcase-points">
+            <div class="point-item">
+              <span class="point-bullet">✦</span>
+              <div><span class="point-strong">Split-Screen режисер:</span> Верхній та нижній чати з живим введенням та обміном даними.</div>
+            </div>
+            <div class="point-item">
+              <span class="point-bullet">✦</span>
+              <div><span class="point-strong">Floating Picture-in-Picture:</span> Перетягуване віконце з прозорістю та швидкими відповідями.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="showcase-card glass-card">
+          <div class="feature-icon-badge icon-cyan">🪟</div>
+          <h4 class="feature-title">Паралельне спілкування</h4>
+          <p class="feature-desc">Не потрібно перемикатися між чатами вперед-назад. Ведіть робочий чат зверху та читайте канал знизу без зупинки.</p>
+        </div>
+      </div>
+
+      <!-- Features Grid (6 Core Features) -->
+      <div class="features-grid">
+        <div class="feature-card glass-card">
+          <div class="feature-icon-badge">🛡️</div>
+          <h4 class="feature-title" data-i18n="feat_1_title">PIN Примусу & Подвійне Дно</h4>
+          <p class="feature-desc" data-i18n="feat_1_desc">Два різні PIN-коди. Введення екстреного PIN-коду відкриває нейтральний екран без майстер-ключів. Захищено Argon2id RFC 9106, StrongBox TEE та SQLCipher.</p>
+        </div>
+
+        <div class="feature-card glass-card">
+          <div class="feature-icon-badge icon-cyan">⚡</div>
+          <h4 class="feature-title" data-i18n="feat_2_title">WASM Rust Плагіни</h4>
+          <p class="feature-desc" data-i18n="feat_2_desc">Швидкий WebAssembly Micro Runtime (WAMR). Холодний старт &lt; 1мс, RAM 150 КБ, сувора пісочниця та криптографічний підпис Ed25519.</p>
+        </div>
+
+        <div class="feature-card glass-card">
+          <div class="feature-icon-badge icon-purple">💎</div>
+          <h4 class="feature-title" data-i18n="feat_3_title">Рідке Скло Liquid Glass</h4>
+          <p class="feature-desc" data-i18n="feat_3_desc">GPU-шейдери з імітацією заломлення світла та хроматичної дисперсії на стабільних 120 FPS без перебивання стандартних тем Telegram.</p>
+        </div>
+
+        <div class="feature-card glass-card">
+          <div class="feature-icon-badge">🎙️</div>
+          <h4 class="feature-title" data-i18n="feat_4_title">Емоційна Аудіо-Транскрипція</h4>
+          <p class="feature-desc" data-i18n="feat_4_desc">Gemini AI розпізнає емоції та просодику мови: крик виділяється КАПСОМ зі знаками оклику, плач — трикрапками, без цензури та заміни слів на теги.</p>
+        </div>
+
+        <div class="feature-card glass-card">
+          <div class="feature-icon-badge icon-cyan">☁️</div>
+          <h4 class="feature-title" data-i18n="feat_5_title">Хмарна Синхронізація Supabase</h4>
+          <p class="feature-desc" data-i18n="feat_5_desc">Глобальне розпізнавання бейджиків, онлайн-лічильник та автоматична верифікація через Supabase PostgREST з 0мс офлайн-кешем.</p>
+        </div>
+
+        <div class="feature-card glass-card">
+          <div class="feature-icon-badge icon-purple">🎵</div>
+          <h4 class="feature-title" data-i18n="feat_6_title">Плеєр у Стилі Apple Music</h4>
+          <p class="feature-desc" data-i18n="feat_6_desc">Вбудований аудіоплеєр з живими міні-басовими візуалізаторами, жестовою перемоткою та синхронним текстом пісень.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- DOWNLOAD SECTION -->
+    <section class="download-section container" id="download">
+      <div class="download-banner-card glass-card">
+        <div class="section-pill">
+          <span class="pill-sparkle">✦</span>
+          <span>OFFICIAL APK RELEASE</span>
+        </div>
+        <h2 class="download-title" data-i18n="dl_title">Отримати Miogram для Android</h2>
+        <p class="download-desc" data-i18n="dl_desc">
+          Офіційні збірки криптографічно підписані та зібрані в GitHub Actions CI з вирівнюванням 16 KB ELF для Android 15+.
+        </p>
+
+        <a href="https://github.com/fuckramochka/miogram/releases/latest" id="finalDownloadBtn" class="btn-download-big">
+          <span>⚡</span>
+          <span data-i18n="btn_dl_apk">Завантажити Miogram APK</span>
+        </a>
+
+        <div class="download-meta">
+          <span>Підтримується: Android 8.0 — 15+</span>
+          <span>•</span>
+          <span>Архітектура: arm64-v8a (16KB Page Aligned)</span>
+          <span>•</span>
+          <span>Ліцензія: GPLv3</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer" id="community">
+    <div class="container footer-inner">
+      <div class="brand-logo">
+        <span class="brand-heart">ʚ♡ɞ</span>
+        <span class="brand-name">Miogram ໒꒱</span>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/fuckramochka/miogram" target="_blank" rel="noopener">GitHub Репозиторій</a>
+        <a href="https://github.com/fuckramochka/mioplugin" target="_blank" rel="noopener">Каталог Плагінів (Mioplugin)</a>
+        <a href="https://t.me/fuckramochka" target="_blank" rel="noopener">Telegram Розробника</a>
+      </div>
+      <div class="footer-copy" data-i18n="footer_copy_line">
+        Створено з ♡ автором @fuckramochka та спільнотою Miogram.
       </div>
     </div>
   </footer>

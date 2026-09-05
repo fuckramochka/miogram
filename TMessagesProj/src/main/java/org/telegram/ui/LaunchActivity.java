@@ -1263,6 +1263,12 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     }
 
     public void switchToAccount(int account, boolean removeAll, GenericProvider<Void, MainTabsActivity> dialogsActivityProvider) {
+        if (app.miogram.bridge.vault.MiogramDoubleBottomManager.isDuressActive()) {
+            int decoy = app.miogram.bridge.vault.MiogramDoubleBottomManager.getDecoyAccount();
+            if (decoy >= 0 && account != decoy) {
+                return;
+            }
+        }
         if (account == UserConfig.selectedAccount || !UserConfig.isValidAccount(account)) {
             return;
         }

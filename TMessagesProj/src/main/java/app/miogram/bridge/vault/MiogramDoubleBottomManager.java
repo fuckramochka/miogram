@@ -122,6 +122,16 @@ public class MiogramDoubleBottomManager {
         if (!isDuressActive) {
             return true;
         }
+        int decoy = getDecoyAccount();
+        if (decoy >= 0) {
+            if (account == decoy) {
+                if (!hasAllowedDialogs(account)) {
+                    return true;
+                }
+                return getAllowedDialogIds(account).contains(dialogId);
+            }
+            return false;
+        }
         if (!hasAllowedDialogs(account)) {
             return true;
         }

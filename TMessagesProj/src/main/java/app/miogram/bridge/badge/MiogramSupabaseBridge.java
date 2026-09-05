@@ -244,6 +244,7 @@ public class MiogramSupabaseBridge {
         try {
             JSONArray arr = new JSONArray(jsonStr);
             synchronized (badgeCache) {
+                badgeCache.clear();
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject obj = arr.getJSONObject(i);
                     long uid = obj.optLong("user_id");
@@ -258,8 +259,7 @@ public class MiogramSupabaseBridge {
                     }
                 }
                 // Preserve founder entry
-                if (badgeCache.get(MiogramBadgeManager.FOUNDER_USER_ID) == null) {
-                    badgeCache.put(MiogramBadgeManager.FOUNDER_USER_ID, new BadgeRecord(
+                badgeCache.put(MiogramBadgeManager.FOUNDER_USER_ID, new BadgeRecord(
                             MiogramBadgeManager.FOUNDER_USER_ID,
                             MiogramBadgeType.ORIGINAL,
                             "Засновник & Архітектор Miogram ໒꒱",
@@ -370,10 +370,7 @@ public class MiogramSupabaseBridge {
                 int code = connection.getResponseCode();
                 FileLog.d("MiogramSupabaseBridge presence reported: " + code);
 
-                // 2. If table miogram_users does not exist yet (404), ensure the user is registered in miogram_badges
-                if (code == 404) {
-                    syncUserBadgeToCloud(userId, "original", true, null);
-                }
+
             } catch (Exception e) {
                 FileLog.e(e);
             } finally {

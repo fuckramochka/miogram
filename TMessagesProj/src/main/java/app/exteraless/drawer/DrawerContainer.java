@@ -981,6 +981,9 @@ public class DrawerContainer extends FrameLayout implements NotificationCenter.N
 
     private void setupCallbacks() {
         headerView.setOnChevronClick(() -> {
+            if (app.miogram.bridge.vault.MiogramDoubleBottomManager.isDuressActive()) {
+                return;
+            }
             accountPickerView.toggleExpand();
             headerView.setChevronExpanded(accountPickerView.isExpanded());
         });

@@ -323,6 +323,7 @@ public class DrawerHeaderView extends FrameLayout {
             nameView.setRightDrawable(null);
         }
 
+        chevronView.setVisibility(app.miogram.bridge.vault.MiogramDoubleBottomManager.isDuressActive() ? View.GONE : View.VISIBLE);
         updateProxyStatus();
     }
 
