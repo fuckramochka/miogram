@@ -4,19 +4,17 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.os.Bundle;
+import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.ApplicationLoader;
-import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
-import org.telegram.messenger.UserObject;
-import org.telegram.tgnet.TLRPC;
-import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.INavigationLayout;
@@ -30,9 +28,9 @@ import java.util.ArrayList;
 import app.miogram.bridge.MiogramLocale;
 
 /**
- * Miogram Dual Split-Screen Multi-Chat Activity:
+ * Native Miogram Dual Split-Screen Multi-Chat Activity:
  * Real live dual-pane layout running two fully functional INavigationLayout containers.
- * Allows interacting with, typing, and reading both chats simultaneously.
+ * Eliminates redundant outer action bars so both chats look 100% native and integrated.
  */
 public class MiogramSplitChatActivity extends BaseFragment {
 
@@ -42,14 +40,13 @@ public class MiogramSplitChatActivity extends BaseFragment {
     private LinearLayout splitContainer;
     private FrameLayout primaryPane;
     private FrameLayout secondaryPane;
-    private View dividerHandle;
+    private FrameLayout dividerBar;
 
     private INavigationLayout primaryLayout;
     private INavigationLayout secondaryLayout;
 
     private float splitRatio = 0.5f;
     private boolean isDragging = false;
-    private float initialTouchY;
 
     public MiogramSplitChatActivity(long primaryDialogId, long secondaryDialogId) {
         super();
@@ -67,22 +64,9 @@ public class MiogramSplitChatActivity extends BaseFragment {
 
     @Override
     public View createView(Context context) {
-        actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setTitle(MiogramLocale.get("Мультичат ໒꒱", "Мультичат ໒꒱", "Multi-Chat ໒꒱"));
-        updateActionBarSubtitle();
-
-        actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
-            @Override
-            public void onItemClick(int id) {
-                if (id == -1) {
-                    finishFragment();
-                } else if (id == 1) {
-                    showSplitOptionsMenu();
-                }
-            }
-        });
-
-        actionBar.createMenu().addItem(1, R.drawable.ic_ab_other);
+        // Hide redundant outer action bar completely for seamless native OS multi-window look
+        actionBar.setAddToContainer(false);
+        actionBar.setVisibility(View.GONE);
 
         FrameLayout root = new FrameLayout(context);
         root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite, getResourceProvider()));
@@ -90,35 +74,82 @@ public class MiogramSplitChatActivity extends BaseFragment {
         splitContainer = new LinearLayout(context);
         splitContainer.setOrientation(LinearLayout.VERTICAL);
 
-        // 1. Primary Chat Pane
+        // 1. Primary Top Chat Pane
         primaryPane = new FrameLayout(context);
         splitContainer.addView(primaryPane, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, splitRatio));
 
-        // 2. Interactive Draggable Divider Handle
-        dividerHandle = new View(context) {
-            private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        // 2. Sleek Draggable Divider Bar (24dp height)
+        dividerBar = new FrameLayout(context);
+        dividerBar.setBackgroundColor(Theme.getColor(Theme.key_chat_topPanelBackground, getResourceProvider()));
+
+        View handleView = new View(context) {
+            private final Paint pillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final Paint borderPaint = new Paint();
+
             {
-                paint.setColor(Theme.getColor(Theme.key_sheet_scrollUp, getResourceProvider()));
+                pillPaint.setColor(Theme.getColor(Theme.key_sheet_scrollUp, getResourceProvider()));
+                borderPaint.setColor(Theme.getColor(Theme.key_divider, getResourceProvider()));
+                borderPaint.setStrokeWidth(AndroidUtilities.dp(1));
             }
+
             @Override
             protected void onDraw(Canvas canvas) {
                 super.onDraw(canvas);
                 int w = getWidth();
                 int h = getHeight();
-                float pillW = AndroidUtilities.dp(44);
+
+                // Subtle top and bottom hairline borders
+                canvas.drawLine(0, 0, w, 0, borderPaint);
+                canvas.drawLine(0, h, w, h, borderPaint);
+
+                // Centered modern drag pill
+                float pillW = AndroidUtilities.dp(38);
                 float pillH = AndroidUtilities.dp(4);
                 float left = (w - pillW) / 2f;
                 float top = (h - pillH) / 2f;
-                canvas.drawRoundRect(left, top, left + pillW, top + pillH, AndroidUtilities.dp(2), AndroidUtilities.dp(2), paint);
+                canvas.drawRoundRect(left, top, left + pillW, top + pillH, AndroidUtilities.dp(2), AndroidUtilities.dp(2), pillPaint);
             }
         };
-        dividerHandle.setBackgroundColor(Theme.getColor(Theme.key_divider, getResourceProvider()));
-        dividerHandle.setOnTouchListener((v, event) -> {
+        dividerBar.addView(handleView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
+        // Quick Swap / Menu Action Icon at the right
+        ImageView swapButton = new ImageView(context);
+        swapButton.setImageResource(R.drawable.baseline_swap_horiz_24);
+        swapButton.setColorFilter(Theme.getColor(Theme.key_chat_topPanelClose, getResourceProvider()));
+        swapButton.setScaleType(ImageView.ScaleType.CENTER);
+        swapButton.setRotation(90); // Vertical swap
+        swapButton.setOnClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            swapChats();
+        });
+        swapButton.setOnLongClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+            showSplitOptionsMenu();
+            return true;
+        });
+        dividerBar.addView(swapButton, LayoutHelper.createFrame(36, 24, Gravity.END | Gravity.CENTER_VERTICAL, 0, 0, 8, 0));
+
+        GestureDetector gestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                dividerBar.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK);
+                updateSplitRatio(0.5f);
+                return true;
+            }
+
+            @Override
+            public void onLongPress(MotionEvent e) {
+                dividerBar.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                showSplitOptionsMenu();
+            }
+        });
+
+        dividerBar.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     isDragging = true;
-                    initialTouchY = event.getRawY();
                     v.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
                     return true;
                 case MotionEvent.ACTION_MOVE:
@@ -136,12 +167,13 @@ public class MiogramSplitChatActivity extends BaseFragment {
                     isDragging = false;
                     return true;
             }
-            return false;
+            return true;
         });
-        splitContainer.addView(dividerHandle, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(16)));
 
-        // 3. Secondary Chat Pane
+        splitContainer.addView(dividerBar, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(24)));
+
+        // 3. Secondary Bottom Chat Pane
         secondaryPane = new FrameLayout(context);
         splitContainer.addView(secondaryPane, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f - splitRatio));
@@ -167,15 +199,35 @@ public class MiogramSplitChatActivity extends BaseFragment {
     }
 
     private void initNavLayouts(Context context) {
-        // Primary
+        // Primary Layout
         primaryLayout = INavigationLayout.newLayout(context, false);
         primaryLayout.setFragmentStack(new ArrayList<>());
+        primaryLayout.setDelegate(new INavigationLayout.INavigationLayoutDelegate() {
+            @Override
+            public boolean needCloseLastFragment(INavigationLayout layout) {
+                if (layout.getFragmentStack().size() <= 1) {
+                    finishFragment();
+                    return false;
+                }
+                return true;
+            }
+        });
         primaryPane.addView(primaryLayout.getView(), LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         loadPrimaryChat();
 
-        // Secondary
+        // Secondary Layout
         secondaryLayout = INavigationLayout.newLayout(context, false);
         secondaryLayout.setFragmentStack(new ArrayList<>());
+        secondaryLayout.setDelegate(new INavigationLayout.INavigationLayoutDelegate() {
+            @Override
+            public boolean needCloseLastFragment(INavigationLayout layout) {
+                if (layout.getFragmentStack().size() <= 1) {
+                    finishFragment();
+                    return false;
+                }
+                return true;
+            }
+        });
         secondaryPane.addView(secondaryLayout.getView(), LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         loadSecondaryChat();
     }
@@ -201,7 +253,6 @@ public class MiogramSplitChatActivity extends BaseFragment {
                     org.telegram.messenger.MessagesStorage.TopicKey key = dids.get(0);
                     if (key != null && key.dialogId != 0) {
                         primaryDialogId = key.dialogId;
-                        updateActionBarSubtitle();
                         loadPrimaryChat();
                     }
                 }
@@ -209,7 +260,6 @@ public class MiogramSplitChatActivity extends BaseFragment {
             });
             primaryLayout.presentFragment(new INavigationLayout.NavigationParams(dialogs).setNoAnimation(true));
         }
-        updateActionBarSubtitle();
     }
 
     private void loadSecondaryChat() {
@@ -233,7 +283,6 @@ public class MiogramSplitChatActivity extends BaseFragment {
                     org.telegram.messenger.MessagesStorage.TopicKey key = dids.get(0);
                     if (key != null && key.dialogId != 0) {
                         secondaryDialogId = key.dialogId;
-                        updateActionBarSubtitle();
                         loadSecondaryChat();
                     }
                 }
@@ -241,36 +290,14 @@ public class MiogramSplitChatActivity extends BaseFragment {
             });
             secondaryLayout.presentFragment(new INavigationLayout.NavigationParams(dialogs).setNoAnimation(true));
         }
-        updateActionBarSubtitle();
     }
 
-    private void updateActionBarSubtitle() {
-        if (actionBar == null) return;
-        String t1 = getDialogTitle(primaryDialogId);
-        String t2 = getDialogTitle(secondaryDialogId);
-        if (t1 != null && t2 != null) {
-            actionBar.setSubtitle(t1 + "  ⬌  " + t2);
-        } else if (t1 != null) {
-            actionBar.setSubtitle(t1 + "  •  " + MiogramLocale.get("Оберіть другий чат", "Выберите второй чат", "Select second chat"));
-        } else {
-            actionBar.setSubtitle(MiogramLocale.get("Оберіть діалоги для спліту", "Выберите диалоги для сплита", "Select dialogs for split"));
-        }
-    }
-
-    private String getDialogTitle(long dialogId) {
-        if (dialogId == 0) return null;
-        if (dialogId > 0) {
-            TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(dialogId);
-            if (user != null) {
-                return UserObject.getUserName(user);
-            }
-        } else {
-            TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
-            if (chat != null) {
-                return chat.title;
-            }
-        }
-        return "ID " + dialogId;
+    private void swapChats() {
+        long temp = primaryDialogId;
+        primaryDialogId = secondaryDialogId;
+        secondaryDialogId = temp;
+        loadPrimaryChat();
+        loadSecondaryChat();
     }
 
     private void showSplitOptionsMenu() {
@@ -290,11 +317,7 @@ public class MiogramSplitChatActivity extends BaseFragment {
 
         builder.setItems(options, (dialog, which) -> {
             if (which == 0) {
-                long temp = primaryDialogId;
-                primaryDialogId = secondaryDialogId;
-                secondaryDialogId = temp;
-                loadPrimaryChat();
-                loadSecondaryChat();
+                swapChats();
             } else if (which == 1) {
                 primaryDialogId = 0;
                 loadPrimaryChat();

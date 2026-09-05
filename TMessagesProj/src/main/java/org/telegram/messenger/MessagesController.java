@@ -6815,9 +6815,6 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public TLRPC.Chat getChat(Long id) {
-        if (id != null && app.miogram.bridge.system.MiogramSystemDialogsManager.isSystemChat(id)) {
-            return app.miogram.bridge.system.MiogramSystemDialogsManager.getSystemChat(id);
-        }
         return chats.get(id);
     }
 

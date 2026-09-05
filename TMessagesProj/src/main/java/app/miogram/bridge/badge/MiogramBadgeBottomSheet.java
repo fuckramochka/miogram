@@ -145,7 +145,58 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
         badgeSubView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, resourcesProvider));
         badgeSubView.setGravity(Gravity.CENTER);
         badgeSubView.setText(selectedBadge.getTitle() + " • Supabase Cloud Verified ✓");
-        root.addView(badgeSubView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 16));
+        if (record == null) {
+            badgeSubView.setText(MiogramLocale.get("Не активовано в Supabase", "Не активировано в Supabase", "Not Active in Supabase"));
+            LinearLayout infoCard = new LinearLayout(context);
+            infoCard.setOrientation(LinearLayout.VERTICAL);
+            GradientDrawable infoBg = new GradientDrawable();
+            infoBg.setShape(GradientDrawable.RECTANGLE);
+            infoBg.setCornerRadius(AndroidUtilities.dp(14));
+            infoBg.setColor(Theme.getColor(Theme.key_windowBackgroundGray, resourcesProvider));
+            infoCard.setBackground(infoBg);
+            infoCard.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
+
+            TextView infoTitle = new TextView(context);
+            infoTitle.setText(MiogramLocale.get("Статус відзнаки", "Статус отличия", "Badge Status"));
+            infoTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            infoTitle.setTypeface(AndroidUtilities.bold());
+            infoTitle.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
+            infoCard.addView(infoTitle, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 6));
+
+            TextView infoBody = new TextView(context);
+            infoBody.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+            infoBody.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
+            infoBody.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
+            infoBody.setText(MiogramLocale.get(
+                    "У вас наразі немає активної відзнаки Miogram. Канонічні відзнаки (крила/стрілочки) видаються виключно вручну адміністрацією через хмарну базу даних Supabase за особливий внесок у розвиток спільноти.",
+                    "У вас пока нет активного отличия Miogram. Канонические отличия (крылья/стрелочки) выдаются исключительно вручную администрацией через базу данных Supabase за особый вклад в развитие сообщества.",
+                    "You currently do not have an active Miogram badge. Canonical badges are granted exclusively and manually by Miogram administration via Supabase database for community contributions."
+            ));
+            infoCard.addView(infoBody, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+            root.addView(infoCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 18));
+
+            TextView okButton = new TextView(context);
+            okButton.setText(MiogramLocale.get("Зрозуміло", "Понятно", "Got It"));
+            okButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+            okButton.setTypeface(AndroidUtilities.bold());
+            okButton.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText, resourcesProvider));
+            okButton.setGravity(Gravity.CENTER);
+            GradientDrawable btnBg = new GradientDrawable();
+            btnBg.setShape(GradientDrawable.RECTANGLE);
+            btnBg.setCornerRadius(AndroidUtilities.dp(10));
+            btnBg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
+            okButton.setBackground(btnBg);
+            okButton.setPadding(0, AndroidUtilities.dp(13), 0, AndroidUtilities.dp(13));
+            okButton.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                dismiss();
+            });
+            root.addView(okButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+            scrollView.addView(root);
+            setCustomView(scrollView);
+            return;
+        }
 
         // =============================================================
         // BRANCH A: INSPECTION MODE ("За що отримана стрілочка")

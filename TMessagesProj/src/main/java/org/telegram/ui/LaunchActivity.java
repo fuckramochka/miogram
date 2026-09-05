@@ -441,7 +441,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         ApplicationLoader.postInitApplication();
         AndroidUtilities.checkDisplaySize(this, getResources().getConfiguration());
         currentAccount = UserConfig.selectedAccount;
-        app.miogram.bridge.updater.MiogramUpdater.initAutoUpdate(this);
+        AndroidUtilities.runOnUIThread(() -> app.miogram.bridge.updater.MiogramUpdater.initAutoUpdate(this), 3500);
         app.miogram.bridge.plugins.MiogramInAppNotifications.getInstance().register();
         app.miogram.bridge.performance.MiogramFpsController.applyToWindow(this);
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
@@ -476,7 +476,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         flagSecureReason.attach();
 
         super.onCreate(savedInstanceState);
-        app.miogram.bridge.badge.MiogramSupabaseBridge.init();
+        org.telegram.messenger.Utilities.globalQueue.postRunnable(() -> app.miogram.bridge.badge.MiogramSupabaseBridge.init());
         app.miogram.bridge.perf.MiogramPerformanceOptimizer.applyProMotionRefreshRate(this);
         if (Build.VERSION.SDK_INT >= 24) {
             AndroidUtilities.isInMultiwindow = isInMultiWindowMode();

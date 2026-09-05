@@ -57,7 +57,7 @@ public class MiogramSupabaseBridge {
     private static final String KEY_OPTIN_COMPLETED = "badge_optin_completed";
     private static final String KEY_SYNC_ENABLED = "badge_sync_enabled_";
     private static final String KEY_SELECTED_BADGE = "badge_selected_style_";
-    private static final String KEY_CACHE_JSON = "badge_cache_json_v5";
+    private static final String KEY_CACHE_JSON = "badge_cache_cloud_v10";
 
     public static final String DEFAULT_SUPABASE_URL = "https://dbxsnjoeyiqvqtrluvwu.supabase.co";
     public static final String DEFAULT_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRieHNuam9leWlxdnF0cmx1dnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDI1MzEsImV4cCI6MjEwNDExODUzMX0.KJ0kvON1HXZu4MzlZjapSJEhEzWYlEqQoNEstWCgIjA";
@@ -74,18 +74,11 @@ public class MiogramSupabaseBridge {
         if (initialized) return;
         initialized = true;
 
-        // 1. Pre-seed Founder record in cache
-        badgeCache.put(MiogramBadgeManager.FOUNDER_USER_ID, new BadgeRecord(
-                MiogramBadgeManager.FOUNDER_USER_ID,
-                MiogramBadgeType.ORIGINAL,
-                "Засновник & Архітектор Miogram ໒꒱",
-                "Створено автором Miogram як найпершу відзнаку екосистеми з моменту заснування проекту (01.09.2026).",
-                "01.09.2026",
-                true
-        ));
-        badgeCache.remove(8858288454L);
+        synchronized (badgeCache) {
+            badgeCache.clear();
+        }
 
-        // 2. Restore cached cloud badges from local storage
+        // 1. Restore cached cloud badges from local storage
         try {
             SharedPreferences prefs = getPrefs(null);
             String cachedJson = prefs.getString(KEY_CACHE_JSON, null);
@@ -96,46 +89,32 @@ public class MiogramSupabaseBridge {
             FileLog.e(e);
         }
 
-        // 3. Trigger asynchronous background fetch from Supabase
+        // 2. Trigger asynchronous background fetch from Supabase
         fetchBadgesFromCloud(null);
 
-        // 4. Report active user account(s) presence and collect ID into database
+        // 3. Report active user account(s) presence into users table
         reportCurrentUserPresence();
     }
 
     public static boolean hasCloudBadge(long userId) {
-        if (userId == 8858288454L) {
+        if (userId <= 0) {
             return false;
         }
         init();
-        if (userId == MiogramBadgeManager.FOUNDER_USER_ID) {
-            return true;
-        }
         synchronized (badgeCache) {
             BadgeRecord record = badgeCache.get(userId);
-            return record != null && record.isActive && userId != 8858288454L;
+            return record != null && record.isActive;
         }
     }
 
     public static BadgeRecord getBadgeRecord(long userId) {
+        if (userId <= 0) {
+            return null;
+        }
         init();
         synchronized (badgeCache) {
-            BadgeRecord record = badgeCache.get(userId);
-            if (record != null) {
-                return record;
-            }
+            return badgeCache.get(userId);
         }
-        if (userId == MiogramBadgeManager.FOUNDER_USER_ID) {
-            return new BadgeRecord(
-                    MiogramBadgeManager.FOUNDER_USER_ID,
-                    MiogramBadgeType.ORIGINAL,
-                    "Засновник & Архітектор Miogram ໒꒱",
-                    "Створено автором Miogram як найпершу відзнаку екосистеми з моменту заснування проекту.",
-                    "01.09.2026",
-                    true
-            );
-        }
-        return null;
     }
 
     public static MiogramBadgeType getCachedBadgeType(long userId) {
@@ -258,19 +237,10 @@ public class MiogramSupabaseBridge {
                     String reason = obj.optString("obtained_reason", "Верифікований учасник спільноти Miogram");
                     String date = obj.optString("obtained_at", "01.09.2026");
 
-                    if (uid != 0 && active && uid != 8858288454L) {
+                    if (uid != 0 && active) {
                         badgeCache.put(uid, new BadgeRecord(uid, MiogramBadgeType.fromId(badgeId), title, reason, date, true));
                     }
                 }
-                // Preserve founder entry
-                badgeCache.put(MiogramBadgeManager.FOUNDER_USER_ID, new BadgeRecord(
-                            MiogramBadgeManager.FOUNDER_USER_ID,
-                            MiogramBadgeType.ORIGINAL,
-                            "Засновник & Архітектор Miogram ໒꒱",
-                            "Створено автором Miogram як першу канонічну відзнаку екосистеми з моменту заснування проекту.",
-                            "01.09.2026",
-                            true
-                    ));
             }
         } catch (Exception e) {
             FileLog.e(e);
@@ -278,26 +248,29 @@ public class MiogramSupabaseBridge {
     }
 
     public static void syncUserBadgeToCloud(long userId, String badgeId, boolean isActive, Runnable onComplete) {
+        if (userId <= 0) return;
+        synchronized (badgeCache) {
+            if (badgeCache.get(userId) == null) {
+                // Not in active badges database — never self-issue
+                return;
+            }
+        }
         Utilities.globalQueue.postRunnable(() -> {
             HttpURLConnection connection = null;
             try {
-                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges";
+                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?user_id=eq." + userId;
                 URL url = new URL(endpoint);
                 connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("POST");
+                connection.setRequestMethod("PATCH");
                 connection.setDoOutput(true);
                 connection.setConnectTimeout(8000);
                 connection.setReadTimeout(8000);
                 connection.setRequestProperty("apikey", DEFAULT_ANON_KEY);
                 connection.setRequestProperty("Authorization", "Bearer " + DEFAULT_ANON_KEY);
                 connection.setRequestProperty("Content-Type", "application/json");
-                connection.setRequestProperty("Prefer", "resolution=merge-duplicates");
 
                 JSONObject body = new JSONObject();
-                body.put("user_id", userId);
                 body.put("badge_id", badgeId);
-                body.put("is_active", isActive);
-                body.put("client_version", "Miogram 1.0");
 
                 byte[] outBytes = body.toString().getBytes(StandardCharsets.UTF_8);
                 connection.setFixedLengthStreamingMode(outBytes.length);
@@ -307,7 +280,7 @@ public class MiogramSupabaseBridge {
                 os.close();
 
                 int code = connection.getResponseCode();
-                FileLog.d("MiogramSupabaseBridge sync status: " + code);
+                FileLog.d("MiogramSupabaseBridge patch style status: " + code);
             } catch (Exception e) {
                 FileLog.e(e);
             } finally {

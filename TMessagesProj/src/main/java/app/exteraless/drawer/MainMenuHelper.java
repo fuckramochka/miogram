@@ -263,8 +263,8 @@ public final class MainMenuHelper {
                 return new MenuItemInfo(R.drawable.msg_qrcode, LocaleController.getString(R.string.AuthAnotherClient),
                         () -> openQrScanner(fragment), null);
             case SMART_FEED:
-                return new MenuItemInfo(R.drawable.ic_feed, app.miogram.bridge.MiogramLocale.get("Новини Miogram ໒꒱", "Новости Miogram ໒꒱", "Miogram News ໒꒱"),
-                        () -> fragment.presentFragment(new app.miogram.bridge.feed.MiogramSmartFeedActivity()), null);
+                return new MenuItemInfo(R.drawable.ic_feed, app.miogram.bridge.MiogramLocale.get("Стрічка новин (ШІ) ໒꒱", "Лента новостей (ИИ) ໒꒱", "News Feed (AI) ໒꒱"),
+                        () -> FeedActivity.presentFeed(fragment), null);
             case KANBAN:
                 return new MenuItemInfo(R.drawable.msg_saved, app.miogram.bridge.MiogramLocale.get("Канбан-нотатки 📋", "Канбан-заметки 📋", "Kanban Notes 📋"),
                         () -> fragment.presentFragment(new app.miogram.bridge.kanban.MiogramKanbanActivity()), null);

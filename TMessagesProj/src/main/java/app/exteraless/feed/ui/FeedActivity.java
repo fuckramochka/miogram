@@ -37,6 +37,9 @@ import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceRenderNode
 import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.MainTabsActivity;
 
+import java.util.ArrayList;
+import app.miogram.bridge.feed.MiogramFeedAiDigestSheet;
+
 /**
  * Экран ленты: синтетический чат из постов каналов.
  * Собственного списка не рисует — держит {@link ChatActivityContainer} со встроенным
@@ -48,6 +51,7 @@ public class FeedActivity extends BaseFragment implements NotificationCenter.Not
     private static final int FEED_SEARCH_TYPE = 4;
     private static final int MENU_FEED_SETTINGS = 75;
     private static final int MENU_MARK_ALL_READ = 76;
+    private static final int MENU_AI_DIGEST = 77;
     private static final long LOAD_NEW_POSTS_DELAY = 1000L;
     private static final int HEADER_LEFT_MARGIN_M3_DP = 12;
 
@@ -290,6 +294,10 @@ public class FeedActivity extends BaseFragment implements NotificationCenter.Not
         }
         final ActionBar chatActionBar = chatContainer.chatActivity.getActionBar();
         final ActionBarMenu menu = chatActionBar.createMenu();
+        if (menu.getItem(MENU_AI_DIGEST) == null) {
+            menu.addItem(MENU_AI_DIGEST, R.drawable.msg_bot, chatContainer.chatActivity.themeDelegate)
+                    .setContentDescription("ШІ-Дайджест стрічки");
+        }
         if (menu.getItem(MENU_MARK_ALL_READ) == null) {
             menu.addItem(MENU_MARK_ALL_READ, R.drawable.msg_markread, chatContainer.chatActivity.themeDelegate)
                     .setContentDescription(LocaleController.getString(R.string.FeedMarkAllRead));
@@ -313,6 +321,10 @@ public class FeedActivity extends BaseFragment implements NotificationCenter.Not
                 if (id == -1 && hasMainTabs && !chatActionBar.isActionModeShowed()) {
                     return;
                 }
+                if (id == MENU_AI_DIGEST) {
+                    openAiDigest();
+                    return;
+                }
                 if (id == MENU_MARK_ALL_READ) {
                     showMarkAllReadDialog();
                     return;
@@ -326,6 +338,27 @@ public class FeedActivity extends BaseFragment implements NotificationCenter.Not
                 }
             }
         });
+    }
+
+    private void openAiDigest() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        final ArrayList<String> postTexts = new ArrayList<>();
+        if (chatContainer != null && chatContainer.chatActivity != null && chatContainer.chatActivity.messages != null) {
+            final ArrayList<org.telegram.messenger.MessageObject> msgs = chatContainer.chatActivity.messages;
+            for (int i = 0; i < msgs.size(); i++) {
+                final org.telegram.messenger.MessageObject msg = msgs.get(i);
+                if (msg != null && msg.messageText != null && msg.messageText.length() > 0) {
+                    postTexts.add(msg.messageText.toString());
+                }
+            }
+        }
+        if (postTexts.isEmpty()) {
+            BulletinFactory.of(this).createErrorBulletin("Стрічка порожня або ще завантажується").show();
+            return;
+        }
+        new MiogramFeedAiDigestSheet(getParentActivity(), postTexts).show();
     }
 
     private void setupChatTitle() {

@@ -29,6 +29,7 @@ import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     private int headerMiogramFeaturesRow;
+    private int customUiRow;
     private int multichatRow;
     private int badgeStudioRow;
     private int miogramFeaturesInfoRow;
@@ -60,6 +61,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         super.updateRows();
 
         headerMiogramFeaturesRow = addRow();
+        customUiRow = addRow();
         multichatRow = addRow();
         badgeStudioRow = addRow();
         miogramFeaturesInfoRow = addRow();
@@ -84,7 +86,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == multichatRow) {
+        if (position == customUiRow) {
+            presentFragment(new app.miogram.bridge.customui.MiogramCustomUiActivity());
+        } else if (position == multichatRow) {
             presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0));
         } else if (position == badgeStudioRow) {
             app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(getParentActivity(), currentAccount);
@@ -150,7 +154,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
-                    if (position == multichatRow) {
+                    if (position == customUiRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Кастом Юай ໒꒱ (Студія інтерфейсу)", "Кастом Юай ໒꒱ (Студия интерфейса)", "Custom UI ໒꒱ (Interface Studio)"), R.drawable.msg_theme, true);
+                    } else if (position == multichatRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Мультичат (Split-Screen) 🪟", "Мультичат (Split-Screen) 🪟", "Multi-Chat (Split-Screen) 🪟"), R.drawable.msg_fave, true);
                     } else if (position == badgeStudioRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Канонічні відзнаки Miogram ໒꒱", "Канонические отличия Miogram ໒꒱", "Miogram Canonical Badges ໒꒱"), R.drawable.msg_premium_badge, true);

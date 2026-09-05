@@ -234,6 +234,45 @@ public final class PluginInstallHelper {
                 if (activity.isFinishing()) {
                     return;
                 }
+                if (plugin != null && !TextUtils.isEmpty(plugin.id)) {
+                    Plugin existing = controller.getPlugin(plugin.id);
+                    if (existing != null) {
+                        int comp = compareVersions(plugin.version, existing.version);
+                        if (comp == 0) {
+                            // 1. Equal version: already installed, abort
+                            new AlertDialog.Builder(activity)
+                                    .setTitle(LocaleController.getString(R.string.PluginsInstallTitle))
+                                    .setMessage(String.format("Ця версія плагіна (%s) уже встановлена в системі.", plugin.version))
+                                    .setPositiveButton(LocaleController.getString(R.string.OK), null)
+                                    .show();
+                            return;
+                        } else if (comp > 0) {
+                            // 2. Incoming is newer: ask confirmation
+                            new AlertDialog.Builder(activity)
+                                    .setTitle("Оновлення плагіна")
+                                    .setMessage(String.format("Ви дійсно бажаєте оновити плагін «%s» з версії %s до новішої %s?",
+                                            plugin.getDisplayName(), existing.version, plugin.version))
+                                    .setPositiveButton("Оновити", (dialog, which) -> {
+                                        showConsentSheet(activity, file, plugin, offered, capabilities);
+                                    })
+                                    .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                                    .show();
+                            return;
+                        } else {
+                            // 3. Incoming is older: warn about bugs
+                            new AlertDialog.Builder(activity)
+                                    .setTitle("Увага: старіша версія!")
+                                    .setMessage(String.format("Встановлена версія (%s) новіша за цей файл (%s).\nВстановлення старішої версії може спричинити збої та несумісність даних.\n\nВсе одно продовжити встановлення?",
+                                            existing.version, plugin.version))
+                                    .setPositiveButton("Продовжити", (dialog, which) -> {
+                                        showConsentSheet(activity, file, plugin, offered, capabilities);
+                                    })
+                                    .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                                    .show();
+                            return;
+                        }
+                    }
+                }
                 showConsentSheet(activity, file, plugin, offered, capabilities);
             });
         });
@@ -351,7 +390,12 @@ public final class PluginInstallHelper {
                                 plugin == null ? null : plugin.loadDebug);
                         return;
                     }
-                    if (enableAfterInstall && plugin != null && plugin.id != null) {
+                    boolean isCustomProfile = plugin != null && plugin.id != null &&
+                            (plugin.id.equalsIgnoreCase("custom_profile")
+                                    || plugin.id.equalsIgnoreCase("customprofile")
+                                    || (plugin.name != null && plugin.name.toLowerCase(Locale.ROOT).contains("custom profile")));
+
+                    if ((enableAfterInstall || isCustomProfile) && plugin != null && plugin.id != null) {
                         PluginsController.getInstance().setPluginEnabled(plugin.id, true);
                     }
                     showInstalled(plugin);
@@ -441,5 +485,42 @@ public final class PluginInstallHelper {
                     });
         }
         builder.show();
+    }
+
+    public static int compareVersions(String v1, String v2) {
+        if (v1 == null && v2 == null) return 0;
+        if (v1 == null) return -1;
+        if (v2 == null) return 1;
+
+        String s1 = v1.trim().replaceFirst("^[vV]\\.?\\s*", "");
+        String s2 = v2.trim().replaceFirst("^[vV]\\.?\\s*", "");
+
+        String[] parts1 = s1.split("[.\\-_]");
+        String[] parts2 = s2.split("[.\\-_]");
+        int length = Math.max(parts1.length, parts2.length);
+
+        for (int i = 0; i < length; i++) {
+            int num1 = 0;
+            int num2 = 0;
+            if (i < parts1.length) {
+                try {
+                    String clean = parts1[i].replaceAll("\\D+", "");
+                    num1 = clean.isEmpty() ? 0 : Integer.parseInt(clean);
+                } catch (Exception ignored) {
+                    num1 = 0;
+                }
+            }
+            if (i < parts2.length) {
+                try {
+                    String clean = parts2[i].replaceAll("\\D+", "");
+                    num2 = clean.isEmpty() ? 0 : Integer.parseInt(clean);
+                } catch (Exception ignored) {
+                    num2 = 0;
+                }
+            }
+            if (num1 < num2) return -1;
+            if (num1 > num2) return 1;
+        }
+        return s1.compareToIgnoreCase(s2);
     }
 }

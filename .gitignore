@@ -24,6 +24,32 @@ tests/local/
 hs_err_*
 release_apk_latest/
 release_apk/
+.gradle
+.idea
+.kotlin
+.vscode
+*.aar
+*.so
+*.iml
+**/.DS_Store
+build/
+obj/
+local.properties
+TMessagesProj/.cxx/
+TMessagesProj/jniLibs/
+TMessagesProj/jniRes/
+TMessagesProj/afat/
+TMessagesProj/jni/ffmpeg/build_android
+# Python-артефакты
+__pycache__/
+*.pyc
+
+# Ключ подписи
+TMessagesProj/release.keystore
+tests/local/
+hs_err_*
+release_apk_latest/
+release_apk/
 
 *.apk
 *.keystore
@@ -31,3 +57,6 @@ release_apk/
 .kotlin/
 release_apk/
 release_apk_latest/
+*.plugin
+*.dex
+CustomProfile_java_src/
