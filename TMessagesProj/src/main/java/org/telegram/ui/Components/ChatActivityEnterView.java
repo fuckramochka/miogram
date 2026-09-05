@@ -2102,6 +2102,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         public void setAmplitude(double value) {
+            app.miogram.bridge.customui.MiogramUiEngine.processVoiceWaveHaptic(this, (float) (value / WaveDrawable.MAX_AMPLITUDE));
             bigWaveDrawable.setValue((float) (Math.min(WaveDrawable.MAX_AMPLITUDE, value) / WaveDrawable.MAX_AMPLITUDE), true);
             tinyWaveDrawable.setValue((float) (Math.min(WaveDrawable.MAX_AMPLITUDE, value) / WaveDrawable.MAX_AMPLITUDE), false);
 
@@ -3166,7 +3167,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                             } else {
                                 delegate.needShowMediaBanHint();
                             }
-                            if (!NekoConfig.disableVibration.Bool()) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                            app.miogram.bridge.customui.MiogramHaptic.toggle(this, !isInVideoMode());
                             sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_CLICKED);
                         } else if (!hasRecordVideo || calledRecordRunnable) {
                             startedDraggingX = -1;
@@ -3614,6 +3615,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             if ((messageSendPreview != null && messageSendPreview.isShowing()) || (runningAnimationAudio != null && runningAnimationAudio.isRunning()) || moveToSendStateRunnable != null) {
                 return;
             }
+            app.miogram.bridge.customui.MiogramHaptic.tap(view);
             sendMessage();
         });
         sendButton.setOnLongClickListener(this::onSendLongClick);
@@ -4780,7 +4782,7 @@ public class ChatActivityEnterView extends FrameLayout implements
     private void startLockTransition() {
         AnimatorSet animatorSet = new AnimatorSet();
         try {
-            if (!NekoConfig.disableVibration.Bool()) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+            app.miogram.bridge.customui.MiogramHaptic.toggle(this, true);
         } catch (Exception ignored) {}
 
         ObjectAnimator translate = ObjectAnimator.ofFloat(this, "lockAnimatedTranslation", startTranslation);
@@ -5360,7 +5362,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             sendPopupWindow.dimBehind();
             sendButton.invalidate();
             try {
-                if (!NekoConfig.disableVibration.Bool()) view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                app.miogram.bridge.customui.MiogramHaptic.select(view);
             } catch (Exception ignore) {}
 
             return true;
@@ -5707,7 +5709,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         messageSendPreview.show();
         try {
-            if (!NekoConfig.disableVibration.Bool()) view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+            app.miogram.bridge.customui.MiogramHaptic.select(view);
         } catch (Exception ignore) {}
 
         return false;

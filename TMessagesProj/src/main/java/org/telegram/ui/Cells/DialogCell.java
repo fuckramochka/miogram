@@ -4158,6 +4158,11 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             gtx += translationX;
         }
 
+        if (app.miogram.bridge.customui.MiogramCustomUiPrefs.isUiDialogCards()) {
+            int surfaceColor = Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider);
+            app.miogram.bridge.customui.MiogramUiEngine.drawDialogCard(canvas, getMeasuredWidth(), getMeasuredHeight(), isSelected, getIsPinned(), surfaceColor);
+        }
+
         float cornersRadius = dp(8) * cornerProgress;
         if (isSelected) {
             rect.set(0, 0, getMeasuredWidth(), AndroidUtilities.lerp(getMeasuredHeight(), getCollapsedHeight(), rightFragmentOpenedProgress));
@@ -4899,6 +4904,10 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
             if (storyParams != null && storyParams.originalAvatarRect != null) {
                 app.miogram.bridge.customui.MiogramUiEngine.drawAvatarGlowRing(canvas, storyParams.originalAvatarRect);
+                if (user != null && user.status != null && user.status.expires > org.telegram.tgnet.ConnectionsManager.getInstance(currentAccount).getCurrentTime()) {
+                    int strokeColor = Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider);
+                    app.miogram.bridge.customui.MiogramUiEngine.drawOnlineIndicator(canvas, storyParams.originalAvatarRect, true, strokeColor);
+                }
             }
 
             if (!insideCommunityList && (chat != null && chat.linked_community_id != 0 || user != null && user.linked_community_id != 0) && !drawCommunityAvatar && isDialogCell && !isDialogFolder()) {
@@ -4953,7 +4962,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             canvas.restore();
         }
 
-        if (useSeparator && !app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+        if (useSeparator && !app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled() && !app.miogram.bridge.customui.MiogramCustomUiPrefs.isUiDialogCards()) {
             int left;
             if (fullSeparator || currentDialogFolderId != 0 && archiveHidden && !fullSeparator2 || fullSeparator2 && !archiveHidden) {
                 left = 0;
@@ -6289,6 +6298,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            app.miogram.bridge.customui.MiogramHaptic.tap(this);
+        }
         if (rightFragmentOpenedProgress == 0 && !isTopic && !isShareToStoryCell && storyParams.checkOnTouchEvent(event, this)) {
             return true;
         }

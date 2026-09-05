@@ -1243,12 +1243,14 @@ public class FilterTabsView extends FrameLayout {
                 delegate.onSamePageSelected();
                 return;
             }
+            app.miogram.bridge.customui.MiogramHaptic.select(view);
             scrollToTab(tabView.currentTab, position);
         });
         listView.setOnItemLongClickListener((view, position) -> {
             if (!delegate.canPerformActions() || isEditing || !delegate.didSelectTab((TabView) view, position == currentPosition)) {
                 return false;
             }
+            app.miogram.bridge.customui.MiogramHaptic.select(view);
             listView.hideSelector(true);
             return true;
         });
@@ -2188,7 +2190,7 @@ public class FilterTabsView extends FrameLayout {
                 if (tabView.currentTab.id == id) {
                     tabView.shakeLockIcon(1, 0);
                     try {
-                        if (!NekoConfig.disableVibration.Bool()) tabView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                        app.miogram.bridge.customui.MiogramHaptic.warn(tabView);
                     } catch (Exception ignore) {}
                     break;
                 }

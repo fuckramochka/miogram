@@ -4931,12 +4931,16 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         floatingButtonStories = new FragmentFloatingButton(context, resourceProvider, true);
         floatingButtonStories.setContentDescription(getString(R.string.StoryPrivacyButtonPost));
         floatingButtonStories.setImageResource(R.drawable.outline_fab_story_24);
-        floatingButtonStories.setOnClickListener(v -> openStoriesRecorder());
+        floatingButtonStories.setOnClickListener(v -> {
+            app.miogram.bridge.customui.MiogramHaptic.tap(v);
+            openStoriesRecorder();
+        });
         contentView.addView(floatingButtonStories, FragmentFloatingButton.createSubButtonLayoutParams());
 
         floatingButton3 = new FragmentFloatingButton(context, resourceProvider);
         contentView.addView(floatingButton3, FragmentFloatingButton.createDefaultLayoutParams());
         floatingButton3.setOnClickListener(v -> {
+            app.miogram.bridge.customui.MiogramHaptic.tap(v);
             if (parentLayout != null && parentLayout.isInPreviewMode()) {
                 finishPreviewFragment();
                 return;

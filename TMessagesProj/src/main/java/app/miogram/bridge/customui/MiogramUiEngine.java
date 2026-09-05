@@ -20,6 +20,7 @@ import android.os.SystemClock;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.view.View;
+import androidx.core.graphics.ColorUtils;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.ui.ActionBar.Theme;
 
@@ -508,5 +509,135 @@ public class MiogramUiEngine {
         Paint paint = new Paint();
         paint.setColor(finalColor);
         canvas.drawRect(0, 0, width, height, paint);
+    }
+
+    /* =========================================================================
+     * 4. MODERN CHAT DIALOG CARDS, ONLINE INDICATOR & TACTILE WAVE ENGINES
+     * ========================================================================= */
+    private static final Paint cardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint cardBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final RectF cardRect = new RectF();
+    private static final Paint onlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint onlineHaloPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint onlineBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint bioCardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint bioBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final RectF bioRect = new RectF();
+
+    private static long lastVoiceHapticTime = 0;
+
+    static {
+        cardBorderPaint.setStyle(Paint.Style.STROKE);
+        onlinePaint.setColor(0xFF34C759);
+        onlineHaloPaint.setColor(0x6634C759);
+        onlineHaloPaint.setStyle(Paint.Style.FILL);
+        onlineBorderPaint.setStyle(Paint.Style.STROKE);
+        bioBorderPaint.setStyle(Paint.Style.STROKE);
+    }
+
+    public static boolean drawDialogCard(Canvas canvas, int width, int height, boolean isSelected, boolean isPinned, int surfaceColor) {
+        if (!MiogramCustomUiPrefs.isUiDialogCards() || canvas == null || width <= 0 || height <= 0) {
+            return false;
+        }
+        float marginX = AndroidUtilities.dpf2(8f);
+        float marginY = AndroidUtilities.dpf2(2.5f);
+        float radius = AndroidUtilities.dpf2(14f);
+
+        cardRect.set(marginX, marginY, width - marginX, height - marginY);
+
+        int baseColor = surfaceColor;
+        if (isSelected) {
+            baseColor = ColorUtils.blendARGB(baseColor, 0x402A87FF, 0.35f);
+        } else if (isPinned) {
+            baseColor = ColorUtils.blendARGB(baseColor, 0x20888888, 0.18f);
+        }
+
+        cardPaint.setColor(baseColor);
+        cardPaint.setStyle(Paint.Style.FILL);
+
+        if (org.telegram.messenger.SharedConfig.getDevicePerformanceClass() >= org.telegram.messenger.SharedConfig.PERFORMANCE_CLASS_AVERAGE) {
+            cardPaint.setShadowLayer(AndroidUtilities.dpf2(3f), 0, AndroidUtilities.dpf2(1f), 0x1A000000);
+        } else {
+            cardPaint.clearShadowLayer();
+        }
+
+        canvas.drawRoundRect(cardRect, radius, radius, cardPaint);
+        cardPaint.clearShadowLayer();
+
+        cardBorderPaint.setStrokeWidth(AndroidUtilities.dpf2(0.8f));
+        cardBorderPaint.setColor(ColorUtils.setAlphaComponent(Color.WHITE, 22));
+        canvas.drawRoundRect(cardRect, radius, radius, cardBorderPaint);
+
+        return true;
+    }
+
+    public static void drawOnlineIndicator(Canvas canvas, RectF avatarRect, boolean isOnline, int bgStrokeColor) {
+        if (!isOnline || canvas == null || avatarRect == null || avatarRect.width() <= 0) {
+            return;
+        }
+        float dotRadius = AndroidUtilities.dpf2(5.5f);
+        float borderStroke = AndroidUtilities.dpf2(2.2f);
+        float cx = avatarRect.right - dotRadius + AndroidUtilities.dpf2(0.5f);
+        float cy = avatarRect.bottom - dotRadius + AndroidUtilities.dpf2(0.5f);
+
+        // Breathing halo pulse
+        float phase = (SystemClock.elapsedRealtime() % 1800L) / 1800f;
+        float pulseScale = 1.0f + 0.35f * (float) Math.sin(phase * Math.PI * 2);
+        int haloAlpha = (int) (110 - 70 * Math.sin(phase * Math.PI * 2));
+        onlineHaloPaint.setColor((0x0034C759) | (haloAlpha << 24));
+        canvas.drawCircle(cx, cy, dotRadius * pulseScale, onlineHaloPaint);
+
+        // Background stroke ring
+        onlineBorderPaint.setColor(bgStrokeColor);
+        onlineBorderPaint.setStrokeWidth(borderStroke);
+        canvas.drawCircle(cx, cy, dotRadius + (borderStroke / 2f), onlineBorderPaint);
+
+        // Online green core
+        canvas.drawCircle(cx, cy, dotRadius, onlinePaint);
+    }
+
+    public static void drawModernBioCard(Canvas canvas, int width, int height, int surfaceColor) {
+        if (canvas == null || width <= 0 || height <= 0) return;
+        float marginX = AndroidUtilities.dpf2(12f);
+        float marginY = AndroidUtilities.dpf2(4f);
+        float radius = AndroidUtilities.dpf2(16f);
+
+        bioRect.set(marginX, marginY, width - marginX, height - marginY);
+
+        bioCardPaint.setColor(surfaceColor);
+        bioCardPaint.setStyle(Paint.Style.FILL);
+        canvas.drawRoundRect(bioRect, radius, radius, bioCardPaint);
+
+        bioBorderPaint.setStrokeWidth(AndroidUtilities.dpf2(1f));
+        bioBorderPaint.setColor(ColorUtils.setAlphaComponent(Color.WHITE, 25));
+        canvas.drawRoundRect(bioRect, radius, radius, bioBorderPaint);
+    }
+
+    public static void calculateCustomBubbleRadii(float[] radii, int baseRadius, boolean isOut, boolean hasTail) {
+        if (radii == null || radii.length < 8) return;
+        float r = AndroidUtilities.dpf2(baseRadius > 0 ? baseRadius : 16f);
+        float smallR = hasTail ? AndroidUtilities.dpf2(4f) : r;
+
+        if (isOut) {
+            radii[0] = r; radii[1] = r;
+            radii[2] = r; radii[3] = r;
+            radii[4] = smallR; radii[5] = smallR;
+            radii[6] = r; radii[7] = r;
+        } else {
+            radii[0] = r; radii[1] = r;
+            radii[2] = r; radii[3] = r;
+            radii[4] = r; radii[5] = r;
+            radii[6] = smallR; radii[7] = smallR;
+        }
+    }
+
+    public static void processVoiceWaveHaptic(View view, float amplitude) {
+        if (view == null || !MiogramCustomUiPrefs.isHapticEnabled()) return;
+        long now = SystemClock.elapsedRealtime();
+        if (now - lastVoiceHapticTime < 60) return;
+        if (amplitude > 0.65f) {
+            lastVoiceHapticTime = now;
+            MiogramHaptic.tick(view);
+        }
     }
 }

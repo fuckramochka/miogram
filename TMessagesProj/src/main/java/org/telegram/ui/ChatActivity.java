@@ -5654,6 +5654,7 @@ public class ChatActivity extends BaseFragment implements
                         chatLayoutManager.setCanScrollVertically(false);
                         maybeStartTrackingSlidingView = false;
                         startedTrackingSlidingView = true;
+                        app.miogram.bridge.customui.MiogramHaptic.grab(this);
                         startedTrackingX = (int) e.getX();
                         if (getParent() != null) {
                             getParent().requestDisallowInterceptTouchEvent(true);
@@ -5662,7 +5663,7 @@ public class ChatActivity extends BaseFragment implements
                         if (Math.abs(dx) >= AndroidUtilities.dp(50)) {
                             if (!wasTrackingVibrate) {
                                 try {
-                                    if (!NekoConfig.disableVibration.Bool()) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                                    app.miogram.bridge.customui.MiogramHaptic.toggle(this, true);
                                 } catch (Exception ignore) {}
                                 wasTrackingVibrate = true;
                             }

@@ -4350,7 +4350,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             if (Math.abs(currentMessageObject.audioProgress - p) > 0.9f) {
                 if (roundSeekbarOutAlpha == 0) {
                     try {
-                        if (!NekoConfig.disableVibration.Bool()) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                        app.miogram.bridge.customui.MiogramHaptic.tick(this);
                     } catch (Exception ignored) {}
                 }
                 roundSeekbarOutAlpha = 1f;
@@ -5680,7 +5680,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         final PollButton button = pollButtons.get(index);
         if (delegate.didPressToDoButton(this, button.task, !button.chosen)) {
             try {
-                if (vibrate && !NekoConfig.disableVibration.Bool()) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                if (vibrate) app.miogram.bridge.customui.MiogramHaptic.toggle(this, !button.chosen);
             } catch (Exception ignored) {}
             final long dialogId = currentMessageObject.getDialogId();
             final long send_as = ChatObject.getSendAsPeerId(MessagesController.getInstance(currentAccount).getChat(dialogId), MessagesController.getInstance(currentAccount).getChatFull(dialogId), true);
@@ -11690,7 +11690,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         int maxVote = 0;
         if (!animatePollAnswer && pollVoteInProgress && vibrateOnPollVote) {
             try {
-                if (!NekoConfig.disableVibration.Bool()) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                app.miogram.bridge.customui.MiogramHaptic.toggle(this, true);
             } catch (Exception ignored) {}
         }
         animatePollAnswer = attachedToWindow && (pollVoteInProgress || pollUnvoteInProgress);
@@ -26940,6 +26940,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     @Override
     public void didPressReactionFromLayout(TLRPC.ReactionCount reaction, boolean longpress, float x, float y) {
         if (delegate != null) {
+            app.miogram.bridge.customui.MiogramHaptic.select(this);
             delegate.didPressReaction(this, reaction, longpress, x, y);
         }
     }

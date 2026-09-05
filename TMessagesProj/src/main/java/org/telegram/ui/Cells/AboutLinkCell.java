@@ -268,6 +268,10 @@ public class AboutLinkCell extends FrameLayout {
     private Paint backgroundPaint = new Paint();
     @Override
     public void draw(Canvas canvas) {
+        if (customTextColor != null || app.miogram.bridge.customui.MiogramCustomUiPrefs.isColorBio()) {
+            int surfaceColor = Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider);
+            app.miogram.bridge.customui.MiogramUiEngine.drawModernBioCard(canvas, getWidth(), getHeight(), surfaceColor);
+        }
         super.draw(canvas);
 
         View parent = (View) getParent();

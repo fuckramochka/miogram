@@ -3250,6 +3250,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
                     allowPullingDown = true;
                     isPulledDown = true;
+                    app.miogram.bridge.customui.MiogramHaptic.grab(avatarImage);
                     NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needCheckSystemBarColors, true);
                     if (otherItem != null) {
                         if (!isPeerNoForwards()) {
@@ -6090,7 +6091,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         expandAnimator.addUpdateListener(anim -> {
             setAvatarExpandProgress(anim.getAnimatedFraction());
         });
-        expandAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+        expandAnimator.setInterpolator(app.miogram.bridge.ui.MiogramPhysicsInterpolator.DAMPED_SPRING);
         expandAnimator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationStart(Animator animation) {
@@ -8795,6 +8796,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                             searchItem.setEnabled(false);
                         }
                         isPulledDown = true;
+                        app.miogram.bridge.customui.MiogramHaptic.grab(avatarImage);
                         NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needCheckSystemBarColors, true);
                         overlaysView.setOverlaysVisible(true, durationFactor);
                         avatarsViewPagerIndicatorView.refreshVisibility(durationFactor);
@@ -8877,6 +8879,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 } else {
                     if (isPulledDown) {
                         isPulledDown = false;
+                        app.miogram.bridge.customui.MiogramHaptic.release(avatarImage);
                         NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needCheckSystemBarColors, true);
                         if (otherItem != null) {
                             otherItem.hideSubItem(gallery_menu_save);
