@@ -5,8 +5,10 @@ import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.TextPaint;
@@ -15,6 +17,7 @@ import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -36,33 +39,57 @@ import org.telegram.ui.Components.LayoutHelper;
 import app.miogram.bridge.MiogramLocale;
 
 /**
- * Miogram Custom UI Studio (Кастом Юай):
- * Visual styling companion designed with the aesthetic architecture of Custom Profile.
- * Provides complete control over everything outside the user profile:
- * - Real-time chat bubbles styling with gradients, angles, corner radius, and custom text colors
- * - Avatar geometric shapes (Circle, Squircle, Rounded Rect, Hexagon) and glowing online/story rings
- * - Dialogs cards, unread pill/glow badges, and glassmorphism headers
- * - Instant live canvas preview and 1-tap preset themes
+ * Miogram Custom UI Studio (Студія Кастом Юай):
+ * Comprehensive design studio built with the exact visual language, depth, and modularity
+ * of Custom Profile, providing complete mastery over the Telegram client interface:
+ *
+ * 1. Воршоп / Майстерня: Curated theme masterpieces with instant live previews & 1-tap activation.
+ * 2. Бульбашки чату: Full gradient shaders, angle wheels, corner curves, custom typography & glow.
+ * 3. Ефекти Імен: Shaders (🔥 Fire, ❄️ Ice, 🌈 Rainbow, ✨ Glare, ⚡ Cyber Neon), glow layers, custom fonts.
+ * 4. Аватари та Рамки: Shapes (Circle, Squircle, Rounded Rect, Hexagon, Star, Diamond) & Glowing Neon Story Rings.
+ * 5. Інтерфейс та Чат: Floating cards, glassmorphic headers, unread pills, ProMotion 120Hz, and rich haptics.
  */
 public class MiogramCustomUiActivity extends BaseFragment {
 
+    private int activeTab = 0; // 0=Workshop, 1=Bubbles, 2=Name FX, 3=Avatars, 4=Interface
+
+    private LinearLayout tabRail;
+    private FrameLayout container;
     private LivePreviewView livePreview;
+
+    // Bubbles UI Elements
     private TextView angleValueText;
     private TextView radiusValueText;
     private SeekBar angleSeekBar;
     private SeekBar radiusSeekBar;
     private TextCheckCell gradientSwitch;
+
+    // Name FX UI Elements
+    private TextView glowRadiusValueText;
+    private SeekBar glowRadiusSeekBar;
+    private TextCheckCell nameGlowSwitch;
+    private TextView fontSubtitle;
+
+    // Avatar UI Elements
     private TextCheckCell avatarRingSwitch;
-    private TextView avatarShapeSubtitle;
+    private TextCheckCell avatarPulseSwitch;
+    private TextView ringWidthValueText;
+    private SeekBar ringWidthSeekBar;
+
+    // Interface UI Elements
+    private TextView dialogStyleSubtitle;
     private TextView unreadStyleSubtitle;
     private TextView headerStyleSubtitle;
+    private TextView hapticSubtitle;
+    private TextCheckCell proMotionSwitch;
+    private TextCheckCell onlinePulseSwitch;
 
     @Override
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle(MiogramLocale.get("Кастом Юай ໒꒱", "Кастом Юай ໒꒱", "Custom UI ໒꒱"));
-        actionBar.setSubtitle(MiogramLocale.get("Дизайн-студія інтерфейсу", "Дизайн-студия интерфейса", "Interface Design Studio"));
+        actionBar.setTitle(MiogramLocale.get("Кастом Юай Студія ໒꒱", "Кастом Юай Студия ໒꒱", "Custom UI Studio ໒꒱"));
+        actionBar.setSubtitle(MiogramLocale.get("Дизайн-система Miogram", "Дизайн-система Miogram", "Miogram Design System"));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -75,138 +102,230 @@ public class MiogramCustomUiActivity extends BaseFragment {
         });
         actionBar.createMenu().addItem(1, R.drawable.msg_reset);
 
-        FrameLayout fragmentRoot = new FrameLayout(context);
-        fragmentRoot.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray, getResourceProvider()));
+        FrameLayout root = new FrameLayout(context);
+        root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray, getResourceProvider()));
 
+        LinearLayout mainLayout = new LinearLayout(context);
+        mainLayout.setOrientation(LinearLayout.VERTICAL);
+
+        // 1. Navigation Rail Tabs (Воршоп, Бульбашки, Ефекти Імен, Аватари, Інтерфейс)
+        mainLayout.addView(createNavigationRail(context), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        // 2. Interactive Live Preview Stage (Sticky at top)
+        livePreview = new LivePreviewView(context);
+        mainLayout.addView(livePreview, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 210, 12, 8, 12, 8));
+
+        // 3. Dynamic Studio Tab Container (Scrollable)
         ScrollView scrollView = new ScrollView(context);
         scrollView.setVerticalScrollBarEnabled(false);
 
-        LinearLayout contentLayout = new LinearLayout(context);
-        contentLayout.setOrientation(LinearLayout.VERTICAL);
-        contentLayout.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(24));
+        container = new FrameLayout(context);
+        container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(4), AndroidUtilities.dp(12), AndroidUtilities.dp(24));
+        scrollView.addView(container, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        // 1. Top Banner Card
-        contentLayout.addView(createBannerCard(context), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
+        mainLayout.addView(scrollView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 0, 1.0f));
 
-        // 2. Interactive Live Canvas Preview
-        livePreview = new LivePreviewView(context);
-        contentLayout.addView(livePreview, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 200, 0, 0, 0, 14));
+        // 4. Bottom Sticky Action Bar
+        mainLayout.addView(createBottomBar(context), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 64));
 
-        // 3. One-Tap Preset Themes
-        contentLayout.addView(createSectionHeader(context, MiogramLocale.get("Стилі в 1 дотик ✨", "Стили в 1 касание ✨", "1-Tap Presets ✨")));
-        contentLayout.addView(createPresetsRow(context), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 14));
+        root.addView(mainLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
-        // 4. Chat Bubbles Section
-        contentLayout.addView(createSectionHeader(context, MiogramLocale.get("Бульбашки чату 💬", "Пузырьки чата 💬", "Chat Bubbles 💬")));
-        contentLayout.addView(createBubblesSection(context), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 14));
+        // Switch to initial tab (0 = Workshop)
+        switchTab(0);
 
-        // 5. Avatars & Dialogs Section
-        contentLayout.addView(createSectionHeader(context, MiogramLocale.get("Аватари та список чатів 📱", "Аватары и список чатов 📱", "Avatars & Chats 📱")));
-        contentLayout.addView(createAvatarsSection(context), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 14));
-
-        // 6. Header & Performance Section
-        contentLayout.addView(createSectionHeader(context, MiogramLocale.get("Шапка чату та відгук ⚡", "Шапка чата и отклик ⚡", "Header & Performance ⚡")));
-        contentLayout.addView(createHeaderAndPerformanceSection(context), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 14));
-
-        // 7. Apply Button
-        contentLayout.addView(createApplyButton(context), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 50, 0, 8, 0, 10));
-
-        scrollView.addView(contentLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-        fragmentRoot.addView(scrollView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-
-        fragmentView = fragmentRoot;
+        fragmentView = root;
         return fragmentView;
     }
 
-    private View createBannerCard(Context context) {
+    /* =========================================================================
+     * NAVIGATION RAIL (TABS)
+     * ========================================================================= */
+
+    private View createNavigationRail(Context context) {
+        HorizontalScrollView hScroll = new HorizontalScrollView(context);
+        hScroll.setHorizontalScrollBarEnabled(false);
+        hScroll.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite, getResourceProvider()));
+
+        tabRail = new LinearLayout(context);
+        tabRail.setOrientation(LinearLayout.HORIZONTAL);
+        tabRail.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+
+        String[] tabs = {
+                MiogramLocale.get("🎨 Воршоп", "🎨 Воркшоп", "🎨 Workshop"),
+                MiogramLocale.get("💬 Бульбашки", "💬 Пузырьки", "💬 Bubbles"),
+                MiogramLocale.get("✨ Ефекти Імен", "✨ Эффекты Имен", "✨ Name FX"),
+                MiogramLocale.get("👤 Аватари", "👤 Аватары", "👤 Avatars"),
+                MiogramLocale.get("📱 Інтерфейс", "📱 Интерфейс", "📱 Interface")
+        };
+
+        for (int i = 0; i < tabs.length; i++) {
+            final int index = i;
+            TextView tabBtn = new TextView(context);
+            tabBtn.setText(tabs[i]);
+            tabBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            tabBtn.setTypeface(AndroidUtilities.bold());
+            tabBtn.setGravity(Gravity.CENTER);
+            tabBtn.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+
+            tabBtn.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                switchTab(index);
+            });
+
+            tabRail.addView(tabBtn, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 4, 0, 4, 0));
+        }
+
+        hScroll.addView(tabRail);
+        return hScroll;
+    }
+
+    private void switchTab(int index) {
+        activeTab = index;
+        Context context = getParentActivity();
+        if (context == null) return;
+
+        // Update tab styling
+        for (int i = 0; i < tabRail.getChildCount(); i++) {
+            TextView tv = (TextView) tabRail.getChildAt(i);
+            boolean selected = (i == activeTab);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setShape(GradientDrawable.RECTANGLE);
+            bg.setCornerRadius(AndroidUtilities.dp(12));
+            if (selected) {
+                bg.setColor(0xFF7052FF);
+                tv.setTextColor(0xFFFFFFFF);
+            } else {
+                bg.setColor(Theme.getColor(Theme.key_windowBackgroundGray, getResourceProvider()));
+                tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+            }
+            tv.setBackground(bg);
+        }
+
+        container.removeAllViews();
+        switch (activeTab) {
+            case 0: container.addView(createWorkshopTab(context)); break;
+            case 1: container.addView(createBubblesTab(context)); break;
+            case 2: container.addView(createNameFxTab(context)); break;
+            case 3: container.addView(createAvatarsTab(context)); break;
+            case 4: container.addView(createInterfaceTab(context)); break;
+        }
+        livePreview.invalidate();
+    }
+
+    /* =========================================================================
+     * TAB 0: WORKSHOP / МАЙСТЕРНЯ (CURATED MASTERPIECES)
+     * ========================================================================= */
+
+    private View createWorkshopTab(Context context) {
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
+        layout.addView(createSectionHeader(context, MiogramLocale.get("Колекція готових стилів ✨", "Коллекция готовых стилей ✨", "Curated Masterpieces ✨")));
+
+        String[] titles = {
+                "🚀 Cyberpunk 2077", "💎 Liquid Glass iOS 18",
+                "🌌 Deep Space AMOLED", "🌅 Sunset Miami Beach",
+                "🌿 Emerald Cyber Frost", "💜 Electric Royalty"
+        };
+        String[] descs = {
+                "Полум'яні імена, неонові сквіркли та рожево-блакитний градієнт",
+                "Прозоре розмите скло, плавні кути 22dp та елегантний блік",
+                "Глибокий чорний AMOLED, гексагони та крижані кристали",
+                "Теплий градієнт заходу сонця, зіркові аватари та веселка",
+                "Смарагдово-м'ятний градієнт, неоновий кіберпанк та сквіркли",
+                "Королівський фіолетово-золотий градієнт, діаманти та сяйво"
+        };
+        int[][] colors = {
+                {0xFFFF007F, 0xFF00F0FF}, {0xFF3A88E9, 0xFF7052FF},
+                {0xFF161618, 0xFF00C7FF}, {0xFFFF5E3A, 0xFFFF2A68},
+                {0xFF00B09B, 0xFF96C93D}, {0xFF8A2387, 0xFFFFD700}
+        };
+
+        for (int i = 0; i < titles.length; i++) {
+            final int presetId = i;
+            layout.addView(createWorkshopCard(context, titles[i], descs[i], colors[i], v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK);
+                MiogramCustomUiPrefs.applyPreset(presetId);
+                livePreview.invalidate();
+                BulletinFactory.of(this).createSimpleBulletin(R.raw.contact_check, "Стиль «" + titles[presetId] + "» активовано! ໒꒱").show();
+            }), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 10));
+        }
+
+        return layout;
+    }
+
+    private View createWorkshopCard(Context context, String title, String desc, int[] gradColors, View.OnClickListener onClick) {
         FrameLayout card = new FrameLayout(context);
+        card.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
+
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.RECTANGLE);
         bg.setCornerRadius(AndroidUtilities.dp(16));
-        bg.setColors(new int[]{0xFF7052FF, 0xFF00D2FF});
-        bg.setOrientation(GradientDrawable.Orientation.TL_BR);
+        bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite, getResourceProvider()));
         card.setBackground(bg);
-        card.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16));
 
-        LinearLayout inner = new LinearLayout(context);
-        inner.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
 
-        TextView title = new TextView(context);
-        title.setText("Miogram Custom UI ໒꒱");
-        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 19);
-        title.setTypeface(AndroidUtilities.bold());
-        title.setTextColor(0xFFFFFFFF);
-        inner.addView(title);
+        // Gradient Indicator Pill
+        View pill = new View(context);
+        GradientDrawable pillBg = new GradientDrawable();
+        pillBg.setShape(GradientDrawable.RECTANGLE);
+        pillBg.setCornerRadius(AndroidUtilities.dp(12));
+        pillBg.setColors(gradColors);
+        pillBg.setOrientation(GradientDrawable.Orientation.TL_BR);
+        pill.setBackground(pillBg);
+        row.addView(pill, LayoutHelper.createLinear(36, 36, 0, 0, 14, 0));
 
-        TextView desc = new TextView(context);
-        desc.setText(MiogramLocale.get(
-                "Гнучка кастомізація всіх елементів Telegram: градієнтні бульбашки, форми аватарів, сяючі кільця та скло.",
-                "Гибкая кастомизация всех элементов Telegram: градиентные пузырьки, формы аватаров, светящиеся кольца и стекло.",
-                "Flexible customization of all Telegram elements: gradient bubbles, avatar shapes, glowing rings, and glass."));
-        desc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        desc.setTextColor(0xDDFFFFFF);
-        desc.setPadding(0, AndroidUtilities.dp(4), 0, 0);
-        inner.addView(desc);
+        LinearLayout textCol = new LinearLayout(context);
+        textCol.setOrientation(LinearLayout.VERTICAL);
 
-        card.addView(inner);
+        TextView tView = new TextView(context);
+        tView.setText(title);
+        tView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        tView.setTypeface(AndroidUtilities.bold());
+        tView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+        textCol.addView(tView);
+
+        TextView dView = new TextView(context);
+        dView.setText(desc);
+        dView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        dView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, getResourceProvider()));
+        textCol.addView(dView);
+
+        row.addView(textCol, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+
+        TextView applyBtn = new TextView(context);
+        applyBtn.setText("Застосувати");
+        applyBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        applyBtn.setTypeface(AndroidUtilities.bold());
+        applyBtn.setTextColor(0xFFFFFFFF);
+        applyBtn.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(6), AndroidUtilities.dp(12), AndroidUtilities.dp(6));
+
+        GradientDrawable btnBg = new GradientDrawable();
+        btnBg.setShape(GradientDrawable.RECTANGLE);
+        btnBg.setCornerRadius(AndroidUtilities.dp(10));
+        btnBg.setColor(0xFF7052FF);
+        applyBtn.setBackground(btnBg);
+        row.addView(applyBtn);
+
+        card.addView(row);
+        card.setOnClickListener(onClick);
         return card;
     }
 
-    private TextView createSectionHeader(Context context, String title) {
-        TextView tv = new TextView(context);
-        tv.setText(title);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        tv.setTypeface(AndroidUtilities.bold());
-        tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader, getResourceProvider()));
-        tv.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(8), AndroidUtilities.dp(6), AndroidUtilities.dp(4));
-        return tv;
-    }
+    /* =========================================================================
+     * TAB 1: CHAT BUBBLES STUDIO
+     * ========================================================================= */
 
-    private View createPresetsRow(Context context) {
-        LinearLayout row = new LinearLayout(context);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-
-        String[] presets = {"⚡ Neon", "💎 Glass", "🌌 AMOLED", "🌅 Sunset", "🌿 Mint"};
-        int[] ids = {0, 1, 2, 3, 4};
-
-        for (int i = 0; i < presets.length; i++) {
-            final int id = ids[i];
-            TextView chip = new TextView(context);
-            chip.setText(presets[i]);
-            chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-            chip.setTypeface(AndroidUtilities.bold());
-            chip.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
-            chip.setGravity(Gravity.CENTER);
-            chip.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
-
-            GradientDrawable chipBg = new GradientDrawable();
-            chipBg.setShape(GradientDrawable.RECTANGLE);
-            chipBg.setCornerRadius(AndroidUtilities.dp(12));
-            chipBg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite, getResourceProvider()));
-            chip.setBackground(chipBg);
-
-            chip.setOnClickListener(v -> {
-                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                MiogramCustomUiPrefs.applyPreset(id);
-                syncUiFromPrefs();
-                livePreview.invalidate();
-                BulletinFactory.of(this).createSimpleBulletin(R.raw.contact_check, "Стиль застосовано! ✨").show();
-            });
-
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
-            if (i > 0) lp.leftMargin = AndroidUtilities.dp(6);
-            row.addView(chip, lp);
-        }
-        return row;
-    }
-
-    private View createBubblesSection(Context context) {
-        LinearLayout section = new LinearLayout(context);
-        section.setOrientation(LinearLayout.VERTICAL);
-        applyCardBackground(section);
+    private View createBubblesTab(Context context) {
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        applyCardBackground(layout);
 
         gradientSwitch = new TextCheckCell(context);
-        gradientSwitch.setTextAndCheck(MiogramLocale.get("Градієнтні вихідні бульбашки", "Градиентные исходящие пузырьки", "Gradient Outgoing Bubbles"),
+        gradientSwitch.setTextAndCheck(MiogramLocale.get("Градієнт вихідних бульбашок", "Градиент исходящих пузырьков", "Outgoing Bubble Gradient"),
                 MiogramCustomUiPrefs.isBubbleGradientEnabled(), true);
         gradientSwitch.setOnClickListener(v -> {
             boolean newVal = !gradientSwitch.isChecked();
@@ -214,45 +333,44 @@ public class MiogramCustomUiActivity extends BaseFragment {
             MiogramCustomUiPrefs.setBubbleGradientEnabled(newVal);
             livePreview.invalidate();
         });
-        section.addView(gradientSwitch);
+        layout.addView(gradientSwitch);
 
-        // Color Chips Row
+        // Dual Color Pickers
         LinearLayout colorsRow = new LinearLayout(context);
         colorsRow.setOrientation(LinearLayout.HORIZONTAL);
-        colorsRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        colorsRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(10), AndroidUtilities.dp(16), AndroidUtilities.dp(10));
         colorsRow.setGravity(Gravity.CENTER_VERTICAL);
 
-        TextView colorsLabel = new TextView(context);
-        colorsLabel.setText(MiogramLocale.get("Палітра градієнта:", "Палитра градиента:", "Gradient Palette:"));
-        colorsLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        colorsLabel.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
-        colorsRow.addView(colorsLabel, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        TextView label = new TextView(context);
+        label.setText("Кольори градієнта (C1 / C2):");
+        label.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+        colorsRow.addView(label, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
 
-        View color1 = createColorChip(context, MiogramCustomUiPrefs.getBubbleColor1(), c -> {
-            MiogramCustomUiPrefs.setBubbleColor1(c);
+        View c1 = createColorChip(context, MiogramCustomUiPrefs.getBubbleColor1(), color -> {
+            MiogramCustomUiPrefs.setBubbleColor1(color);
             livePreview.invalidate();
         });
-        View color2 = createColorChip(context, MiogramCustomUiPrefs.getBubbleColor2(), c -> {
-            MiogramCustomUiPrefs.setBubbleColor2(c);
+        View c2 = createColorChip(context, MiogramCustomUiPrefs.getBubbleColor2(), color -> {
+            MiogramCustomUiPrefs.setBubbleColor2(color);
             livePreview.invalidate();
         });
-        colorsRow.addView(color1);
-        colorsRow.addView(color2, LayoutHelper.createLinear(32, 32, 10, 0, 0, 0));
-        section.addView(colorsRow);
+        colorsRow.addView(c1);
+        colorsRow.addView(c2, LayoutHelper.createLinear(32, 32, 10, 0, 0, 0));
+        layout.addView(colorsRow);
 
         // Angle Slider
         LinearLayout angleRow = new LinearLayout(context);
         angleRow.setOrientation(LinearLayout.VERTICAL);
-        angleRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(6), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        angleRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(10));
 
         LinearLayout angleHeader = new LinearLayout(context);
-        TextView angleTitle = new TextView(context);
-        angleTitle.setText(MiogramLocale.get("Кут градієнта", "Угол градиента", "Gradient Angle"));
-        angleTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+        TextView aTitle = new TextView(context);
+        aTitle.setText("Кут нахилу градієнта");
+        aTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
         angleValueText = new TextView(context);
         angleValueText.setText(MiogramCustomUiPrefs.getBubbleAngle() + "°");
-        angleValueText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText, getResourceProvider()));
-        angleHeader.addView(angleTitle, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        angleValueText.setTextColor(0xFF7052FF);
+        angleHeader.addView(aTitle, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
         angleHeader.addView(angleValueText);
         angleRow.addView(angleHeader);
 
@@ -272,26 +390,26 @@ public class MiogramCustomUiActivity extends BaseFragment {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
         angleRow.addView(angleSeekBar);
-        section.addView(angleRow);
+        layout.addView(angleRow);
 
         // Radius Slider
         LinearLayout radiusRow = new LinearLayout(context);
         radiusRow.setOrientation(LinearLayout.VERTICAL);
-        radiusRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(6), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
+        radiusRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
 
         LinearLayout radiusHeader = new LinearLayout(context);
-        TextView radiusTitle = new TextView(context);
-        radiusTitle.setText(MiogramLocale.get("Радіус кутів бульбашок", "Радиус углов пузырьков", "Bubble Corner Radius"));
-        radiusTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+        TextView rTitle = new TextView(context);
+        rTitle.setText("Радіус кутів бульбашок");
+        rTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
         radiusValueText = new TextView(context);
         radiusValueText.setText(MiogramCustomUiPrefs.getBubbleRadius() + " dp");
-        radiusValueText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText, getResourceProvider()));
-        radiusHeader.addView(radiusTitle, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        radiusValueText.setTextColor(0xFF7052FF);
+        radiusHeader.addView(rTitle, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
         radiusHeader.addView(radiusValueText);
         radiusRow.addView(radiusHeader);
 
         radiusSeekBar = new SeekBar(context);
-        radiusSeekBar.setMax(24); // maps to 4..28 dp
+        radiusSeekBar.setMax(28); // 4..32 dp
         radiusSeekBar.setProgress(Math.max(0, MiogramCustomUiPrefs.getBubbleRadius() - 4));
         radiusSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -307,156 +425,458 @@ public class MiogramCustomUiActivity extends BaseFragment {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
         radiusRow.addView(radiusSeekBar);
-        section.addView(radiusRow);
+        layout.addView(radiusRow);
 
-        return section;
+        return layout;
     }
 
-    private View createAvatarsSection(Context context) {
-        LinearLayout section = new LinearLayout(context);
-        section.setOrientation(LinearLayout.VERTICAL);
-        applyCardBackground(section);
+    /* =========================================================================
+     * TAB 2: NAME & TEXT FX STUDIO
+     * ========================================================================= */
 
-        // Avatar Shape Selector
-        LinearLayout shapeRow = new LinearLayout(context);
-        shapeRow.setOrientation(LinearLayout.HORIZONTAL);
-        shapeRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
-        shapeRow.setGravity(Gravity.CENTER_VERTICAL);
+    private View createNameFxTab(Context context) {
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        applyCardBackground(layout);
 
-        LinearLayout shapeTexts = new LinearLayout(context);
-        shapeTexts.setOrientation(LinearLayout.VERTICAL);
-        TextView shapeTitle = new TextView(context);
-        shapeTitle.setText(MiogramLocale.get("Геометрія аватарів", "Геометрия аватаров", "Avatar Geometry"));
-        shapeTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        shapeTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
-        avatarShapeSubtitle = new TextView(context);
-        avatarShapeSubtitle.setText(getAvatarShapeName(MiogramCustomUiPrefs.getAvatarShape()));
-        avatarShapeSubtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        avatarShapeSubtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, getResourceProvider()));
-        shapeTexts.addView(shapeTitle);
-        shapeTexts.addView(avatarShapeSubtitle);
-        shapeRow.addView(shapeTexts, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        layout.addView(createSectionHeader(context, "Шейдери та спецефекти імені"));
 
-        ImageView arrow = new ImageView(context);
-        arrow.setImageResource(R.drawable.msg_arrowright);
-        arrow.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon, getResourceProvider()));
-        shapeRow.addView(arrow);
+        String[] fxNames = {
+                "⚪ Без ефектів", "🔥 Полум'я Вогню",
+                "❄️ Крижаний Лід", "🌈 Анімована Веселка",
+                "✨ Сяючий Блік", "⚡ Кіберпанк Неон",
+                "🌌 Градієнт"
+        };
+        int[] fxIds = {
+                MiogramUiEngine.FX_NONE, MiogramUiEngine.FX_FIRE,
+                MiogramUiEngine.FX_ICE, MiogramUiEngine.FX_RAINBOW,
+                MiogramUiEngine.FX_GLARE, MiogramUiEngine.FX_CYBER_NEON,
+                MiogramUiEngine.FX_GRADIENT
+        };
 
-        shapeRow.setOnClickListener(v -> showAvatarShapeDialog());
-        section.addView(shapeRow);
+        for (int i = 0; i < fxNames.length; i++) {
+            final int id = fxIds[i];
+            boolean isCur = (MiogramCustomUiPrefs.getNameFx() == id);
+            TextView item = new TextView(context);
+            item.setText(fxNames[i] + (isCur ? "  ✓" : ""));
+            item.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            item.setTypeface(isCur ? AndroidUtilities.bold() : null);
+            item.setTextColor(isCur ? 0xFF7052FF : Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+            item.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
+            item.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                MiogramCustomUiPrefs.setNameFx(id);
+                switchTab(2);
+                livePreview.invalidate();
+            });
+            layout.addView(item);
+        }
 
-        // Glowing Avatar Ring Switch
+        // Name Glow Switch
+        nameGlowSwitch = new TextCheckCell(context);
+        nameGlowSwitch.setTextAndCheck("Неонове світіння навколо імені", MiogramCustomUiPrefs.isNameGlowEnabled(), true);
+        nameGlowSwitch.setOnClickListener(v -> {
+            boolean newVal = !nameGlowSwitch.isChecked();
+            nameGlowSwitch.setChecked(newVal);
+            MiogramCustomUiPrefs.setNameGlowEnabled(newVal);
+            livePreview.invalidate();
+        });
+        layout.addView(nameGlowSwitch);
+
+        // Glow Color & Radius
+        LinearLayout glowColorRow = new LinearLayout(context);
+        glowColorRow.setOrientation(LinearLayout.HORIZONTAL);
+        glowColorRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(10), AndroidUtilities.dp(16), AndroidUtilities.dp(10));
+        glowColorRow.setGravity(Gravity.CENTER_VERTICAL);
+        TextView gLabel = new TextView(context);
+        gLabel.setText("Колір світіння:");
+        gLabel.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+        glowColorRow.addView(gLabel, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        View gChip = createColorChip(context, MiogramCustomUiPrefs.getNameGlowColor(), c -> {
+            MiogramCustomUiPrefs.setNameGlowColor(c);
+            livePreview.invalidate();
+        });
+        glowColorRow.addView(gChip);
+        layout.addView(glowColorRow);
+
+        // Typography Selector
+        LinearLayout fontRow = new LinearLayout(context);
+        fontRow.setOrientation(LinearLayout.HORIZONTAL);
+        fontRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
+        fontRow.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout fontTexts = new LinearLayout(context);
+        fontTexts.setOrientation(LinearLayout.VERTICAL);
+        TextView fTitle = new TextView(context);
+        fTitle.setText("Шрифт імені (Typography)");
+        fTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+        fontSubtitle = new TextView(context);
+        fontSubtitle.setText(getFontName(MiogramCustomUiPrefs.getNameFont()));
+        fontSubtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        fontSubtitle.setTextColor(0xFF7052FF);
+        fontTexts.addView(fTitle);
+        fontTexts.addView(fontSubtitle);
+        fontRow.addView(fontTexts, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        fontRow.setOnClickListener(v -> showFontDialog());
+        layout.addView(fontRow);
+
+        return layout;
+    }
+
+    /* =========================================================================
+     * TAB 3: AVATARS & RINGS STUDIO
+     * ========================================================================= */
+
+    private View createAvatarsTab(Context context) {
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        applyCardBackground(layout);
+
+        layout.addView(createSectionHeader(context, "Геометрія форми аватара"));
+
+        String[] shapes = {
+                "⚪ Круглий (Classic Circle)", "⬛ Сквіркл (iOS Modern Squircle)",
+                "🔲 Закруглений прямокутник", "⬡ Гексагон (Cyber Polygon)",
+                "⭐ Зірка (8-point Star)", "💎 Діамант (Diamond Shape)"
+        };
+        int[] sIds = {
+                MiogramUiEngine.SHAPE_CIRCLE, MiogramUiEngine.SHAPE_SQUIRCLE,
+                MiogramUiEngine.SHAPE_ROUNDED_RECT, MiogramUiEngine.SHAPE_HEXAGON,
+                MiogramUiEngine.SHAPE_STAR, MiogramUiEngine.SHAPE_DIAMOND
+        };
+
+        for (int i = 0; i < shapes.length; i++) {
+            final int id = sIds[i];
+            boolean isCur = (MiogramCustomUiPrefs.getAvatarShape() == id);
+            TextView item = new TextView(context);
+            item.setText(shapes[i] + (isCur ? "  ✓" : ""));
+            item.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            item.setTypeface(isCur ? AndroidUtilities.bold() : null);
+            item.setTextColor(isCur ? 0xFF7052FF : Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+            item.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
+            item.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                MiogramCustomUiPrefs.setAvatarShape(id);
+                switchTab(3);
+                livePreview.invalidate();
+            });
+            layout.addView(item);
+        }
+
+        // Glowing Ring Switch
         avatarRingSwitch = new TextCheckCell(context);
-        avatarRingSwitch.setTextAndCheck(MiogramLocale.get("Сяюче неонове кільце аватара", "Светящееся неоновое кольцо аватара", "Glowing Avatar Neon Ring"),
-                MiogramCustomUiPrefs.isAvatarRingEnabled(), true);
+        avatarRingSwitch.setTextAndCheck("Сяюче неонове кільце аватара", MiogramCustomUiPrefs.isAvatarRingEnabled(), true);
         avatarRingSwitch.setOnClickListener(v -> {
             boolean newVal = !avatarRingSwitch.isChecked();
             avatarRingSwitch.setChecked(newVal);
             MiogramCustomUiPrefs.setAvatarRingEnabled(newVal);
             livePreview.invalidate();
         });
-        section.addView(avatarRingSwitch);
+        layout.addView(avatarRingSwitch);
 
-        // Unread Badge Style
-        LinearLayout unreadRow = new LinearLayout(context);
-        unreadRow.setOrientation(LinearLayout.HORIZONTAL);
-        unreadRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
-        unreadRow.setGravity(Gravity.CENTER_VERTICAL);
+        // Pulse Animation
+        avatarPulseSwitch = new TextCheckCell(context);
+        avatarPulseSwitch.setTextAndCheck("Пульсуюча анімація сяйва", MiogramCustomUiPrefs.isAvatarRingPulse(), true);
+        avatarPulseSwitch.setOnClickListener(v -> {
+            boolean newVal = !avatarPulseSwitch.isChecked();
+            avatarPulseSwitch.setChecked(newVal);
+            MiogramCustomUiPrefs.setAvatarRingPulse(newVal);
+            livePreview.invalidate();
+        });
+        layout.addView(avatarPulseSwitch);
 
-        LinearLayout unreadTexts = new LinearLayout(context);
-        unreadTexts.setOrientation(LinearLayout.VERTICAL);
-        TextView unreadTitle = new TextView(context);
-        unreadTitle.setText(MiogramLocale.get("Бейджики непрочитаних", "Бейджики непрочитанных", "Unread Badges"));
-        unreadTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        unreadTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
-        unreadStyleSubtitle = new TextView(context);
-        unreadStyleSubtitle.setText(getUnreadStyleName(MiogramCustomUiPrefs.getUnreadStyle()));
-        unreadStyleSubtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        unreadStyleSubtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, getResourceProvider()));
-        unreadTexts.addView(unreadTitle);
-        unreadTexts.addView(unreadStyleSubtitle);
-        unreadRow.addView(unreadTexts, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        // Ring Color
+        LinearLayout ringColorRow = new LinearLayout(context);
+        ringColorRow.setOrientation(LinearLayout.HORIZONTAL);
+        ringColorRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(10), AndroidUtilities.dp(16), AndroidUtilities.dp(10));
+        ringColorRow.setGravity(Gravity.CENTER_VERTICAL);
+        TextView rcLabel = new TextView(context);
+        rcLabel.setText("Колір кільця:");
+        rcLabel.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+        ringColorRow.addView(rcLabel, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        View rcChip = createColorChip(context, MiogramCustomUiPrefs.getAvatarRingColor(), c -> {
+            MiogramCustomUiPrefs.setAvatarRingColor(c);
+            livePreview.invalidate();
+        });
+        ringColorRow.addView(rcChip);
+        layout.addView(ringColorRow);
 
-        ImageView unreadArrow = new ImageView(context);
-        unreadArrow.setImageResource(R.drawable.msg_arrowright);
-        unreadArrow.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon, getResourceProvider()));
-        unreadRow.addView(unreadArrow);
+        // Ring Width Slider
+        LinearLayout rwRow = new LinearLayout(context);
+        rwRow.setOrientation(LinearLayout.VERTICAL);
+        rwRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(6), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
+        LinearLayout rwHeader = new LinearLayout(context);
+        TextView rwTitle = new TextView(context);
+        rwTitle.setText("Товщина кільця");
+        rwTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+        ringWidthValueText = new TextView(context);
+        ringWidthValueText.setText(MiogramCustomUiPrefs.getAvatarRingWidth() + " dp");
+        ringWidthValueText.setTextColor(0xFF7052FF);
+        rwHeader.addView(rwTitle, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        rwHeader.addView(ringWidthValueText);
+        rwRow.addView(rwHeader);
 
-        unreadRow.setOnClickListener(v -> showUnreadStyleDialog());
-        section.addView(unreadRow);
+        ringWidthSeekBar = new SeekBar(context);
+        ringWidthSeekBar.setMax(6); // 1..7 dp
+        ringWidthSeekBar.setProgress((int) Math.max(0, MiogramCustomUiPrefs.getAvatarRingWidth() - 1));
+        ringWidthSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    float w = progress + 1f;
+                    MiogramCustomUiPrefs.setAvatarRingWidth(w);
+                    ringWidthValueText.setText(w + " dp");
+                    livePreview.invalidate();
+                }
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        rwRow.addView(ringWidthSeekBar);
+        layout.addView(rwRow);
 
-        return section;
+        return layout;
     }
 
-    private View createHeaderAndPerformanceSection(Context context) {
-        LinearLayout section = new LinearLayout(context);
-        section.setOrientation(LinearLayout.VERTICAL);
-        applyCardBackground(section);
+    /* =========================================================================
+     * TAB 4: INTERFACE & PERFORMANCE STUDIO
+     * ========================================================================= */
 
-        // Header Style Row
-        LinearLayout headerRow = new LinearLayout(context);
-        headerRow.setOrientation(LinearLayout.HORIZONTAL);
-        headerRow.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
-        headerRow.setGravity(Gravity.CENTER_VERTICAL);
+    private View createInterfaceTab(Context context) {
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        applyCardBackground(layout);
 
-        LinearLayout headerTexts = new LinearLayout(context);
-        headerTexts.setOrientation(LinearLayout.VERTICAL);
-        TextView hTitle = new TextView(context);
-        hTitle.setText(MiogramLocale.get("Стиль верхньої панелі (ActionBar)", "Стиль верхней панели (ActionBar)", "Top ActionBar Style"));
-        hTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        hTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
-        headerStyleSubtitle = new TextView(context);
-        headerStyleSubtitle.setText(getHeaderStyleName(MiogramCustomUiPrefs.getHeaderStyle()));
-        headerStyleSubtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        headerStyleSubtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, getResourceProvider()));
-        headerTexts.addView(hTitle);
-        headerTexts.addView(headerStyleSubtitle);
-        headerRow.addView(headerTexts, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        // Dialog List Style
+        layout.addView(createClickRow(context, "Стиль списку діалогів", getDialogStyleName(MiogramCustomUiPrefs.getDialogStyle()), v -> {
+            String[] s = {"Класичний список ⚪", "Окремі плаваючі картки 🪟", "Скляний Glassmorphism 💎"};
+            showChoiceDialog("Стиль списку діалогів", s, which -> {
+                MiogramCustomUiPrefs.setDialogStyle(which);
+                switchTab(4);
+            });
+        }));
 
-        ImageView hArrow = new ImageView(context);
-        hArrow.setImageResource(R.drawable.msg_arrowright);
-        hArrow.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon, getResourceProvider()));
-        headerRow.addView(hArrow);
+        // Unread Badge Style
+        layout.addView(createClickRow(context, "Стиль бейджиків непрочитаних", getUnreadStyleName(MiogramCustomUiPrefs.getUnreadStyle()), v -> {
+            String[] s = {"Класичний круг ⚪", "Елегантна пігулка (Pill) 💊", "Неонове сяйво (Neon Glow) ✨", "Мінімалістична крапка (Dot) 🔘"};
+            showChoiceDialog("Стиль бейджиків", s, which -> {
+                MiogramCustomUiPrefs.setUnreadStyle(which);
+                switchTab(4);
+            });
+        }));
 
-        headerRow.setOnClickListener(v -> showHeaderStyleDialog());
-        section.addView(headerRow);
+        // Header Style
+        layout.addView(createClickRow(context, "Стиль ActionBar (Шапки)", getHeaderStyleName(MiogramCustomUiPrefs.getHeaderStyle()), v -> {
+            String[] s = {"Стандартний (Material 3)", "Прозоре скло з розмиттям (Glass)", "Акцентний градієнт (Aurora)"};
+            showChoiceDialog("Стиль верхньої панелі", s, which -> {
+                MiogramCustomUiPrefs.setHeaderStyle(which);
+                switchTab(4);
+            });
+        }));
+
+        // Haptic Feedback
+        layout.addView(createClickRow(context, "Тактильний відгук (Haptics)", getHapticName(MiogramCustomUiPrefs.getHapticLevel()), v -> {
+            String[] s = {"М'який відгук", "Чіткий клік (Crisp)", "Делікатний", "Вимкнено"};
+            showChoiceDialog("Тактильний відгук", s, which -> {
+                MiogramCustomUiPrefs.setHapticLevel(which);
+                switchTab(4);
+            });
+        }));
 
         // ProMotion 120Hz Switch
-        TextCheckCell proMotionSwitch = new TextCheckCell(context);
-        proMotionSwitch.setTextAndCheck(MiogramLocale.get("ProMotion 120Hz / 144Hz плавний скрол", "ProMotion 120Hz / 144Hz плавный скролл", "ProMotion 120Hz Smooth Scroll"),
-                MiogramCustomUiPrefs.isProMotionLock(), true);
+        proMotionSwitch = new TextCheckCell(context);
+        proMotionSwitch.setTextAndCheck("ProMotion 120Hz / 144Hz плавний скрол", MiogramCustomUiPrefs.isProMotionLock(), true);
         proMotionSwitch.setOnClickListener(v -> {
             boolean newVal = !proMotionSwitch.isChecked();
             proMotionSwitch.setChecked(newVal);
             MiogramCustomUiPrefs.setProMotionLock(newVal);
         });
-        section.addView(proMotionSwitch);
+        layout.addView(proMotionSwitch);
 
-        return section;
+        // Online Pulse Switch
+        onlinePulseSwitch = new TextCheckCell(context);
+        onlinePulseSwitch.setTextAndCheck("Пульсуючий індикатор «В мережі»", MiogramCustomUiPrefs.isOnlinePulseEnabled(), true);
+        onlinePulseSwitch.setOnClickListener(v -> {
+            boolean newVal = !onlinePulseSwitch.isChecked();
+            onlinePulseSwitch.setChecked(newVal);
+            MiogramCustomUiPrefs.setOnlinePulseEnabled(newVal);
+        });
+        layout.addView(onlinePulseSwitch);
+
+        return layout;
     }
 
-    private View createApplyButton(Context context) {
+    /* =========================================================================
+     * BOTTOM ACTIONS BAR
+     * ========================================================================= */
+
+    private View createBottomBar(Context context) {
+        FrameLayout bar = new FrameLayout(context);
+        bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite, getResourceProvider()));
+        bar.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(10), AndroidUtilities.dp(16), AndroidUtilities.dp(10));
+
         TextView applyBtn = new TextView(context);
-        applyBtn.setText(MiogramLocale.get("Застосувати зміни ✨", "Применить изменения ✨", "Apply Changes ✨"));
-        applyBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        applyBtn.setText("Застосувати у додатку ✨");
+        applyBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         applyBtn.setTypeface(AndroidUtilities.bold());
         applyBtn.setTextColor(0xFFFFFFFF);
         applyBtn.setGravity(Gravity.CENTER);
 
-        GradientDrawable bg = new GradientDrawable();
-        bg.setShape(GradientDrawable.RECTANGLE);
-        bg.setCornerRadius(AndroidUtilities.dp(14));
-        bg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton, getResourceProvider()));
-        applyBtn.setBackground(bg);
+        GradientDrawable btnBg = new GradientDrawable();
+        btnBg.setShape(GradientDrawable.RECTANGLE);
+        btnBg.setCornerRadius(AndroidUtilities.dp(14));
+        btnBg.setColor(0xFF7052FF);
+        applyBtn.setBackground(btnBg);
 
         applyBtn.setOnClickListener(v -> {
             v.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK);
             Theme.reloadWallpaper();
             NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.didSetNewTheme);
             NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
-            BulletinFactory.of(this).createSimpleBulletin(R.raw.contact_check, "Усі зміни оформлення успішно активовано! ໒꒱").show();
+            BulletinFactory.of(this).createSimpleBulletin(R.raw.contact_check, "Усі стилі Custom UI успішно активовано у чатах! ໒꒱").show();
         });
-        return applyBtn;
+
+        bar.addView(applyBtn, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        return bar;
+    }
+
+    /* =========================================================================
+     * LIVE INTERACTIVE CANVAS PREVIEW
+     * ========================================================================= */
+
+    private static class LivePreviewView extends View {
+        private final Paint cardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        private final TextPaint namePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF rect = new RectF();
+
+        LivePreviewView(Context context) {
+            super(context);
+            textPaint.setTextSize(AndroidUtilities.dp(13.5f));
+            namePaint.setTextSize(AndroidUtilities.dp(14f));
+            namePaint.setTypeface(AndroidUtilities.bold());
+            ringPaint.setStyle(Paint.Style.STROKE);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            int w = getWidth();
+            int h = getHeight();
+
+            // Background Container Card
+            rect.set(0, 0, w, h);
+            cardPaint.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+            canvas.drawRoundRect(rect, AndroidUtilities.dp(16), AndroidUtilities.dp(16), cardPaint);
+
+            // 1. Avatar Preview (Left)
+            float avSize = AndroidUtilities.dp(44);
+            float avLeft = AndroidUtilities.dp(16);
+            float avTop = AndroidUtilities.dp(16);
+            rect.set(avLeft, avTop, avLeft + avSize, avTop + avSize);
+
+            int shape = MiogramCustomUiPrefs.getAvatarShape();
+            Path path = MiogramUiEngine.getAvatarShapePath(rect, shape);
+            canvas.save();
+            canvas.clipPath(path);
+            fillPaint.setShader(new LinearGradient(rect.left, rect.top, rect.right, rect.bottom,
+                    0xFF7052FF, 0xFF00D2FF, Shader.TileMode.CLAMP));
+            canvas.drawPaint(fillPaint);
+            canvas.restore();
+
+            // Glowing Neon Ring
+            MiogramUiEngine.drawAvatarGlowRing(canvas, rect);
+
+            // 2. Sender Name with Name FX Shaders & Glow
+            float nameX = avLeft + avSize + AndroidUtilities.dp(12);
+            float nameY = avTop + AndroidUtilities.dp(14);
+            String nameStr = "Miogram Studio ໒꒱";
+            float nameW = namePaint.measureText(nameStr);
+
+            MiogramUiEngine.applyNameEffect(namePaint, (int) nameW, Theme.getColor(Theme.key_chat_messageLinkIn));
+            canvas.drawText(nameStr, nameX, nameY, namePaint);
+            MiogramUiEngine.restoreNameEffect(namePaint);
+
+            // 3. Incoming Message Bubble
+            float b1Top = nameY + AndroidUtilities.dp(10);
+            String msg1 = "Як тобі новий дизайн чату? ໒꒱";
+            float m1W = textPaint.measureText(msg1);
+            rect.set(nameX, b1Top, nameX + m1W + AndroidUtilities.dp(24), b1Top + AndroidUtilities.dp(36));
+
+            fillPaint.setShader(null);
+            fillPaint.setColor(Theme.getColor(Theme.key_chat_inBubble));
+            float radius = AndroidUtilities.dp(MiogramCustomUiPrefs.getBubbleRadius());
+            canvas.drawRoundRect(rect, radius, radius, fillPaint);
+            textPaint.setColor(Theme.getColor(Theme.key_chat_messageTextIn));
+            canvas.drawText(msg1, rect.left + AndroidUtilities.dp(12), rect.top + AndroidUtilities.dp(23), textPaint);
+
+            // 4. Outgoing Message Bubble with Gradient Shaders & Corner Radius
+            float b2Top = rect.bottom + AndroidUtilities.dp(12);
+            String msg2 = "Виглядає просто неймовірно! 🔥";
+            float m2W = textPaint.measureText(msg2);
+            float b2Right = w - AndroidUtilities.dp(16);
+            rect.set(b2Right - m2W - AndroidUtilities.dp(26), b2Top, b2Right, b2Top + AndroidUtilities.dp(36));
+
+            if (MiogramCustomUiPrefs.isBubbleGradientEnabled()) {
+                Rect rInt = new Rect((int) rect.left, (int) rect.top, (int) rect.right, (int) rect.bottom);
+                fillPaint.setShader(MiogramUiEngine.createGradient(rInt,
+                        MiogramCustomUiPrefs.getBubbleColor1(), MiogramCustomUiPrefs.getBubbleColor2(),
+                        MiogramCustomUiPrefs.getBubbleAngle()));
+            } else {
+                fillPaint.setShader(null);
+                fillPaint.setColor(MiogramCustomUiPrefs.getBubbleColor1());
+            }
+            canvas.drawRoundRect(rect, radius, radius, fillPaint);
+            textPaint.setColor(MiogramCustomUiPrefs.getBubbleTextColor());
+            canvas.drawText(msg2, rect.left + AndroidUtilities.dp(13), rect.top + AndroidUtilities.dp(23), textPaint);
+
+            // Loop animation for live shader waves
+            postInvalidateDelayed(33);
+        }
+    }
+
+    /* =========================================================================
+     * HELPERS & DIALOGS
+     * ========================================================================= */
+
+    private TextView createSectionHeader(Context context, String title) {
+        TextView tv = new TextView(context);
+        tv.setText(title);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f);
+        tv.setTypeface(AndroidUtilities.bold());
+        tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader, getResourceProvider()));
+        tv.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(6));
+        return tv;
+    }
+
+    private View createClickRow(Context context, String title, String subtitle, View.OnClickListener onClick) {
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
+        row.setGravity(Gravity.CENTER_VERTICAL);
+
+        LinearLayout texts = new LinearLayout(context);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        TextView tView = new TextView(context);
+        tView.setText(title);
+        tView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+        TextView sView = new TextView(context);
+        sView.setText(subtitle);
+        sView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        sView.setTextColor(0xFF7052FF);
+        texts.addView(tView);
+        texts.addView(sView);
+
+        row.addView(texts, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+
+        ImageView arrow = new ImageView(context);
+        arrow.setImageResource(R.drawable.msg_arrowright);
+        arrow.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon, getResourceProvider()));
+        row.addView(arrow);
+
+        row.setOnClickListener(onClick);
+        return row;
     }
 
     private View createColorChip(Context context, int initialColor, org.telegram.messenger.Utilities.Callback<Integer> callback) {
@@ -468,11 +888,11 @@ public class MiogramCustomUiActivity extends BaseFragment {
         chip.setBackground(d);
         chip.setLayoutParams(new LinearLayout.LayoutParams(AndroidUtilities.dp(32), AndroidUtilities.dp(32)));
 
-        int[] colors = {0xFFFF007F, 0xFF00F0FF, 0xFF7052FF, 0xFF00D2FF, 0xFFFF5E3A, 0xFFFF2A68, 0xFF00B09B, 0xFF96C93D, 0xFFFFFFFF, 0xFF18181A};
+        int[] colors = {0xFFFF007F, 0xFF00F0FF, 0xFF7052FF, 0xFF00D2FF, 0xFFFF5E3A, 0xFFFF2A68, 0xFF00B09B, 0xFF96C93D, 0xFFFFD700, 0xFFFFFFFF, 0xFF161618};
         chip.setOnClickListener(v -> {
             AlertDialog.Builder b = new AlertDialog.Builder(context);
-            b.setTitle(MiogramLocale.get("Оберіть колір", "Выберите цвет", "Choose Color"));
-            String[] names = {"Neon Pink", "Cyber Cyan", "Electric Violet", "Sky Blue", "Coral Orange", "Rose Gold", "Mint Frost", "Lime Green", "Pure White", "AMOLED Dark"};
+            b.setTitle("Оберіть колір");
+            String[] names = {"Neon Pink", "Cyber Cyan", "Electric Violet", "Sky Blue", "Coral Orange", "Rose Gold", "Mint Frost", "Lime Green", "Gold Royalty", "Pure White", "AMOLED Black"};
             b.setItems(names, (dialog, which) -> {
                 int c = colors[which];
                 d.setColor(c);
@@ -486,79 +906,56 @@ public class MiogramCustomUiActivity extends BaseFragment {
     private void applyCardBackground(View view) {
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.RECTANGLE);
-        bg.setCornerRadius(AndroidUtilities.dp(14));
+        bg.setCornerRadius(AndroidUtilities.dp(16));
         bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite, getResourceProvider()));
         view.setBackground(bg);
     }
 
-    private void syncUiFromPrefs() {
-        if (gradientSwitch != null) gradientSwitch.setChecked(MiogramCustomUiPrefs.isBubbleGradientEnabled());
-        if (avatarRingSwitch != null) avatarRingSwitch.setChecked(MiogramCustomUiPrefs.isAvatarRingEnabled());
-        if (angleSeekBar != null) angleSeekBar.setProgress(MiogramCustomUiPrefs.getBubbleAngle());
-        if (radiusSeekBar != null) radiusSeekBar.setProgress(Math.max(0, MiogramCustomUiPrefs.getBubbleRadius() - 4));
-        if (angleValueText != null) angleValueText.setText(MiogramCustomUiPrefs.getBubbleAngle() + "°");
-        if (radiusValueText != null) radiusValueText.setText(MiogramCustomUiPrefs.getBubbleRadius() + " dp");
-        if (avatarShapeSubtitle != null) avatarShapeSubtitle.setText(getAvatarShapeName(MiogramCustomUiPrefs.getAvatarShape()));
-        if (unreadStyleSubtitle != null) unreadStyleSubtitle.setText(getUnreadStyleName(MiogramCustomUiPrefs.getUnreadStyle()));
-        if (headerStyleSubtitle != null) headerStyleSubtitle.setText(getHeaderStyleName(MiogramCustomUiPrefs.getHeaderStyle()));
-    }
-
-    private void showAvatarShapeDialog() {
-        String[] shapes = {"Круглий (Classic) ⚪", "Сквіркл (iOS Modern) ⬛", "Закруглений прямокутник 🔲", "Гексагон (Cyber) ⬡"};
+    private void showChoiceDialog(String title, String[] items, org.telegram.messenger.Utilities.Callback<Integer> callback) {
         AlertDialog.Builder b = new AlertDialog.Builder(getParentActivity());
-        b.setTitle(MiogramLocale.get("Геометрія аватара", "Геометрия аватара", "Avatar Geometry"));
-        b.setItems(shapes, (dialog, which) -> {
-            MiogramCustomUiPrefs.setAvatarShape(which);
-            avatarShapeSubtitle.setText(getAvatarShapeName(which));
-            livePreview.invalidate();
-        });
+        b.setTitle(title);
+        b.setItems(items, (dialog, which) -> callback.run(which));
         showDialog(b.create());
     }
 
-    private void showUnreadStyleDialog() {
-        String[] styles = {"Класичний круг ⚪", "Елегантна пігулка (Pill) 💊", "Неонове сяйво (Neon Glow) ✨"};
-        AlertDialog.Builder b = new AlertDialog.Builder(getParentActivity());
-        b.setTitle(MiogramLocale.get("Стиль бейджиків", "Стиль бейджиков", "Badge Style"));
-        b.setItems(styles, (dialog, which) -> {
-            MiogramCustomUiPrefs.setUnreadStyle(which);
-            unreadStyleSubtitle.setText(getUnreadStyleName(which));
+    private void showFontDialog() {
+        String[] fonts = {"Roboto (Стандартний)", "Rounded Modern", "Cyber Monospace", "Elegant Serif", "Casual Script"};
+        showChoiceDialog("Шрифт імені", fonts, which -> {
+            MiogramCustomUiPrefs.setNameFont(which);
+            switchTab(2);
             livePreview.invalidate();
         });
-        showDialog(b.create());
-    }
-
-    private void showHeaderStyleDialog() {
-        String[] styles = {"Стандартний (Material 3)", "Прозоре скло (Glassmorphism Blur)", "Акцентний градієнт (Aurora Accent)"};
-        AlertDialog.Builder b = new AlertDialog.Builder(getParentActivity());
-        b.setTitle(MiogramLocale.get("Стиль ActionBar", "Стиль ActionBar", "ActionBar Style"));
-        b.setItems(styles, (dialog, which) -> {
-            MiogramCustomUiPrefs.setHeaderStyle(which);
-            headerStyleSubtitle.setText(getHeaderStyleName(which));
-            livePreview.invalidate();
-        });
-        showDialog(b.create());
     }
 
     private void showResetDialog() {
         AlertDialog.Builder b = new AlertDialog.Builder(getParentActivity());
-        b.setTitle(MiogramLocale.get("Скидання налаштувань", "Сброс настроек", "Reset Settings"));
-        b.setMessage(MiogramLocale.get("Скинути всі стилі Custom UI до заводських значень?", "Сбросить все стили Custom UI к заводским?", "Reset all Custom UI styles to defaults?"));
+        b.setTitle("Скидання налаштувань");
+        b.setMessage("Скинути всі стилі Custom UI Studio до початкових параметрів?");
         b.setPositiveButton(LocaleController.getString(R.string.OK), (dialog, which) -> {
             MiogramCustomUiPrefs.resetDefaults();
-            syncUiFromPrefs();
+            switchTab(activeTab);
             livePreview.invalidate();
-            BulletinFactory.of(this).createSimpleBulletin(R.raw.contact_check, "Скинуто до стандартних значень").show();
+            BulletinFactory.of(this).createSimpleBulletin(R.raw.contact_check, "Параметри успішно скинуто").show();
         });
         b.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         showDialog(b.create());
     }
 
-    private String getAvatarShapeName(int shape) {
-        switch (shape) {
-            case 1: return "Сквіркл (iOS Modern) ⬛";
-            case 2: return "Закруглений прямокутник 🔲";
-            case 3: return "Гексагон (Cyber) ⬡";
-            default: return "Круглий (Classic) ⚪";
+    private String getFontName(int font) {
+        switch (font) {
+            case 1: return "Rounded Modern";
+            case 2: return "Cyber Monospace";
+            case 3: return "Elegant Serif";
+            case 4: return "Casual Script";
+            default: return "Roboto (Стандартний)";
+        }
+    }
+
+    private String getDialogStyleName(int style) {
+        switch (style) {
+            case 1: return "Окремі плаваючі картки 🪟";
+            case 2: return "Скляний Glassmorphism 💎";
+            default: return "Класичний список ⚪";
         }
     }
 
@@ -566,134 +963,25 @@ public class MiogramCustomUiActivity extends BaseFragment {
         switch (style) {
             case 1: return "Елегантна пігулка (Pill) 💊";
             case 2: return "Неонове сяйво (Neon Glow) ✨";
+            case 3: return "Мінімалістична крапка (Dot) 🔘";
             default: return "Класичний круг ⚪";
         }
     }
 
     private String getHeaderStyleName(int style) {
         switch (style) {
-            case 1: return "Прозоре скло (Glassmorphism Blur)";
-            case 2: return "Акцентний градієнт (Aurora Accent)";
+            case 1: return "Прозоре скло з розмиттям (Glass)";
+            case 2: return "Акцентний градієнт (Aurora)";
             default: return "Стандартний (Material 3)";
         }
     }
 
-    /**
-     * Live Interactive Canvas Preview Card.
-     * Accurately mimics Custom Profile's BubblePreview and FrameCardView architecture.
-     */
-    private static class LivePreviewView extends View {
-        private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        private final RectF rect = new RectF();
-        private final Path path = new Path();
-
-        LivePreviewView(Context context) {
-            super(context);
-            textPaint.setTextSize(AndroidUtilities.dp(14));
-            ringPaint.setStyle(Paint.Style.STROKE);
-            ringPaint.setStrokeWidth(AndroidUtilities.dp(2.5f));
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas);
-            int w = getWidth();
-            int h = getHeight();
-
-            // Background Card
-            rect.set(0, 0, w, h);
-            fillPaint.setShader(null);
-            fillPaint.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-            canvas.drawRoundRect(rect, AndroidUtilities.dp(16), AndroidUtilities.dp(16), fillPaint);
-
-            // 1. Avatar Preview (Left side)
-            int avatarSize = AndroidUtilities.dp(44);
-            float avLeft = AndroidUtilities.dp(16);
-            float avTop = AndroidUtilities.dp(20);
-            rect.set(avLeft, avTop, avLeft + avatarSize, avTop + avatarSize);
-
-            int shape = MiogramCustomUiPrefs.getAvatarShape();
-            fillPaint.setColor(0xFF7052FF);
-
-            if (shape == 1) { // Squircle
-                canvas.drawRoundRect(rect, AndroidUtilities.dp(12), AndroidUtilities.dp(12), fillPaint);
-            } else if (shape == 2) { // Rounded Rect
-                canvas.drawRoundRect(rect, AndroidUtilities.dp(6), AndroidUtilities.dp(6), fillPaint);
-            } else if (shape == 3) { // Hexagon
-                path.reset();
-                float cx = rect.centerX();
-                float cy = rect.centerY();
-                float r = avatarSize / 2f;
-                for (int i = 0; i < 6; i++) {
-                    double angle = Math.toRadians(60 * i);
-                    float x = (float) (cx + r * Math.cos(angle));
-                    float y = (float) (cy + r * Math.sin(angle));
-                    if (i == 0) path.moveTo(x, y);
-                    else path.lineTo(x, y);
-                }
-                path.close();
-                canvas.drawPath(path, fillPaint);
-            } else { // Circle
-                canvas.drawCircle(rect.centerX(), rect.centerY(), avatarSize / 2f, fillPaint);
-            }
-
-            // Glowing ring if enabled
-            if (MiogramCustomUiPrefs.isAvatarRingEnabled()) {
-                ringPaint.setColor(MiogramCustomUiPrefs.getAvatarRingColor());
-                float ringInset = AndroidUtilities.dp(3);
-                RectF ringRect = new RectF(rect.left - ringInset, rect.top - ringInset, rect.right + ringInset, rect.bottom + ringInset);
-                canvas.drawRoundRect(ringRect, AndroidUtilities.dp(shape == 0 ? 25 : 15), AndroidUtilities.dp(shape == 0 ? 25 : 15), ringPaint);
-            }
-
-            // 2. Incoming Bubble ("Привіт! Як тобі новий стиль? ໒꒱")
-            float b1Left = avLeft + avatarSize + AndroidUtilities.dp(12);
-            float b1Top = avTop;
-            String msg1 = "Привіт! Як тобі оформлення? ໒꒱";
-            float text1W = textPaint.measureText(msg1);
-            rect.set(b1Left, b1Top, b1Left + text1W + AndroidUtilities.dp(24), b1Top + AndroidUtilities.dp(38));
-
-            fillPaint.setShader(null);
-            fillPaint.setColor(Theme.getColor(Theme.key_chat_inBubble));
-            float radius = AndroidUtilities.dp(MiogramCustomUiPrefs.getBubbleRadius());
-            canvas.drawRoundRect(rect, radius, radius, fillPaint);
-
-            textPaint.setColor(Theme.getColor(Theme.key_chat_messageTextIn));
-            canvas.drawText(msg1, b1Left + AndroidUtilities.dp(12), b1Top + AndroidUtilities.dp(24), textPaint);
-
-            // 3. Outgoing Bubble ("Виглядає космічно! 🔥")
-            String msg2 = "Виглядає космічно! 🔥";
-            float text2W = textPaint.measureText(msg2);
-            float b2Right = w - AndroidUtilities.dp(16);
-            float b2Top = b1Top + AndroidUtilities.dp(52);
-            rect.set(b2Right - text2W - AndroidUtilities.dp(28), b2Top, b2Right, b2Top + AndroidUtilities.dp(38));
-
-            if (MiogramCustomUiPrefs.isBubbleGradientEnabled()) {
-                double rad = Math.toRadians(MiogramCustomUiPrefs.getBubbleAngle());
-                float cx = rect.centerX();
-                float cy = rect.centerY();
-                float maxD = Math.max(rect.width(), rect.height()) / 2f;
-                float xCos = (float) Math.cos(rad) * maxD;
-                float ySin = (float) Math.sin(rad) * maxD;
-                fillPaint.setShader(new LinearGradient(cx - xCos, cy - ySin, cx + xCos, cy + ySin,
-                        MiogramCustomUiPrefs.getBubbleColor1(), MiogramCustomUiPrefs.getBubbleColor2(), Shader.TileMode.CLAMP));
-            } else {
-                fillPaint.setShader(null);
-                fillPaint.setColor(MiogramCustomUiPrefs.getBubbleColor1());
-            }
-            canvas.drawRoundRect(rect, radius, radius, fillPaint);
-
-            textPaint.setColor(MiogramCustomUiPrefs.getBubbleTextColor());
-            canvas.drawText(msg2, rect.left + AndroidUtilities.dp(14), b2Top + AndroidUtilities.dp(24), textPaint);
-
-            // 4. Outgoing Message 2 ("Кастом Юай працює нативно ໒꒱")
-            String msg3 = "Кастом Юай працює нативно ໒꒱";
-            float text3W = textPaint.measureText(msg3);
-            float b3Top = b2Top + AndroidUtilities.dp(46);
-            rect.set(b2Right - text3W - AndroidUtilities.dp(28), b3Top, b2Right, b3Top + AndroidUtilities.dp(38));
-            canvas.drawRoundRect(rect, radius, radius, fillPaint);
-            canvas.drawText(msg3, rect.left + AndroidUtilities.dp(14), b3Top + AndroidUtilities.dp(24), textPaint);
+    private String getHapticName(int haptic) {
+        switch (haptic) {
+            case 1: return "Чіткий клік (Crisp)";
+            case 2: return "Делікатний";
+            case 3: return "Вимкнено";
+            default: return "М'який відгук";
         }
     }
 }

@@ -20704,7 +20704,10 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     }
 
     public void drawBackgroundInternal(Canvas canvas, boolean fromParent) {
+        boolean isOut = currentMessageObject != null && currentMessageObject.isOutOwner();
+        app.miogram.bridge.customui.MiogramUiEngine.beforeDrawBubble(canvas, currentBackgroundDrawable, isOut);
         drawBackgroundInternal(canvas, fromParent, false);
+        app.miogram.bridge.customui.MiogramUiEngine.afterDrawBubble(canvas);
     }
 
     @SuppressLint("WrongCall")
@@ -22543,7 +22546,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             canvas.translate(nx, ny);
             oldAlpha = Theme.chat_namePaint.getAlpha();
             Theme.chat_namePaint.setAlpha((int) (oldAlpha * nameAlpha));
+            app.miogram.bridge.customui.MiogramUiEngine.applyNameEffect(Theme.chat_namePaint, (int) nameLayoutWidth, Theme.chat_namePaint.getColor());
             nameLayout.draw(canvas);
+            app.miogram.bridge.customui.MiogramUiEngine.restoreNameEffect(Theme.chat_namePaint);
             Theme.chat_namePaint.setAlpha(oldAlpha);
             canvas.restore();
 

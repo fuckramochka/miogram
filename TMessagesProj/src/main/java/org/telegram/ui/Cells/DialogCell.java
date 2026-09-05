@@ -4273,11 +4273,13 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 } else {
                     Theme.dialogs_namePaint[paintIndex].setColor(Theme.dialogs_namePaint[paintIndex].linkColor = Theme.getColor(Theme.key_chats_name, resourcesProvider));
                 }
+                app.miogram.bridge.customui.MiogramUiEngine.applyNameEffect(Theme.dialogs_namePaint[paintIndex], (int) nameWidth, Theme.dialogs_namePaint[paintIndex].getColor());
                 canvas.save();
                 canvas.translate(nameLeft + nameLayoutTranslateX, nameTop);
                 SpoilerEffect.layoutDrawMaybe(nameLayout, canvas);
                 AnimatedEmojiSpan.drawAnimatedEmojis(canvas, nameLayout, animatedEmojiStackName, -.075f, null, 0, 0, 0, 1f, getAdaptiveEmojiColorFilter(0, nameLayout.getPaint().getColor()));
                 canvas.restore();
+                app.miogram.bridge.customui.MiogramUiEngine.restoreNameEffect(Theme.dialogs_namePaint[paintIndex]);
                 if (nameLayoutEllipsizeByGradient && !nameLayoutFits) {
                     canvas.save();
                     if (nameLayoutEllipsizeLeft) {
@@ -4889,6 +4891,10 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     checkTtl();
                 }
                 storyParams.forceState = s;
+            }
+
+            if (storyParams != null && storyParams.originalAvatarRect != null) {
+                app.miogram.bridge.customui.MiogramUiEngine.drawAvatarGlowRing(canvas, storyParams.originalAvatarRect);
             }
 
             if (!insideCommunityList && (chat != null && chat.linked_community_id != 0 || user != null && user.linked_community_id != 0) && !drawCommunityAvatar && isDialogCell && !isDialogFolder()) {
