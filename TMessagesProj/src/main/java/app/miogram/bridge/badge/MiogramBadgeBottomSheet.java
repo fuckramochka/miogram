@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.text.TextUtils;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
@@ -22,7 +23,6 @@ import org.telegram.messenger.UserConfig;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.util.ArrayList;
@@ -31,13 +31,9 @@ import java.util.List;
 import app.miogram.bridge.MiogramLocale;
 
 /**
- * Premium Needy Streamer Overload & Cyberpunk Miogram Badge Experience:
- * - Mode A (Reason of Award / "За що отримана стрілочка"):
- *     Official holographic Certificate of Distinction, award citation, verification credentials,
- *     and aesthetic lore symbolism.
- * - Mode B (Arrow Selection Interface / "Інтерфейс вибору стрілочки"):
- *     Rich 10-style card carousel with live animated badges, category badges, dynamic real-time lore inspection,
- *     and instant Supabase cloud synchronization.
+ * 100% Telegram-Native Miogram Badge Bottom Sheet:
+ * Follows official Telegram Android UI guidelines (Theme keys, squircle cards, native typography,
+ * Telegram verification card layout for obtain reasons, and Telegram-style horizontal theme/status picker).
  */
 public class MiogramBadgeBottomSheet extends BottomSheet {
 
@@ -46,10 +42,9 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
     private MiogramBadgeType selectedBadge;
     private ImageView badgePreviewView;
     private TextView badgeNameView;
-    private TextView badgeTagView;
+    private TextView badgeSubView;
     private TextView dynamicLoreView;
-    private GradientDrawable previewBgDrawable;
-    private final List<View> carouselCards = new ArrayList<>();
+    private final List<View> selectorCards = new ArrayList<>();
 
     public MiogramBadgeBottomSheet(BaseFragment fragment, long userId) {
         super(fragment.getParentActivity(), false, fragment.getResourceProvider());
@@ -76,7 +71,7 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
 
         setApplyBottomPadding(false);
         setApplyTopPadding(false);
-        fixNavigationBar(Theme.getColor(Theme.key_dialogBackground));
+        fixNavigationBar(Theme.getColor(Theme.key_dialogBackground, resourcesProvider));
 
         final Context finalContext = context;
         final MiogramSupabaseBridge.BadgeRecord record = MiogramBadgeManager.getBadgeRecord(targetUserId);
@@ -88,122 +83,87 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground));
-        root.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(12), AndroidUtilities.dp(20), AndroidUtilities.dp(26));
+        root.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground, resourcesProvider));
+        root.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(10), AndroidUtilities.dp(18), AndroidUtilities.dp(20));
 
-        // 1. Sleek Drag Handle
+        // 1. Native Telegram Drag Handle
         ImageView dragHandle = new ImageView(context);
         GradientDrawable handleDrawable = new GradientDrawable();
         handleDrawable.setShape(GradientDrawable.RECTANGLE);
-        handleDrawable.setColor(Theme.getColor(Theme.key_sheet_scrollUp));
-        handleDrawable.setCornerRadius(AndroidUtilities.dp(4));
+        handleDrawable.setColor(Theme.getColor(Theme.key_sheet_scrollUp, resourcesProvider));
+        handleDrawable.setCornerRadius(AndroidUtilities.dp(3));
         dragHandle.setImageDrawable(handleDrawable);
-        root.addView(dragHandle, LayoutHelper.createLinear(38, 4, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 14));
+        root.addView(dragHandle, LayoutHelper.createLinear(36, 4, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 16));
 
-        // 2. Window / Modal Category Tag
-        TextView categoryTag = new TextView(context);
-        categoryTag.setTextSize(11.5f);
-        categoryTag.setTypeface(AndroidUtilities.bold());
-        categoryTag.setTextColor(Color.parseColor("#FF70A6"));
-        categoryTag.setGravity(Gravity.CENTER);
-        categoryTag.setText(isSelf
-                ? MiogramLocale.get("✦ ПЕРСОНАЛІЗАЦІЯ СТРІЛОЧКИ MIOGRAM ✦", "✦ ПЕРСОНАЛИЗАЦИЯ СТРЕЛОЧКИ MIOGRAM ✦", "✦ MIOGRAM ARROW CUSTOMIZER ✦")
-                : (isFounder
-                    ? MiogramLocale.get("👑 ОФІЦІЙНИЙ СЕРТИФІКАТ ЗАСНОВНИКА 👑", "👑 ОФИЦИАЛЬНЫЙ СЕРТИФИКАТ СОЗДАТЕЛЯ 👑", "👑 OFFICIAL FOUNDER CERTIFICATE 👑")
-                    : MiogramLocale.get("📜 ОФІЦІЙНИЙ СЕРТИФІКАТ ВІДЗНАКИ ໒꒱", "📜 ОФИЦИАЛЬНЫЙ СЕРТИФИКАТ ОТЛИЧИЯ ໒꒱", "📜 OFFICIAL BADGE CERTIFICATE ໒꒱")));
-        root.addView(categoryTag, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 4));
-
-        // 3. Main Modal Title
-        TextView titleView = new TextView(context);
-        titleView.setTextSize(21);
-        titleView.setTypeface(AndroidUtilities.bold());
-        titleView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
-        titleView.setGravity(Gravity.CENTER);
-        if (isSelf) {
-            titleView.setText(MiogramLocale.get("Вибір стилю відзнаки ໒꒱", "Выбор стиля отличия ໒꒱", "Badge Style Studio ໒꒱"));
-        } else if (isFounder) {
-            titleView.setText(MiogramLocale.get("Засновник & Архітектор ໒꒱", "Создатель & Архитектор ໒꒱", "Founder & Architect ໒꒱"));
-        } else {
-            String customTitle = (record != null && !TextUtils.isEmpty(record.title)) ? record.title : "Відзнака Спільноти Miogram ໒꒱";
-            titleView.setText(customTitle);
-        }
-        root.addView(titleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 14));
-
-        // 4. Holographic Showcase Box (Large Animated Preview Chamber)
-        LinearLayout showcaseCard = new LinearLayout(context);
-        showcaseCard.setOrientation(LinearLayout.VERTICAL);
-        showcaseCard.setGravity(Gravity.CENTER);
-
-        previewBgDrawable = new GradientDrawable();
-        previewBgDrawable.setShape(GradientDrawable.RECTANGLE);
-        previewBgDrawable.setCornerRadius(AndroidUtilities.dp(22));
-        updateShowcaseBorder(selectedBadge);
-        showcaseCard.setBackground(previewBgDrawable);
-        showcaseCard.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(16));
+        // 2. Telegram Native Preview Chamber (Soft Squircle Background)
+        FrameLayout previewContainer = new FrameLayout(context);
+        GradientDrawable previewBg = new GradientDrawable();
+        previewBg.setShape(GradientDrawable.RECTANGLE);
+        previewBg.setCornerRadius(AndroidUtilities.dp(24));
+        int accentColor = Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider);
+        previewBg.setColor(Color.argb(22, Color.red(accentColor), Color.green(accentColor), Color.blue(accentColor)));
+        previewContainer.setBackground(previewBg);
+        previewContainer.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(16));
 
         badgePreviewView = new ImageView(context);
-        badgePreviewView.setImageDrawable(new MiogramArrowDrawable(88, selectedBadge));
-        showcaseCard.addView(badgePreviewView, LayoutHelper.createLinear(110, 88, Gravity.CENTER));
+        badgePreviewView.setImageDrawable(new MiogramArrowDrawable(76, selectedBadge));
+        previewContainer.addView(badgePreviewView, LayoutHelper.createFrame(96, 76, Gravity.CENTER));
 
+        root.addView(previewContainer, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 12));
+
+        // 3. Telegram Native Title & Verification Subtitle
         badgeNameView = new TextView(context);
-        badgeNameView.setTextSize(16);
+        badgeNameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
         badgeNameView.setTypeface(AndroidUtilities.bold());
-        badgeNameView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+        badgeNameView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
         badgeNameView.setGravity(Gravity.CENTER);
-        badgeNameView.setText(getBadgeDisplayName(selectedBadge));
-        showcaseCard.addView(badgeNameView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 8, 0, 2));
+        if (isSelf) {
+            badgeNameView.setText(MiogramLocale.get("Стрілочка Miogram ໒꒱", "Стрелочка Miogram ໒꒱", "Miogram Badge ໒꒱"));
+        } else if (isFounder) {
+            badgeNameView.setText(MiogramLocale.get("Засновник Miogram ໒꒱", "Создатель Miogram ໒꒱", "Miogram Founder ໒꒱"));
+        } else {
+            String customTitle = (record != null && !TextUtils.isEmpty(record.title)) ? record.title : "Відзнака Спільноти ໒꒱";
+            badgeNameView.setText(customTitle);
+        }
+        root.addView(badgeNameView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 4));
 
-        badgeTagView = new TextView(context);
-        badgeTagView.setTextSize(12);
-        badgeTagView.setTypeface(AndroidUtilities.bold());
-        badgeTagView.setTextColor(getBadgeAccentColor(selectedBadge));
-        badgeTagView.setGravity(Gravity.CENTER);
-        badgeTagView.setText(getBadgeSubTag(selectedBadge));
-        showcaseCard.addView(badgeTagView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 2));
-
-        root.addView(showcaseCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 16));
+        badgeSubView = new TextView(context);
+        badgeSubView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        badgeSubView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, resourcesProvider));
+        badgeSubView.setGravity(Gravity.CENTER);
+        badgeSubView.setText(selectedBadge.getTitle() + " • Supabase Cloud Verified ✓");
+        root.addView(badgeSubView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 16));
 
         // =============================================================
         // BRANCH A: INSPECTION MODE ("За що отримана стрілочка")
         // =============================================================
         if (!isSelf) {
-            // Certificate Citation Card (За що надано)
-            LinearLayout citationCard = new LinearLayout(context);
-            citationCard.setOrientation(LinearLayout.VERTICAL);
-            GradientDrawable citationBg = new GradientDrawable();
-            citationBg.setShape(GradientDrawable.RECTANGLE);
-            citationBg.setCornerRadius(AndroidUtilities.dp(16));
-            citationBg.setColor(Color.argb(22, 255, 112, 166));
-            citationBg.setStroke(AndroidUtilities.dp(1.5f), Color.argb(120, 255, 112, 166));
-            citationCard.setBackground(citationBg);
-            citationCard.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
+            // Native Telegram Info Card: Офіційне Обґрунтування
+            LinearLayout reasonCard = new LinearLayout(context);
+            reasonCard.setOrientation(LinearLayout.VERTICAL);
+            GradientDrawable reasonBg = new GradientDrawable();
+            reasonBg.setShape(GradientDrawable.RECTANGLE);
+            reasonBg.setCornerRadius(AndroidUtilities.dp(14));
+            reasonBg.setColor(Theme.getColor(Theme.key_windowBackgroundGray, resourcesProvider));
+            reasonCard.setBackground(reasonBg);
+            reasonCard.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
 
-            LinearLayout citHeaderRow = new LinearLayout(context);
-            citHeaderRow.setOrientation(LinearLayout.HORIZONTAL);
-            citHeaderRow.setGravity(Gravity.CENTER_VERTICAL);
+            TextView reasonTitle = new TextView(context);
+            reasonTitle.setText(MiogramLocale.get("Обґрунтування надання відзнаки", "Обоснование выдачи отличия", "Award Citation & Reason"));
+            reasonTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            reasonTitle.setTypeface(AndroidUtilities.bold());
+            reasonTitle.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
+            reasonCard.addView(reasonTitle, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 6));
 
-            TextView citIcon = new TextView(context);
-            citIcon.setText("🎯 ");
-            citIcon.setTextSize(14);
-            citHeaderRow.addView(citIcon);
-
-            TextView citTitle = new TextView(context);
-            citTitle.setText(MiogramLocale.get("ОБҐРУНТУВАННЯ НАДАННЯ ВІДЗНАКИ", "ОБОСНОВАНИЕ ВЫДАЧИ ОТЛИЧИЯ", "AWARD CITATION & REASON"));
-            citTitle.setTextSize(12);
-            citTitle.setTypeface(AndroidUtilities.bold());
-            citTitle.setTextColor(Color.parseColor("#FF70A6"));
-            citHeaderRow.addView(citTitle);
-            citationCard.addView(citHeaderRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
-
-            TextView reasonView = new TextView(context);
-            reasonView.setTextSize(14);
-            reasonView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
-            reasonView.setLineSpacing(AndroidUtilities.dp(3), 1.0f);
+            TextView reasonBody = new TextView(context);
+            reasonBody.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+            reasonBody.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
+            reasonBody.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
 
             String reason = (record != null && !TextUtils.isEmpty(record.obtainedReason)) ? record.obtainedReason :
                     (isFounder
                             ? MiogramLocale.get(
-                                    "Особиста відзнака засновника та головного архітектора екосистеми Miogram (@fuckramochka). Надана при заснуванні проекту як символ найвищого статусу розробника та підтвердження офіційної автентичності клієнта.",
+                                    "Особиста відзнака засновника та головного архітектора екосистеми Miogram (@fuckramochka). Надана при заснуванні проекту як символ найвищого статусу розробника та підтвердження офіційної автентичності білду.",
                                     "Личное отличие создателя и главного архитектора экосистемы Miogram (@fuckramochka). Предоставлено при основании проекта как символ высшего статуса разработчика и подтверждения официальной подлинности клиента.",
                                     "Personal distinction of the Founder & Chief Architect of Miogram (@fuckramochka). Granted upon project genesis as a symbol of supreme developer status and official client authenticity.")
                             : MiogramLocale.get(
@@ -211,89 +171,80 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
                                     "Официально верифицированный участник облачной экосистемы Miogram. Отличие предоставлено за весомый вклад в тестирование, поддержку сообщества и активное развитие клиента.",
                                     "Officially verified member of the Miogram Cloud ecosystem. Awarded for meaningful contributions to testing, community support, and client development."));
 
-            reasonView.setText("“ " + reason + " ”");
-            citationCard.addView(reasonView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+            reasonBody.setText(reason);
+            reasonCard.addView(reasonBody, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-            root.addView(citationCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 14));
+            root.addView(reasonCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
 
-            // Credentials & Verification Grid
-            LinearLayout credGrid = new LinearLayout(context);
-            credGrid.setOrientation(LinearLayout.VERTICAL);
-            GradientDrawable credBg = new GradientDrawable();
-            credBg.setShape(GradientDrawable.RECTANGLE);
-            credBg.setCornerRadius(AndroidUtilities.dp(16));
-            credBg.setColor(Theme.getColor(Theme.key_windowBackgroundGray));
-            credGrid.setBackground(credBg);
-            credGrid.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
-
-            TextView credHeader = new TextView(context);
-            credHeader.setText(MiogramLocale.get("✦ ДЕТАЛІ АВТЕНТИФІКАЦІЇ", "✦ ДЕТАЛИ АУТЕНТИФИКАЦИИ", "✦ AUTHENTICATION DETAILS"));
-            credHeader.setTextSize(11.5f);
-            credHeader.setTypeface(AndroidUtilities.bold());
-            credHeader.setTextColor(Color.parseColor("#00E5FF"));
-            credGrid.addView(credHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
+            // Native Telegram Metadata Rows Card
+            LinearLayout metaCard = new LinearLayout(context);
+            metaCard.setOrientation(LinearLayout.VERTICAL);
+            GradientDrawable metaBg = new GradientDrawable();
+            metaBg.setShape(GradientDrawable.RECTANGLE);
+            metaBg.setCornerRadius(AndroidUtilities.dp(14));
+            metaBg.setColor(Theme.getColor(Theme.key_windowBackgroundGray, resourcesProvider));
+            metaCard.setBackground(metaBg);
+            metaCard.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(10), AndroidUtilities.dp(16), AndroidUtilities.dp(10));
 
             String obtainDate = (record != null && !TextUtils.isEmpty(record.obtainedAt)) ? record.obtainedAt : "01.09.2026";
             if (obtainDate.length() > 10) {
                 obtainDate = obtainDate.substring(0, 10);
             }
 
-            credGrid.addView(createDetailRow(context,
-                    MiogramLocale.get("📅 Дата нагородження:", "📅 Дата выдачи:", "📅 Date Granted:"),
+            metaCard.addView(createTgMetaRow(context,
+                    MiogramLocale.get("Дата надання:", "Дата выдачи:", "Date Granted:"),
                     obtainDate));
-            credGrid.addView(createDetailRow(context,
-                    MiogramLocale.get("🛡️ Хмарна верифікація:", "🛡️ Облачная верификация:", "🛡️ Cloud Status:"),
-                    MiogramLocale.get("Supabase Verified ✓", "Supabase Verified ✓", "Supabase Verified ✓")));
-            credGrid.addView(createDetailRow(context,
-                    MiogramLocale.get("🆔 Ідентифікатор користувача:", "🆔 Идентификатор пользователя:", "🆔 User Identifier:"),
-                    "UID " + targetUserId));
-            credGrid.addView(createDetailRow(context,
-                    MiogramLocale.get("🎨 Канонічний стиль:", "🎨 Канонический стиль:", "🎨 Canonical Style:"),
+            metaCard.addView(createTgMetaRow(context,
+                    MiogramLocale.get("Хмарний статус:", "Облачный статус:", "Cloud Status:"),
+                    "Supabase Verified ✓"));
+            metaCard.addView(createTgMetaRow(context,
+                    MiogramLocale.get("Ідентифікатор користувача:", "Идентификатор пользователя:", "User ID:"),
+                    String.valueOf(targetUserId)));
+            metaCard.addView(createTgMetaRow(context,
+                    MiogramLocale.get("Стиль бейджа:", "Стиль бейджа:", "Badge Style:"),
                     selectedBadge.getTitle()));
 
-            root.addView(credGrid, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 14));
+            root.addView(metaCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
 
-            // Artistic Lore & Symbolism
+            // Native Lore Section
             LinearLayout loreCard = new LinearLayout(context);
             loreCard.setOrientation(LinearLayout.VERTICAL);
             GradientDrawable loreBg = new GradientDrawable();
             loreBg.setShape(GradientDrawable.RECTANGLE);
-            loreBg.setCornerRadius(AndroidUtilities.dp(16));
-            loreBg.setColor(Color.argb(20, 0, 229, 255));
-            loreBg.setStroke(AndroidUtilities.dp(1), Color.argb(70, 0, 229, 255));
+            loreBg.setCornerRadius(AndroidUtilities.dp(14));
+            loreBg.setColor(Theme.getColor(Theme.key_windowBackgroundGray, resourcesProvider));
             loreCard.setBackground(loreBg);
             loreCard.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
 
             TextView loreTitle = new TextView(context);
-            loreTitle.setText(MiogramLocale.get("✦ ХУДОЖНІЙ ЗМІСТ ТА СИМВОЛІЗМ", "✦ ХУДОЖЕСТВЕННЫЙ СМЫСЛ И СИМВОЛИЗМ", "✦ AESTHETIC LORE & SYMBOLISM"));
-            loreTitle.setTextSize(11.5f);
+            loreTitle.setText(MiogramLocale.get("Символізм стилю", "Символизм стиля", "Style Symbolism"));
+            loreTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
             loreTitle.setTypeface(AndroidUtilities.bold());
-            loreTitle.setTextColor(Color.parseColor("#00E5FF"));
+            loreTitle.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
             loreCard.addView(loreTitle, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 4));
 
-            TextView loreText = new TextView(context);
-            loreText.setTextSize(13);
-            loreText.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
-            loreText.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
-            loreText.setText(getBadgeLore(selectedBadge));
-            loreCard.addView(loreText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+            TextView loreBody = new TextView(context);
+            loreBody.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13.5f);
+            loreBody.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
+            loreBody.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
+            loreBody.setText(getBadgeLore(selectedBadge));
+            loreCard.addView(loreBody, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-            root.addView(loreCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 20));
+            root.addView(loreCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 18));
 
-            // Cute Close Button
+            // Native Telegram Primary Button
             TextView okButton = new TextView(context);
-            okButton.setText(MiogramLocale.get("Зрозуміло ໒꒱", "Понятно ໒꒱", "Got it ໒꒱"));
-            okButton.setTextSize(15);
+            okButton.setText(MiogramLocale.get("Зрозуміло", "Понятно", "Got It"));
+            okButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
             okButton.setTypeface(AndroidUtilities.bold());
-            okButton.setTextColor(Color.WHITE);
+            okButton.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText, resourcesProvider));
             okButton.setGravity(Gravity.CENTER);
-            GradientDrawable btnBg = new GradientDrawable(
-                    GradientDrawable.Orientation.LEFT_RIGHT,
-                    new int[]{0xFFFF70A6, 0xFF00E5FF}
-            );
-            btnBg.setCornerRadius(AndroidUtilities.dp(16));
+            GradientDrawable btnBg = new GradientDrawable();
+            btnBg.setShape(GradientDrawable.RECTANGLE);
+            btnBg.setCornerRadius(AndroidUtilities.dp(10));
+            btnBg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
             okButton.setBackground(btnBg);
-            okButton.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14));
+            okButton.setPadding(0, AndroidUtilities.dp(13), 0, AndroidUtilities.dp(13));
             okButton.setOnClickListener(v -> {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 dismiss();
@@ -304,14 +255,14 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
             // =============================================================
             // BRANCH B: CUSTOMIZATION MODE ("Інтерфейс вибору стрілочки")
             // =============================================================
-            TextView selectHeader = new TextView(context);
-            selectHeader.setText(MiogramLocale.get("🎨 ОБЕРІТЬ ВАШ СТИЛЬ (10 ВАРІАНТІВ):", "🎨 ВЫБЕРИТЕ ВАШ СТИЛЬ (10 ВАРИАНТОВ):", "🎨 CHOOSE YOUR BADGE STYLE (10 CHOICES):"));
-            selectHeader.setTextSize(12);
-            selectHeader.setTypeface(AndroidUtilities.bold());
-            selectHeader.setTextColor(Color.parseColor("#FF70A6"));
-            root.addView(selectHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
+            TextView sectionHeader = new TextView(context);
+            sectionHeader.setText(MiogramLocale.get("Оберіть стиль стрілочки (10 варіантів)", "Выберите стиль стрелочки (10 вариантов)", "Choose Arrow Style (10 choices)"));
+            sectionHeader.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            sectionHeader.setTypeface(AndroidUtilities.bold());
+            sectionHeader.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader, resourcesProvider));
+            root.addView(sectionHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
 
-            // Rich Card Carousel
+            // Native Telegram Horizontal Squircle Carousel
             HorizontalScrollView scroll = new HorizontalScrollView(context);
             scroll.setHorizontalScrollBarEnabled(false);
             LinearLayout carousel = new LinearLayout(context);
@@ -319,7 +270,7 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
             carousel.setGravity(Gravity.CENTER_VERTICAL);
             carousel.setPadding(AndroidUtilities.dp(2), AndroidUtilities.dp(2), AndroidUtilities.dp(2), AndroidUtilities.dp(8));
 
-            carouselCards.clear();
+            selectorCards.clear();
             for (MiogramBadgeType type : MiogramBadgeType.values()) {
                 LinearLayout card = new LinearLayout(context);
                 card.setOrientation(LinearLayout.VERTICAL);
@@ -327,35 +278,26 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
                 card.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(10));
 
                 boolean active = (type == selectedBadge);
-                card.setBackground(buildCardBackground(active, type));
+                card.setBackground(buildTgCardBg(active));
 
                 ImageView icon = new ImageView(context);
-                icon.setImageDrawable(new MiogramArrowDrawable(38, type));
-                card.addView(icon, LayoutHelper.createLinear(48, 38, Gravity.CENTER));
+                icon.setImageDrawable(new MiogramArrowDrawable(36, type));
+                card.addView(icon, LayoutHelper.createLinear(44, 36, Gravity.CENTER));
 
                 TextView name = new TextView(context);
                 name.setText(getBadgeShortName(type));
-                name.setTextSize(12.5f);
+                name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
                 name.setTypeface(AndroidUtilities.bold());
-                name.setTextColor(active ? getBadgeAccentColor(type) : Theme.getColor(Theme.key_dialogTextBlack));
+                name.setTextColor(active ? Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider) : Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
                 card.addView(name, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 4, 0, 0));
-
-                TextView tag = new TextView(context);
-                tag.setText(getBadgeSubTag(type));
-                tag.setTextSize(10.5f);
-                tag.setTextColor(Color.parseColor("#8E8E93"));
-                card.addView(tag, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 2, 0, 0));
 
                 card.setOnClickListener(v -> {
                     v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                     selectedBadge = type;
 
-                    // Update Holographic Showcase
-                    badgePreviewView.setImageDrawable(new MiogramArrowDrawable(88, selectedBadge));
-                    badgeNameView.setText(getBadgeDisplayName(selectedBadge));
-                    badgeTagView.setText(getBadgeSubTag(selectedBadge));
-                    badgeTagView.setTextColor(getBadgeAccentColor(selectedBadge));
-                    updateShowcaseBorder(selectedBadge);
+                    // Update Top Preview
+                    badgePreviewView.setImageDrawable(new MiogramArrowDrawable(76, selectedBadge));
+                    badgeSubView.setText(selectedBadge.getTitle() + " • Supabase Cloud Verified ✓");
 
                     // Update Dynamic Lore
                     if (dynamicLoreView != null) {
@@ -366,95 +308,77 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
                     long curUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
                     MiogramSupabaseBridge.setSelectedBadgeForAccount(finalContext, curUserId, selectedBadge);
 
-                    // Re-draw selection states on all cards
+                    // Re-render selection borders
                     for (int i = 0; i < carousel.getChildCount(); i++) {
                         View ch = carousel.getChildAt(i);
                         boolean isCur = (i == selectedBadge.ordinal());
-                        ch.setBackground(buildCardBackground(isCur, MiogramBadgeType.values()[i]));
+                        ch.setBackground(buildTgCardBg(isCur));
                         if (ch instanceof LinearLayout) {
                             LinearLayout l = (LinearLayout) ch;
                             if (l.getChildCount() >= 2 && l.getChildAt(1) instanceof TextView) {
-                                ((TextView) l.getChildAt(1)).setTextColor(isCur ? getBadgeAccentColor(selectedBadge) : Theme.getColor(Theme.key_dialogTextBlack));
+                                ((TextView) l.getChildAt(1)).setTextColor(isCur ? Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider) : Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
                             }
                         }
                     }
                 });
 
-                carouselCards.add(card);
-                carousel.addView(card, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 10, 0));
+                selectorCards.add(card);
+                carousel.addView(card, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 8, 0));
             }
             scroll.addView(carousel);
-            root.addView(scroll, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 14));
+            root.addView(scroll, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
 
-            // Dynamic Live Lore Card for Selected Style
+            // Dynamic Lore Card for Selected Style (Native Telegram Card)
             LinearLayout dynamicLoreCard = new LinearLayout(context);
             dynamicLoreCard.setOrientation(LinearLayout.VERTICAL);
             GradientDrawable dLoreBg = new GradientDrawable();
             dLoreBg.setShape(GradientDrawable.RECTANGLE);
-            dLoreBg.setCornerRadius(AndroidUtilities.dp(16));
-            dLoreBg.setColor(Color.argb(18, 255, 112, 166));
-            dLoreBg.setStroke(AndroidUtilities.dp(1), Color.argb(60, 255, 112, 166));
+            dLoreBg.setCornerRadius(AndroidUtilities.dp(14));
+            dLoreBg.setColor(Theme.getColor(Theme.key_windowBackgroundGray, resourcesProvider));
             dynamicLoreCard.setBackground(dLoreBg);
             dynamicLoreCard.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
 
-            TextView loreHead = new TextView(context);
-            loreHead.setText(MiogramLocale.get("✦ ОПИС ТА ЕСТЕТИКА ОБРАНОГО СТИЛЮ ✦", "✦ ОПИСАНИЕ И ЭСТЕТИКА ВЫБРАННОГО СТИЛЯ ✦", "✦ SELECTED STYLE AESTHETICS & LORE ✦"));
-            loreHead.setTextSize(11.5f);
-            loreHead.setTypeface(AndroidUtilities.bold());
-            loreHead.setTextColor(Color.parseColor("#FF70A6"));
-            dynamicLoreCard.addView(loreHead, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 4));
+            TextView loreTitle = new TextView(context);
+            loreTitle.setText(MiogramLocale.get("Опис обраного стилю", "Описание выбранного стиля", "Selected Style Details"));
+            loreTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            loreTitle.setTypeface(AndroidUtilities.bold());
+            loreTitle.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
+            dynamicLoreCard.addView(loreTitle, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 4));
 
             dynamicLoreView = new TextView(context);
-            dynamicLoreView.setTextSize(13);
-            dynamicLoreView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+            dynamicLoreView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13.5f);
+            dynamicLoreView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
             dynamicLoreView.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
             dynamicLoreView.setText(getBadgeLore(selectedBadge));
             dynamicLoreCard.addView(dynamicLoreView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
             root.addView(dynamicLoreCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 14));
 
-            // Cloud Sync Indicator Card
-            LinearLayout syncCard = new LinearLayout(context);
-            syncCard.setOrientation(LinearLayout.HORIZONTAL);
-            syncCard.setGravity(Gravity.CENTER_VERTICAL);
-            GradientDrawable syncBg = new GradientDrawable();
-            syncBg.setShape(GradientDrawable.RECTANGLE);
-            syncBg.setCornerRadius(AndroidUtilities.dp(14));
-            syncBg.setColor(Theme.getColor(Theme.key_windowBackgroundGray));
-            syncCard.setBackground(syncBg);
-            syncCard.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(10), AndroidUtilities.dp(14), AndroidUtilities.dp(10));
+            // Native Telegram Status Hint (TextInfoPrivacyCell style)
+            TextView syncHint = new TextView(context);
+            syncHint.setText(MiogramLocale.get(
+                    "Хмарна синхронізація Supabase активна. Обраний стиль миттєво відображається у всіх співрозмовників у чатах.",
+                    "Облачная синхронизация Supabase активна. Выбранный стиль мгновенно отображается у всех собеседников в чатах.",
+                    "Supabase cloud sync active. Selected badge is instantly visible to everyone across chats."));
+            syncHint.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+            syncHint.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText4, resourcesProvider));
+            syncHint.setGravity(Gravity.CENTER);
+            root.addView(syncHint, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 16));
 
-            TextView syncDot = new TextView(context);
-            syncDot.setText("☁️ ");
-            syncDot.setTextSize(13);
-            syncCard.addView(syncDot);
-
-            TextView syncText = new TextView(context);
-            syncText.setText(MiogramLocale.get(
-                    "Хмарна синхронізація Supabase: Активна (Стиль миттєво видно всім у чатах)",
-                    "Облачная синхронизация Supabase: Активна (Стиль мгновенно виден всем в чатах)",
-                    "Supabase Cloud Sync: Active (Instant badge visibility across chats)"));
-            syncText.setTextSize(12.5f);
-            syncText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            syncCard.addView(syncText);
-
-            root.addView(syncCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 18));
-
-            // Save & Apply Button
+            // Telegram Native Primary Action Button
             TextView saveButton = new TextView(context);
-            saveButton.setText(MiogramLocale.get("✦ Застосувати стиль стрілочки ໒꒱", "✦ Применить стиль стрелочки ໒꒱", "✦ Apply & Save Badge Style ໒꒱"));
-            saveButton.setTextSize(15.5f);
+            saveButton.setText(MiogramLocale.get("Застосувати стиль", "Применить стиль", "Apply Badge Style"));
+            saveButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
             saveButton.setTypeface(AndroidUtilities.bold());
-            saveButton.setTextColor(Color.WHITE);
+            saveButton.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText, resourcesProvider));
             saveButton.setGravity(Gravity.CENTER);
 
-            GradientDrawable btnBg = new GradientDrawable(
-                    GradientDrawable.Orientation.LEFT_RIGHT,
-                    new int[]{0xFFFF70A6, 0xFF00E5FF}
-            );
-            btnBg.setCornerRadius(AndroidUtilities.dp(16));
+            GradientDrawable btnBg = new GradientDrawable();
+            btnBg.setShape(GradientDrawable.RECTANGLE);
+            btnBg.setCornerRadius(AndroidUtilities.dp(10));
+            btnBg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
             saveButton.setBackground(btnBg);
-            saveButton.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14));
+            saveButton.setPadding(0, AndroidUtilities.dp(13), 0, AndroidUtilities.dp(13));
 
             saveButton.setOnClickListener(v -> {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
@@ -471,80 +395,41 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
         setCustomView(scrollView);
     }
 
-    private View createDetailRow(Context context, String label, String value) {
+    private View createTgMetaRow(Context context, String label, String value) {
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, AndroidUtilities.dp(3), 0, AndroidUtilities.dp(3));
+        row.setPadding(0, AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4));
 
         TextView labelView = new TextView(context);
         labelView.setText(label);
-        labelView.setTextSize(13);
-        labelView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+        labelView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        labelView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, resourcesProvider));
         row.addView(labelView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 8, 0));
 
         TextView valView = new TextView(context);
         valView.setText(value);
-        valView.setTextSize(13);
+        valView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         valView.setTypeface(AndroidUtilities.bold());
-        valView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+        valView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
         row.addView(valView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
         return row;
     }
 
-    private void updateShowcaseBorder(MiogramBadgeType type) {
-        if (previewBgDrawable == null) return;
-        int accent = getBadgeAccentColor(type);
-        previewBgDrawable.setColor(Color.argb(32, Color.red(accent), Color.green(accent), Color.blue(accent)));
-        previewBgDrawable.setStroke(AndroidUtilities.dp(2), Color.argb(160, Color.red(accent), Color.green(accent), Color.blue(accent)));
-    }
-
-    private GradientDrawable buildCardBackground(boolean active, MiogramBadgeType type) {
+    private GradientDrawable buildTgCardBg(boolean active) {
         GradientDrawable d = new GradientDrawable();
         d.setShape(GradientDrawable.RECTANGLE);
-        d.setCornerRadius(AndroidUtilities.dp(16));
-        int accent = getBadgeAccentColor(type);
+        d.setCornerRadius(AndroidUtilities.dp(14));
+        int accent = Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider);
         if (active) {
-            d.setColor(Color.argb(45, Color.red(accent), Color.green(accent), Color.blue(accent)));
+            d.setColor(Color.argb(30, Color.red(accent), Color.green(accent), Color.blue(accent)));
             d.setStroke(AndroidUtilities.dp(2f), accent);
         } else {
-            d.setColor(Color.argb(14, 128, 128, 128));
-            d.setStroke(AndroidUtilities.dp(1.2f), Color.argb(35, 128, 128, 128));
+            d.setColor(Theme.getColor(Theme.key_windowBackgroundGray, resourcesProvider));
+            d.setStroke(AndroidUtilities.dp(1f), Color.argb(20, 128, 128, 128));
         }
         return d;
-    }
-
-    private int getBadgeAccentColor(MiogramBadgeType type) {
-        switch (type) {
-            case PINK:    return 0xFFFF2A93;
-            case CYAN:    return 0xFF00E5FF;
-            case DARK:    return 0xFF9D4EDD;
-            case ANGEL:   return 0xFFC77DFF;
-            case DEVIL:   return 0xFFFF0055;
-            case RAINBOW: return 0xFFFFD166;
-            case OUTLINE: return 0xFF00F0FF;
-            case GLITCH:  return 0xFF00F0FF;
-            case PREMIUM: return 0xFFFFD700;
-            case ORIGINAL:
-            default:      return 0xFF00F0FF;
-        }
-    }
-
-    private String getBadgeDisplayName(MiogramBadgeType type) {
-        switch (type) {
-            case PINK:    return "02 • K-Angel Pink 💖";
-            case CYAN:    return "03 • Cyber Cyan ⚡";
-            case DARK:    return "04 • Dark Obsidian 🌌";
-            case ANGEL:   return "05 • Seraphim Angel 👼";
-            case DEVIL:   return "06 • Devil Rebel 😈";
-            case RAINBOW: return "07 • Prismatic Rainbow 🌈";
-            case OUTLINE: return "08 • Wireframe Cyber 🔲";
-            case GLITCH:  return "09 • CRT Glitch 📺";
-            case PREMIUM: return "10 • Royal Gold 👑";
-            case ORIGINAL:
-            default:      return "01 • Original Classic ໒꒱";
-        }
     }
 
     private String getBadgeShortName(MiogramBadgeType type) {
@@ -560,22 +445,6 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
             case PREMIUM: return "Premium";
             case ORIGINAL:
             default:      return "Original";
-        }
-    }
-
-    private String getBadgeSubTag(MiogramBadgeType type) {
-        switch (type) {
-            case PINK:    return MiogramLocale.get("💖 K-Angel Неон", "💖 K-Angel Неон", "💖 K-Angel Neon");
-            case CYAN:    return MiogramLocale.get("⚡ Кібер Сяйво", "⚡ Кибер Сияние", "⚡ Cyber Glow");
-            case DARK:    return MiogramLocale.get("🌌 Обсидіан", "🌌 Обсидиан", "🌌 Obsidian");
-            case ANGEL:   return MiogramLocale.get("👼 Ширяючий Німб", "👼 Парящий Нимб", "👼 Halo & Feathers");
-            case DEVIL:   return MiogramLocale.get("😈 Бунтарські Ріжки", "😈 Бунтарские Рожки", "😈 Rebel Horns");
-            case RAINBOW: return MiogramLocale.get("🌈 Призматичний", "🌈 Призматический", "🌈 Prismatic");
-            case OUTLINE: return MiogramLocale.get("🔲 Вайрфрейм 1px", "🔲 Вайрфрейм 1px", "🔲 Wireframe 1px");
-            case GLITCH:  return MiogramLocale.get("📺 CRT Розщеплення", "📺 CRT Расщепление", "📺 CRT RGB Split");
-            case PREMIUM: return MiogramLocale.get("👑 Золота Корона", "👑 Золотая Корона", "👑 Royal Crown");
-            case ORIGINAL:
-            default:      return MiogramLocale.get("໒꒱ Канонічний", "໒꒱ Канонический", "໒꒱ Canonical");
         }
     }
 

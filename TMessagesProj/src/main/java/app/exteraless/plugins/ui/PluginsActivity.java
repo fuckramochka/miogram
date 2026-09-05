@@ -71,6 +71,12 @@ public class PluginsActivity extends BaseFragment {
     private final List<Plugin> plugins = new ArrayList<>();
     private PluginsEmptyCell emptyCell;
     private String searchQuery;
+    public static final int FILTER_ALL = 0;
+    public static final int FILTER_MIOGRAM = 1;
+    public static final int FILTER_EXTERA = 2;
+    public static final int FILTER_CATALOG = 3;
+    private int currentFilter = FILTER_ALL;
+    private LinearLayout tabsBar;
 
     @Override
     public View createView(Context context) {
@@ -107,8 +113,19 @@ public class PluginsActivity extends BaseFragment {
         search.setSearchFieldHint(getString(R.string.Search));
         actionBar.createMenu().addItem(MENU_INFO, R.drawable.msg_info);
 
-        FrameLayout contentView = new FrameLayout(context);
+        LinearLayout contentView = new LinearLayout(context);
+        contentView.setOrientation(LinearLayout.VERTICAL);
         contentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
+
+        // Top Category Tabs
+        android.widget.HorizontalScrollView tabScroll = new android.widget.HorizontalScrollView(context);
+        tabScroll.setHorizontalScrollBarEnabled(false);
+        tabsBar = new LinearLayout(context);
+        tabsBar.setOrientation(LinearLayout.HORIZONTAL);
+        tabsBar.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
+        buildPluginTabs(context);
+        tabScroll.addView(tabsBar);
+        contentView.addView(tabScroll, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         refreshPlugins(true);
         emptyCell = new PluginsEmptyCell(context, getCurrentAccount());
@@ -123,11 +140,63 @@ public class PluginsActivity extends BaseFragment {
         listView.setSections();
         listView.adapter.setApplyBackground(false);
         contentView.addView(listView,
-                LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+                LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         actionBar.setAdaptiveBackground(listView);
 
         fragmentView = contentView;
         return fragmentView;
+    }
+
+
+    private void buildPluginTabs(Context context) {
+        if (tabsBar == null) return;
+        tabsBar.removeAllViews();
+
+        String[] titles = {
+            app.miogram.bridge.MiogramLocale.get("Всі", "Все", "All"),
+            "Miogram WASM",
+            "ExteraGram Python (.py)",
+            app.miogram.bridge.MiogramLocale.get("Каталог ໒꒱", "Каталог ໒꒱", "Catalog ໒꒱")
+        };
+        int[] filters = {FILTER_ALL, FILTER_MIOGRAM, FILTER_EXTERA, FILTER_CATALOG};
+
+        for (int i = 0; i < titles.length; i++) {
+            final int filter = filters[i];
+            boolean active = (currentFilter == filter);
+
+            android.widget.TextView tab = new android.widget.TextView(context);
+            tab.setText(titles[i]);
+            tab.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 13);
+            tab.setTypeface(AndroidUtilities.bold());
+            tab.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(6), AndroidUtilities.dp(14), AndroidUtilities.dp(6));
+            tab.setGravity(Gravity.CENTER);
+
+            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+            bg.setCornerRadius(AndroidUtilities.dp(16));
+            int accent = Theme.getColor(Theme.key_featuredStickers_addButton);
+            if (active) {
+                bg.setColor(accent);
+                tab.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
+            } else {
+                bg.setColor(Theme.getColor(Theme.key_dialogBackground));
+                bg.setStroke(AndroidUtilities.dp(1), Color.argb(30, 128, 128, 128));
+                tab.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+            }
+            tab.setBackground(bg);
+
+            tab.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                if (filter == FILTER_CATALOG) {
+                    presentFragment(new app.exteraless.plugins.ui.PluginsStoreActivity());
+                    return;
+                }
+                currentFilter = filter;
+                buildPluginTabs(context);
+                updateRows();
+            });
+
+            tabsBar.addView(tab, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 8, 0));
+        }
     }
 
     // ---------- список ----------
@@ -153,16 +222,29 @@ public class PluginsActivity extends BaseFragment {
     }
 
     private List<Plugin> visiblePlugins() {
-        if (TextUtils.isEmpty(searchQuery)) {
-            return plugins;
-        }
-        String query = searchQuery.toLowerCase(Locale.ROOT);
+        String query = TextUtils.isEmpty(searchQuery) ? null : searchQuery.toLowerCase(Locale.ROOT);
         List<Plugin> filtered = new ArrayList<>();
         for (Plugin plugin : plugins) {
-            if (plugin.getDisplayName().toLowerCase(Locale.ROOT).contains(query)
-                    || (plugin.id != null && plugin.id.toLowerCase(Locale.ROOT).contains(query))) {
-                filtered.add(plugin);
+            if (query != null) {
+                boolean matches = plugin.getDisplayName().toLowerCase(Locale.ROOT).contains(query)
+                        || (plugin.id != null && plugin.id.toLowerCase(Locale.ROOT).contains(query));
+                if (!matches) continue;
             }
+
+            // Category filtering
+            if (currentFilter == FILTER_MIOGRAM) {
+                String idLower = (plugin.id != null ? plugin.id : "").toLowerCase(Locale.ROOT);
+                String nameLower = plugin.getDisplayName().toLowerCase(Locale.ROOT);
+                boolean isMiogram = idLower.contains("wasm") || idLower.contains("miogram") || idLower.contains("rust")
+                        || nameLower.contains("miogram") || nameLower.contains("wasm") || nameLower.contains("shader");
+                if (!isMiogram) continue;
+            } else if (currentFilter == FILTER_EXTERA) {
+                String idLower = (plugin.id != null ? plugin.id : "").toLowerCase(Locale.ROOT);
+                boolean isExtera = idLower.endsWith(".py") || idLower.endsWith(".plugin") || idLower.contains("python")
+                        || idLower.contains("extera") || idLower.contains("hook");
+                if (!isExtera) continue;
+            }
+            filtered.add(plugin);
         }
         return filtered;
     }

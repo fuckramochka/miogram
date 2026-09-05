@@ -165,10 +165,18 @@ public class MiogramAiService {
         generateContent(prompt, getModel(), (res, err) -> {
             if (res != null) {
                 AndroidUtilities.runOnUIThread(() -> callback.run(res));
-            } else if (err != null && err.contains("404") && !"gemini-2.5-flash".equals(getModel())) {
-                // Fallback to gemini-2.5-flash on 404
-                generateContent(prompt, "gemini-2.5-flash", (fallbackRes, fallbackErr) -> {
-                    AndroidUtilities.runOnUIThread(() -> callback.run(fallbackRes));
+            } else if (err != null && (err.contains("404") || err.contains("400") || err.contains("503"))) {
+                // Hierarchical fallback: 3.5-flash-lite -> 3.1-flash-lite -> 2.5-flash
+                String curModel = getModel();
+                String fb = "gemini-3.1-flash-lite".equals(curModel) ? "gemini-2.5-flash" : "gemini-3.1-flash-lite";
+                generateContent(prompt, fb, (fallbackRes, fallbackErr) -> {
+                    if (fallbackRes != null) {
+                        AndroidUtilities.runOnUIThread(() -> callback.run(fallbackRes));
+                    } else {
+                        generateContent(prompt, "gemini-2.5-flash", (fb2Res, fb2Err) -> {
+                            AndroidUtilities.runOnUIThread(() -> callback.run(fb2Res));
+                        });
+                    }
                 });
             } else {
                 AndroidUtilities.runOnUIThread(() -> callback.run(null));

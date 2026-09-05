@@ -63,22 +63,16 @@ public class TranscribeHelper {
     public static final int TRANSCRIBE_OPENAI = 4;
     private static final String GEMINI_API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=%s";
     private static final String GEMINI_PROMPT = """
-    Your task is to create a detailed, verbatim transcription of the provided audio, formatted like closed captions for the hard of hearing. Follow these instructions strictly:
+    Your task is to transcribe the provided voice/audio message with high accuracy, preserving the speaker's emotional state, intensity, and tone directly in the text formatting:
 
-    1.  **Transcribe Speech:** Transcribe all spoken dialogue verbatim. Do NOT include speaker names or labels (like "Speaker 1:", "Person A:", etc.).
-    2.  **Include Sounds:** Include relevant non-speech sounds, actions, and descriptions in square brackets `[]`.
-    3.  **Format Sounds:** Place bracketed sound descriptions on their own line when they occur between dialogue segments, or inline within the dialogue when appropriate.
-    4.  **Output Only:** Output ONLY the formatted transcription. Do not include any introductory text, explanations, or anything other than the transcription.
-
-    **Example Output Format:**
-    [footsteps approaching]
-    Did you hear that?
-    [distant siren wailing]
-    Hear what? I didn't hear anything except that siren.
-    No, before that. A kind of scraping sound. [chair creaks]
-    [sighs] You're probably just imagining things again.
-    [knocking on door]
-    See! I told you!
+    1. **Transcribe Speech Verbatim:** Transcribe every single spoken word accurately. NEVER replace spoken words with audio tags like [crying], [screaming], [whispering], etc. Spoken dialogue must NEVER be omitted.
+    2. **Emotion & Prosody Formatting Rules:**
+       - **Shouting / Screaming / High Anger or Excitement:** When the speaker screams, shouts, or speaks with intense loudness, write those words in UPPERCASE (КАПСОМ) with exclamation marks (!) (e.g. "НЕ ЧІПАЙ ЦЕ!", "ЧОМУ ТИ НЕ СЛУХАЄШ?!").
+       - **Crying / Sobbing / Whimpering:** When the speaker is crying, sobbing, or speaking through tears, transcribe the exact spoken words and place ellipses (...) at emotional pauses and at the end of thoughts (e.g. "я не можу... я правда не хотів..."). NEVER write "[crying]" instead of words.
+       - **Whispering / Low Energy:** Transcribe quietly spoken words in standard lowercase with subtle punctuation.
+       - **Laughter:** Naturally integrate natural laughter markers like "(сміється)" without interrupting or skipping spoken words.
+    3. **No Acoustic Clutter:** Do not output standalone environmental noise brackets like [footsteps], [music], [door creaks], [sigh].
+    4. **Output Only:** Output ONLY the final transcribed text in the original language spoken. No introductions, explanations, or meta-comments.
     """.trim();
 
     private static final String OPENAI_COMPATIBLE_DEFAULT_PROMPT = GEMINI_PROMPT;
@@ -381,6 +375,22 @@ public class TranscribeHelper {
         requestGeminiAi(path, video, callback);
     }
 
+    
+    public static String formatTranscribedEmotionText(String text) {
+        if (text == null) return "";
+        String cleaned = text.replaceAll("(?i)\\[crying\\]", "...")
+                             .replaceAll("(?i)\\[sob(bing)?\\]", "...")
+                             .replaceAll("(?i)\\[screaming\\]", "!")
+                             .replaceAll("(?i)\\[shouting\\]", "!")
+                             .replaceAll("(?i)\\[sighs?\\]", "...")
+                             .replaceAll("(?i)\\[whispering\\]", "")
+                             .replaceAll("(?i)\\[(music|applause|cheering|laughter|footsteps|coughing)\\]", "")
+                             .replaceAll(" +", " ")
+                             .replaceAll(" \\.", ".")
+                             .trim();
+        return cleaned;
+    }
+
     private static void requestGeminiAi(String path, boolean video, BiConsumer<String, Exception> callback) {
         String apiKey = app.miogram.bridge.ai.MiogramAiService.getApiKey();
         if (TextUtils.isEmpty(apiKey)) {
@@ -427,12 +437,27 @@ public class TranscribeHelper {
                         .build();
                 Response response = client.newCall(request).execute();
                 String responseBody = response.body() != null ? response.body().string() : "";
-                if (!response.isSuccessful() && response.code() == 404 && !"gemini-2.5-flash".equals(model)) {
-                    // Fallback to gemini-2.5-flash on 404
-                    String fallbackUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + finalApiKey;
+                if (!response.isSuccessful() && (response.code() == 404 || response.code() == 400 || response.code() == 503)) {
+                    // Fallback hierarchy: gemini-3.5-flash-lite -> gemini-3.1-flash-lite -> gemini-2.5-flash
+                    String fallbackModel = "gemini-3.1-flash-lite".equals(model) ? "gemini-2.5-flash" : "gemini-3.1-flash-lite";
+                    String fallbackUrl = "https://generativelanguage.googleapis.com/v1beta/models/" + fallbackModel + ":generateContent?key=" + finalApiKey;
                     Request fallbackReq = new Request.Builder().url(fallbackUrl).post(requestBody).build();
-                    response = client.newCall(fallbackReq).execute();
-                    responseBody = response.body() != null ? response.body().string() : "";
+                    try (Response fbResp = client.newCall(fallbackReq).execute()) {
+                        if (fbResp.isSuccessful()) {
+                            response = fbResp;
+                            responseBody = fbResp.body() != null ? fbResp.body().string() : "";
+                        } else if (!"gemini-2.5-flash".equals(fallbackModel)) {
+                            // Secondary fallback to 2.5
+                            String fb2Url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + finalApiKey;
+                            Request fb2Req = new Request.Builder().url(fb2Url).post(requestBody).build();
+                            try (Response fb2Resp = client.newCall(fb2Req).execute()) {
+                                if (fb2Resp.isSuccessful()) {
+                                    response = fb2Resp;
+                                    responseBody = fb2Resp.body() != null ? fb2Resp.body().string() : "";
+                                }
+                            }
+                        }
+                    }
                 }
                 if (!response.isSuccessful()) {
                     throw new IOException("Gemini API request failed: " + response.code() + " " + response.message() + "\nBody: " + responseBody);
@@ -447,7 +472,7 @@ public class TranscribeHelper {
                                 .findFirst()
                                 .orElse(null);
                         if (transcribedText != null) {
-                            callback.accept(transcribedText.trim(), null);
+                            callback.accept(formatTranscribedEmotionText(transcribedText), null);
                         } else {
                             String finishReason = firstCandidate.finishReason;
                             List<GeminiResponse.SafetyRating> safetyRatings = firstCandidate.safetyRatings;
