@@ -87,7 +87,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     @Override
     public void onItemClick(View view, int position, float x, float y) {
         if (position == customUiRow) {
-            presentFragment(new app.miogram.bridge.customui.MiogramCustomUiActivity());
+            app.miogram.bridge.customui.MiogramCustomUiActivity.ExtraFeaturesSheet.show(getParentActivity() != null ? getParentActivity() : getContext());
         } else if (position == multichatRow) {
             presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0));
         } else if (position == badgeStudioRow) {
@@ -155,7 +155,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
                     if (position == customUiRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Додаткові функції ໒꒱ (Кастомне оформлення)", "Дополнительные функции ໒꒱ (Кастомное оформление)", "Extra Features ໒꒱ (Custom UI)"), R.drawable.msg_theme, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Додаткові функції (Custom Profile)", "Дополнительные функции (Custom Profile)", "Extra Features (Custom Profile)"), R.drawable.msg_colors, true);
                     } else if (position == multichatRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Мультичат (Split-Screen) 🪟", "Мультичат (Split-Screen) 🪟", "Multi-Chat (Split-Screen) 🪟"), R.drawable.msg_fave, true);
                     } else if (position == badgeStudioRow) {

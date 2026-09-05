@@ -24,6 +24,7 @@ tests/local/
 hs_err_*
 release_apk_latest/
 release_apk/
+photo_*.jpg
 .gradle
 .idea
 .kotlin
