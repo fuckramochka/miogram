@@ -19,7 +19,7 @@ public class MiogramCustomUiPrefs {
     public static final String PREFS_CPB = "cpb_native_settings";
     public static final String PREFS_LOCAL = "miogram_custom_ui_prefs";
 
-    // 1. Message Bubbles (Exact Custom Profile keys)
+    // 1. Message Bubbles
     public static final String KEY_BUBBLE_COLOR_ENABLED = "bubble_color_enabled";
     public static final String KEY_BUBBLE_GRADIENT = "bubble_gradient";
     public static final String KEY_BUBBLE_COLOR = "bubble_color";
@@ -31,7 +31,7 @@ public class MiogramCustomUiPrefs {
     public static final String KEY_BUBBLE_GLOW_COLOR = "bubble_glow_color";
     public static final String KEY_BUBBLE_GLOW_RADIUS = "bubble_glow_radius";
 
-    // 2. Name & Text FX (Exact Custom Profile keys)
+    // 2. Name & Text FX
     public static final String KEY_NAME_COLOR_ENABLED = "name_color_enabled";
     public static final String KEY_NAME_COLOR = "name_color";
     public static final String KEY_NAME_GLOW_ENABLED = "name_glow_enabled";
@@ -52,7 +52,7 @@ public class MiogramCustomUiPrefs {
     public static final String KEY_NAME_SIZE = "name_size";
     public static final String KEY_NAME_FONT = "name_font";
 
-    // 3. Avatar Shapes & Glowing Story Rings (Exact Custom Profile keys)
+    // 3. Avatar Shapes & Glowing Story Rings
     public static final String KEY_AVATAR_SHAPE = "avatar_shape";
     public static final String KEY_AVATAR_RADIUS = "avatar_radius";
     public static final String KEY_AVATAR_ROUND = "avatar_round";
@@ -65,13 +65,60 @@ public class MiogramCustomUiPrefs {
     public static final String KEY_AVATAR_FADE = "avatar_fade";
     public static final String KEY_AVATAR_FADE_RADIUS = "avatar_fade_radius";
 
-    // 4. Profile Text Colors (Photo 3 & EditTextColorsSheet.java)
+    // 4. Profile Text Colors & Palette
     public static final String KEY_PROFILE_TEXT_COLOR_ENABLED = "profile_text_color_enabled";
     public static final String KEY_PROFILE_TEXT_COLOR = "profile_text_color";
     public static final String KEY_PROFILE_PALETTE = "profile_palette";
     public static final String KEY_PROVIDER_ENGINE = "provider_engine";
 
-    // 5. UI & Dialogs
+    // 5. Banner (Header)
+    public static final String KEY_BANNER_ENABLED = "enabled";
+    public static final String KEY_BANNER_MODE = "banner_mode";
+    public static final String KEY_BANNER_ALPHA = "banner_alpha";
+    public static final String KEY_BANNER_DIM = "banner_dim";
+    public static final String KEY_BANNER_COLOR = "banner_color";
+    public static final String KEY_BANNER_BLEND = "banner_blend";
+    public static final String KEY_BANNER_BLEND_RADIUS = "banner_blend_radius";
+    public static final String KEY_SHOW_EMOJI = "show_emoji";
+
+    // 6. Background
+    public static final String KEY_BG_ENABLED = "bg_enabled";
+    public static final String KEY_BG_COMPAT = "bg_compat";
+    public static final String KEY_BG_MODE = "bg_mode";
+    public static final String KEY_BG_COLOR = "bg_color";
+    public static final String KEY_BG_ALPHA = "bg_alpha";
+    public static final String KEY_BG_DIM = "bg_dim";
+
+    // 7. Blocks
+    public static final String KEY_BLOCKS_COLOR_ENABLED = "blocks_color_enabled";
+    public static final String KEY_BLOCKS_COLOR = "blocks_color";
+    public static final String KEY_BLOCKS_ALPHA = "blocks_alpha";
+    public static final String KEY_BLOCKS_JOIN = "blocks_join";
+    public static final String KEY_BLOCKS_RADIUS_ENABLED = "blocks_radius_enabled";
+    public static final String KEY_BLOCKS_RADIUS = "blocks_radius";
+    public static final String KEY_BLOCKS_BLUR = "blocks_blur";
+    public static final String KEY_BLOCKS_DEPTH = "blocks_depth";
+
+    // 8. Thought
+    public static final String KEY_THOUGHT_TEXT = "thought_text";
+    public static final String KEY_THOUGHT_TEXT_COLOR = "thought_text_color";
+    public static final String KEY_THOUGHT_BG_COLOR = "thought_bg_color";
+    public static final String KEY_THOUGHT_SHADOW_ENABLED = "thought_shadow_enabled";
+    public static final String KEY_THOUGHT_SHADOW_COLOR = "thought_shadow_color";
+    public static final String KEY_THOUGHT_SHADOW_RADIUS = "thought_shadow_radius";
+    public static final String KEY_THOUGHT_SHADOW_STRENGTH = "thought_shadow_strength";
+    public static final String KEY_THOUGHT_SHADOW_DX = "thought_shadow_dx";
+    public static final String KEY_THOUGHT_SHADOW_DY = "thought_shadow_dy";
+    public static final String KEY_THOUGHT_FONT_COPY = "thought_font_copy";
+    public static final String KEY_THOUGHT_FONT = "thought_font";
+
+    // 9. Visibility
+    public static final String KEY_HIDE_ROW_PHONE = "hide_row_phone";
+    public static final String KEY_HIDE_ROW_USERNAME = "hide_row_username";
+    public static final String KEY_HIDE_ROW_BIO = "hide_row_bio";
+    public static final String KEY_HIDE_MEDIA_TABS = "hide_media_tabs";
+
+    // 10. UI & Dialogs
     public static final String KEY_UI_GLASS_BLUR = "ui_glass_blur";
     public static final String KEY_UI_DIALOG_CARDS = "ui_dialog_cards";
     public static final String KEY_UI_BADGE_CUSTOM = "ui_badge_custom";
@@ -151,11 +198,10 @@ public class MiogramCustomUiPrefs {
     }
 
     public static void setBool(String key, boolean val) {
-        String strVal = val ? "1" : "0";
         SharedPreferences cpb = getCpbPrefs();
         if (cpb != null) {
             String fullKey = keyTag() + "_" + key;
-            cpb.edit().putString(fullKey, strVal).putString(key, strVal).apply();
+            cpb.edit().putString(fullKey, val ? "1" : "0").apply();
         }
         SharedPreferences local = getLocalPrefs();
         if (local != null) {
@@ -173,12 +219,7 @@ public class MiogramCustomUiPrefs {
             }
             if (val != null) {
                 try {
-                    String s = val.trim();
-                    if ("true".equalsIgnoreCase(s)) return 1;
-                    if ("false".equalsIgnoreCase(s)) return 0;
-                    int dot = s.indexOf('.');
-                    if (dot >= 0) s = s.substring(0, dot);
-                    return Integer.parseInt(s.trim());
+                    return Integer.parseInt(val.trim());
                 } catch (Throwable ignore) {}
             }
         }
@@ -190,11 +231,10 @@ public class MiogramCustomUiPrefs {
     }
 
     public static void setInt(String key, int val) {
-        String strVal = Integer.toString(val);
         SharedPreferences cpb = getCpbPrefs();
         if (cpb != null) {
             String fullKey = keyTag() + "_" + key;
-            cpb.edit().putString(fullKey, strVal).putString(key, strVal).apply();
+            cpb.edit().putString(fullKey, Integer.toString(val)).apply();
         }
         SharedPreferences local = getLocalPrefs();
         if (local != null) {
@@ -221,16 +261,15 @@ public class MiogramCustomUiPrefs {
         return def;
     }
 
-    public static void setColor(String key, int val) {
-        String hexVal = hex(val);
+    public static void setColor(String key, int color) {
         SharedPreferences cpb = getCpbPrefs();
         if (cpb != null) {
             String fullKey = keyTag() + "_" + key;
-            cpb.edit().putString(fullKey, hexVal).putString(key, hexVal).apply();
+            cpb.edit().putString(fullKey, hex(color)).apply();
         }
         SharedPreferences local = getLocalPrefs();
         if (local != null) {
-            local.edit().putInt(key, val).apply();
+            local.edit().putInt(key, color).apply();
         }
     }
 
@@ -242,9 +281,7 @@ public class MiogramCustomUiPrefs {
             if (val == null) {
                 val = cpb.getString(key, null);
             }
-            if (val != null) {
-                return val;
-            }
+            if (val != null) return val;
         }
         SharedPreferences local = getLocalPrefs();
         if (local != null && local.contains(key)) {
@@ -257,7 +294,7 @@ public class MiogramCustomUiPrefs {
         SharedPreferences cpb = getCpbPrefs();
         if (cpb != null) {
             String fullKey = keyTag() + "_" + key;
-            cpb.edit().putString(fullKey, val).putString(key, val).apply();
+            cpb.edit().putString(fullKey, val).apply();
         }
         SharedPreferences local = getLocalPrefs();
         if (local != null) {
@@ -265,7 +302,9 @@ public class MiogramCustomUiPrefs {
         }
     }
 
-    // --- 1. MESSAGE BUBBLES ---
+    // =========================================================================
+    // 1. MESSAGE BUBBLES
+    // =========================================================================
     public static boolean isBubbleColorEnabled() {
         return getBool(KEY_BUBBLE_COLOR_ENABLED, false);
     }
@@ -277,6 +316,12 @@ public class MiogramCustomUiPrefs {
     }
     public static void setBubbleGradientEnabled(boolean enabled) {
         setBool(KEY_BUBBLE_GRADIENT, enabled);
+    }
+    public static boolean isBubbleGradient() {
+        return isBubbleGradientEnabled();
+    }
+    public static void setBubbleGradient(boolean enabled) {
+        setBubbleGradientEnabled(enabled);
     }
     public static int getBubbleColor() {
         return getColor(KEY_BUBBLE_COLOR, 0xFF2A87FF);
@@ -327,7 +372,9 @@ public class MiogramCustomUiPrefs {
         setInt(KEY_BUBBLE_GLOW_RADIUS, radius);
     }
 
-    // --- 2. NAME & TEXT FX ---
+    // =========================================================================
+    // 2. NAME & TEXT FX
+    // =========================================================================
     public static boolean isNameColorEnabled() {
         return getBool(KEY_NAME_COLOR_ENABLED, false);
     }
@@ -443,7 +490,9 @@ public class MiogramCustomUiPrefs {
         setInt(KEY_NAME_FONT, font);
     }
 
-    // --- 3. AVATAR SHAPES & STORY RINGS ---
+    // =========================================================================
+    // 3. AVATAR SHAPES & STORY RINGS
+    // =========================================================================
     public static int getAvatarShape() {
         return getInt(KEY_AVATAR_SHAPE, 0);
     }
@@ -511,7 +560,9 @@ public class MiogramCustomUiPrefs {
         setInt(KEY_AVATAR_FADE_RADIUS, radius);
     }
 
-    // --- 4. PROFILE TEXT COLORS (Photo 3) ---
+    // =========================================================================
+    // 4. PROFILE TEXT COLORS (Photo 3)
+    // =========================================================================
     public static boolean isProfileTextColorEnabled() {
         return getBool(KEY_PROFILE_TEXT_COLOR_ENABLED, false);
     }
@@ -537,47 +588,339 @@ public class MiogramCustomUiPrefs {
         setBool(KEY_PROVIDER_ENGINE, enabled);
     }
 
-    // --- 5. UI & DIALOGS ---
+    // =========================================================================
+    // 5. BANNER (HEADER)
+    // =========================================================================
+    public static boolean isBannerEnabled() {
+        return getBool(KEY_BANNER_ENABLED, true);
+    }
+    public static void setBannerEnabled(boolean enabled) {
+        setBool(KEY_BANNER_ENABLED, enabled);
+    }
+    public static int getBannerMode() {
+        return getInt(KEY_BANNER_MODE, 0);
+    }
+    public static void setBannerMode(int mode) {
+        setInt(KEY_BANNER_MODE, mode);
+    }
+    public static int getBannerAlpha() {
+        return getInt(KEY_BANNER_ALPHA, 100);
+    }
+    public static void setBannerAlpha(int alpha) {
+        setInt(KEY_BANNER_ALPHA, alpha);
+    }
+    public static int getBannerDim() {
+        return getInt(KEY_BANNER_DIM, 0);
+    }
+    public static void setBannerDim(int dim) {
+        setInt(KEY_BANNER_DIM, dim);
+    }
+    public static int getBannerColor() {
+        return getColor(KEY_BANNER_COLOR, 0xFF1C242F);
+    }
+    public static void setBannerColor(int color) {
+        setColor(KEY_BANNER_COLOR, color);
+    }
+    public static boolean isBannerBlend() {
+        return getBool(KEY_BANNER_BLEND, false);
+    }
+    public static void setBannerBlend(boolean blend) {
+        setBool(KEY_BANNER_BLEND, blend);
+    }
+    public static int getBannerBlendRadius() {
+        return getInt(KEY_BANNER_BLEND_RADIUS, 16);
+    }
+    public static void setBannerBlendRadius(int radius) {
+        setInt(KEY_BANNER_BLEND_RADIUS, radius);
+    }
+    public static boolean isShowEmoji() {
+        return getBool(KEY_SHOW_EMOJI, true);
+    }
+    public static void setShowEmoji(boolean show) {
+        setBool(KEY_SHOW_EMOJI, show);
+    }
+
+    // =========================================================================
+    // 6. BACKGROUND
+    // =========================================================================
+    public static boolean isBgEnabled() {
+        return getBool(KEY_BG_ENABLED, false);
+    }
+    public static void setBgEnabled(boolean enabled) {
+        setBool(KEY_BG_ENABLED, enabled);
+    }
+    public static boolean isBgCompat() {
+        return getBool(KEY_BG_COMPAT, false);
+    }
+    public static void setBgCompat(boolean compat) {
+        setBool(KEY_BG_COMPAT, compat);
+    }
+    public static int getBgMode() {
+        return getInt(KEY_BG_MODE, 0);
+    }
+    public static void setBgMode(int mode) {
+        setInt(KEY_BG_MODE, mode);
+    }
+    public static int getBgColor() {
+        return getColor(KEY_BG_COLOR, 0xFF0E1621);
+    }
+    public static void setBgColor(int color) {
+        setColor(KEY_BG_COLOR, color);
+    }
+    public static int getBgAlpha() {
+        return getInt(KEY_BG_ALPHA, 100);
+    }
+    public static void setBgAlpha(int alpha) {
+        setInt(KEY_BG_ALPHA, alpha);
+    }
+    public static int getBgDim() {
+        return getInt(KEY_BG_DIM, 0);
+    }
+    public static void setBgDim(int dim) {
+        setInt(KEY_BG_DIM, dim);
+    }
+
+    // =========================================================================
+    // 7. BLOCKS
+    // =========================================================================
+    public static boolean isBlocksColorEnabled() {
+        return getBool(KEY_BLOCKS_COLOR_ENABLED, false);
+    }
+    public static void setBlocksColorEnabled(boolean enabled) {
+        setBool(KEY_BLOCKS_COLOR_ENABLED, enabled);
+    }
+    public static int getBlocksColor() {
+        return getColor(KEY_BLOCKS_COLOR, 0xFF1C242F);
+    }
+    public static void setBlocksColor(int color) {
+        setColor(KEY_BLOCKS_COLOR, color);
+    }
+    public static int getBlocksAlpha() {
+        return getInt(KEY_BLOCKS_ALPHA, 100);
+    }
+    public static void setBlocksAlpha(int alpha) {
+        setInt(KEY_BLOCKS_ALPHA, alpha);
+    }
+    public static boolean isBlocksJoin() {
+        return getBool(KEY_BLOCKS_JOIN, false);
+    }
+    public static void setBlocksJoin(boolean join) {
+        setBool(KEY_BLOCKS_JOIN, join);
+    }
+    public static boolean isBlocksRadiusEnabled() {
+        return getBool(KEY_BLOCKS_RADIUS_ENABLED, false);
+    }
+    public static void setBlocksRadiusEnabled(boolean enabled) {
+        setBool(KEY_BLOCKS_RADIUS_ENABLED, enabled);
+    }
+    public static int getBlocksRadius() {
+        return getInt(KEY_BLOCKS_RADIUS, 12);
+    }
+    public static void setBlocksRadius(int radius) {
+        setInt(KEY_BLOCKS_RADIUS, radius);
+    }
+    public static int getBlocksBlur() {
+        return getInt(KEY_BLOCKS_BLUR, 0);
+    }
+    public static void setBlocksBlur(int blur) {
+        setInt(KEY_BLOCKS_BLUR, blur);
+    }
+    public static int getBlocksDepth() {
+        return getInt(KEY_BLOCKS_DEPTH, 4);
+    }
+    public static void setBlocksDepth(int depth) {
+        setInt(KEY_BLOCKS_DEPTH, depth);
+    }
+
+    // =========================================================================
+    // 8. THOUGHT
+    // =========================================================================
+    public static String getThoughtText() {
+        return getString(KEY_THOUGHT_TEXT, "");
+    }
+    public static void setThoughtText(String text) {
+        setString(KEY_THOUGHT_TEXT, text);
+    }
+    public static int getThoughtTextColor() {
+        return getColor(KEY_THOUGHT_TEXT_COLOR, -1);
+    }
+    public static void setThoughtTextColor(int color) {
+        setColor(KEY_THOUGHT_TEXT_COLOR, color);
+    }
+    public static int getThoughtBgColor() {
+        return getColor(KEY_THOUGHT_BG_COLOR, 0xEE1C242F);
+    }
+    public static void setThoughtBgColor(int color) {
+        setColor(KEY_THOUGHT_BG_COLOR, color);
+    }
+    public static boolean isThoughtShadowEnabled() {
+        return getBool(KEY_THOUGHT_SHADOW_ENABLED, false);
+    }
+    public static void setThoughtShadowEnabled(boolean enabled) {
+        setBool(KEY_THOUGHT_SHADOW_ENABLED, enabled);
+    }
+    public static int getThoughtShadowColor() {
+        return getColor(KEY_THOUGHT_SHADOW_COLOR, 0xFF000000);
+    }
+    public static void setThoughtShadowColor(int color) {
+        setColor(KEY_THOUGHT_SHADOW_COLOR, color);
+    }
+    public static int getThoughtShadowRadius() {
+        return getInt(KEY_THOUGHT_SHADOW_RADIUS, 8);
+    }
+    public static void setThoughtShadowRadius(int radius) {
+        setInt(KEY_THOUGHT_SHADOW_RADIUS, radius);
+    }
+    public static int getThoughtShadowStrength() {
+        return getInt(KEY_THOUGHT_SHADOW_STRENGTH, 70);
+    }
+    public static void setThoughtShadowStrength(int strength) {
+        setInt(KEY_THOUGHT_SHADOW_STRENGTH, strength);
+    }
+    public static int getThoughtShadowDx() {
+        return getInt(KEY_THOUGHT_SHADOW_DX, 0);
+    }
+    public static void setThoughtShadowDx(int dx) {
+        setInt(KEY_THOUGHT_SHADOW_DX, dx);
+    }
+    public static int getThoughtShadowDy() {
+        return getInt(KEY_THOUGHT_SHADOW_DY, 3);
+    }
+    public static void setThoughtShadowDy(int dy) {
+        setInt(KEY_THOUGHT_SHADOW_DY, dy);
+    }
+    public static boolean isThoughtFontCopy() {
+        return getBool(KEY_THOUGHT_FONT_COPY, true);
+    }
+    public static void setThoughtFontCopy(boolean copy) {
+        setBool(KEY_THOUGHT_FONT_COPY, copy);
+    }
+    public static int getThoughtFont() {
+        return getInt(KEY_THOUGHT_FONT, 0);
+    }
+    public static void setThoughtFont(int font) {
+        setInt(KEY_THOUGHT_FONT, font);
+    }
+
+    // =========================================================================
+    // 9. VISIBILITY
+    // =========================================================================
+    public static boolean isHideRowPhone() {
+        return getBool(KEY_HIDE_ROW_PHONE, false);
+    }
+    public static void setHideRowPhone(boolean hide) {
+        setBool(KEY_HIDE_ROW_PHONE, hide);
+    }
+    public static boolean isHideRowUsername() {
+        return getBool(KEY_HIDE_ROW_USERNAME, false);
+    }
+    public static void setHideRowUsername(boolean hide) {
+        setBool(KEY_HIDE_ROW_USERNAME, hide);
+    }
+    public static boolean isHideRowBio() {
+        return getBool(KEY_HIDE_ROW_BIO, false);
+    }
+    public static void setHideRowBio(boolean hide) {
+        setBool(KEY_HIDE_ROW_BIO, hide);
+    }
+    public static boolean isHideMediaTabs() {
+        return getBool(KEY_HIDE_MEDIA_TABS, false);
+    }
+    public static void setHideMediaTabs(boolean hide) {
+        setBool(KEY_HIDE_MEDIA_TABS, hide);
+    }
+
+    // =========================================================================
+    // 10. UI & DIALOGS
+    // =========================================================================
     public static boolean isGlassBlurEnabled() {
         return getBool(KEY_UI_GLASS_BLUR, false);
     }
     public static void setGlassBlurEnabled(boolean enabled) {
         setBool(KEY_UI_GLASS_BLUR, enabled);
     }
+    public static boolean isUiGlassBlur() {
+        return isGlassBlurEnabled();
+    }
+    public static void setUiGlassBlur(boolean enabled) {
+        setGlassBlurEnabled(enabled);
+    }
+
     public static boolean isDialogCardsEnabled() {
         return getBool(KEY_UI_DIALOG_CARDS, false);
     }
     public static void setDialogCardsEnabled(boolean enabled) {
         setBool(KEY_UI_DIALOG_CARDS, enabled);
     }
+    public static boolean isUiDialogCards() {
+        return isDialogCardsEnabled();
+    }
+    public static void setUiDialogCards(boolean enabled) {
+        setDialogCardsEnabled(enabled);
+    }
+
     public static boolean isBadgeCustomEnabled() {
         return getBool(KEY_UI_BADGE_CUSTOM, false);
     }
     public static void setBadgeCustomEnabled(boolean enabled) {
         setBool(KEY_UI_BADGE_CUSTOM, enabled);
     }
+    public static boolean isUiBadgeCustom() {
+        return isBadgeCustomEnabled();
+    }
+    public static void setUiBadgeCustom(boolean enabled) {
+        setBadgeCustomEnabled(enabled);
+    }
+
     public static int getBadgeColor() {
         return getColor(KEY_UI_BADGE_COLOR, 0xFF2A87FF);
     }
     public static void setBadgeColor(int color) {
         setColor(KEY_UI_BADGE_COLOR, color);
     }
+    public static int getUiBadgeColor() {
+        return getBadgeColor();
+    }
+    public static void setUiBadgeColor(int color) {
+        setBadgeColor(color);
+    }
+
     public static int getBadgeTextColor() {
         return getColor(KEY_UI_BADGE_TEXT_COLOR, 0xFFFFFFFF);
     }
     public static void setBadgeTextColor(int color) {
         setColor(KEY_UI_BADGE_TEXT_COLOR, color);
     }
+    public static int getUiBadgeTextColor() {
+        return getBadgeTextColor();
+    }
+    public static void setUiBadgeTextColor(int color) {
+        setBadgeTextColor(color);
+    }
+
     public static boolean isBadgeGlowEnabled() {
         return getBool(KEY_UI_BADGE_GLOW, false);
     }
     public static void setBadgeGlowEnabled(boolean enabled) {
         setBool(KEY_UI_BADGE_GLOW, enabled);
     }
+    public static boolean isUiBadgeGlow() {
+        return isBadgeGlowEnabled();
+    }
+    public static void setUiBadgeGlow(boolean enabled) {
+        setBadgeGlowEnabled(enabled);
+    }
+
     public static boolean isHapticEnabled() {
         return getBool(KEY_UI_HAPTIC, true);
     }
     public static void setHapticEnabled(boolean enabled) {
         setBool(KEY_UI_HAPTIC, enabled);
+    }
+    public static boolean isUiHaptic() {
+        return isHapticEnabled();
+    }
+    public static void setUiHaptic(boolean enabled) {
+        setHapticEnabled(enabled);
     }
 }

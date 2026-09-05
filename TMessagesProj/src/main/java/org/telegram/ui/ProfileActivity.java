@@ -4925,7 +4925,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
             @Override
             public boolean onItemClick(View view, int position) {
-                if (UserObject.isUserSelf(getMessagesController().getUser(userId)) && view != null && position != versionRow) {
+                if (((userId != 0 && userId == getUserConfig().getClientUserId()) || UserObject.isUserSelf(getMessagesController().getUser(userId))) && view != null && position != versionRow) {
                     app.miogram.bridge.customui.MiogramCustomUiActivity.ProfileEditMenu.showForRow(ProfileActivity.this, view);
                     return true;
                 }
@@ -5664,7 +5664,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         });
         avatarImage.setHasStories(needInsetForStories());
         avatarImage.setOnLongClickListener(v -> {
-            if (UserObject.isUserSelf(getMessagesController().getUser(userId))) {
+            if ((userId != 0 && userId == getUserConfig().getClientUserId()) || UserObject.isUserSelf(getMessagesController().getUser(userId))) {
                 app.miogram.bridge.customui.MiogramCustomUiActivity.ProfileEditMenu.showForHeader(ProfileActivity.this, avatarImage);
                 return true;
             }

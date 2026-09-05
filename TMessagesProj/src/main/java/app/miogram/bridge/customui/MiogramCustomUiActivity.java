@@ -3,7 +3,6 @@ package app.miogram.bridge.customui;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
@@ -14,21 +13,26 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.os.SystemClock;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.ViewParent;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.text.TextPaint;
 
 import org.json.JSONObject;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
@@ -42,6 +46,7 @@ import org.telegram.ui.Cells.TextCell;
 import org.telegram.ui.Cells.TextCheckCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
 import org.telegram.ui.Components.ColorPicker;
+import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.ItemOptions;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.SeekBarView;
@@ -55,8 +60,9 @@ import app.miogram.bridge.MiogramLocale;
 
 /**
  * Miogram Custom UI Studio.
- * Crafted 1-to-1 matching the architecture, visual language, and granularity of Custom Profile.
- * Fully indistinguishable from the decompiled Custom Profile (cpb.*) source code.
+ * 1-to-1 matching Custom Profile architecture, visual design, and high-fidelity tactility.
+ * Features acoustic zipper feedback, waveform haptic pulses, fluid touch physics,
+ * zero-lag live color updates, and pixel-perfect DST_IN shaders.
  */
 public class MiogramCustomUiActivity extends BaseFragment {
 
@@ -108,77 +114,110 @@ public class MiogramCustomUiActivity extends BaseFragment {
         TextCell rowBubbles = new TextCell(context);
         rowBubbles.setTextAndValue(MiogramLocale.get("Додаткові функції (Пухирці)", "Дополнительные функции (Пузырьки)", "Extra features (Bubbles)"), MiogramLocale.get("Повідомлення", "Сообщения", "Messages"), true);
         rowBubbles.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        rowBubbles.setOnClickListener(v -> ExtraFeaturesSheet.show(getParentActivity() != null ? getParentActivity() : context));
+        rowBubbles.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            ExtraFeaturesSheet.show(getParentActivity() != null ? getParentActivity() : context);
+        });
         content.addView(rowBubbles);
 
         // 2. Name
         TextCell rowNames = new TextCell(context);
         rowNames.setTextAndValue(MiogramLocale.get("Оформлення імені", "Оформление имени", "Name appearance"), MiogramLocale.get("Колір, тінь, ефекти", "Цвет, тень, эффекты", "Color, shadow, effects"), true);
         rowNames.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        rowNames.setOnClickListener(v -> EditNameSheet.show(getParentActivity() != null ? getParentActivity() : context));
+        rowNames.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            EditNameSheet.show(getParentActivity() != null ? getParentActivity() : context);
+        });
         content.addView(rowNames);
 
         // 3. Avatar
         TextCell rowAvatars = new TextCell(context);
         rowAvatars.setTextAndValue(MiogramLocale.get("Оформлення аватара", "Оформление аватара", "Avatar appearance"), MiogramLocale.get("Форма, скруглення, вигляд", "Форма, скругление, вид", "Shape, rounding, look"), true);
         rowAvatars.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        rowAvatars.setOnClickListener(v -> EditAvatarSheet.show(getParentActivity() != null ? getParentActivity() : context));
+        rowAvatars.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            EditAvatarSheet.show(getParentActivity() != null ? getParentActivity() : context);
+        });
         content.addView(rowAvatars);
 
         // 4. Frame
         TextCell rowFrame = new TextCell(context);
         rowFrame.setTextAndValue(MiogramLocale.get("Рамка аватара", "Рамка аватара", "Avatar frame"), MiogramLocale.get("Неонове кільце, товщина, пульс", "Неоновое кольцо, толщина, пульс", "Neon ring, width, pulse"), true);
         rowFrame.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        rowFrame.setOnClickListener(v -> EditFrameSheet.show(getParentActivity() != null ? getParentActivity() : context));
+        rowFrame.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            EditFrameSheet.show(getParentActivity() != null ? getParentActivity() : context);
+        });
         content.addView(rowFrame);
 
         // 5. Text colors (Photo 3)
         TextCell rowText = new TextCell(context);
         rowText.setTextAndValue(MiogramLocale.get("Текст профілю (Палітра)", "Текст профиля (Палитра)", "Profile text (Palette)"), MiogramLocale.get("Кольори елементів", "Цвета элементов", "Element colors"), true);
         rowText.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        rowText.setOnClickListener(v -> EditTextColorsSheet.show(getParentActivity() != null ? getParentActivity() : context));
+        rowText.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            EditTextColorsSheet.show(getParentActivity() != null ? getParentActivity() : context);
+        });
         content.addView(rowText);
 
         // 6. Banner
         TextCell rowBanner = new TextCell(context);
         rowBanner.setTextAndValue(MiogramLocale.get("Шапка і банер", "Шапка и баннер", "Header and banner"), MiogramLocale.get("Фон, злиття, прозорість", "Фон, слияние, прозрачность", "Background, blend, alpha"), true);
         rowBanner.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        rowBanner.setOnClickListener(v -> EditBannerSheet.show(getParentActivity() != null ? getParentActivity() : context));
+        rowBanner.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            EditBannerSheet.show(getParentActivity() != null ? getParentActivity() : context);
+        });
         content.addView(rowBanner);
 
         // 7. Background
         TextCell rowBg = new TextCell(context);
         rowBg.setTextAndValue(MiogramLocale.get("Фон профілю", "Фон профиля", "Profile background"), MiogramLocale.get("Колір, медіа, сумісність", "Цвет, медиа, совместимость", "Color, media, compat"), true);
         rowBg.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        rowBg.setOnClickListener(v -> EditBackgroundSheet.show(getParentActivity() != null ? getParentActivity() : context));
+        rowBg.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            EditBackgroundSheet.show(getParentActivity() != null ? getParentActivity() : context);
+        });
         content.addView(rowBg);
 
         // 8. Blocks
         TextCell rowBlocks = new TextCell(context);
         rowBlocks.setTextAndValue(MiogramLocale.get("Налаштувати блоки", "Настроить блоки", "Configure blocks"), MiogramLocale.get("Колір, щільність, скруглення, блюр", "Цвет, плотность, скругление, блюр", "Color, density, rounding, blur"), true);
         rowBlocks.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        rowBlocks.setOnClickListener(v -> EditBlocksSheet.show(getParentActivity() != null ? getParentActivity() : context));
+        rowBlocks.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            EditBlocksSheet.show(getParentActivity() != null ? getParentActivity() : context);
+        });
         content.addView(rowBlocks);
 
         // 9. Visibility
         TextCell rowVis = new TextCell(context);
         rowVis.setTextAndValue(MiogramLocale.get("Видимість рядків", "Видимость строк", "Row visibility"), MiogramLocale.get("Приховування блоків", "Скрытие блоков", "Hiding blocks"), true);
         rowVis.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        rowVis.setOnClickListener(v -> EditVisibilitySheet.show(getParentActivity() != null ? getParentActivity() : context));
+        rowVis.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            EditVisibilitySheet.show(getParentActivity() != null ? getParentActivity() : context);
+        });
         content.addView(rowVis);
 
         // 10. Thought
         TextCell rowThought = new TextCell(context);
         rowThought.setTextAndValue(MiogramLocale.get("Думка у аватара", "Мысль у аватара", "Thought by avatar"), MiogramLocale.get("Облачко думок, текст, тінь", "Облачко мыслей, текст, тень", "Thought bubble, text, shadow"), true);
         rowThought.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        rowThought.setOnClickListener(v -> EditThoughtSheet.show(getParentActivity() != null ? getParentActivity() : context));
+        rowThought.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            EditThoughtSheet.show(getParentActivity() != null ? getParentActivity() : context);
+        });
         content.addView(rowThought);
 
         // 11. UI & Badges
         TextCell rowUi = new TextCell(context);
         rowUi.setTextAndValue(MiogramLocale.get("Інтерфейс клієнта", "Интерфейс клиента", "Client interface"), MiogramLocale.get("Бейджі, скляний блюр, тактильність", "Бейджи, стеклянный блюр, тактильность", "Badges, glass blur, haptic"), false);
         rowUi.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        rowUi.setOnClickListener(v -> EditInterfaceSheet.show(getParentActivity() != null ? getParentActivity() : context));
+        rowUi.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            EditInterfaceSheet.show(getParentActivity() != null ? getParentActivity() : context);
+        });
         content.addView(rowUi);
 
         TextInfoPrivacyCell infoCell = new TextInfoPrivacyCell(context);
@@ -189,17 +228,11 @@ public class MiogramCustomUiActivity extends BaseFragment {
         ));
         content.addView(infoCell);
 
-        AndroidUtilities.runOnUIThread(() -> {
-            if (getParentActivity() != null && !getParentActivity().isFinishing()) {
-                ExtraFeaturesSheet.show(getParentActivity());
-            }
-        }, 100);
-
         return fragmentView;
     }
 
     /* =========================================================================
-     * 1. NATIVE EDITSEGMENTS (Exact 1-to-1 with cpb.EditSegments.java)
+     * 1. NATIVE EDITSEGMENTS (cpb.EditSegments.java with fluid drag & haptics)
      * ========================================================================= */
 
     public static class EditSegments extends HorizontalScrollView {
@@ -245,6 +278,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
             private ValueAnimator moveAnim;
             private float downX, downY;
             private boolean pressing;
+            private boolean dragging;
             private final int touchSlop;
             private final int accent;
             private final int textColor;
@@ -341,17 +375,32 @@ public class MiogramCustomUiActivity extends BaseFragment {
                         downX = event.getX();
                         downY = event.getY();
                         pressing = true;
+                        dragging = false;
                         return true;
                     case MotionEvent.ACTION_MOVE:
-                        if (pressing && (Math.abs(event.getX() - downX) > touchSlop || Math.abs(event.getY() - downY) > touchSlop)) {
-                            pressing = false;
+                        if (pressing) {
+                            if (!dragging && Math.abs(event.getX() - downX) > touchSlop) {
+                                dragging = true;
+                                if (getParent() != null) {
+                                    getParent().requestDisallowInterceptTouchEvent(true);
+                                }
+                            }
+                            if (dragging) {
+                                int idx = indexAt(event.getX());
+                                if (idx >= 0 && idx != selected) {
+                                    selected = idx;
+                                    MiogramHaptic.select(this);
+                                    if (sink != null) sink.accept(idx);
+                                    animateTo(idx);
+                                }
+                            }
                         }
                         break;
                     case MotionEvent.ACTION_UP:
                         if (pressing) {
                             pressing = false;
                             int clicked = indexAt(event.getX());
-                            if (clicked >= 0 && clicked < options.length) {
+                            if (clicked >= 0) {
                                 select(clicked, true);
                             }
                             return true;
@@ -359,6 +408,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
                         break;
                     case MotionEvent.ACTION_CANCEL:
                         pressing = false;
+                        dragging = false;
                         break;
                 }
                 return super.onTouchEvent(event);
@@ -373,27 +423,33 @@ public class MiogramCustomUiActivity extends BaseFragment {
 
             public void select(int index, boolean animate) {
                 if (index < 0 || index >= options.length) return;
-                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                MiogramHaptic.select(this);
                 selected = index;
                 if (sink != null) {
                     sink.accept(index);
                 }
                 if (animate) {
-                    if (moveAnim != null) moveAnim.cancel();
-                    moveAnim = ValueAnimator.ofFloat(position, index);
-                    moveAnim.setDuration(180);
-                    moveAnim.addUpdateListener(anim -> {
-                        position = (float) anim.getAnimatedValue();
-                        invalidate();
-                    });
-                    moveAnim.start();
+                    animateTo(index);
                 } else {
+                    if (moveAnim != null) moveAnim.cancel();
                     position = index;
                     invalidate();
                 }
                 if (getParent() instanceof HorizontalScrollView) {
                     revealSelected((HorizontalScrollView) getParent());
                 }
+            }
+
+            private void animateTo(int index) {
+                if (moveAnim != null) moveAnim.cancel();
+                moveAnim = ValueAnimator.ofFloat(position, index);
+                moveAnim.setDuration(200);
+                moveAnim.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+                moveAnim.addUpdateListener(anim -> {
+                    position = (float) anim.getAnimatedValue();
+                    invalidate();
+                });
+                moveAnim.start();
             }
 
             public void revealSelected(HorizontalScrollView scroll) {
@@ -405,16 +461,23 @@ public class MiogramCustomUiActivity extends BaseFragment {
     }
 
     /* =========================================================================
-     * 2. NATIVE EDITSHEET (1-to-1 with cpb.EditSheet / BottomSheet)
+     * 2. NATIVE EDITSHEET (1-to-1 with cpb.EditSheet / BottomSheet & Tactile Physics)
      * ========================================================================= */
 
     public static class EditSheet {
         private final Context context;
         private final BottomSheet.Builder builder;
         private final LinearLayout content;
+        private final HalfScreen halfScreen;
         private final Map<String, List<View>> groups = new HashMap<>();
         private String currentGroup = null;
         private BottomSheet bottomSheet;
+
+        private final Runnable restoreRunnable = () -> {
+            if (content != null) {
+                content.animate().alpha(1.0f).setDuration(110).start();
+            }
+        };
 
         public EditSheet(Context context, String title) {
             this.context = context;
@@ -422,12 +485,22 @@ public class MiogramCustomUiActivity extends BaseFragment {
             builder.setTitle(title, true);
             builder.setApplyBottomPadding(false);
 
-            HalfScreen halfScreen = new HalfScreen(context);
+            halfScreen = new HalfScreen(context);
             content = new LinearLayout(context);
             content.setOrientation(LinearLayout.VERTICAL);
             halfScreen.addView(content, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
+            // Acoustic zipper feedback: plays zipIn on attach, zipOut on detach
+            MiogramHaptic.zipper(halfScreen);
             builder.setCustomView(halfScreen);
+        }
+
+        public void fade() {
+            if (content == null) return;
+            content.removeCallbacks(restoreRunnable);
+            content.animate().cancel();
+            content.setAlpha(0.65f);
+            content.postDelayed(restoreRunnable, 200);
         }
 
         public EditSheet custom(View view) {
@@ -455,7 +528,8 @@ public class MiogramCustomUiActivity extends BaseFragment {
             cell.setOnClickListener(v -> {
                 boolean target = !cell.isChecked();
                 cell.setChecked(target);
-                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                MiogramHaptic.toggle(v, target);
+                fade();
                 if (sink != null) sink.accept(target ? 1 : 0);
             });
             add(cell);
@@ -467,7 +541,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
             cell.setTextAndValue(title, value, divider);
             if (onClick != null) {
                 cell.setOnClickListener(v -> {
-                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                    MiogramHaptic.tap(v);
                     onClick.run();
                 });
             }
@@ -478,9 +552,10 @@ public class MiogramCustomUiActivity extends BaseFragment {
         public EditSheet color(String title, int color, boolean divider, final ColorSink sink) {
             final EditColorRow row = new EditColorRow(context, title, color, divider, null);
             row.setOnClickListener(v -> {
-                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                MiogramHaptic.tap(v);
                 EditColorPicker.show(context, title, row.getColor(), picked -> {
                     row.setColor(picked);
+                    fade();
                     if (sink != null) sink.accept(picked);
                 });
             });
@@ -494,15 +569,37 @@ public class MiogramCustomUiActivity extends BaseFragment {
             header.setText(sliderLabel(title, clamped, unit));
             add(header);
 
-            SeekBarView bar = new SeekBarView(context);
+            final SeekBarView bar = new SeekBarView(context);
             bar.setReportChanges(true);
             float progress = (max <= min) ? 0.0f : ((float) (clamped - min) / (max - min));
             bar.setProgress(progress);
-            bar.setDelegate((stop, p) -> {
-                int val = min + Math.round(p * (max - min));
-                header.setText(sliderLabel(title, val, unit));
-                bar.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
-                if (sink != null) sink.accept(val);
+
+            final int[] lastVal = new int[]{clamped};
+            bar.setDelegate(new SeekBarView.SeekBarViewDelegate() {
+                @Override
+                public void onSeekBarDrag(boolean stop, float p) {
+                    int val = min + Math.round(p * (max - min));
+                    if (val != lastVal[0]) {
+                        if (MiogramHaptic.edgeReached(val, lastVal[0], min, max)) {
+                            MiogramHaptic.edge(bar);
+                        } else {
+                            MiogramHaptic.tick(bar);
+                        }
+                        lastVal[0] = val;
+                    }
+                    header.setText(sliderLabel(title, val, unit));
+                    fade();
+                    if (sink != null) sink.accept(val);
+                }
+
+                @Override
+                public void onSeekBarPressed(boolean pressed) {
+                    if (pressed) {
+                        MiogramHaptic.grab(bar);
+                    } else {
+                        MiogramHaptic.release(bar);
+                    }
+                }
             });
             add(bar);
             return this;
@@ -510,7 +607,10 @@ public class MiogramCustomUiActivity extends BaseFragment {
 
         public EditSheet chooser(String title, int curId, String[] items, final IntSink sink) {
             header(title);
-            EditSegments segments = new EditSegments(context, curId, items, sink);
+            EditSegments segments = new EditSegments(context, curId, items, val -> {
+                fade();
+                if (sink != null) sink.accept(val);
+            });
             add(segments);
             return this;
         }
@@ -573,6 +673,8 @@ public class MiogramCustomUiActivity extends BaseFragment {
         }
 
         public static class HalfScreen extends ScrollView {
+            private float downY;
+
             public HalfScreen(Context context) {
                 super(context);
             }
@@ -581,6 +683,40 @@ public class MiogramCustomUiActivity extends BaseFragment {
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                 int halfHeight = getResources().getDisplayMetrics().heightPixels / 2;
                 super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(halfHeight, MeasureSpec.AT_MOST));
+            }
+
+            @Override
+            public boolean onInterceptTouchEvent(MotionEvent ev) {
+                keepGesture(ev);
+                return super.onInterceptTouchEvent(ev);
+            }
+
+            @Override
+            public boolean onTouchEvent(MotionEvent ev) {
+                keepGesture(ev);
+                return super.onTouchEvent(ev);
+            }
+
+            private void keepGesture(MotionEvent ev) {
+                int action = ev.getActionMasked();
+                if (action == MotionEvent.ACTION_DOWN) {
+                    downY = ev.getY();
+                    boolean canScroll = canScrollVertically(1) || canScrollVertically(-1);
+                    disallow(canScroll);
+                } else if (action == MotionEvent.ACTION_MOVE) {
+                    if (ev.getX() < 0 || ev.getX() > getWidth() || ev.getY() < 0) {
+                        disallow(true);
+                    } else {
+                        disallow(ev.getY() - downY < 0 ? canScrollVertically(1) : canScrollVertically(-1));
+                    }
+                }
+            }
+
+            private void disallow(boolean disallow) {
+                ViewParent p = getParent();
+                if (p != null) {
+                    p.requestDisallowInterceptTouchEvent(disallow);
+                }
             }
         }
     }
@@ -674,12 +810,16 @@ public class MiogramCustomUiActivity extends BaseFragment {
             LinearLayout root = new LinearLayout(context);
             root.setOrientation(LinearLayout.VERTICAL);
 
+            // Acoustic zipper feedback for color picker
+            MiogramHaptic.zipper(root);
+
             final int[] curRgb = new int[]{initialColor & 0x00FFFFFF};
             final int[] curAlpha = new int[]{Color.alpha(initialColor)};
 
             ColorPicker picker = new ColorPicker(context, false, (color, done) -> {
                 curRgb[0] = color & 0x00FFFFFF;
                 int res = (curAlpha[0] << 24) | curRgb[0];
+                MiogramHaptic.tick(null);
                 if (sink != null) sink.accept(res);
             });
             picker.setColor(initialColor | 0xFF000000);
@@ -694,12 +834,33 @@ public class MiogramCustomUiActivity extends BaseFragment {
             SeekBarView alphaSeekBar = new SeekBarView(context);
             alphaSeekBar.setReportChanges(true);
             alphaSeekBar.setProgress(percent / 100.0f);
-            alphaSeekBar.setDelegate((stop, progress) -> {
-                int p = Math.round(progress * 100.0f);
-                curAlpha[0] = Math.round((p * 255.0f) / 100.0f);
-                alphaHeader.setText(MiogramLocale.get("Прозорість — ", "Прозрачность — ", "Opacity — ") + p + "%");
-                int res = (curAlpha[0] << 24) | curRgb[0];
-                if (sink != null) sink.accept(res);
+            final int[] lastAlphaVal = new int[]{percent};
+            alphaSeekBar.setDelegate(new SeekBarView.SeekBarViewDelegate() {
+                @Override
+                public void onSeekBarDrag(boolean stop, float progress) {
+                    int p = Math.round(progress * 100.0f);
+                    if (p != lastAlphaVal[0]) {
+                        if (MiogramHaptic.edgeReached(p, lastAlphaVal[0], 0, 100)) {
+                            MiogramHaptic.edge(alphaSeekBar);
+                        } else {
+                            MiogramHaptic.tick(alphaSeekBar);
+                        }
+                        lastAlphaVal[0] = p;
+                    }
+                    curAlpha[0] = Math.round((p * 255.0f) / 100.0f);
+                    alphaHeader.setText(MiogramLocale.get("Прозорість — ", "Прозрачность — ", "Opacity — ") + p + "%");
+                    int res = (curAlpha[0] << 24) | curRgb[0];
+                    if (sink != null) sink.accept(res);
+                }
+
+                @Override
+                public void onSeekBarPressed(boolean pressed) {
+                    if (pressed) {
+                        MiogramHaptic.grab(alphaSeekBar);
+                    } else {
+                        MiogramHaptic.release(alphaSeekBar);
+                    }
+                }
             });
             root.addView(alphaSeekBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 38, 12, 0, 12, 12));
 
@@ -718,15 +879,19 @@ public class MiogramCustomUiActivity extends BaseFragment {
     public static class ProfileEditMenu {
         public static void showForHeader(final BaseFragment fragment, final View anchorView) {
             if (fragment == null || anchorView == null) return;
+            MiogramHaptic.select(anchorView);
             ItemOptions options = ItemOptions.makeOptions(fragment, anchorView);
             options.addText(MiogramLocale.get("Аватар профілю", "Аватар профиля", "Profile avatar"), 13);
             options.add(R.drawable.msg_edit, MiogramLocale.get("Оформлення аватара", "Оформление аватара", "Avatar appearance"), () -> {
+                MiogramHaptic.tap(anchorView);
                 EditAvatarSheet.show(fragment.getParentActivity() != null ? fragment.getParentActivity() : fragment.getContext());
             });
             options.add(R.drawable.msg_palette, MiogramLocale.get("Рамка аватара", "Рамка аватара", "Avatar frame"), () -> {
+                MiogramHaptic.tap(anchorView);
                 EditFrameSheet.show(fragment.getParentActivity() != null ? fragment.getParentActivity() : fragment.getContext());
             });
             options.add(R.drawable.msg_message, MiogramLocale.get("Думка у аватара", "Мысль у аватара", "Thought by the avatar"), () -> {
+                MiogramHaptic.tap(anchorView);
                 EditThoughtSheet.show(fragment.getParentActivity() != null ? fragment.getParentActivity() : fragment.getContext());
             });
             options.show();
@@ -734,24 +899,31 @@ public class MiogramCustomUiActivity extends BaseFragment {
 
         public static void showForRow(final BaseFragment fragment, final View rowView) {
             if (fragment == null || rowView == null) return;
+            MiogramHaptic.select(rowView);
             ItemOptions options = ItemOptions.makeOptions(fragment, rowView);
             options.addText(MiogramLocale.get("Налаштування оформлення", "Настройки оформления", "Appearance settings"), 13);
             options.add(R.drawable.msg_palette, MiogramLocale.get("Колір тексту профілю", "Цвет текста профиля", "Profile text color"), () -> {
+                MiogramHaptic.tap(rowView);
                 EditTextColorsSheet.show(fragment.getParentActivity() != null ? fragment.getParentActivity() : fragment.getContext());
             });
             options.add(R.drawable.msg_views, MiogramLocale.get("Видимість рядків", "Видимость строк", "Row visibility"), () -> {
+                MiogramHaptic.tap(rowView);
                 EditVisibilitySheet.show(fragment.getParentActivity() != null ? fragment.getParentActivity() : fragment.getContext());
             });
             options.add(R.drawable.msg_addcontact, MiogramLocale.get("Додати рядок", "Добавить строку", "Add row"), () -> {
+                MiogramHaptic.tap(rowView);
                 Toast.makeText(fragment.getContext(), MiogramLocale.get("Користувацькі блоки налаштовуються в меню блоків", "Пользовательские блоки настраиваются в меню блоков", "Custom blocks configured in blocks menu"), Toast.LENGTH_SHORT).show();
             });
             options.add(R.drawable.msg_colors, MiogramLocale.get("Налаштувати блоки", "Настроить блоки", "Configure blocks"), () -> {
+                MiogramHaptic.tap(rowView);
                 EditBlocksSheet.show(fragment.getParentActivity() != null ? fragment.getParentActivity() : fragment.getContext());
             });
             options.add(R.drawable.msg_theme, MiogramLocale.get("Фон профілю", "Фон профиля", "Profile background"), () -> {
+                MiogramHaptic.tap(rowView);
                 EditBackgroundSheet.show(fragment.getParentActivity() != null ? fragment.getParentActivity() : fragment.getContext());
             });
             options.add(R.drawable.msg_clear, MiogramLocale.get("Приховати блок", "Скрыть блок", "Hide block"), true, () -> {
+                MiogramHaptic.warn(rowView);
                 rowView.setVisibility(View.GONE);
                 Toast.makeText(fragment.getContext(), MiogramLocale.get("Блок приховано — повернути можна у «Видимості рядків»", "Блок скрыт — вернуть можно в «Видимости строк»", "Block hidden — bring it back in “Row visibility”"), Toast.LENGTH_LONG).show();
             });
@@ -768,10 +940,14 @@ public class MiogramCustomUiActivity extends BaseFragment {
             if (context == null) return;
             final EditSheet sheet = new EditSheet(context, MiogramLocale.get("Додаткові функції", "Дополнительные функции", "Extra features"));
 
+            final BubblePreview preview = new BubblePreview(context);
+            sheet.custom(preview);
+
             sheet.header(MiogramLocale.get("Пухирці повідомлень", "Пузырьки сообщений", "Message bubbles"));
             sheet.check(MiogramLocale.get("Кастомні пухирці", "Кастомные пузырьки", "Custom bubbles"), MiogramCustomUiPrefs.isBubbleColorEnabled(), true, val -> {
                 MiogramCustomUiPrefs.setBubbleColorEnabled(val != 0);
                 bubbleVis(sheet);
+                preview.invalidate();
             });
 
             sheet.group("bubble_opts");
@@ -779,43 +955,52 @@ public class MiogramCustomUiActivity extends BaseFragment {
                 MiogramCustomUiPrefs.setBubbleGradient(val != 0);
                 sheet.setGroupVisible("bubble_g2", val != 0);
                 sheet.setGroupVisible("bubble_gangle", val != 0);
+                preview.invalidate();
             });
 
             sheet.color(MiogramLocale.get("Основний колір", "Основной цвет", "Primary color"), MiogramCustomUiPrefs.getBubbleColor(), true, color -> {
                 MiogramCustomUiPrefs.setBubbleColor(color);
+                preview.invalidate();
             });
 
             sheet.group("bubble_g2");
             sheet.color(MiogramLocale.get("Другий колір градієнта", "Второй цвет градиента", "Secondary gradient color"), MiogramCustomUiPrefs.getBubbleColor2(), true, color -> {
                 MiogramCustomUiPrefs.setBubbleColor2(color);
+                preview.invalidate();
             });
             sheet.endGroup();
 
             sheet.group("bubble_gangle");
             sheet.slider(MiogramLocale.get("Кут нахилу", "Угол наклона", "Angle"), MiogramCustomUiPrefs.getBubbleGradAngle(), 0, 360, "°", val -> {
                 MiogramCustomUiPrefs.setBubbleGradAngle(val);
+                preview.invalidate();
             });
             sheet.endGroup();
 
             sheet.color(MiogramLocale.get("Колір тексту", "Цвет текста", "Text color"), MiogramCustomUiPrefs.getBubbleTextColor(), true, color -> {
                 MiogramCustomUiPrefs.setBubbleTextColor(color);
+                preview.invalidate();
             });
 
             sheet.slider(MiogramLocale.get("Скруглення кутів", "Скругление углов", "Corner radius"), MiogramCustomUiPrefs.getBubbleRadius(), 0, 30, "dp", val -> {
                 MiogramCustomUiPrefs.setBubbleRadius(val);
+                preview.invalidate();
             });
 
             sheet.check(MiogramLocale.get("Світіння пухирця", "Свечение пузырька", "Bubble glow"), MiogramCustomUiPrefs.isBubbleGlowEnabled(), true, val -> {
                 MiogramCustomUiPrefs.setBubbleGlowEnabled(val != 0);
                 sheet.setGroupVisible("bubble_glow_opts", val != 0);
+                preview.invalidate();
             });
 
             sheet.group("bubble_glow_opts");
             sheet.color(MiogramLocale.get("Колір світіння", "Цвет свечения", "Glow color"), MiogramCustomUiPrefs.getBubbleGlowColor(), true, color -> {
                 MiogramCustomUiPrefs.setBubbleGlowColor(color);
+                preview.invalidate();
             });
             sheet.slider(MiogramLocale.get("Радіус світіння", "Радиус свечения", "Glow radius"), MiogramCustomUiPrefs.getBubbleGlowRadius(), 0, 40, "dp", val -> {
                 MiogramCustomUiPrefs.setBubbleGlowRadius(val);
+                preview.invalidate();
             });
             sheet.endGroup();
 
@@ -823,6 +1008,97 @@ public class MiogramCustomUiActivity extends BaseFragment {
 
             bubbleVis(sheet);
             sheet.show();
+        }
+
+        public static class BubblePreview extends View {
+            private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final TextPaint text = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+            private final RectF rect = new RectF();
+
+            public BubblePreview(Context context) {
+                super(context);
+                setWillNotDraw(false);
+                text.setTextSize(AndroidUtilities.dpf2(14.5f));
+                text.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+            }
+
+            @Override
+            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), AndroidUtilities.dp(168));
+            }
+
+            @Override
+            protected void onDraw(Canvas canvas) {
+                int width = getWidth();
+                boolean dark = Theme.isCurrentThemeDark();
+                int padSide = AndroidUtilities.dp(12);
+
+                fill.setShader(null);
+                fill.setColor(dark ? 0xFF151D26 : 0xFFEBF0F5);
+                rect.set(padSide, AndroidUtilities.dp(6), width - padSide, getHeight() - AndroidUtilities.dp(6));
+                canvas.drawRoundRect(rect, AndroidUtilities.dpf2(18), AndroidUtilities.dpf2(18), fill);
+
+                // 1. Incoming message from other person
+                String incomingText = MiogramLocale.get("Як тобі новий колір? 🎨", "Как тебе новый цвет? 🎨", "How do you like the new color? 🎨");
+                float y = bubble(canvas, width, false, incomingText, dark ? 0xFF242F3D : 0xFFFFFFFF, 0, 0, false, 0, dark ? 0xFFECF1F6 : 0xFF0B141D, AndroidUtilities.dp(18)) + AndroidUtilities.dp(9);
+
+                // 2. Outgoing messages from user
+                boolean on = MiogramCustomUiPrefs.isBubbleColorEnabled();
+                boolean grad = MiogramCustomUiPrefs.isBubbleGradient();
+                int c1 = on ? MiogramCustomUiPrefs.getBubbleColor() : (dark ? 0xFF2B5278 : 0xFF509BE6);
+                int c2 = on ? MiogramCustomUiPrefs.getBubbleColor2() : 0xFF00C6FF;
+                int angle = MiogramCustomUiPrefs.getBubbleGradAngle();
+                int textColor = on ? MiogramCustomUiPrefs.getBubbleTextColor() : 0xFFFFFFFF;
+                boolean useGrad = on && grad;
+
+                String outText1 = MiogramLocale.get("Дивись, свій пухирець!", "Смотри, свой пузырёк!", "Look, custom bubble!");
+                String outText2 = MiogramLocale.get("І колір тексту теж 🔥", "И цвет текста тоже 🔥", "And text color too 🔥");
+
+                float y2 = bubble(canvas, width, true, outText1, c1, c1, c2, useGrad, angle, textColor, y) + AndroidUtilities.dp(6);
+                bubble(canvas, width, true, outText2, c1, c1, c2, useGrad, angle, textColor, y2);
+            }
+
+            private float bubble(Canvas canvas, int width, boolean out, String str, int solidColor, int c1, int c2, boolean grad, int angle, int textColor, float top) {
+                float padX = AndroidUtilities.dpf2(13);
+                float h = AndroidUtilities.dpf2(36);
+                float bubbleW = Math.min(text.measureText(str) + (padX * 2.0f), 0.64f * width);
+                float left = AndroidUtilities.dp(20);
+                if (out) {
+                    left = ((float) width - left) - bubbleW;
+                }
+                float right = left + bubbleW;
+                float bottom = top + h;
+                rect.set(left, top, right, bottom);
+
+                if (grad) {
+                    fill.setShader(createLinearGrad(rect, c1, c2, angle));
+                } else {
+                    fill.setShader(null);
+                    fill.setColor(solidColor);
+                }
+                int radius = MiogramCustomUiPrefs.isBubbleColorEnabled() ? MiogramCustomUiPrefs.getBubbleRadius() : 17;
+                float r = AndroidUtilities.dpf2(Math.max(4, radius));
+                canvas.drawRoundRect(rect, r, r, fill);
+                fill.setShader(null);
+
+                text.setColor(textColor);
+                float baseline = ((h / 2.0f) + top) - ((text.descent() + text.ascent()) / 2.0f);
+                int save = canvas.save();
+                canvas.clipRect(left, top, right, bottom);
+                canvas.drawText(str, left + padX, baseline, text);
+                canvas.restoreToCount(save);
+
+                return bottom;
+            }
+
+            private LinearGradient createLinearGrad(RectF r, int c1, int c2, int angle) {
+                double rad = Math.toRadians(angle);
+                float cx = r.centerX(), cy = r.centerY();
+                float maxR = Math.max(r.width(), r.height()) / 2.0f;
+                float cos = (float) Math.cos(rad) * maxR;
+                float sin = (float) Math.sin(rad) * maxR;
+                return new LinearGradient(cx - cos, cy - sin, cx + cos, cy + sin, c1, c2, Shader.TileMode.CLAMP);
+            }
         }
 
         private static void bubbleVis(EditSheet sheet) {
@@ -1059,6 +1335,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
 
             sheet.header(MiogramLocale.get("Зняти", "Снять", "Remove"));
             sheet.row(MiogramLocale.get("Прибрати рамку", "Убрать рамку", "Remove frame"), "", false, () -> {
+                MiogramHaptic.warn(null);
                 MiogramCustomUiPrefs.setAvatarRingEnabled(false);
                 sheet.dismiss();
                 Toast.makeText(context, MiogramLocale.get("Рамку знято", "Рамка снята", "Frame removed"), Toast.LENGTH_SHORT).show();
@@ -1140,6 +1417,9 @@ public class MiogramCustomUiActivity extends BaseFragment {
             LinearLayout root = new LinearLayout(context);
             root.setOrientation(LinearLayout.VERTICAL);
 
+            // Zipper feedback
+            MiogramHaptic.zipper(root);
+
             // Subtitle note from Photo 3
             TextInfoPrivacyCell noteCell = new TextInfoPrivacyCell(context);
             noteCell.setText(MiogramLocale.get(
@@ -1171,6 +1451,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
             TextCell restoreCell = new TextCell(context);
             restoreCell.setTextAndValue(MiogramLocale.get("Повернути кольори теми", "Вернуть цвета темы", "Restore theme colors"), "", false);
             restoreCell.setOnClickListener(v -> {
+                MiogramHaptic.warn(v);
                 MiogramCustomUiPrefs.setProfilePalette("{}");
                 NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.didSetNewTheme);
                 Toast.makeText(context, MiogramLocale.get("Кольори скинуто до теми", "Цвета сброшены к теме", "Restored to theme colors"), Toast.LENGTH_SHORT).show();
@@ -1202,7 +1483,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
 
                 final EditColorRow colorRow = new EditColorRow(context, title, color, true, null);
                 colorRow.setOnClickListener(v -> {
-                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                    MiogramHaptic.tap(v);
                     EditColorPicker.show(context, title, colorRow.getColor(), picked -> {
                         colorRow.setColor(picked);
                         try {
