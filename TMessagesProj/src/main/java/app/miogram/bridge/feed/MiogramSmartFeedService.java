@@ -186,11 +186,8 @@ public class MiogramSmartFeedService {
                 for (TLRPC.Message msg : res.messages) {
                     if (msg.date >= minDate && !TextUtils.isEmpty(msg.message)) {
                         recentMessages.add(msg);
-                        promptPosts.append("--- ПОСТ ID: ").append(msg.id).append(" ---
-");
-                        promptPosts.append(msg.message.trim()).append("
-
-");
+                        promptPosts.append("--- ПОСТ ID: ").append(msg.id).append(" ---\n");
+                        promptPosts.append(msg.message.trim()).append("\n\n");
                     }
                 }
 
@@ -206,7 +203,7 @@ public class MiogramSmartFeedService {
                         + "Правила:\n"
                         + "1. ПОВНІСТЮ ВИДАЛИ або познач is_ad: true будь-яку рекламу, промо, крипто-скам, казино, рефералки, спонсорські інтеграції та заклики підписатись на сторонні ресурси.\n"
                         + "2. Справжні авторські новини, апдейти, дослідження стисни в якісну вижимку (3-4 ключові речення), зберігаючи контекст, факти, початковий тон автора.\n"
-                        + "3. Поверни суворий JSON-масив без markdown форматування, наприклад: [{"message_id": 10, "title": "Заголовок", "summary": "Вижимка...", "category": "Новини", "is_ad": false}]\n\n"
+                        + "3. Поверни суворий JSON-масив без markdown форматування, наприклад: [{\"message_id\": 10, \"title\": \"Заголовок\", \"summary\": \"Вижимка...\", \"category\": \"Новини\", \"is_ad\": false}]\n\n"
                         + promptPosts.toString();
 
                 MiogramAiService.processFeedWithAi(aiPrompt, aiResult -> {
