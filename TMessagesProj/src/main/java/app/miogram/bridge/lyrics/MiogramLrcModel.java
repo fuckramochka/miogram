@@ -90,11 +90,14 @@ public class MiogramLrcModel {
 
         /**
          * Finds active line index for current playback time using binary search.
+         * Handles intros and long instrumental pauses accurately.
          */
         public int findLineIndex(long currentMs) {
             if (lines.isEmpty()) return -1;
-            if (currentMs < lines.get(0).timeMs) {
-                return 0;
+            long firstTime = lines.get(0).timeMs;
+            if (currentMs < firstTime) {
+                // If we are within 1.2 seconds of the first line, highlight it, otherwise it's still intro
+                return (firstTime - currentMs <= 1200L) ? 0 : -1;
             }
 
             int low = 0;
@@ -110,6 +113,24 @@ public class MiogramLrcModel {
                     high = mid - 1;
                 }
             }
+
+            long currentLineTime = lines.get(best).timeMs;
+            long elapsedSinceLine = currentMs - currentLineTime;
+
+            if (best < lines.size() - 1) {
+                long nextLineTime = lines.get(best + 1).timeMs;
+                long gapToNext = nextLineTime - currentLineTime;
+                // If there's a long break (e.g. guitar solo / bridge > 6s) and we're 5s past current line, deactivate
+                if (gapToNext > 6000L && elapsedSinceLine > 5000L) {
+                    return -1;
+                }
+            } else {
+                // Last line in song: deactivate if more than 7s passed
+                if (elapsedSinceLine > 7000L) {
+                    return -1;
+                }
+            }
+
             return best;
         }
 

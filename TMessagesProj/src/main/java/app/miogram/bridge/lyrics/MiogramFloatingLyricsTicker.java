@@ -5,6 +5,8 @@ import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.text.TextUtils;
@@ -14,6 +16,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -21,6 +24,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.LayoutHelper;
@@ -207,7 +211,7 @@ public class MiogramFloatingLyricsTicker implements NotificationCenter.Notificat
     public static class FloatingTickerLayout extends FrameLayout {
 
         private final LinearLayout pillContainer;
-        private final TextView noteIconView;
+        private final ImageView noteIconView;
         private final TextView lyricTextView;
 
         public FloatingTickerLayout(Context context) {
@@ -224,19 +228,19 @@ public class MiogramFloatingLyricsTicker implements NotificationCenter.Notificat
             pillContainer.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(6), AndroidUtilities.dp(14), AndroidUtilities.dp(6));
 
             GradientDrawable pillBg = new GradientDrawable();
-            pillBg.setColor(0xD80D111A); // Deep midnight frosted glass
-            pillBg.setCornerRadius(AndroidUtilities.dp(17));
-            pillBg.setStroke(AndroidUtilities.dp(1), 0x2EFFFFFF);
+            pillBg.setColor(0xE61C2733); // Frosted chat message bubble surface
+            pillBg.setCornerRadius(AndroidUtilities.dp(16));
+            pillBg.setStroke(AndroidUtilities.dp(1), 0x33FFFFFF);
             pillContainer.setBackground(pillBg);
             if (Build.VERSION.SDK_INT >= 21) {
-                pillContainer.setElevation(AndroidUtilities.dp(6));
+                pillContainer.setElevation(AndroidUtilities.dp(4));
             }
 
-            noteIconView = new TextView(context);
-            noteIconView.setText("🎵");
-            noteIconView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
-            noteIconView.setTextColor(0xFFFFFFFF);
-            pillContainer.addView(noteIconView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 6, 0));
+            noteIconView = new ImageView(context);
+            noteIconView.setImageResource(R.drawable.player_new_order);
+            noteIconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            noteIconView.setColorFilter(new PorterDuffColorFilter(0xFF3390EC, PorterDuff.Mode.SRC_IN));
+            pillContainer.addView(noteIconView, LayoutHelper.createLinear(16, 16, Gravity.CENTER_VERTICAL, 0, 0, 6, 0));
 
             lyricTextView = new TextView(context);
             lyricTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
@@ -272,10 +276,11 @@ public class MiogramFloatingLyricsTicker implements NotificationCenter.Notificat
             if (fragment instanceof ChatActivity) {
                 ChatActivity chat = (ChatActivity) fragment;
                 View enterView = chat.getChatActivityEnterView();
-                if (enterView != null && enterView.getVisibility() == View.VISIBLE && enterView.getHeight() > 0) {
-                    bottomMargin = enterView.getHeight() + AndroidUtilities.dp(10);
+                if (enterView != null && enterView.getVisibility() == View.VISIBLE) {
+                    int h = enterView.getHeight();
+                    bottomMargin = (h > 0 ? h : AndroidUtilities.dp(54)) + AndroidUtilities.dp(8);
                 } else {
-                    bottomMargin = AndroidUtilities.dp(24);
+                    bottomMargin = AndroidUtilities.dp(16);
                 }
             } else if (fragment instanceof DialogsActivity) {
                 bottomMargin = AndroidUtilities.dp(68);

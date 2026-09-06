@@ -10,6 +10,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -23,6 +24,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.graphics.ColorUtils;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.AndroidUtilities;
@@ -118,8 +120,8 @@ public class MiogramLyricsView extends FrameLayout {
         sourcePillButton.setTypeface(AndroidUtilities.bold());
         sourcePillButton.setTextColor(0xFFFFFFFF);
         sourcePillButton.setGravity(Gravity.CENTER);
-        sourcePillButton.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(6), AndroidUtilities.dp(12), AndroidUtilities.dp(6));
-        sourcePillButton.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), ColorUtils.setAlphaComponent(accent, 35)));
+        sourcePillButton.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(6), AndroidUtilities.dp(14), AndroidUtilities.dp(6));
+        sourcePillButton.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), ColorUtils.setAlphaComponent(accent, 45)));
         sourcePillButton.setOnClickListener(v -> {
             MiogramHaptic.tap(v);
             showSourceOptions(v);
@@ -135,8 +137,8 @@ public class MiogramLyricsView extends FrameLayout {
         translationPillButton.setTypeface(AndroidUtilities.bold());
         translationPillButton.setTextColor(0xFFFFFFFF);
         translationPillButton.setGravity(Gravity.CENTER);
-        translationPillButton.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(6), AndroidUtilities.dp(12), AndroidUtilities.dp(6));
-        translationPillButton.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), ColorUtils.setAlphaComponent(accent, 35)));
+        translationPillButton.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(6), AndroidUtilities.dp(14), AndroidUtilities.dp(6));
+        translationPillButton.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), ColorUtils.setAlphaComponent(accent, 45)));
         translationPillButton.setOnClickListener(v -> {
             MiogramHaptic.tap(v);
             showTranslationOptions(v);
@@ -144,13 +146,14 @@ public class MiogramLyricsView extends FrameLayout {
         updateTranslationButton();
         subBar.addView(translationPillButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
-        addView(subBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 0, 4, 0, 0));
+        addView(subBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 42, Gravity.TOP, 0, 4, 0, 0));
+        subBar.bringToFront();
 
-        // 2. RecyclerView with lyrics
+        // 2. RecyclerView with lyrics - positioned strictly below subBar so it never overlaps buttons
         recyclerView = new RecyclerView(context);
         recyclerView.setLayoutManager(layoutManager);
-        recyclerView.setClipToPadding(false);
-        recyclerView.setPadding(0, AndroidUtilities.dp(44), 0, AndroidUtilities.dp(120));
+        recyclerView.setClipToPadding(true);
+        recyclerView.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(24));
         recyclerView.setAdapter(adapter);
         recyclerView.setVerticalScrollBarEnabled(false);
 
@@ -165,13 +168,13 @@ public class MiogramLyricsView extends FrameLayout {
                 }
             }
         });
-        addView(recyclerView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        addView(recyclerView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, 46, 0, 0));
 
-        // 3. Compact Empty / Error Container
+        // 3. Compact Empty / Error Container - also positioned below subBar
         emptyContainer = new LinearLayout(context);
         emptyContainer.setOrientation(LinearLayout.VERTICAL);
         emptyContainer.setGravity(Gravity.CENTER);
-        emptyContainer.setPadding(AndroidUtilities.dp(28), AndroidUtilities.dp(40), AndroidUtilities.dp(28), AndroidUtilities.dp(120));
+        emptyContainer.setPadding(AndroidUtilities.dp(28), AndroidUtilities.dp(20), AndroidUtilities.dp(28), AndroidUtilities.dp(40));
         emptyContainer.setVisibility(View.GONE);
 
         progressBar = new ProgressBar(context);
@@ -195,7 +198,7 @@ public class MiogramLyricsView extends FrameLayout {
         emptyButtonsRow.setGravity(Gravity.CENTER);
 
         aiActionButton = new TextView(context);
-        aiActionButton.setText(MiogramLocale.get("✨ Розпізнати текст через ШІ Gemini", "✨ Распознать текст через ИИ Gemini", "✨ Transcribe lyrics with Gemini AI"));
+        aiActionButton.setText(MiogramLocale.get("Розпізнати текст через ШІ Gemini", "Распознать текст через ИИ Gemini", "Transcribe lyrics with Gemini AI"));
         aiActionButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         aiActionButton.setTypeface(AndroidUtilities.bold());
         aiActionButton.setTextColor(0xFFFFFFFF);
@@ -211,7 +214,7 @@ public class MiogramLyricsView extends FrameLayout {
         emptyButtonsRow.addView(aiActionButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
 
         changeSourceButton = new TextView(context);
-        changeSourceButton.setText(MiogramLocale.get("🔄 Змінити джерело пошуку", "🔄 Изменить источник поиска", "🔄 Change search source"));
+        changeSourceButton.setText(MiogramLocale.get("Змінити джерело пошуку", "Изменить источник поиска", "Change search source"));
         changeSourceButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         changeSourceButton.setTypeface(AndroidUtilities.bold());
         changeSourceButton.setTextColor(0xCCFFFFFF);
@@ -225,7 +228,7 @@ public class MiogramLyricsView extends FrameLayout {
         emptyButtonsRow.addView(changeSourceButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
         emptyContainer.addView(emptyButtonsRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-        addView(emptyContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
+        addView(emptyContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, 46, 0, 0));
 
         // 4. Floating Toast Notification Pill
         toastPillView = new TextView(context);
@@ -248,7 +251,7 @@ public class MiogramLyricsView extends FrameLayout {
     }
 
     private void updateSourcePillText() {
-        sourcePillButton.setText("🎵 " + MiogramSourceSelectAlert.getSourceName(currentSourceId) + " ▾");
+        sourcePillButton.setText(MiogramSourceSelectAlert.getSourceName(currentSourceId));
     }
 
     private void updateTranslationButton() {
@@ -260,7 +263,7 @@ public class MiogramLyricsView extends FrameLayout {
         } else {
             modeText = MiogramLocale.get("Переклад", "Перевод", "Translation");
         }
-        translationPillButton.setText("🌐 " + modeText + " ▾");
+        translationPillButton.setText(modeText);
     }
 
     private void showSourceOptions(View anchor) {
@@ -275,7 +278,7 @@ public class MiogramLyricsView extends FrameLayout {
         options.add(R.drawable.player_new_order, MiogramLocale.get("Яндекс Музика", "Яндекс Музыка", "Yandex Music"), () -> selectSource(MiogramLyricsEngine.SOURCE_YANDEX));
         options.add(R.drawable.player_new_order, "Genius", () -> selectSource(MiogramLyricsEngine.SOURCE_GENIUS));
         options.add(R.drawable.player_new_order, MiogramLocale.get("YouTube (Опис)", "YouTube (Описание)", "YouTube (Description)"), () -> selectSource(MiogramLyricsEngine.SOURCE_YOUTUBE));
-        options.add(R.drawable.msg_bot, MiogramLocale.get("✨ ШІ зі звуку (Gemini)", "✨ ИИ со слуха (Gemini)", "✨ AI by ear (Gemini)"), () -> selectSource(MiogramLyricsEngine.SOURCE_AI));
+        options.add(R.drawable.msg_bot, MiogramLocale.get("ШІ зі звуку (Gemini)", "ИИ со слуха (Gemini)", "AI by ear (Gemini)"), () -> selectSource(MiogramLyricsEngine.SOURCE_AI));
 
         options.show();
     }
@@ -283,7 +286,7 @@ public class MiogramLyricsView extends FrameLayout {
     private void selectSource(int sourceId) {
         this.currentSourceId = sourceId;
         updateSourcePillText();
-        showToastPill(MiogramSourceSelectAlert.getSourceName(sourceId) + " ✓");
+        showToastPill(MiogramSourceSelectAlert.getSourceName(sourceId));
         if (currentMessageObject != null) {
             if (sourceId == MiogramLyricsEngine.SOURCE_AI) {
                 transcribeWithAi(currentMessageObject);
@@ -336,7 +339,7 @@ public class MiogramLyricsView extends FrameLayout {
         showToastPill(MiogramLocale.get("Перекладаємо текст...", "Переводим текст...", "Translating lyrics..."));
         MiogramLyricsEngine.getInstance().translateSongLines(currentSong, () -> {
             adapter.notifyDataSetChanged();
-            showToastPill(MiogramLocale.get("Переклад готовий! ✓", "Перевод готов! ✓", "Translation ready! ✓"));
+            showToastPill(MiogramLocale.get("Переклад готовий", "Перевод готов", "Translation ready"));
         });
     }
 
@@ -462,8 +465,29 @@ public class MiogramLyricsView extends FrameLayout {
     private void scrollToCenter(int position) {
         int height = recyclerView.getHeight();
         if (height <= 0) return;
-        int targetOffset = height / 3;
-        layoutManager.scrollToPositionWithOffset(position, targetOffset);
+        try {
+            LinearSmoothScroller scroller = new LinearSmoothScroller(getContext()) {
+                @Override
+                protected int getVerticalSnapPreference() {
+                    return SNAP_TO_START;
+                }
+
+                @Override
+                public int calculateDtToFit(int viewStart, int viewEnd, int boxStart, int boxEnd, int snapPreference) {
+                    return (boxStart + (boxEnd - boxStart) / 3) - viewStart;
+                }
+
+                @Override
+                protected float calculateSpeedPerPixel(DisplayMetrics displayMetrics) {
+                    return 140f / displayMetrics.densityDpi;
+                }
+            };
+            scroller.setTargetPosition(position);
+            layoutManager.startSmoothScroll(scroller);
+        } catch (Throwable ignore) {
+            int targetOffset = height / 3;
+            layoutManager.scrollToPositionWithOffset(position, targetOffset);
+        }
     }
 
     private void showLoading(boolean show) {

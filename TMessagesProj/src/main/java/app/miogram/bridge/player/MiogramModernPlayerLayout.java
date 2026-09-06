@@ -158,8 +158,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         pageSwitcher = new LinearLayout(context);
         pageSwitcher.setOrientation(LinearLayout.HORIZONTAL);
         pageSwitcher.setGravity(Gravity.CENTER);
-        pageSwitcher.setPadding(AndroidUtilities.dp(3), AndroidUtilities.dp(3), AndroidUtilities.dp(3), AndroidUtilities.dp(3));
-        pageSwitcher.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(18), ColorUtils.setAlphaComponent(accentColor, 32)));
+        pageSwitcher.setPadding(0, 0, 0, 0);
         pageSwitcher.setVisibility(View.GONE);
 
         lyricsModeButton = createModeButton(MiogramLocale.get("Текст", "Текст", "Lyrics"));
@@ -179,9 +178,9 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             showQueue(true, true);
         });
 
-        pageSwitcher.addView(lyricsModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(30), 1f));
-        pageSwitcher.addView(coverModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(30), 1f));
-        pageSwitcher.addView(queueModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(30), 1f));
+        pageSwitcher.addView(lyricsModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
+        pageSwitcher.addView(coverModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
+        pageSwitcher.addView(queueModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
         topControlsRow.addView(pageSwitcher, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(36), 1f));
 
         // Right button: Expand to fullscreen (in compact) or Dismiss 'X' (in fullscreen)
@@ -215,6 +214,17 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         compactInfoContainer.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(4), AndroidUtilities.dp(20), 0);
 
         compactCoverWrapper = new FrameLayout(context);
+        int surfaceColor = getThemedColor(Theme.key_player_background);
+        if (surfaceColor == 0) surfaceColor = getThemedColor(Theme.key_windowBackgroundWhite);
+        int placeholderBg = ColorUtils.blendARGB(surfaceColor, accentColor, 0.20f);
+        compactCoverWrapper.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(16), placeholderBg));
+
+        ImageView coverPlaceholder = new ImageView(context);
+        coverPlaceholder.setImageResource(R.drawable.player_new_order);
+        coverPlaceholder.setScaleType(ImageView.ScaleType.CENTER);
+        coverPlaceholder.setColorFilter(new PorterDuffColorFilter(ColorUtils.setAlphaComponent(accentColor, 120), PorterDuff.Mode.SRC_IN));
+        compactCoverWrapper.addView(coverPlaceholder, LayoutHelper.createFrame(40, 40, Gravity.CENTER));
+
         if (Build.VERSION.SDK_INT >= 21) {
             compactCoverWrapper.setElevation(AndroidUtilities.dp(8));
             compactCoverWrapper.setOutlineProvider(new ViewOutlineProvider() {
@@ -305,7 +315,9 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         bottomSection.setOrientation(LinearLayout.VERTICAL);
         bottomSection.setGravity(Gravity.BOTTOM);
         bottomSection.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(6), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
-        bottomSection.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{ColorUtils.setAlphaComponent(surface, 0), surface}));
+        int bottomSolid = ColorUtils.setAlphaComponent(surface, 240);
+        int bottomTop = ColorUtils.setAlphaComponent(surface, 210);
+        bottomSection.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{bottomTop, bottomSolid}));
 
         // Seekbar & Timestamps
         seekbarContainer = new LinearLayout(context);
@@ -383,7 +395,9 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             ((ViewGroup) coverView.getParent()).removeView(coverView);
         }
         if (!isFullScreen || fullScreenProgress < 0.5f) {
-            compactCoverWrapper.removeAllViews();
+            if (compactCoverWrapper.getChildCount() > 1) {
+                compactCoverWrapper.removeViews(1, compactCoverWrapper.getChildCount() - 1);
+            }
             int size = AndroidUtilities.dp(115);
             compactCoverWrapper.addView(coverView, LayoutHelper.createFrame(size, size, Gravity.CENTER));
         } else if (playerMode == PlayerMode.COVER) {
@@ -640,9 +654,15 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         if (surface == 0) surface = getThemedColor(Theme.key_windowBackgroundWhite);
         int accentColor = getThemeAccentColor();
 
+        // Strong frosted glass effect (~82% opacity)
+        int frostedSurface = ColorUtils.setAlphaComponent(surface, 210);
         GradientDrawable background = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                new int[]{ColorUtils.blendARGB(surface, accentColor, 0.12f), surface, ColorUtils.blendARGB(surface, 0xFF000000, 0.05f)});
+                new int[]{
+                        ColorUtils.blendARGB(frostedSurface, accentColor, 0.14f),
+                        frostedSurface,
+                        ColorUtils.blendARGB(frostedSurface, 0xFF000000, 0.08f)
+                });
 
         float radius = AndroidUtilities.dp(24) * (1.0f - progress);
         background.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
@@ -744,8 +764,8 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     private void updateModeButton(TextView button, boolean selected) {
         if (button == null) return;
         int accent = getThemeAccentColor();
-        button.setTextColor(selected ? 0xFFFFFFFF : 0xB3FFFFFF);
-        button.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(15), selected ? accent : 0x00000000));
+        button.setTextColor(selected ? 0xFFFFFFFF : 0x88FFFFFF);
+        button.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), selected ? ColorUtils.setAlphaComponent(accent, 175) : 0x00000000));
         button.setScaleX(selected ? 1f : 0.96f);
         button.setScaleY(selected ? 1f : 0.96f);
     }

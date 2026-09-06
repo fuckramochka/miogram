@@ -424,9 +424,17 @@ public class MiogramLyricsEngine {
                                 if (s == null) continue;
 
                                 String candTitle = s.optString("name", "");
+                                String candArtist = "";
+                                JSONArray artistsArr = s.optJSONArray("artists");
+                                if (artistsArr != null && artistsArr.length() > 0) {
+                                    JSONObject aObj = artistsArr.optJSONObject(0);
+                                    if (aObj != null) {
+                                        candArtist = aObj.optString("name", "");
+                                    }
+                                }
                                 int candDur = (int) Math.round(s.optDouble("dt", 0) / 1000.0);
 
-                                if (!isMatchingTrack(title, artist, durationSec, candTitle, "", candDur)) {
+                                if (!isMatchingTrack(title, artist, durationSec, candTitle, candArtist, candDur)) {
                                     continue; // Reject different song!
                                 }
 
@@ -572,19 +580,59 @@ public class MiogramLyricsEngine {
             return false;
         }
 
-        // 1. Duration check: if difference > 6 seconds, definitely a different song!
+        // 1. Duration check: if both > 10s and difference > 5 seconds, reject
         if (targetDurationSec > 10 && candidateDurationSec > 10) {
-            if (Math.abs(targetDurationSec - candidateDurationSec) > 6) {
+            if (Math.abs(targetDurationSec - candidateDurationSec) > 5) {
                 return false;
             }
         }
 
-        // 2. Normalized Title Check
+        // 2. Artist check (MANDATORY when both provided)
+        String normTargetArtist = normalizeString(targetArtist);
+        String normCandArtist = normalizeString(candidateArtist);
+        if (!TextUtils.isEmpty(normTargetArtist) && !TextUtils.isEmpty(normCandArtist)) {
+            boolean artistMatches = normTargetArtist.equals(normCandArtist)
+                    || normTargetArtist.contains(normCandArtist)
+                    || normCandArtist.contains(normTargetArtist);
+            if (!artistMatches) {
+                // Check word overlap in artist
+                String[] tArtists = normTargetArtist.split("\\s+");
+                String[] cArtists = normCandArtist.split("\\s+");
+                boolean foundArtistOverlap = false;
+                for (String ta : tArtists) {
+                    if (ta.length() < 3) continue;
+                    for (String ca : cArtists) {
+                        if (ca.equals(ta)) {
+                            foundArtistOverlap = true;
+                            break;
+                        }
+                    }
+                    if (foundArtistOverlap) break;
+                }
+                if (!foundArtistOverlap) {
+                    return false; // Reject: different artist!
+                }
+            }
+        }
+
+        // 3. Normalized Title Check
         String normTarget = normalizeString(targetTitle);
         String normCandidate = normalizeString(candidateTitle);
 
         if (normTarget.equals(normCandidate)) return true;
-        if (normTarget.contains(normCandidate) || normCandidate.contains(normTarget)) return true;
+
+        // If target title is short (< 4 chars, like "92"), require exact match!
+        if (normTarget.length() < 4 || normCandidate.length() < 4) {
+            return normTarget.equals(normCandidate);
+        }
+
+        if (normTarget.contains(normCandidate) || normCandidate.contains(normTarget)) {
+            int minLen = Math.min(normTarget.length(), normCandidate.length());
+            int maxLen = Math.max(normTarget.length(), normCandidate.length());
+            if ((float) minLen / (float) maxLen >= 0.65f) {
+                return true;
+            }
+        }
 
         // Word overlap ratio check
         String[] targetWords = normTarget.split("\\s+");
@@ -601,17 +649,17 @@ public class MiogramLyricsEngine {
                 }
             }
         }
-        float ratio = (float) matchCount / (float) Math.min(targetWords.length, candWords.length);
-        return ratio >= 0.55f;
+        float ratio = (float) matchCount / (float) Math.max(targetWords.length, candWords.length);
+        return ratio >= 0.70f;
     }
 
     private static String normalizeString(String s) {
         if (s == null) return "";
         return s.toLowerCase(Locale.ROOT)
-                .replaceAll("(?i)\\\\(feat\\\\..*?\\\\)|\\\\[feat\\\\..*?\\\\]|(?i)\\\\bfeat\\\\..*|\\\\[.*?\\\\]", "")
-                .replaceAll("(?i)\\\\(official.*?\\\\)|\\\\(audio.*?\\\\)|\\\\(video.*?\\\\)|\\\\(lyrics.*?\\\\)", "")
-                .replaceAll("[^a-zA-Z0-9а-яА-ЯёЁіІїЇєЄґҐ\\\\s]", "")
-                .replaceAll("\\\\s+", " ")
+                .replaceAll("(?i)\\((feat\\..*?|ft\\..*?)\\)|\\[(feat\\..*?|ft\\..*?)\\]|(?i)\\b(feat|ft)\\..*", "")
+                .replaceAll("(?i)\\((official.*?|audio.*?|video.*?|lyrics.*?)\\)|\\[(official.*?|audio.*?|video.*?|lyrics.*?)\\]", "")
+                .replaceAll("[^a-zA-Z0-9а-яА-ЯёЁіІїЇєЄґҐ\\s]", "")
+                .replaceAll("\\s+", " ")
                 .trim();
     }
 

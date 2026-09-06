@@ -320,6 +320,13 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.musicIdsLoaded);
         NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.messagePlayingSpeedChanged);
 
+        if (Build.VERSION.SDK_INT >= 31 && getWindow() != null) {
+            try {
+                getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
+                getWindow().setBackgroundBlurRadius(AndroidUtilities.dp(35));
+            } catch (Throwable ignore) {}
+        }
+
         containerView = new FrameLayout(context) {
 
             private RectF rect = new RectF();
