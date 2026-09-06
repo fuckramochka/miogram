@@ -107,7 +107,7 @@ public class MiogramLyricsEngine {
 
         final String title = cleanTitle(rawTitle);
         final String artist = cleanArtist(rawAuthor);
-        final int durationSec = messageObject.getDuration();
+        final int durationSec = (int) Math.round(messageObject.getDuration());
         final String cacheKey = getCacheKey(artist, title);
 
         // 1. Memory Cache
@@ -179,7 +179,7 @@ public class MiogramLyricsEngine {
 
         final String title = cleanTitle(messageObject.getMusicTitle());
         final String artist = cleanArtist(messageObject.getMusicAuthor());
-        final int durationSec = messageObject.getDuration();
+        final int durationSec = (int) Math.round(messageObject.getDuration());
         final String cacheKey = getCacheKey(artist, title) + "_ai";
 
         executor.execute(() -> {

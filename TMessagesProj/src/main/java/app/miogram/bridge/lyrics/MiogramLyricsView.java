@@ -431,7 +431,7 @@ public class MiogramLyricsView extends FrameLayout {
             holder.itemView.setOnClickListener(v -> {
                 if (currentMessageObject != null) {
                     MiogramHaptic.select(v);
-                    int durSec = currentMessageObject.getDuration();
+                    int durSec = (int) Math.round(currentMessageObject.getDuration());
                     if (durSec > 0) {
                         float progress = (float) line.timeMs / (float) (durSec * 1000L);
                         progress = Math.max(0.0f, Math.min(1.0f, progress));

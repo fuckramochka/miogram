@@ -1387,7 +1387,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         playlist = MediaController.getInstance().getPlaylist();
         lyricsButton = menu.addItem(99, R.drawable.ic_lyrics);
         if (lyricsButton != null) {
-            lyricsButton.setContentDescription(LocaleController.getString(R.string.AccDescrMore));
+            lyricsButton.setContentDescription(app.miogram.bridge.MiogramLocale.get("Слова пісні", "Слова песни", "Lyrics"));
         }
         if (isMyList()) {
             addItem = menu.addItem(8, R.drawable.msg_add);
@@ -2226,7 +2226,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                 lyricsView.setSong(current);
             }
             if (lyricsButton != null) {
-                lyricsButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_player_progress), PorterDuff.Mode.SRC_IN));
+                lyricsButton.setIconColor(getThemedColor(Theme.key_player_buttonActive));
             }
             if (animated) {
                 lyricsView.animate().alpha(1.0f).setDuration(220).setListener(null).start();
@@ -2235,7 +2235,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
             }
         } else {
             if (lyricsButton != null) {
-                lyricsButton.setColorFilter(null);
+                lyricsButton.setIconColor(getThemedColor(Theme.key_player_actionBarTitle));
             }
             if (animated) {
                 lyricsView.animate().alpha(0.0f).setDuration(220).setListener(new AnimatorListenerAdapter() {
