@@ -108,6 +108,8 @@ public class MiogramLyricsView extends FrameLayout {
     public MiogramLyricsView(Context context, Theme.ResourcesProvider resourcesProvider) {
         super(context);
         this.resourcesProvider = resourcesProvider;
+        this.layoutManager = new LinearLayoutManager(context);
+        this.adapter = new LyricsAdapter();
 
         setBackgroundColor(0xEE0B1118); // Deep midnight backdrop
 
@@ -209,9 +211,6 @@ public class MiogramLyricsView extends FrameLayout {
         addView(headerLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
 
         // 2. RecyclerView with lyrics
-        this.layoutManager = new LinearLayoutManager(context);
-        this.adapter = new LyricsAdapter();
-
         recyclerView = new RecyclerView(context);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setClipToPadding(false);
