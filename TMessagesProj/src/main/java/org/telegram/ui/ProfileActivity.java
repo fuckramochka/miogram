@@ -3121,15 +3121,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 return false;
             }
 
-            @Override
-            protected void dispatchDraw(Canvas canvas) {
-                if (myProfile || (userId != 0 && userId == getUserConfig().getClientUserId()) || UserObject.isUserSelf(getMessagesController().getUser(userId))) {
-                    app.miogram.bridge.customui.MiogramUiEngine.drawProfileBackground(canvas, getWidth(), getHeight());
-                    app.miogram.bridge.customui.MiogramUiEngine.drawProfileBanner(canvas, getWidth(), extraHeight);
-                }
-                super.dispatchDraw(canvas);
-            }
-
             private boolean wasPortrait;
 
             @Override
@@ -3406,6 +3397,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
             @Override
             protected void dispatchDraw(Canvas canvas) {
+                if (myProfile || (userId != 0 && userId == getUserConfig().getClientUserId()) || UserObject.isUserSelf(getMessagesController().getUser(userId))) {
+                    app.miogram.bridge.customui.MiogramUiEngine.drawProfileBackground(canvas, getWidth(), getHeight());
+                    app.miogram.bridge.customui.MiogramUiEngine.drawProfileBanner(canvas, getWidth(), (int) extraHeight);
+                }
                 if (Build.VERSION.SDK_INT >= 31 && scrollableViewNoiseSuppressor != null) {
                     blur3_InvalidateBlur();
 

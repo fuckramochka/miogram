@@ -661,7 +661,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
         public void show() {
             bottomSheet = builder.create();
             bottomSheet.setDimBehindAlpha(60);
-            bottomSheet.setFixNavigationBar(true);
+            bottomSheet.fixNavigationBar();
             bottomSheet.show();
         }
 
@@ -816,13 +816,13 @@ public class MiogramCustomUiActivity extends BaseFragment {
             final int[] curRgb = new int[]{initialColor & 0x00FFFFFF};
             final int[] curAlpha = new int[]{Color.alpha(initialColor)};
 
-            ColorPicker picker = new ColorPicker(context, false, (color, done) -> {
+            ColorPicker picker = new ColorPicker(context, false, (color, num, done) -> {
                 curRgb[0] = color & 0x00FFFFFF;
                 int res = (curAlpha[0] << 24) | curRgb[0];
                 MiogramHaptic.tick(null);
                 if (sink != null) sink.accept(res);
             });
-            picker.setColor(initialColor | 0xFF000000);
+            picker.setColor(initialColor | 0xFF000000, 0);
             root.addView(picker, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 340));
 
             // Opacity Row (HeaderCell + SeekBarView)
@@ -867,7 +867,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
             builder.setCustomView(root);
             BottomSheet sheet = builder.create();
             sheet.setDimBehindAlpha(60);
-            sheet.setFixNavigationBar(true);
+            sheet.fixNavigationBar();
             sheet.show();
         }
     }
@@ -1369,6 +1369,10 @@ public class MiogramCustomUiActivity extends BaseFragment {
                 this.segment = segment;
                 this.defaultColor = defaultColor;
             }
+
+            ColorItem(int keyRes, String titleUa, String titleRu, String titleEn, int segment, int defaultColor) {
+                this(String.valueOf(keyRes), titleUa, titleRu, titleEn, segment, defaultColor);
+            }
         }
 
         private static final ColorItem[] ALL_ITEMS = new ColorItem[]{
@@ -1464,7 +1468,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
             builder.setCustomView(root);
             BottomSheet sheet = builder.create();
             sheet.setDimBehindAlpha(60);
-            sheet.setFixNavigationBar(true);
+            sheet.fixNavigationBar();
             sheet.show();
         }
 

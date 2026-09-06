@@ -9,6 +9,18 @@ import java.util.Locale;
  */
 public class MiogramLocale {
 
+    public static boolean isUkrainian() {
+        try {
+            Locale locale = LocaleController.getInstance().getCurrentLocale();
+            if (locale == null) {
+                locale = Locale.getDefault();
+            }
+            return locale.getLanguage().toLowerCase().startsWith("uk");
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
     public static String get(String uk, String ru, String en) {
         try {
             Locale locale = LocaleController.getInstance().getCurrentLocale();
