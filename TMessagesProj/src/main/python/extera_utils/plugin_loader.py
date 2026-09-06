@@ -1924,6 +1924,7 @@ def _from_java_setting(item, kind: str):
         return s.Custom(item=_java_get(item, "getItem"),
                         view=_java_get(item, "getView"),
                         factory=_java_get(item, "getFactory"),
+                        factory_args=_java_get(item, "getFactoryArgs"),
                         on_click=_java_get(item, "getOnClickCallback"),
                         on_long_click=long_click,
                         create_sub_fragment=_java_get(item, "getCreateSubFragmentCallback"),
@@ -2191,6 +2192,15 @@ def _build_custom_view(item, context):
     factory = getattr(item, "factory", None)
     if factory is None:
         return None
+    if getattr(factory, "getClass", None) is not None:
+        from java import jclass
+        custom_setting = jclass("app.exteraless.plugins.models.CustomSetting")
+        if isinstance(factory, custom_setting.Factory):
+            return custom_setting(factory, getattr(item, "factory_args", None),
+                                  getattr(item, "on_click", None),
+                                  getattr(item, "create_sub_fragment", None),
+                                  getattr(item, "on_long_click", None),
+                                  getattr(item, "link_alias", None))
     build = getattr(factory, "build_view", None)
     if callable(build):
         return build(context, False)

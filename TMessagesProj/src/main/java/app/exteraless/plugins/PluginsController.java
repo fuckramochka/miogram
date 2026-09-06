@@ -1282,6 +1282,12 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
         return value;
     }
 
+    public boolean dispatchSettingsCustomClick(String pluginId,
+                                                org.telegram.ui.Components.UItem item,
+                                                android.view.View view, boolean longClick) {
+        return PythonPluginsEngine.getInstance().dispatchSettingsCustomClick(pluginId, item, view, longClick);
+    }
+
     public Object getPluginSettingsCustomContent(String pluginId, String viewId,
                                                   android.content.Context context) {
         return PythonPluginsEngine.getInstance().getSettingsCustomContent(pluginId, viewId, context);

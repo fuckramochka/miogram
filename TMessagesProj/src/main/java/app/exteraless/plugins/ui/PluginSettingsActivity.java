@@ -731,7 +731,8 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
         JSONObject row = rowOf(item);
         String callbackId = row == null ? null : optNonEmpty(row, "long_callback_id");
         if (callbackId == null) {
-            return false;
+            return row != null && "custom".equals(row.optString("type"))
+                    && PluginsController.getInstance().dispatchSettingsCustomClick(pluginId, item, view, true);
         }
         PluginsController.getInstance().dispatchSettingClick(pluginId, callbackId, view);
         return true;
@@ -794,6 +795,8 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
                             pathTo(row), ownersTo(row)));
                 } else if (callbackId != null) {
                     controller.dispatchSettingClick(pluginId, callbackId, view);
+                } else {
+                    controller.dispatchSettingsCustomClick(pluginId, item, view, false);
                 }
                 break;
             }

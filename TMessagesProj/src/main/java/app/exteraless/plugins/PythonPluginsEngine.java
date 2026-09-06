@@ -1,6 +1,7 @@
 package app.exteraless.plugins;
 
 import android.content.Context;
+import android.view.View;
 
 import com.chaquo.python.PyException;
 import com.chaquo.python.PyObject;
@@ -8,6 +9,9 @@ import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 
 import org.telegram.messenger.FileLog;
+import org.telegram.ui.Components.UItem;
+
+import app.exteraless.plugins.models.CustomSetting;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -370,13 +374,53 @@ public class PythonPluginsEngine extends com.exteragram.messenger.plugins.Python
         watchdog.notePluginEnter(pluginId);
         try {
             PyObject result = loader.callAttr("get_custom_setting_view", pluginId, viewId, context);
-            return result == null ? null : result.toJava(Object.class);
+            Object content = result == null ? null : result.toJava(Object.class);
+            if (content instanceof CustomSetting) {
+                CustomSetting setting = (CustomSetting) content;
+                CustomSetting.Factory<?> factory = setting.getFactory();
+                if (factory == null) {
+                    return setting.getItem();
+                }
+                UItem.UItemFactory.setup(factory);
+                UItem item = factory.create(PluginsController.getInstance().getPlugin(pluginId),
+                        setting, setting.getFactoryArgs());
+                if (item != null) {
+                    item.settingItem = setting;
+                }
+                return item;
+            }
+            return content;
         } catch (Throwable t) {
             FileLog.e("PluginsEngine: getSettingsCustomContent failed for " + pluginId, t);
             return null;
         } finally {
             watchdog.notePluginExit(pluginId);
         }
+    }
+
+    public boolean dispatchSettingsCustomClick(String pluginId, UItem item, View view, boolean longClick) {
+        if (!started || item == null || !(item.settingItem instanceof CustomSetting)) {
+            return false;
+        }
+        CustomSetting.Factory<?> factory = ((CustomSetting) item.settingItem).getFactory();
+        Plugin plugin = PluginsController.getInstance().getPlugin(pluginId);
+        if (factory == null || plugin == null) {
+            return false;
+        }
+        PluginsWatchdog watchdog = PluginsController.getInstance().getWatchdog();
+        watchdog.notePluginEnter(pluginId);
+        try {
+            if (longClick) {
+                factory.onLongClick(plugin, item, view);
+            } else {
+                factory.onClick(plugin, item, view);
+            }
+        } catch (Throwable t) {
+            FileLog.e("PluginsEngine: custom setting click failed for " + pluginId, t);
+        } finally {
+            watchdog.notePluginExit(pluginId);
+        }
+        return true;
     }
 
     public void notifySettingChanged(String pluginId, String key, String jsonValue) {

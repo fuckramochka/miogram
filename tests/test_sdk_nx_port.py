@@ -468,3 +468,87 @@ def test_anonymous_custom_views_do_not_swap_after_insertion(sdk, loader, monkeyp
     after = json.loads(loader.get_settings_json('test_plugin'))[1:]
     assert [row['row_id'] for row in after] == [row['row_id'] for row in before]
     assert [record.custom_views[row['view_id']].view for row in before] == views
+
+
+def native_custom_model(monkeypatch):
+    class Factory:
+        def getClass(self):
+            return type(self)
+
+    class Setting:
+        def __init__(self, factory, args, on_click, subpage, on_long_click, alias):
+            self.factory = factory
+            self.args = args
+            self.alias = alias
+
+    Setting.Factory = Factory
+    monkeypatch.setitem(sys.modules, 'java', types.SimpleNamespace(jclass=lambda name: Setting))
+    return Setting
+
+
+def test_native_custom_factory_receives_its_original_payload(sdk, loader, monkeypatch):
+    model = native_custom_model(monkeypatch)
+    factory, payload = model.Factory(), object()
+    row = sdk.settings.Custom(factory=factory, factory_args=payload, link_alias='chat')
+    native = loader._build_custom_view(row, object())
+    assert isinstance(native, model)
+    assert native.factory is factory and native.args is payload and native.alias == 'chat'
+
+
+def test_native_custom_setting_conversion_keeps_factory_arguments(sdk, loader, monkeypatch):
+    model = native_custom_model(monkeypatch)
+    factory, payload = model.Factory(), object()
+    original = types.SimpleNamespace(getType=lambda: 'custom', getClass=lambda: object,
+                                     getFactory=lambda: factory, getFactoryArgs=lambda: payload)
+    converted = loader._from_java_setting(original, 'custom')
+    assert converted.factory_args is payload
+    assert loader._build_custom_view(converted, None).args is payload
+
+
+def test_python_custom_factory_still_builds_its_view(sdk, loader):
+    view, context = object(), object()
+    calls = []
+    factory = types.SimpleNamespace(build_view=lambda *args: (calls.append(args), view)[1])
+    assert loader._build_custom_view(sdk.settings.Custom(factory=factory), context) is view
+    assert calls == [(context, False)]
+
+
+def test_admin_tools_custom_user_cell_keeps_its_factory_payload(sdk, loader, monkeypatch):
+    import __future__
+    paths = sorted(Path(corpus.CORPUS_DIR).glob('admin_tools*.plugin'))
+    if not paths:
+        pytest.skip('admin_tools corpus file is unavailable')
+    tree = ast.parse(paths[0].read_text())
+    function = next(node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+                    and node.name == 'custom_user_cell')
+    model = native_custom_model(monkeypatch)
+    factory = model.Factory()
+    namespace = {
+        'Custom': sdk.settings.Custom,
+        'user_cell_factory_instance': factory,
+        'PyObjectWrapper': types.SimpleNamespace(new_instance=lambda: types.SimpleNamespace(java=types.SimpleNamespace())),
+        'UserCellData': lambda *args: args,
+    }
+    exec(compile(ast.Module(body=[function], type_ignores=[]), str(paths[0]), 'exec',
+                 flags=__future__.annotations.compiler_flag), namespace)
+    click, long_click = object(), object()
+    row = namespace['custom_user_cell'](-123, 'Admin chat', '13 members', click, long_click)
+    native = loader._build_custom_view(row, None)
+    assert native.factory is factory
+    assert native.args.hold_object == (-123, 'Admin chat', '13 members', click, long_click)
+
+
+def test_java_custom_factory_rows_keep_the_factory_for_click_dispatch():
+    source = Path(corpus.JAVA_ROOT, 'app/exteraless/plugins/PythonPluginsEngine.java').read_text()
+    assert 'factory.create(PluginsController.getInstance().getPlugin(pluginId),' in source
+    assert 'setting, setting.getFactoryArgs())' in source
+    assert 'item.settingItem = setting' in source
+    assert 'factory.onClick(plugin, item, view)' in source
+    assert 'factory.onLongClick(plugin, item, view)' in source
+    start = source.index('public boolean dispatchSettingsCustomClick(')
+    dispatch = source[start:source.index('public void notifySettingChanged(', start)]
+    assert 'watchdog.notePluginEnter(pluginId)' in dispatch
+    assert 'watchdog.notePluginExit(pluginId)' in dispatch
+    screen = Path(corpus.JAVA_ROOT, 'app/exteraless/plugins/ui/PluginSettingsActivity.java').read_text()
+    assert 'dispatchSettingsCustomClick(pluginId, item, view, true)' in screen
+    assert 'dispatchSettingsCustomClick(pluginId, item, view, false)' in screen
