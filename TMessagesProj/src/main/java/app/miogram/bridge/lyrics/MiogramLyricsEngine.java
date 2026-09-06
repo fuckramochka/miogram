@@ -540,8 +540,8 @@ public class MiogramLyricsEngine {
         if (normTarget.contains(normCandidate) || normCandidate.contains(normTarget)) return true;
 
         // Word overlap ratio check
-        String[] targetWords = normTarget.split("\s+");
-        String[] candWords = normCandidate.split("\s+");
+        String[] targetWords = normTarget.split("\\s+");
+        String[] candWords = normCandidate.split("\\s+");
         if (targetWords.length == 0 || candWords.length == 0) return false;
 
         int matchCount = 0;
@@ -561,10 +561,10 @@ public class MiogramLyricsEngine {
     private static String normalizeString(String s) {
         if (s == null) return "";
         return s.toLowerCase(Locale.ROOT)
-                .replaceAll("(?i)\(feat\..*?\)|\[feat\..*?\]|(?i)\bfeat\..*|\[.*?\]", "")
-                .replaceAll("(?i)\(official.*?\)|\(audio.*?\)|\(video.*?\)|\(lyrics.*?\)", "")
-                .replaceAll("[^a-zA-Z0-9а-яА-ЯёЁіІїЇєЄґҐ\s]", "")
-                .replaceAll("\s+", " ")
+                .replaceAll("(?i)\\\\(feat\\\\..*?\\\\)|\\\\[feat\\\\..*?\\\\]|(?i)\\\\bfeat\\\\..*|\\\\[.*?\\\\]", "")
+                .replaceAll("(?i)\\\\(official.*?\\\\)|\\\\(audio.*?\\\\)|\\\\(video.*?\\\\)|\\\\(lyrics.*?\\\\)", "")
+                .replaceAll("[^a-zA-Z0-9а-яА-ЯёЁіІїЇєЄґҐ\\\\s]", "")
+                .replaceAll("\\\\s+", " ")
                 .trim();
     }
 
@@ -589,8 +589,7 @@ public class MiogramLyricsEngine {
             StringBuilder batch = new StringBuilder();
             int count = Math.min(song.lines.size(), 40);
             for (int i = 0; i < count; i++) {
-                batch.append(song.lines.get(i).text).append("
-");
+                batch.append(song.lines.get(i).text).append("\n");
             }
 
             String url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=" +
@@ -615,7 +614,7 @@ public class MiogramLyricsEngine {
                             }
                         }
 
-                        String[] transLines = fullTranslated.toString().split("\r?\n");
+                        String[] transLines = fullTranslated.toString().split("\\r?\\n");
                         for (int i = 0; i < Math.min(song.lines.size(), transLines.length); i++) {
                             String tr = transLines[i].trim();
                             if (!tr.isEmpty() && !tr.equals(song.lines.get(i).text)) {
@@ -639,15 +638,15 @@ public class MiogramLyricsEngine {
 
     private String cleanTitle(String raw) {
         if (raw == null) return "";
-        return raw.replaceAll("(?i)\(feat\..*?\)|\[feat\..*?\]|(?i)\bfeat\..*|\[.*?\]", "")
-                  .replaceAll("(?i)\(official.*?\)", "")
-                  .replaceAll("(?i)\(audio.*?\)", "")
+        return raw.replaceAll("(?i)\\\\(feat\\\\..*?\\\\)|\\\\[feat\\\\..*?\\\\]|(?i)\\\\bfeat\\\\..*|\\\\[.*?\\\\]", "")
+                  .replaceAll("(?i)\\\\(official.*?\\\\)", "")
+                  .replaceAll("(?i)\\\\(audio.*?\\\\)", "")
                   .trim();
     }
 
     private String cleanArtist(String raw) {
         if (raw == null) return "";
-        return raw.replaceAll("(?i)\bfeat\..*", "")
+        return raw.replaceAll("(?i)\\\\bfeat\\\\..*", "")
                   .replaceAll("(?i),.*", "")
                   .trim();
     }
