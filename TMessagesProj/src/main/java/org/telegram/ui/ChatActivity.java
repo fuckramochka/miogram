@@ -13243,7 +13243,7 @@ public class ChatActivity extends BaseFragment implements
 
     private boolean forwardAsCopy(ArrayList<MessageObject> arrayList, long did, boolean notify,
                                   int scheduleDate, long payStars) {
-        if (!isPeerNoForwards() && !hasNoforwardsMessage(arrayList)) {
+        if (!hasNoforwardsMessage(arrayList)) {
             return false;
         }
         if (!canForwardAsCopy(arrayList)) {
@@ -13269,6 +13269,9 @@ public class ChatActivity extends BaseFragment implements
                 continue;
             }
             if (messageObject.messageOwner != null && messageObject.messageOwner.noforwards) {
+                return true;
+            }
+            if (messageObject.isAyuDeleted()) {
                 return true;
             }
             if (getMessagesController().isPeerNoForwards(messageObject.getDialogId())) {
