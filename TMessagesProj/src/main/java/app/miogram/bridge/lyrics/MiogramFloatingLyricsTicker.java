@@ -131,7 +131,7 @@ public class MiogramFloatingLyricsTicker implements NotificationCenter.Notificat
                     }
 
                     @Override
-                    public void onLyricsError(String error) {
+                    public void onError(String error) {
                     }
                 });
             }

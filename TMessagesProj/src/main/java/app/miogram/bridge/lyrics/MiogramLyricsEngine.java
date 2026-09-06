@@ -161,12 +161,7 @@ public class MiogramLyricsEngine {
                 }
 
                 if (preferredSource == SOURCE_AI) {
-                    MiogramLrcModel.LrcSong ai = performAiTranscription(messageObject, title, artist, durationSec);
-                    if (ai != null && !ai.isEmpty()) {
-                        completeAndSave(cacheKey, ai, callback);
-                    } else {
-                        postError(callback, "AI transcription failed");
-                    }
+                    transcribeAudioWithAi(messageObject, callback);
                     return;
                 }
 
