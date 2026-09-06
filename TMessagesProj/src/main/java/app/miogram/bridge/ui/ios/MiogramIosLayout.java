@@ -321,6 +321,7 @@ public class MiogramIosLayout {
     /** 1:1 Vector Contacts Icon */
     private static class IosContactsIconView extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF body = new RectF();
         private final boolean isSelected;
 
         public IosContactsIconView(Context context, boolean isSelected) {
@@ -337,7 +338,7 @@ public class MiogramIosLayout {
             paint.setStyle(isSelected ? Paint.Style.FILL : Paint.Style.STROKE);
             paint.setStrokeWidth(AndroidUtilities.dp(1.8f));
             canvas.drawCircle(cx, cy - AndroidUtilities.dp(4), AndroidUtilities.dp(4.5f), paint);
-            RectF body = new RectF(cx - AndroidUtilities.dp(7), cy + AndroidUtilities.dp(1), cx + AndroidUtilities.dp(7), cy + AndroidUtilities.dp(9));
+            body.set(cx - AndroidUtilities.dp(7), cy + AndroidUtilities.dp(1), cx + AndroidUtilities.dp(7), cy + AndroidUtilities.dp(9));
             canvas.drawArc(body, 180, 180, true, paint);
         }
     }
@@ -345,6 +346,7 @@ public class MiogramIosLayout {
     /** 1:1 Vector Calls Icon */
     private static class IosCallsIconView extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path path = new Path();
 
         public IosCallsIconView(Context context, boolean isSelected) {
             super(context);
@@ -359,16 +361,18 @@ public class MiogramIosLayout {
             super.onDraw(canvas);
             float cx = getWidth() / 2f;
             float cy = getHeight() / 2f;
-            Path p = new Path();
-            p.moveTo(cx - AndroidUtilities.dp(6), cy + AndroidUtilities.dp(5));
-            p.quadTo(cx - AndroidUtilities.dp(7), cy - AndroidUtilities.dp(2), cx + AndroidUtilities.dp(4), cy - AndroidUtilities.dp(6));
-            canvas.drawPath(p, paint);
+            path.reset();
+            path.moveTo(cx - AndroidUtilities.dp(6), cy + AndroidUtilities.dp(5));
+            path.quadTo(cx - AndroidUtilities.dp(7), cy - AndroidUtilities.dp(2), cx + AndroidUtilities.dp(4), cy - AndroidUtilities.dp(6));
+            canvas.drawPath(path, paint);
         }
     }
 
     /** 1:1 Vector Chats Bubble Icon */
     private static class IosChatsIconView extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF bubble = new RectF();
+        private final Path tail = new Path();
         private final boolean isSelected;
 
         public IosChatsIconView(Context context, boolean isSelected) {
@@ -384,10 +388,10 @@ public class MiogramIosLayout {
             float cy = getHeight() / 2f;
             paint.setStyle(isSelected ? Paint.Style.FILL : Paint.Style.STROKE);
             paint.setStrokeWidth(AndroidUtilities.dp(1.8f));
-            RectF r = new RectF(cx - AndroidUtilities.dp(8), cy - AndroidUtilities.dp(7), cx + AndroidUtilities.dp(8), cy + AndroidUtilities.dp(5));
-            canvas.drawRoundRect(r, AndroidUtilities.dp(5), AndroidUtilities.dp(5), paint);
+            bubble.set(cx - AndroidUtilities.dp(8), cy - AndroidUtilities.dp(7), cx + AndroidUtilities.dp(8), cy + AndroidUtilities.dp(5));
+            canvas.drawRoundRect(bubble, AndroidUtilities.dp(5), AndroidUtilities.dp(5), paint);
 
-            Path tail = new Path();
+            tail.reset();
             tail.moveTo(cx - AndroidUtilities.dp(4), cy + AndroidUtilities.dp(5));
             tail.lineTo(cx - AndroidUtilities.dp(7), cy + AndroidUtilities.dp(9));
             tail.lineTo(cx - AndroidUtilities.dp(1), cy + AndroidUtilities.dp(5));

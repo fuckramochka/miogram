@@ -13,8 +13,12 @@ import org.telegram.messenger.FileLog;
 import org.telegram.messenger.Utilities;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -36,6 +40,9 @@ public class MiogramAiService {
     private static final OkHttpClient client = new OkHttpClient();
     private static final ExecutorService executor = Executors.newCachedThreadPool();
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    private static final String AI_PREFS = "miogram_ai_prefs";
+    private static final String KEY_API_KEYS = "gemini_api_keys";
+    private static final AtomicInteger apiKeyCursor = new AtomicInteger();
 
     public static int getProvider() {
         try {
@@ -52,90 +59,107 @@ public class MiogramAiService {
     }
 
     public static boolean hasApiKey() {
-        return !TextUtils.isEmpty(getApiKey());
+        return !getApiKeys().isEmpty();
     }
 
-    public static String getApiKey() {
-        int provider = getProvider();
-        String key = "";
+    /** Returns every configured key while preserving legacy single-key settings. */
+    public static List<String> getApiKeys() {
+        LinkedHashSet<String> keys = new LinkedHashSet<>();
         try {
-            ConfigItem item = LlmConfig.getApiKeyConfigItem(provider);
-            if (item != null) {
-                key = item.String();
-                if (!TextUtils.isEmpty(key)) {
-                    key = key.split(",")[0].trim();
-                }
-            }
+            ConfigItem item = LlmConfig.getApiKeyConfigItem(PresetRegistry.GOOGLE_AI_STUDIO);
+            if (item != null) addApiKeys(keys, item.String());
         } catch (Throwable ignored) {}
 
-        if (TextUtils.isEmpty(key)) {
-            try {
-                Context ctx = ApplicationLoader.applicationContext;
-                if (ctx != null) {
-                    key = ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE).getString("gemini_api_key", "");
-                    if (TextUtils.isEmpty(key)) {
-                        key = ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE).getString("gemini_key", "");
-                    }
-                }
-            } catch (Throwable ignored) {}
-        }
-
-        if (TextUtils.isEmpty(key)) {
-            try {
-                key = NaConfig.INSTANCE.getTranscribeProviderGeminiApiKey().String();
-            } catch (Throwable ignored) {}
-        }
-        if (TextUtils.isEmpty(key)) {
-            try {
-                String llmKey = NaConfig.INSTANCE.getLlmProviderGeminiKey().String();
-                if (!TextUtils.isEmpty(llmKey)) {
-                    key = llmKey.split(",")[0].trim();
-                }
-            } catch (Throwable ignored) {}
-        }
-        return key != null ? key.trim() : "";
-    }
-
-    public static void setApiKey(String key) {
-        String trimmed = key != null ? key.trim() : "";
         try {
             Context ctx = ApplicationLoader.applicationContext;
             if (ctx != null) {
-                ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE).edit()
-                        .putString("gemini_api_key", trimmed)
-                        .putString("gemini_key", trimmed)
+                android.content.SharedPreferences prefs = ctx.getSharedPreferences(AI_PREFS, Context.MODE_PRIVATE);
+                addApiKeys(keys, prefs.getString(KEY_API_KEYS, ""));
+                addApiKeys(keys, prefs.getString("gemini_api_key", ""));
+                addApiKeys(keys, prefs.getString("gemini_key", ""));
+            }
+        } catch (Throwable ignored) {}
+
+        try {
+            addApiKeys(keys, NaConfig.INSTANCE.getTranscribeProviderGeminiApiKey().String());
+            addApiKeys(keys, NaConfig.INSTANCE.getLlmProviderGeminiKey().String());
+        } catch (Throwable ignored) {}
+        return new ArrayList<>(keys);
+    }
+
+    public static String getApiKey() {
+        List<String> keys = getApiKeys();
+        if (keys.isEmpty()) return "";
+        return keys.get(Math.floorMod(apiKeyCursor.getAndIncrement(), keys.size()));
+    }
+
+    public static void setApiKey(String key) {
+        ArrayList<String> keys = new ArrayList<>();
+        if (key != null) keys.add(key);
+        setApiKeys(keys);
+    }
+
+    /** Saves a normalized keyring and keeps legacy consumers on the primary key. */
+    public static void setApiKeys(List<String> rawKeys) {
+        ArrayList<String> keys = sanitizeApiKeys(rawKeys);
+        String serialized = TextUtils.join("\n", keys);
+        String primary = keys.isEmpty() ? "" : keys.get(0);
+        try {
+            Context ctx = ApplicationLoader.applicationContext;
+            if (ctx != null) {
+                ctx.getSharedPreferences(AI_PREFS, Context.MODE_PRIVATE).edit()
+                        .putString(KEY_API_KEYS, serialized)
+                        .putString("gemini_api_key", primary)
+                        .putString("gemini_key", primary)
                         .apply();
             }
         } catch (Throwable ignored) {}
 
         try {
-            int provider = getProvider();
-            ConfigItem item = LlmConfig.getApiKeyConfigItem(provider);
+            ConfigItem item = LlmConfig.getApiKeyConfigItem(PresetRegistry.GOOGLE_AI_STUDIO);
             if (item != null) {
-                item.setConfigString(trimmed);
+                item.setConfigString(TextUtils.join(",", keys));
             }
-            if (provider == PresetRegistry.GOOGLE_AI_STUDIO) {
-                NaConfig.INSTANCE.getTranscribeProviderGeminiApiKey().setConfigString(trimmed);
-                NaConfig.INSTANCE.getLlmProviderGeminiKey().setConfigString(trimmed);
-            }
+            NaConfig.INSTANCE.getTranscribeProviderGeminiApiKey().setConfigString(primary);
+            NaConfig.INSTANCE.getLlmProviderGeminiKey().setConfigString(primary);
         } catch (Throwable ignored) {}
+    }
+
+    public static List<String> parseApiKeys(String raw) {
+        ArrayList<String> input = new ArrayList<>();
+        if (raw != null) input.add(raw);
+        return sanitizeApiKeys(input);
+    }
+
+    private static void addApiKeys(LinkedHashSet<String> target, String raw) {
+        if (TextUtils.isEmpty(raw)) return;
+        for (String part : raw.split("[,\\n\\r]+")) {
+            String key = part.trim();
+            if (!key.isEmpty()) target.add(key);
+        }
+    }
+
+    private static ArrayList<String> sanitizeApiKeys(List<String> rawKeys) {
+        LinkedHashSet<String> keys = new LinkedHashSet<>();
+        if (rawKeys != null) {
+            for (String raw : rawKeys) addApiKeys(keys, raw);
+        }
+        return new ArrayList<>(keys);
     }
 
     public static String getModel() {
         try {
-            int provider = getProvider();
-            String model = LlmConfig.getEffectiveModelName(provider);
-            if (!TextUtils.isEmpty(model)) {
-                return model;
+            Context ctx = ApplicationLoader.applicationContext;
+            if (ctx != null) {
+                String model = ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE)
+                        .getString("gen_model", "");
+                if (!TextUtils.isEmpty(model)) return model;
             }
         } catch (Throwable ignored) {}
 
         try {
-            Context ctx = ApplicationLoader.applicationContext;
-            if (ctx != null) {
-                return ctx.getSharedPreferences("miogram_ai_prefs", Context.MODE_PRIVATE)
-                        .getString("gen_model", "gemini-3.5-flash-lite");
-            }
+            String model = LlmConfig.getEffectiveModelName(PresetRegistry.GOOGLE_AI_STUDIO);
+            if (!TextUtils.isEmpty(model)) return model;
         } catch (Throwable ignored) {}
         return "gemini-3.5-flash-lite";
     }
@@ -152,8 +176,7 @@ public class MiogramAiService {
         } catch (Throwable ignored) {}
 
         try {
-            int provider = getProvider();
-            LlmConfig.setSavedModelName(provider, trimmed);
+            LlmConfig.setSavedModelName(PresetRegistry.GOOGLE_AI_STUDIO, trimmed);
         } catch (Throwable ignored) {}
     }
 
@@ -203,8 +226,8 @@ public class MiogramAiService {
     }
 
     private static void generateContent(String prompt, String model, Utilities.Callback2<String, String> callback) {
-        String apiKey = getApiKey();
-        if (TextUtils.isEmpty(apiKey)) {
+        List<String> apiKeys = getApiKeys();
+        if (apiKeys.isEmpty()) {
             callback.run(null, "No API key configured");
             return;
         }
@@ -223,47 +246,62 @@ public class MiogramAiService {
                 root.add("contents", contents);
 
                 String json = gson.toJson(root);
-                String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey;
-
                 RequestBody body = RequestBody.create(json, JSON);
-                Request request = new Request.Builder()
-                        .url(url)
-                        .post(body)
-                        .build();
+                String lastError = "No usable API key";
+                int start = Math.floorMod(apiKeyCursor.getAndIncrement(), apiKeys.size());
+                for (int offset = 0; offset < apiKeys.size(); offset++) {
+                    String apiKey = apiKeys.get((start + offset) % apiKeys.size());
+                    Request request = new Request.Builder()
+                            .url("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent")
+                            .header("x-goog-api-key", apiKey)
+                            .post(body)
+                            .build();
 
-                try (Response response = client.newCall(request).execute()) {
-                    String respStr = response.body() != null ? response.body().string() : "";
-                    if (!response.isSuccessful()) {
-                        FileLog.e("MiogramAiService error: " + response.code() + " " + respStr);
-                        callback.run(null, "Error " + response.code() + ": " + respStr);
-                        return;
-                    }
+                    try (Response response = client.newCall(request).execute()) {
+                        String respStr = response.body() != null ? response.body().string() : "";
+                        if (!response.isSuccessful()) {
+                            lastError = "Error " + response.code() + ": " + truncateError(respStr);
+                            if (response.code() == 401 || response.code() == 403 || response.code() == 429) {
+                                continue;
+                            }
+                            FileLog.e("MiogramAiService error: " + lastError);
+                            callback.run(null, lastError);
+                            return;
+                        }
 
-                    JsonObject resJson = gson.fromJson(respStr, JsonObject.class);
-                    if (resJson != null && resJson.has("candidates")) {
-                        JsonArray candidates = resJson.getAsJsonArray("candidates");
-                        if (candidates.size() > 0) {
-                            JsonObject cand = candidates.get(0).getAsJsonObject();
-                            if (cand.has("content")) {
-                                JsonObject candContent = cand.getAsJsonObject("content");
-                                if (candContent.has("parts")) {
-                                    JsonArray candParts = candContent.getAsJsonArray("parts");
-                                    if (candParts.size() > 0) {
-                                        String result = candParts.get(0).getAsJsonObject().get("text").getAsString();
-                                        callback.run(result.trim(), null);
-                                        return;
+                        JsonObject resJson = gson.fromJson(respStr, JsonObject.class);
+                        if (resJson != null && resJson.has("candidates")) {
+                            JsonArray candidates = resJson.getAsJsonArray("candidates");
+                            if (candidates.size() > 0) {
+                                JsonObject cand = candidates.get(0).getAsJsonObject();
+                                if (cand.has("content")) {
+                                    JsonObject candContent = cand.getAsJsonObject("content");
+                                    if (candContent.has("parts")) {
+                                        JsonArray candParts = candContent.getAsJsonArray("parts");
+                                        if (candParts.size() > 0 && candParts.get(0).getAsJsonObject().has("text")) {
+                                            String result = candParts.get(0).getAsJsonObject().get("text").getAsString();
+                                            callback.run(result.trim(), null);
+                                            return;
+                                        }
                                     }
                                 }
                             }
                         }
+                        callback.run(null, "Empty response from Gemini");
+                        return;
                     }
-                    callback.run(null, "Empty response from Gemini");
                 }
+                callback.run(null, lastError);
             } catch (Exception e) {
                 FileLog.e(e);
                 callback.run(null, e.getMessage());
             }
         });
+    }
+
+    private static String truncateError(String error) {
+        if (error == null) return "";
+        return error.length() > 512 ? error.substring(0, 512) : error;
     }
 
     /**

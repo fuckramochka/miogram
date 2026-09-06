@@ -54,10 +54,17 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     private View coverView;
     private FrameLayout queueContainer;
     private View queueListView;
-    private boolean isQueueVisible = false;
+    private enum PlayerMode { LYRICS, COVER, QUEUE }
+
+    // A single source of truth prevents delayed fade callbacks from restoring an old page.
+    private PlayerMode playerMode = PlayerMode.LYRICS;
 
     // Bottom Controls Section
     private final LinearLayout bottomSection;
+    private final LinearLayout pageSwitcher;
+    private final TextView lyricsModeButton;
+    private final TextView coverModeButton;
+    private final TextView queueModeButton;
     private final LinearLayout seekbarContainer;
     private View seekBarView;
     private final FrameLayout timersRow;
@@ -84,7 +91,10 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         this.alert = alert;
         this.resourcesProvider = resourcesProvider;
 
-        setBackgroundColor(0xFF0C131D); // Deep midnight Telegram background
+        GradientDrawable background = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{0xFF101C2B, 0xFF0C131D, 0xFF080D14});
+        setBackground(background);
 
         // Central Content Area (Lyrics / Cover / Queue)
         contentContainer = new FrameLayout(context);
@@ -108,15 +118,48 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         // Queue Container (Full width/height inside contentContainer)
         queueContainer = new FrameLayout(context);
         queueContainer.setVisibility(View.GONE);
-        queueContainer.setBackgroundColor(0xFF0C131D);
+        GradientDrawable queueBackground = new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{0xF7132030, 0xFF0C131D});
+        queueContainer.setBackground(queueBackground);
         contentContainer.addView(queueContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
         // Bottom Controls Section
         bottomSection = new LinearLayout(context);
         bottomSection.setOrientation(LinearLayout.VERTICAL);
         bottomSection.setGravity(Gravity.BOTTOM);
-        bottomSection.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(10));
-        bottomSection.setBackgroundColor(0xF00C131D); // Subtle docked background
+        bottomSection.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(10));
+        GradientDrawable dockBackground = new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{0x00101C2B, 0xFA080D14});
+        bottomSection.setBackground(dockBackground);
+
+        // This control keeps every player scene discoverable instead of hiding lyrics behind one entry point.
+        pageSwitcher = new LinearLayout(context);
+        pageSwitcher.setOrientation(LinearLayout.HORIZONTAL);
+        pageSwitcher.setGravity(Gravity.CENTER);
+        pageSwitcher.setPadding(AndroidUtilities.dp(3), AndroidUtilities.dp(3), AndroidUtilities.dp(3), AndroidUtilities.dp(3));
+        pageSwitcher.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(18), 0x26FFFFFF));
+
+        lyricsModeButton = createModeButton(MiogramLocale.get("Текст", "Текст", "Lyrics"));
+        coverModeButton = createModeButton(MiogramLocale.get("Обкладинка", "Обложка", "Cover"));
+        queueModeButton = createModeButton(MiogramLocale.get("Черга", "Очередь", "Queue"));
+        lyricsModeButton.setOnClickListener(v -> {
+            MiogramHaptic.select(v);
+            showLyrics(true);
+        });
+        coverModeButton.setOnClickListener(v -> {
+            MiogramHaptic.select(v);
+            showCover(true);
+        });
+        queueModeButton.setOnClickListener(v -> {
+            MiogramHaptic.select(v);
+            showQueue(true, true);
+        });
+        pageSwitcher.addView(lyricsModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
+        pageSwitcher.addView(coverModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
+        pageSwitcher.addView(queueModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
+        bottomSection.addView(pageSwitcher, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 38, 0, 0, 0, 6));
 
         // 1. Seekbar & Timestamps
         seekbarContainer = new LinearLayout(context);
@@ -150,6 +193,18 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         bottomSection.addView(profileButtonContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
 
         addView(bottomSection, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
+        updateModeButtons();
+    }
+
+    private TextView createModeButton(String text) {
+        TextView button = new TextView(getContext());
+        button.setText(text);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        button.setTypeface(AndroidUtilities.bold());
+        button.setGravity(Gravity.CENTER);
+        button.setSingleLine(true);
+        button.setContentDescription(text);
+        return button;
     }
 
     public void setLyricsView(MiogramLyricsView view) {
@@ -164,6 +219,8 @@ public class MiogramModernPlayerLayout extends FrameLayout {
                 }
             });
             contentContainer.addView(view, 0, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+            view.setVisibility(playerMode == PlayerMode.LYRICS ? View.VISIBLE : View.GONE);
+            view.setAlpha(playerMode == PlayerMode.LYRICS ? 1f : 0f);
         }
     }
 
@@ -324,56 +381,89 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     }
 
     public void toggleQueue() {
-        showQueue(!isQueueVisible, true);
+        showQueue(!isQueueVisible(), true);
     }
 
     public boolean isQueueVisible() {
-        return isQueueVisible;
+        return playerMode == PlayerMode.QUEUE;
     }
 
     public void showQueue(boolean show, boolean animated) {
-        if (this.isQueueVisible == show) return;
-        this.isQueueVisible = show;
+        setPlayerMode(show ? PlayerMode.QUEUE : PlayerMode.LYRICS, animated);
+    }
+
+    public void showLyrics(boolean animated) {
+        setPlayerMode(PlayerMode.LYRICS, animated);
+    }
+
+    public void showCover(boolean animated) {
+        setPlayerMode(PlayerMode.COVER, animated);
+    }
+
+    private void setPlayerMode(PlayerMode mode, boolean animated) {
+        if (playerMode == mode) return;
+        PlayerMode previousMode = playerMode;
+        playerMode = mode;
+
+        View target = mode == PlayerMode.QUEUE ? queueContainer : mode == PlayerMode.COVER ? coverContainer : lyricsView;
+        View previous = previousMode == PlayerMode.QUEUE ? queueContainer : previousMode == PlayerMode.COVER ? coverContainer : lyricsView;
+        if (target == null) return;
 
         if (queueButton != null) {
-            int color = show ? getThemedColor(Theme.key_player_buttonActive) : getThemedColor(Theme.key_player_button);
+            int color = mode == PlayerMode.QUEUE ? getThemedColor(Theme.key_player_buttonActive) : getThemedColor(Theme.key_player_button);
             queueButton.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
         }
+        updateModeButtons();
 
-        if (animated) {
-            if (show) {
-                queueContainer.setAlpha(0f);
-                queueContainer.setVisibility(View.VISIBLE);
-                queueContainer.animate().alpha(1f).setDuration(200).start();
-                if (lyricsView != null) {
-                    lyricsView.animate().alpha(0f).setDuration(200).setListener(new AnimatorListenerAdapter() {
-                        @Override
-                        public void onAnimationEnd(Animator animation) {
-                            lyricsView.setVisibility(View.GONE);
-                        }
-                    }).start();
-                }
-            } else {
-                if (lyricsView != null) {
-                    lyricsView.setAlpha(0f);
-                    lyricsView.setVisibility(View.VISIBLE);
-                    lyricsView.animate().alpha(1f).setDuration(200).start();
-                }
-                queueContainer.animate().alpha(0f).setDuration(200).setListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        queueContainer.setVisibility(View.GONE);
-                    }
-                }).start();
-            }
-        } else {
-            queueContainer.setVisibility(show ? View.VISIBLE : View.GONE);
-            queueContainer.setAlpha(show ? 1f : 0f);
-            if (lyricsView != null) {
-                lyricsView.setVisibility(show ? View.GONE : View.VISIBLE);
-                lyricsView.setAlpha(show ? 0f : 1f);
-            }
+        cancelPageAnimation(target);
+        if (previous != null) cancelPageAnimation(previous);
+        target.setVisibility(View.VISIBLE);
+
+        if (!animated || previous == null || previous == target) {
+            setPageVisible(target, true);
+            if (previous != null && previous != target) setPageVisible(previous, false);
+            return;
         }
+
+        target.setAlpha(0f);
+        target.setScaleX(0.985f);
+        target.setScaleY(0.985f);
+        target.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(240).start();
+        final PlayerMode expectedMode = mode;
+        previous.animate().alpha(0f).scaleX(0.985f).scaleY(0.985f).setDuration(180).setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                if (playerMode == expectedMode) setPageVisible(previous, false);
+            }
+        }).start();
+    }
+
+    private void cancelPageAnimation(View page) {
+        page.animate().setListener(null);
+        page.animate().cancel();
+    }
+
+    private void setPageVisible(View page, boolean visible) {
+        page.setVisibility(visible ? View.VISIBLE : View.GONE);
+        page.setAlpha(visible ? 1f : 0f);
+        page.setScaleX(1f);
+        page.setScaleY(1f);
+    }
+
+    private void updateModeButtons() {
+        updateModeButton(lyricsModeButton, playerMode == PlayerMode.LYRICS);
+        updateModeButton(coverModeButton, playerMode == PlayerMode.COVER);
+        updateModeButton(queueModeButton, playerMode == PlayerMode.QUEUE);
+    }
+
+    private void updateModeButton(TextView button, boolean selected) {
+        if (button == null) return;
+        int accent = getThemedColor(Theme.key_featuredStickers_addButton);
+        if (accent == 0) accent = 0xFF3390EC;
+        button.setTextColor(selected ? 0xFFFFFFFF : 0xB3FFFFFF);
+        button.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(15), selected ? accent : 0x00000000));
+        button.setScaleX(selected ? 1f : 0.96f);
+        button.setScaleY(selected ? 1f : 0.96f);
     }
 
     public void setPlaying(boolean playing) {

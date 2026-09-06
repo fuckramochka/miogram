@@ -98,6 +98,7 @@ public class MiogramLyricsView extends FrameLayout {
     private int activePosition = -1;
     private boolean isUserScrolling = false;
     private long lastUserScrollTime = 0L;
+    private long lyricsRequestGeneration = 0L;
     private Runnable onCloseClickListener;
 
     public interface OnActiveLineChangeListener {
@@ -319,6 +320,11 @@ public class MiogramLyricsView extends FrameLayout {
 
     public void setSong(MessageObject messageObject) {
         if (messageObject == null) return;
+        if (isSameMessage(messageObject, currentMessageObject)) {
+            titleView.setText(messageObject.getMusicTitle());
+            artistView.setText(messageObject.getMusicAuthor());
+            return;
+        }
         this.currentMessageObject = messageObject;
 
         titleView.setText(messageObject.getMusicTitle());
@@ -327,10 +333,14 @@ public class MiogramLyricsView extends FrameLayout {
         loadLyrics(messageObject, currentSourceId);
     }
 
-    public void updateTime(long currentMs) {
-        if (currentSong == null || currentSong.lines.isEmpty()) return;
+    private boolean isSameMessage(MessageObject first, MessageObject second) {
+        return first == second || first != null && second != null
+                && first.getId() == second.getId() && first.getDialogId() == second.getDialogId();
+    }
 
+    public void updateTime(long currentMs) {
         waveformDotsView.setPlaying(!MediaController.getInstance().isMessagePaused());
+        if (currentSong == null || currentSong.lines.isEmpty()) return;
 
         if (isUserScrolling && SystemClock.elapsedRealtime() - lastUserScrollTime > 3500) {
             isUserScrolling = false;
@@ -388,6 +398,8 @@ public class MiogramLyricsView extends FrameLayout {
         if (hideToastRunnable != null) {
             removeCallbacks(hideToastRunnable);
         }
+        toastPillView.animate().setListener(null);
+        toastPillView.animate().cancel();
         toastPillView.setText(text);
         toastPillView.setVisibility(View.VISIBLE);
         toastPillView.animate().alpha(1.0f).setDuration(180).start();
@@ -424,12 +436,14 @@ public class MiogramLyricsView extends FrameLayout {
     }
 
     private void loadLyrics(MessageObject messageObject, int sourceId) {
+        final long requestGeneration = ++lyricsRequestGeneration;
         showLoading(true);
         activePosition = -1;
 
         MiogramLyricsEngine.getInstance().fetchLyrics(messageObject, sourceId, new MiogramLyricsEngine.LyricsCallback() {
             @Override
             public void onLyricsLoaded(MiogramLrcModel.LrcSong song) {
+                if (requestGeneration != lyricsRequestGeneration || !isSameMessage(messageObject, currentMessageObject)) return;
                 showLoading(false);
                 currentSong = song;
                 adapter.setLines(song.lines);
@@ -444,6 +458,7 @@ public class MiogramLyricsView extends FrameLayout {
 
             @Override
             public void onError(String message) {
+                if (requestGeneration != lyricsRequestGeneration || !isSameMessage(messageObject, currentMessageObject)) return;
                 showLoading(false);
                 currentSong = null;
                 adapter.setLines(new ArrayList<>());
@@ -463,6 +478,8 @@ public class MiogramLyricsView extends FrameLayout {
 
     public void triggerAiTranscription() {
         if (currentMessageObject == null) return;
+        final MessageObject requestedMessage = currentMessageObject;
+        final long requestGeneration = ++lyricsRequestGeneration;
         showLoading(true);
         emptyTitle.setText(MiogramLocale.get("ШІ розпізнає трек...", "ИИ распознает трек...", "AI is transcribing..."));
         emptySubtitle.setText(MiogramLocale.get("Синхронізація слів з ритмом музики", "Синхронизация слов с ритмом музыки", "Synchronizing lyrics with music rhythm"));
@@ -471,6 +488,7 @@ public class MiogramLyricsView extends FrameLayout {
         MiogramLyricsEngine.getInstance().transcribeAudioWithAi(currentMessageObject, new MiogramLyricsEngine.LyricsCallback() {
             @Override
             public void onLyricsLoaded(MiogramLrcModel.LrcSong song) {
+                if (requestGeneration != lyricsRequestGeneration || !isSameMessage(requestedMessage, currentMessageObject)) return;
                 showLoading(false);
                 currentSong = song;
                 adapter.setLines(song.lines);
@@ -486,6 +504,7 @@ public class MiogramLyricsView extends FrameLayout {
 
             @Override
             public void onError(String message) {
+                if (requestGeneration != lyricsRequestGeneration || !isSameMessage(requestedMessage, currentMessageObject)) return;
                 showLoading(false);
                 emptyContainer.setVisibility(View.VISIBLE);
                 emptyButtonsRow.setVisibility(View.VISIBLE);
@@ -506,6 +525,15 @@ public class MiogramLyricsView extends FrameLayout {
         } else {
             progressBar.setVisibility(View.GONE);
         }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        lyricsRequestGeneration++;
+        if (hideToastRunnable != null) removeCallbacks(hideToastRunnable);
+        toastPillView.animate().cancel();
+        waveformDotsView.setPlaying(false);
+        super.onDetachedFromWindow();
     }
 
     /* =========================================================================

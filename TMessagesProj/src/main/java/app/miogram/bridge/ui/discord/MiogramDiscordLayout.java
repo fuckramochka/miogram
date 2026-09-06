@@ -147,6 +147,7 @@ public class MiogramDiscordLayout {
 
         int currentAccount = UserConfig.selectedAccount;
         int selectedId = getSelectedRailId();
+        final RailItemView[] selectedRailItem = new RailItemView[1];
 
         // Unread map for badges (built once per rail construction).
         HashMap<Long, TLRPC.Dialog> dialogById = new HashMap<>();
@@ -165,9 +166,10 @@ public class MiogramDiscordLayout {
         RailItemView homeItem = new RailItemView(context, true);
         homeItem.setHome(dmUnread);
         homeItem.setSelectedVisual(selectedId == RAIL_HOME);
+        if (selectedId == RAIL_HOME) selectedRailItem[0] = homeItem;
         homeItem.setOnClickListener(v -> {
             setSelectedRailId(RAIL_HOME);
-            homeItem.animateSelection(true);
+            selectRailItem(selectedRailItem, homeItem);
             if (listener != null) listener.onServerSelected(RAIL_HOME);
         });
         root.addView(homeItem, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(68), 0, 8, 0, 2));
@@ -221,9 +223,10 @@ public class MiogramDiscordLayout {
                 }
                 item.setBadge(folderUnread);
                 item.setSelectedVisual(selectedId == filterId);
+                if (selectedId == filterId) selectedRailItem[0] = item;
                 item.setOnClickListener(v -> {
                     setSelectedRailId(filterId);
-                    item.animateSelection(true);
+                    selectRailItem(selectedRailItem, item);
                     if (listener != null) listener.onServerSelected(filterId);
                 });
                 serverList.addView(item, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(56)));
@@ -245,9 +248,10 @@ public class MiogramDiscordLayout {
                 item.setAvatar(currentAccount, chat);
                 item.setBadge(dialog.unread_count);
                 item.setSelectedVisual(selectedId == railId);
+                if (selectedId == railId) selectedRailItem[0] = item;
                 item.setOnClickListener(v -> {
                     setSelectedRailId(railId);
-                    item.animateSelection(true);
+                    selectRailItem(selectedRailItem, item);
                     if (listener != null) listener.onServerSelected(railId);
                 });
                 serverList.addView(item, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(56)));
@@ -302,6 +306,14 @@ public class MiogramDiscordLayout {
         root.addView(userBox, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         return root;
+    }
+
+    /** Keeps exactly one guild visually selected as the active folder changes. */
+    private static void selectRailItem(RailItemView[] selectedRailItem, RailItemView next) {
+        if (selectedRailItem[0] == next) return;
+        if (selectedRailItem[0] != null) selectedRailItem[0].animateSelection(false);
+        selectedRailItem[0] = next;
+        next.animateSelection(true);
     }
 
     // ------------------------------------------------------------------
@@ -672,6 +684,8 @@ public class MiogramDiscordLayout {
     private static class MicButton extends View {
         private boolean muted = false;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF capsule = new RectF();
+        private final RectF arc = new RectF();
 
         public MicButton(Context context) {
             super(context);
@@ -696,12 +710,12 @@ public class MiogramDiscordLayout {
 
             float micW = AndroidUtilities.dp(7);
             float micH = AndroidUtilities.dp(12);
-            RectF capsule = new RectF(cx - micW / 2f, cy - micH / 2f, cx + micW / 2f, cy - micH / 6f);
+            capsule.set(cx - micW / 2f, cy - micH / 2f, cx + micW / 2f, cy - micH / 6f);
             canvas.drawRoundRect(capsule, micW / 2f, micW / 2f, paint);
 
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(AndroidUtilities.dp(1.5f));
-            RectF arc = new RectF(cx - micW, cy - micH / 2f + AndroidUtilities.dp(1), cx + micW, cy + micH / 6f);
+            arc.set(cx - micW, cy - micH / 2f + AndroidUtilities.dp(1), cx + micW, cy + micH / 6f);
             canvas.drawArc(arc, 0, 180, false, paint);
             canvas.drawLine(cx, cy + micH / 6f, cx, cy + micH / 2f, paint);
 
@@ -716,6 +730,9 @@ public class MiogramDiscordLayout {
     private static class DeafenButton extends View {
         private boolean deafened = false;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF arc = new RectF();
+        private final RectF leftPad = new RectF();
+        private final RectF rightPad = new RectF();
 
         public DeafenButton(Context context) {
             super(context);
@@ -739,12 +756,14 @@ public class MiogramDiscordLayout {
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(AndroidUtilities.dp(1.8f));
 
-            RectF arc = new RectF(cx - AndroidUtilities.dp(8), cy - AndroidUtilities.dp(9), cx + AndroidUtilities.dp(8), cy + AndroidUtilities.dp(7));
+            arc.set(cx - AndroidUtilities.dp(8), cy - AndroidUtilities.dp(9), cx + AndroidUtilities.dp(8), cy + AndroidUtilities.dp(7));
             canvas.drawArc(arc, 180, 180, false, paint);
 
             paint.setStyle(Paint.Style.FILL);
-            canvas.drawRoundRect(new RectF(cx - AndroidUtilities.dp(9), cy - AndroidUtilities.dp(2), cx - AndroidUtilities.dp(5), cy + AndroidUtilities.dp(7)), AndroidUtilities.dp(2), AndroidUtilities.dp(2), paint);
-            canvas.drawRoundRect(new RectF(cx + AndroidUtilities.dp(5), cy - AndroidUtilities.dp(2), cx + AndroidUtilities.dp(9), cy + AndroidUtilities.dp(7)), AndroidUtilities.dp(2), AndroidUtilities.dp(2), paint);
+            leftPad.set(cx - AndroidUtilities.dp(9), cy - AndroidUtilities.dp(2), cx - AndroidUtilities.dp(5), cy + AndroidUtilities.dp(7));
+            rightPad.set(cx + AndroidUtilities.dp(5), cy - AndroidUtilities.dp(2), cx + AndroidUtilities.dp(9), cy + AndroidUtilities.dp(7));
+            canvas.drawRoundRect(leftPad, AndroidUtilities.dp(2), AndroidUtilities.dp(2), paint);
+            canvas.drawRoundRect(rightPad, AndroidUtilities.dp(2), AndroidUtilities.dp(2), paint);
 
             if (deafened) {
                 paint.setStrokeWidth(AndroidUtilities.dp(2));

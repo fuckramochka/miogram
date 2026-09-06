@@ -20,7 +20,12 @@ object MiogramAiRuntime {
         synchronized(this) {
             facade?.let { return it }
             stt = MiogramSttFactory.create(context.applicationContext)
-            return MiogramAiFacade(context.applicationContext, stt!!).also { facade = it }
+            return MiogramAiFacade(
+                context.applicationContext,
+                stt!!,
+                hostKeysSupplier = { MiogramAiService.getApiKeys() },
+                cloudModelSupplier = { MiogramAiService.getModel() },
+            ).also { facade = it }
         }
     }
 

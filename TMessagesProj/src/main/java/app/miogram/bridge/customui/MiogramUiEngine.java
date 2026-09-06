@@ -54,13 +54,17 @@ public class MiogramUiEngine {
     // Reusable objects for zero-allocation rendering
     private static final Paint bubbleGradPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private static final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint bubbleGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private static final PorterDuffXfermode SRC_ATOP = new PorterDuffXfermode(PorterDuff.Mode.SRC_ATOP);
     private static final Path shapePath = new Path();
     private static final Matrix fxMatrix = new Matrix();
 
     private static final RectF reusableRingRect = new RectF();
+    private static final RectF bubbleGlowRect = new RectF();
     private static final Paint roundPaint = new Paint();
     private static final Path roundResPath = new Path();
+    private static final Path thoughtTailPath = new Path();
+    private static final Paint profileBannerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     // Saved state for clean paint restoration
     private static int savedNameColor = 0;
@@ -87,17 +91,17 @@ public class MiogramUiEngine {
         Rect bounds = backgroundDrawable.getBounds();
         if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {
             try {
-                Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
                 int glowColor = MiogramCustomUiPrefs.getBubbleGlowColor();
-                glowPaint.setColor(glowColor);
-                glowPaint.setStyle(Paint.Style.STROKE);
-                glowPaint.setStrokeWidth(AndroidUtilities.dpf2(2f));
+                bubbleGlowPaint.setColor(glowColor);
+                bubbleGlowPaint.setStyle(Paint.Style.STROKE);
+                bubbleGlowPaint.setStrokeWidth(AndroidUtilities.dpf2(2f));
                 float r = Math.max(0.1f, AndroidUtilities.dp(MiogramCustomUiPrefs.getBubbleGlowRadius()));
-                glowPaint.setShadowLayer(r, 0, 0, glowColor);
-                RectF glowRect = new RectF(bounds);
+                bubbleGlowPaint.setShadowLayer(r, 0, 0, glowColor);
+                bubbleGlowRect.set(bounds);
                 int rad = MiogramCustomUiPrefs.getBubbleRadius();
                 float corner = AndroidUtilities.dpf2(rad > 0 ? rad : 16f);
-                canvas.drawRoundRect(glowRect, corner, corner, glowPaint);
+                canvas.drawRoundRect(bubbleGlowRect, corner, corner, bubbleGlowPaint);
+                bubbleGlowPaint.clearShadowLayer();
             } catch (Throwable ignored) {
             }
         }
@@ -445,12 +449,12 @@ public class MiogramUiEngine {
             canvas.drawRoundRect(thoughtRect, AndroidUtilities.dpf2(13f), AndroidUtilities.dpf2(13f), thoughtBgPaint);
 
             // Draw speech tail
-            Path tail = new Path();
-            tail.moveTo(cx - AndroidUtilities.dpf2(5f), bottom);
-            tail.lineTo(cx + AndroidUtilities.dpf2(5f), bottom);
-            tail.lineTo(cx, bottom + AndroidUtilities.dpf2(5f));
-            tail.close();
-            canvas.drawPath(tail, thoughtBgPaint);
+            thoughtTailPath.reset();
+            thoughtTailPath.moveTo(cx - AndroidUtilities.dpf2(5f), bottom);
+            thoughtTailPath.lineTo(cx + AndroidUtilities.dpf2(5f), bottom);
+            thoughtTailPath.lineTo(cx, bottom + AndroidUtilities.dpf2(5f));
+            thoughtTailPath.close();
+            canvas.drawPath(thoughtTailPath, thoughtBgPaint);
 
             float baseline = ((bubbleH / 2f) + top) - ((thoughtTextPaint.descent() + thoughtTextPaint.ascent()) / 2f);
             canvas.drawText(thought, left + padX, baseline, thoughtTextPaint);
@@ -470,9 +474,8 @@ public class MiogramUiEngine {
         int color = MiogramCustomUiPrefs.getBannerColor();
         int alpha = (int) (255 * (MiogramCustomUiPrefs.getBannerAlpha() / 100f));
         int finalColor = (color & 0x00FFFFFF) | (alpha << 24);
-        Paint paint = new Paint();
-        paint.setColor(finalColor);
-        canvas.drawRect(0, 0, width, height, paint);
+        profileBannerPaint.setColor(finalColor);
+        canvas.drawRect(0, 0, width, height, profileBannerPaint);
     }
 
     /* =========================================================================

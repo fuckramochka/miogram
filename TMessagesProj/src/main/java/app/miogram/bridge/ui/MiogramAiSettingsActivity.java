@@ -20,6 +20,7 @@ import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.EditTextBoldCursor;
 
 import app.miogram.bridge.MiogramLocale;
+import app.miogram.bridge.ai.MiogramAiService;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import xyz.nextalone.nagram.NaConfig;
@@ -27,7 +28,7 @@ import xyz.nextalone.nagram.NaConfig;
 /**
  * Unified Miogram AI Settings with dynamic multilingual localization:
  * - Direct connection for Voice-to-Text Transcription (Gemini 3.5 Flash Lite)
- * - BYOK API Key Vault (single key activates transcription, summarization, and chat assistant)
+ * - BYOK keyring with automatic rotation across multiple Gemini keys
  * - Privacy Protection (PII redaction)
  * - Model Selector (Gemini 3.5 Flash Lite, Gemini 3.5 Flash, Gemini 2.5 Flash)
  */
@@ -73,37 +74,36 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
     }
 
     private String savedKey() {
-        String k = prefs().getString("gemini_api_key", "");
-        if (k.isEmpty()) {
-            k = prefs().getString("gemini_key", "");
-        }
-        if (k.isEmpty()) {
-            k = NaConfig.INSTANCE.getTranscribeProviderGeminiApiKey().String();
-        }
-        return k;
+        java.util.List<String> keys = MiogramAiService.getApiKeys();
+        return keys.isEmpty() ? "" : keys.get(0);
+    }
+
+    private String savedKeysText() {
+        return android.text.TextUtils.join("\n", MiogramAiService.getApiKeys());
+    }
+
+    private String keySummary() {
+        int count = MiogramAiService.getApiKeys().size();
+        if (count == 0) return maskKey("");
+        if (count == 1) return maskKey(savedKey());
+        return MiogramLocale.get(count + " ключі", count + " ключей", count + " keys") + " · " + maskKey(savedKey());
     }
 
     private String savedModel() {
-        return prefs().getString("gen_model", "gemini-3.5-flash-lite");
+        return MiogramAiService.getModel();
     }
 
     private boolean piiMaskEnabled() {
         return prefs().getBoolean("pii_mask", true);
     }
 
-    private void saveKey(String key) {
-        String trimmed = key.trim();
-        prefs().edit()
-                .putString("gemini_api_key", trimmed)
-                .putString("gemini_key", trimmed)
-                .apply();
-        NaConfig.INSTANCE.getTranscribeProviderGeminiApiKey().setConfigString(trimmed);
-        NaConfig.INSTANCE.getLlmProviderGeminiKey().setConfigString(trimmed);
+    private void saveKeys(String raw) {
+        MiogramAiService.setApiKeys(MiogramAiService.parseApiKeys(raw));
         listAdapter.notifyItemChanged(keyRow);
     }
 
     private void saveModel(String model) {
-        prefs().edit().putString("gen_model", model).apply();
+        MiogramAiService.setModel(model);
         listAdapter.notifyItemChanged(modelRow);
     }
 
@@ -139,22 +139,25 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
         if (ctx == null) return;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
-        builder.setTitle("Google Gemini API Key");
+        builder.setTitle(MiogramLocale.get("Ключі Google Gemini", "Ключи Google Gemini", "Google Gemini API Keys"));
 
         EditTextBoldCursor input = new EditTextBoldCursor(ctx);
-        input.setText(savedKey());
-        input.setHint("AIzaSy…");
+        input.setText(savedKeysText());
+        input.setHint("AIzaSy…\nAIzaSy…");
+        input.setSingleLine(false);
+        input.setMinLines(3);
+        input.setMaxLines(6);
         input.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         input.setHintColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
         input.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(12), AndroidUtilities.dp(24), AndroidUtilities.dp(12));
 
         builder.setView(input);
         builder.setPositiveButton(LocaleController.getString(R.string.Save), (dialog, which) -> {
-            saveKey(input.getText().toString());
+            saveKeys(input.getText().toString());
         });
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         builder.setNeutralButton(MiogramLocale.get("Очистити", "Очистить", "Clear"), (dialog, which) -> {
-            saveKey("");
+            saveKeys("");
         });
         showDialog(builder.create());
     }
@@ -248,7 +251,7 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == keyRow) {
-                        cell.setTextAndValue(MiogramLocale.get("API Ключ Gemini", "API Ключ Gemini", "Gemini API Key"), maskKey(savedKey()), true);
+                        cell.setTextAndValue(MiogramLocale.get("API ключі Gemini", "API ключи Gemini", "Gemini API Keys"), keySummary(), true);
                     } else if (position == modelRow) {
                         cell.setTextAndValue(MiogramLocale.get("Модель ШІ", "Модель ИИ", "AI Model"), savedModel(), true);
                     } else if (position == voiceTranscribeInfoRow) {
@@ -274,9 +277,9 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == aiInfoRow) {
-                        cell.setText(MiogramLocale.get("Один ключ Gemini активує всі функції штучного інтелекту: миттєву розшифровку голосових, переклад та помічника.",
-                                "Один ключ Gemini активирует все функции искусственного интеллекта: мгновенную расшифровку голосовых, перевод и помощника.",
-                                "A single Gemini key powers multimodal voice-to-text, message summarization, and AI assistant."));
+                        cell.setText(MiogramLocale.get("Додайте один або кілька ключів Gemini, по одному в рядку. Miogram обирає ключі по черзі та переходить до наступного, коли ключ неавторизований або вичерпав квоту.",
+                                "Добавьте один или несколько ключей Gemini, по одному в строке. Miogram выбирает ключи по очереди и переходит к следующему, когда ключ не авторизован или исчерпал квоту.",
+                                "Add one or more Gemini keys, one per line. Miogram rotates keys and tries the next one when a key is unauthorized or out of quota."));
                     } else if (position == featuresInfoRow) {
                         cell.setText(MiogramLocale.get("Натисніть кнопку розшифровки на будь-якому голосовому повідомленні або кружечку в чаті для отримання тексту за 0.3 секунди.",
                                 "Нажмите кнопку расшифровки на любом голосовом сообщении или кружочке в чате для получения текста за 0.3 секунды.",

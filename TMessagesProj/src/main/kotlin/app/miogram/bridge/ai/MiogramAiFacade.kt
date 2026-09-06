@@ -17,8 +17,8 @@ import kotlinx.coroutines.withContext
  * Key sourcing precedence for cloud tasks:
  *  1. Miogram vault namespace `ai.gemini.key` (sealed under the REAL profile;
  *     unavailable in decoy sessions and while locked) — the private mode;
- *  2. host-provided key supplier (existing AI Studio key from the translator
- *     settings), so users who already configured one keep working.
+ *  2. host-provided keyring (existing AI Studio keys from the translator
+ *     settings), so users who already configured one or more keys keep working.
  *
  * All execution happens on Dispatchers.IO; nothing here may run on main.
  */
@@ -26,8 +26,10 @@ class MiogramAiFacade(
     private val context: Context,
     val sttEngine: LocalSttEngine,
     private val gemini: GeminiCloudClient = GeminiCloudClient(),
-    /** Supplied by the bridge wiring; nullable key from existing app settings. */
-    private val hostKeySupplier: () -> String? = { null },
+    /** Supplied by bridge wiring; existing keys from the host app settings. */
+    private val hostKeysSupplier: () -> List<String> = { emptyList() },
+    /** Uses the same selected Gemini model as the Java-facing Miogram AI UI. */
+    private val cloudModelSupplier: () -> String = { GeminiCloudClient.DEFAULT_MODEL },
 ) {
 
     @Volatile
@@ -45,7 +47,7 @@ class MiogramAiFacade(
         val online = connectivityOnline()
         return AiEnvironment(
             localModelReady = sttEngine.isDownloaded(),
-            cloudKeyConfigured = resolveCloudKey().isNotBlank(),
+            cloudKeyConfigured = resolveCloudKeys().isNotEmpty(),
             networkOnline = online,
             networkMetered = online && isMetered(),
         )
@@ -77,23 +79,29 @@ class MiogramAiFacade(
             }
 
             is RouteDecision.UseCloud -> {
-                val key = resolveCloudKey()
-                if (key.isBlank()) return@withContext Outcome.Unavailable("no cloud key")
-                when (val result = gemini.complete(
-                    GeminiCloudClient.Config(GeminiCloudClient.DEFAULT_MODEL, key),
-                    systemPrompt,
-                    input.toString(Charsets.UTF_8),
-                    maxOutputTokens,
-                )) {
-                    is GeminiCloudClient.Result.Success ->
-                        Outcome.CloudText(result.text, result.finishReason)
-                    is GeminiCloudClient.Result.ApiError ->
-                        Outcome.Failed("api ${result.code}: ${result.message.take(200)}")
-                    is GeminiCloudClient.Result.Blocked ->
-                        Outcome.Blocked(result.reason)
-                    is GeminiCloudClient.Result.TransportError ->
-                        Outcome.Failed("network: ${result.message.take(200)}")
+                val keys = resolveCloudKeys()
+                if (keys.isEmpty()) return@withContext Outcome.Unavailable("no cloud key")
+                val model = cloudModelSupplier().trim().ifEmpty { GeminiCloudClient.DEFAULT_MODEL }
+                var lastFailure: Outcome = Outcome.Unavailable("no cloud key")
+                for (key in keys) {
+                    when (val result = gemini.complete(
+                        GeminiCloudClient.Config(model, key),
+                        systemPrompt,
+                        input.toString(Charsets.UTF_8),
+                        maxOutputTokens,
+                    )) {
+                        is GeminiCloudClient.Result.Success ->
+                            return@withContext Outcome.CloudText(result.text, result.finishReason)
+                        is GeminiCloudClient.Result.ApiError -> {
+                            lastFailure = Outcome.Failed("api ${result.code}: ${result.message.take(200)}")
+                            if (result.code == 401 || result.code == 403 || result.code == 429) continue
+                            return@withContext lastFailure
+                        }
+                        is GeminiCloudClient.Result.Blocked -> return@withContext Outcome.Blocked(result.reason)
+                        is GeminiCloudClient.Result.TransportError -> return@withContext Outcome.Failed("network: ${result.message.take(200)}")
+                    }
                 }
+                lastFailure
             }
         }
     }
@@ -112,7 +120,7 @@ class MiogramAiFacade(
      * Vault-sealed key first (private mode, REAL session only), falling back
      * to the host supplier (existing translator settings key).
      */
-    private suspend fun resolveCloudKey(): String {
+    private suspend fun resolveCloudKeys(): List<String> {
         val vaultKey = try {
             MiogramLockFacade.aiKeyMaterial()?.use { material ->
                 val bytes = material.bytes()
@@ -121,8 +129,12 @@ class MiogramAiFacade(
         } catch (e: Exception) {
             null
         }
-        return if (!vaultKey.isNullOrBlank()) vaultKey
-        else hostKeySupplier()?.trim().orEmpty()
+        if (!vaultKey.isNullOrBlank()) return listOf(vaultKey)
+        return hostKeysSupplier().asSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .toList()
     }
 
     private fun connectivityOnline(): Boolean = try {
