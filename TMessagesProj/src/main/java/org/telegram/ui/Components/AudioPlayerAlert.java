@@ -2334,7 +2334,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         int activeColor = getThemedColor(Theme.key_player_buttonActive);
         int normalColor = getThemedColor(Theme.key_player_button);
         shuffleButton.setColorFilter(new PorterDuffColorFilter(on ? activeColor : normalColor, PorterDuff.Mode.SRC_IN));
-        shuffleButton.setContentDescription(LocaleController.getString(on ? R.string.AccDescrShuffleOff : R.string.AccDescrShuffleOn));
+        shuffleButton.setContentDescription(on ? app.miogram.bridge.MiogramLocale.get("Вимкнути перемішування", "Выключить перемешивание", "Shuffle Off") : app.miogram.bridge.MiogramLocale.get("Увімкнути перемішування", "Включить перемешивание", "Shuffle On"));
     }
 
     @Override
