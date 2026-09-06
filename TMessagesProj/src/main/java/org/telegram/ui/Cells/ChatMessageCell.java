@@ -26940,7 +26940,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     @Override
     public void didPressReactionFromLayout(TLRPC.ReactionCount reaction, boolean longpress, float x, float y) {
         if (delegate != null) {
-            app.miogram.bridge.customui.MiogramHaptic.select(this);
+            if (!longpress) {
+                app.miogram.bridge.customui.MiogramHaptic.select(this);
+            }
             delegate.didPressReaction(this, reaction, longpress, x, y);
         }
     }

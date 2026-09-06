@@ -2102,7 +2102,6 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         public void setAmplitude(double value) {
-            app.miogram.bridge.customui.MiogramUiEngine.processVoiceWaveHaptic(this, (float) (value / WaveDrawable.MAX_AMPLITUDE));
             bigWaveDrawable.setValue((float) (Math.min(WaveDrawable.MAX_AMPLITUDE, value) / WaveDrawable.MAX_AMPLITUDE), true);
             tinyWaveDrawable.setValue((float) (Math.min(WaveDrawable.MAX_AMPLITUDE, value) / WaveDrawable.MAX_AMPLITUDE), false);
 
