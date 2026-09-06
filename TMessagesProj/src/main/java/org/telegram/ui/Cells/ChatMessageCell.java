@@ -20705,8 +20705,6 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     }
 
     public void drawBackgroundInternal(Canvas canvas, boolean fromParent) {
-        boolean isOut = currentMessageObject != null && currentMessageObject.isOutOwner();
-        app.miogram.bridge.customui.MiogramUiEngine.beforeDrawBubble(canvas, isOut);
         drawBackgroundInternal(canvas, fromParent, false);
         app.miogram.bridge.customui.MiogramUiEngine.afterDrawBubble(canvas, currentBackgroundDrawable);
     }

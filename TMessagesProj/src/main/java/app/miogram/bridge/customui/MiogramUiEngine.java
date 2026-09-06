@@ -62,8 +62,6 @@ public class MiogramUiEngine {
     private static final Paint roundPaint = new Paint();
     private static final Path roundResPath = new Path();
 
-    private static int bubbleSaveCount = -1;
-
     // Saved state for clean paint restoration
     private static int savedNameColor = 0;
     private static Shader savedNameShader = null;
@@ -79,51 +77,16 @@ public class MiogramUiEngine {
      * ========================================================================= */
 
     public static void beforeDrawBubble(Canvas canvas, boolean isOut) {
-        bubbleSaveCount = -1;
-        if (!isOut || !MiogramCustomUiPrefs.isBubbleColorEnabled() || canvas == null) {
-            return;
-        }
-        try {
-            bubbleSaveCount = canvas.saveLayer(null, null);
-        } catch (Throwable ignored) {
-            bubbleSaveCount = -1;
-        }
+        // No-op: Native theme color pipeline handles bubble rendering safely with 0 layers
     }
 
     public static void afterDrawBubble(Canvas canvas, Drawable backgroundDrawable) {
-        if (bubbleSaveCount < 0 || canvas == null) {
-            bubbleSaveCount = -1;
+        if (!MiogramCustomUiPrefs.isBubbleColorEnabled() || !MiogramCustomUiPrefs.isBubbleGlowEnabled() || canvas == null || backgroundDrawable == null) {
             return;
         }
-        if (backgroundDrawable != null) {
-            Rect bounds = backgroundDrawable.getBounds();
-            if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {
-                boolean isGrad = MiogramCustomUiPrefs.isBubbleGradientEnabled();
-                int c1 = MiogramCustomUiPrefs.getBubbleColor();
-                int c2 = MiogramCustomUiPrefs.getBubbleColor2();
-                int angle = MiogramCustomUiPrefs.getBubbleGradAngle();
-
-                if (isGrad) {
-                    bubbleGradPaint.setShader(createGradient(bounds, c1, c2, angle));
-                } else {
-                    bubbleGradPaint.setShader(null);
-                    bubbleGradPaint.setColor(c1);
-                }
-                bubbleGradPaint.setXfermode(SRC_ATOP);
-                canvas.drawRect(bounds, bubbleGradPaint);
-                bubbleGradPaint.setXfermode(null);
-                bubbleGradPaint.setShader(null);
-            }
-        }
-        try {
-            canvas.restoreToCount(bubbleSaveCount);
-        } catch (Throwable ignored) {
-        }
-        bubbleSaveCount = -1;
-
-        if (MiogramCustomUiPrefs.isBubbleGlowEnabled() && canvas != null && backgroundDrawable != null) {
-            Rect bounds = backgroundDrawable.getBounds();
-            if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {
+        Rect bounds = backgroundDrawable.getBounds();
+        if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {
+            try {
                 Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
                 int glowColor = MiogramCustomUiPrefs.getBubbleGlowColor();
                 glowPaint.setColor(glowColor);
@@ -135,6 +98,7 @@ public class MiogramUiEngine {
                 int rad = MiogramCustomUiPrefs.getBubbleRadius();
                 float corner = AndroidUtilities.dpf2(rad > 0 ? rad : 16f);
                 canvas.drawRoundRect(glowRect, corner, corner, glowPaint);
+            } catch (Throwable ignored) {
             }
         }
     }

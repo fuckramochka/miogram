@@ -949,6 +949,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
                 MiogramCustomUiPrefs.setBubbleColorEnabled(val != 0);
                 bubbleVis(sheet);
                 preview.invalidate();
+                refreshThemeAfterBubbleChange();
             });
 
             sheet.group("bubble_opts");
@@ -957,17 +958,20 @@ public class MiogramCustomUiActivity extends BaseFragment {
                 sheet.setGroupVisible("bubble_g2", val != 0);
                 sheet.setGroupVisible("bubble_gangle", val != 0);
                 preview.invalidate();
+                refreshThemeAfterBubbleChange();
             });
 
             sheet.color(MiogramLocale.get("Основний колір", "Основной цвет", "Primary color"), MiogramCustomUiPrefs.getBubbleColor(), true, color -> {
                 MiogramCustomUiPrefs.setBubbleColor(color);
                 preview.invalidate();
+                refreshThemeAfterBubbleChange();
             });
 
             sheet.group("bubble_g2");
             sheet.color(MiogramLocale.get("Другий колір градієнта", "Второй цвет градиента", "Secondary gradient color"), MiogramCustomUiPrefs.getBubbleColor2(), true, color -> {
                 MiogramCustomUiPrefs.setBubbleColor2(color);
                 preview.invalidate();
+                refreshThemeAfterBubbleChange();
             });
             sheet.endGroup();
 
@@ -975,33 +979,43 @@ public class MiogramCustomUiActivity extends BaseFragment {
             sheet.slider(MiogramLocale.get("Кут нахилу", "Угол наклона", "Angle"), MiogramCustomUiPrefs.getBubbleGradAngle(), 0, 360, "°", val -> {
                 MiogramCustomUiPrefs.setBubbleGradAngle(val);
                 preview.invalidate();
+                refreshThemeAfterBubbleChange();
             });
             sheet.endGroup();
 
             sheet.color(MiogramLocale.get("Колір тексту", "Цвет текста", "Text color"), MiogramCustomUiPrefs.getBubbleTextColor(), true, color -> {
                 MiogramCustomUiPrefs.setBubbleTextColor(color);
                 preview.invalidate();
+                refreshThemeAfterBubbleChange();
             });
 
             sheet.slider(MiogramLocale.get("Скруглення кутів", "Скругление углов", "Corner radius"), MiogramCustomUiPrefs.getBubbleRadius(), 0, 30, "dp", val -> {
                 MiogramCustomUiPrefs.setBubbleRadius(val);
+                try {
+                    org.telegram.messenger.SharedConfig.bubbleRadius = val;
+                    org.telegram.messenger.MessagesController.getGlobalMainSettings().edit().putInt("bubbleRadius", val).commit();
+                } catch (Throwable ignored) {}
                 preview.invalidate();
+                refreshThemeAfterBubbleChange();
             });
 
             sheet.check(MiogramLocale.get("Світіння пухирця", "Свечение пузырька", "Bubble glow"), MiogramCustomUiPrefs.isBubbleGlowEnabled(), true, val -> {
                 MiogramCustomUiPrefs.setBubbleGlowEnabled(val != 0);
                 sheet.setGroupVisible("bubble_glow_opts", val != 0);
                 preview.invalidate();
+                refreshThemeAfterBubbleChange();
             });
 
             sheet.group("bubble_glow_opts");
             sheet.color(MiogramLocale.get("Колір світіння", "Цвет свечения", "Glow color"), MiogramCustomUiPrefs.getBubbleGlowColor(), true, color -> {
                 MiogramCustomUiPrefs.setBubbleGlowColor(color);
                 preview.invalidate();
+                refreshThemeAfterBubbleChange();
             });
             sheet.slider(MiogramLocale.get("Радіус світіння", "Радиус свечения", "Glow radius"), MiogramCustomUiPrefs.getBubbleGlowRadius(), 0, 40, "dp", val -> {
                 MiogramCustomUiPrefs.setBubbleGlowRadius(val);
                 preview.invalidate();
+                refreshThemeAfterBubbleChange();
             });
             sheet.endGroup();
 
@@ -1009,6 +1023,20 @@ public class MiogramCustomUiActivity extends BaseFragment {
 
             bubbleVis(sheet);
             sheet.show();
+        }
+
+        private static void refreshThemeAfterBubbleChange() {
+            try {
+                Theme.chat_msgInDrawable = null;
+                Theme.chat_msgOutDrawable = null;
+                Theme.chat_msgInMediaDrawable = null;
+                Theme.chat_msgOutMediaDrawable = null;
+                Theme.chat_msgInSelectedDrawable = null;
+                Theme.chat_msgOutSelectedDrawable = null;
+                Theme.chat_msgInMediaSelectedDrawable = null;
+                Theme.chat_msgOutMediaSelectedDrawable = null;
+                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.didSetNewTheme);
+            } catch (Throwable ignored) {}
         }
 
         public static class BubblePreview extends View {

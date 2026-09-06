@@ -9165,6 +9165,12 @@ public class Theme {
         if (key_divider == key && !resolvingDividerColor && app.exteraless.appearance.AppearanceConfig.dividerHidden()) {
             return 0x00ffffff;
         }
+        if (app.miogram.bridge.customui.MiogramCustomUiPrefs.isBubbleColorEnabled()) {
+            int customColor = getCustomBubbleColor(key);
+            if (customColor != -1) {
+                return customColor;
+            }
+        }
         if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
             int iosColor = getIosPresetColor(key);
             if (iosColor != 0) {
@@ -9175,6 +9181,30 @@ public class Theme {
             return provider.getColor(key);
         }
         return getColor(key);
+    }
+
+    public static int getCustomBubbleColor(int key) {
+        if (!app.miogram.bridge.customui.MiogramCustomUiPrefs.isBubbleColorEnabled()) {
+            return -1;
+        }
+        if (key == Theme.key_chat_outBubble) {
+            return app.miogram.bridge.customui.MiogramCustomUiPrefs.getBubbleColor();
+        }
+        if (key == Theme.key_chat_outBubbleGradient1) {
+            return app.miogram.bridge.customui.MiogramCustomUiPrefs.isBubbleGradientEnabled()
+                ? app.miogram.bridge.customui.MiogramCustomUiPrefs.getBubbleColor2()
+                : 0x00000000;
+        }
+        if (key == Theme.key_chat_outBubbleGradient2 || key == Theme.key_chat_outBubbleGradient3) {
+            return 0x00000000;
+        }
+        if (key == Theme.key_chat_messageTextOut) {
+            return app.miogram.bridge.customui.MiogramCustomUiPrefs.getBubbleTextColor();
+        }
+        if (key == Theme.key_chat_outBubbleSelected) {
+            return ColorUtils.blendARGB(app.miogram.bridge.customui.MiogramCustomUiPrefs.getBubbleColor(), 0xFF000000, 0.15f);
+        }
+        return -1;
     }
 
     public static int getIosPresetColor(int key) {
@@ -9234,6 +9264,12 @@ public class Theme {
             int index = animatingColors.indexOfKey(key);
             if (index >= 0) {
                 return animatingColors.valueAt(index);
+            }
+        }
+        if (app.miogram.bridge.customui.MiogramCustomUiPrefs.isBubbleColorEnabled()) {
+            int customColor = getCustomBubbleColor(key);
+            if (customColor != -1) {
+                return customColor;
             }
         }
         if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {

@@ -77,6 +77,8 @@ public class MiogramLyricsView extends FrameLayout {
     public MiogramLyricsView(Context context, Theme.ResourcesProvider resourcesProvider) {
         super(context);
         this.resourcesProvider = resourcesProvider;
+        this.adapter = new LyricsAdapter();
+        this.layoutManager = new LinearLayoutManager(context);
 
         setBackgroundColor(0xEE0E1621); // Modern deep blurred midnight backdrop
 
@@ -150,11 +152,9 @@ public class MiogramLyricsView extends FrameLayout {
 
         // RecyclerView with lyrics
         recyclerView = new RecyclerView(context);
-        layoutManager = new LinearLayoutManager(context);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setClipToPadding(false);
         recyclerView.setPadding(0, AndroidUtilities.dp(64), 0, AndroidUtilities.dp(180));
-        adapter = new LyricsAdapter();
         recyclerView.setAdapter(adapter);
 
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
