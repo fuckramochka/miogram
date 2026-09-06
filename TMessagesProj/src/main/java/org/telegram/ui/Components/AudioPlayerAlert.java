@@ -1303,6 +1303,9 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
 
             @Override
             protected boolean allowSelectChildAtPosition(float x, float y) {
+                if (modernPlayerLayout != null) {
+                    return true;
+                }
                 return y < playerLayout.getY() - listView.getTop();
             }
 

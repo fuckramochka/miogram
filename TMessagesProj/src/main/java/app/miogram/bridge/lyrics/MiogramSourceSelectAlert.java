@@ -105,9 +105,15 @@ public class MiogramSourceSelectAlert extends BottomSheet {
         LinearLayout itemsLayout = new LinearLayout(context);
         itemsLayout.setOrientation(LinearLayout.VERTICAL);
 
-        int accentColor = getThemedColor(Theme.key_dialogRadioBackgroundChecked);
+        int accentColor = getThemedColor(Theme.key_player_progress);
         if (accentColor == 0) {
-            accentColor = getThemedColor(Theme.key_featuredStickers_addButton);
+            accentColor = getThemedColor(Theme.key_dialogRadioBackgroundChecked);
+        }
+        if (accentColor == 0) {
+            accentColor = getThemedColor(Theme.key_chats_actionBackground);
+        }
+        if (accentColor == 0) {
+            accentColor = 0xFF3390EC;
         }
 
         for (int i = 0; i < sources.length; i++) {

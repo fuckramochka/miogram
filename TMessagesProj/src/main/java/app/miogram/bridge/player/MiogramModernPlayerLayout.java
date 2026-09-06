@@ -36,12 +36,16 @@ import app.miogram.bridge.lyrics.MiogramLyricsView;
 import app.miogram.bridge.ui.MiogramVisualsPrefs;
 
 /**
- * Unified Telegram-native Audio Player Layout.
- * Supports two distinct, cohesive states:
- * 1. Compact Sheet (~440dp): drag handle, rounded cover art, marquee title/artist,
- *    active lyric pill, seekbar, playback controls, and expand button.
- * 2. Full-Screen: full-height synced lyrics (MiogramLyricsView) with karaoke,
- *    waveform, tabs for [ Lyrics | Cover | Queue ], and collapse button.
+ * Modern High-Fidelity Telegram Audio Player Layout.
+ * 1. Compact Sheet (~440dp):
+ *    - Rounded top corners (24dp), drag handle
+ *    - 115x115dp album art, marquee title/artist, active lyric pill
+ *    - Seekbar & playback controls
+ * 2. Full-Screen:
+ *    - Status-bar inset padding (prevents overlap)
+ *    - Clean mode tabs: [ Lyrics | Cover | Queue ]
+ *    - Full-height lyrics view with karaoke, translation & source options
+ *    - Synchronized with active Telegram theme accent (red, blue, purple, etc.)
  */
 public class MiogramModernPlayerLayout extends FrameLayout {
 
@@ -115,6 +119,10 @@ public class MiogramModernPlayerLayout extends FrameLayout {
 
         updateBackgroundShape(0f);
 
+        int accentColor = getThemeAccentColor();
+        int buttonColor = getThemedColor(Theme.key_player_button);
+        if (buttonColor == 0) buttonColor = 0xFF888888;
+
         // --- 1. Top Section (Drag Handle + Header Controls) ---
         topSection = new LinearLayout(context);
         topSection.setOrientation(LinearLayout.VERTICAL);
@@ -128,11 +136,6 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         topControlsRow = new LinearLayout(context);
         topControlsRow.setOrientation(LinearLayout.HORIZONTAL);
         topControlsRow.setGravity(Gravity.CENTER_VERTICAL);
-
-        int buttonColor = getThemedColor(Theme.key_player_button);
-        if (buttonColor == 0) buttonColor = 0xFF888888;
-        int accentColor = getThemedColor(Theme.key_featuredStickers_addButton);
-        if (accentColor == 0) accentColor = 0xFF3390EC;
 
         // Left button: Collapse / Close down chevron
         collapseBtn = new ImageView(context);
@@ -156,7 +159,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         pageSwitcher.setOrientation(LinearLayout.HORIZONTAL);
         pageSwitcher.setGravity(Gravity.CENTER);
         pageSwitcher.setPadding(AndroidUtilities.dp(3), AndroidUtilities.dp(3), AndroidUtilities.dp(3), AndroidUtilities.dp(3));
-        pageSwitcher.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(18), ColorUtils.setAlphaComponent(accentColor, 25)));
+        pageSwitcher.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(18), ColorUtils.setAlphaComponent(accentColor, 32)));
         pageSwitcher.setVisibility(View.GONE);
 
         lyricsModeButton = createModeButton(MiogramLocale.get("Текст", "Текст", "Lyrics"));
@@ -203,7 +206,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
 
         // --- 2. Center Container ---
         centerContainer = new FrameLayout(context);
-        addView(centerContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, 68, 0, 142));
+        addView(centerContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, 56, 0, 142));
 
         // 2A: Compact Info Container
         compactInfoContainer = new LinearLayout(context);
@@ -290,7 +293,8 @@ public class MiogramModernPlayerLayout extends FrameLayout {
 
         queueContainer = new FrameLayout(context);
         queueContainer.setVisibility(View.GONE);
-        int surface = getThemedColor(Theme.key_windowBackgroundWhite);
+        int surface = getThemedColor(Theme.key_player_background);
+        if (surface == 0) surface = getThemedColor(Theme.key_windowBackgroundWhite);
         queueContainer.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{ColorUtils.blendARGB(surface, accentColor, 0.08f), surface}));
         fullContentContainer.addView(queueContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
@@ -396,6 +400,10 @@ public class MiogramModernPlayerLayout extends FrameLayout {
                 ((ViewGroup) listView.getParent()).removeView(listView);
             }
             queueContainer.removeAllViews();
+            listView.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(16));
+            if (listView instanceof ViewGroup) {
+                ((ViewGroup) listView).setClipToPadding(false);
+            }
             queueContainer.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         }
     }
@@ -502,7 +510,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             // Slot 4: Queue / Mode Toggle Button
             FrameLayout slot4 = new FrameLayout(getContext());
             queueButton = new ImageView(getContext());
-            queueButton.setImageResource(R.drawable.msg_list);
+            queueButton.setImageResource(R.drawable.player_new_order);
             queueButton.setScaleType(ImageView.ScaleType.CENTER);
             int buttonColor = getThemedColor(Theme.key_player_button);
             if (buttonColor == 0) buttonColor = 0xFF888888;
@@ -551,6 +559,19 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         this.isFullScreen = this.fullScreenProgress >= 0.5f;
         updateBackgroundShape(this.fullScreenProgress);
 
+        int statusBar = AndroidUtilities.statusBarHeight;
+        int topPadding = AndroidUtilities.dp(8) + (int) (statusBar * this.fullScreenProgress);
+        topSection.setPadding(AndroidUtilities.dp(16), topPadding, AndroidUtilities.dp(16), AndroidUtilities.dp(4));
+
+        int centerTopMargin = AndroidUtilities.dp(56) + (int) (statusBar * this.fullScreenProgress);
+        if (centerContainer.getLayoutParams() instanceof FrameLayout.LayoutParams) {
+            FrameLayout.LayoutParams clp = (FrameLayout.LayoutParams) centerContainer.getLayoutParams();
+            if (clp.topMargin != centerTopMargin) {
+                clp.topMargin = centerTopMargin;
+                centerContainer.setLayoutParams(clp);
+            }
+        }
+
         dragHandle.setAlpha(Math.max(0f, 1.0f - this.fullScreenProgress * 2f));
         dragHandle.setVisibility(this.fullScreenProgress >= 0.9f ? View.GONE : View.VISIBLE);
 
@@ -581,6 +602,18 @@ public class MiogramModernPlayerLayout extends FrameLayout {
 
     private void applyFullScreenVisualState(boolean animated) {
         updateBackgroundShape(fullScreenProgress);
+
+        int statusBar = AndroidUtilities.statusBarHeight;
+        int topPadding = isFullScreen ? (statusBar + AndroidUtilities.dp(6)) : AndroidUtilities.dp(8);
+        topSection.setPadding(AndroidUtilities.dp(16), topPadding, AndroidUtilities.dp(16), AndroidUtilities.dp(4));
+
+        int centerTopMargin = isFullScreen ? (statusBar + AndroidUtilities.dp(56)) : AndroidUtilities.dp(56);
+        if (centerContainer.getLayoutParams() instanceof FrameLayout.LayoutParams) {
+            FrameLayout.LayoutParams clp = (FrameLayout.LayoutParams) centerContainer.getLayoutParams();
+            clp.topMargin = centerTopMargin;
+            centerContainer.setLayoutParams(clp);
+        }
+
         pageSwitcher.setVisibility(isFullScreen ? View.VISIBLE : View.GONE);
         pageSwitcher.setAlpha(isFullScreen ? 1f : 0f);
 
@@ -603,17 +636,29 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     }
 
     private void updateBackgroundShape(float progress) {
-        int surface = getThemedColor(Theme.key_windowBackgroundWhite);
-        int accentColor = getThemedColor(Theme.key_featuredStickers_addButton);
-        if (accentColor == 0) accentColor = 0xFF3390EC;
+        int surface = getThemedColor(Theme.key_player_background);
+        if (surface == 0) surface = getThemedColor(Theme.key_windowBackgroundWhite);
+        int accentColor = getThemeAccentColor();
 
         GradientDrawable background = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                new int[]{ColorUtils.blendARGB(surface, accentColor, 0.10f), surface, ColorUtils.blendARGB(surface, 0xFF000000, 0.05f)});
+                new int[]{ColorUtils.blendARGB(surface, accentColor, 0.12f), surface, ColorUtils.blendARGB(surface, 0xFF000000, 0.05f)});
 
         float radius = AndroidUtilities.dp(24) * (1.0f - progress);
         background.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
         setBackground(background);
+    }
+
+    public int getThemeAccentColor() {
+        int color = getThemedColor(Theme.key_player_progress);
+        if (color == 0 || color == 0xFF3390EC) {
+            int active = getThemedColor(Theme.key_player_buttonActive);
+            if (active != 0 && active != 0xFF3390EC) return active;
+            int chats = getThemedColor(Theme.key_chats_actionBackground);
+            if (chats != 0 && chats != 0xFF3390EC) return chats;
+            if (active != 0) return active;
+        }
+        return color != 0 ? color : 0xFF3390EC;
     }
 
     public void toggleQueue() {
@@ -650,7 +695,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         if (target == null) return;
 
         if (queueButton != null) {
-            int color = mode == PlayerMode.QUEUE ? getThemedColor(Theme.key_player_buttonActive) : getThemedColor(Theme.key_player_button);
+            int color = mode == PlayerMode.QUEUE ? getThemeAccentColor() : getThemedColor(Theme.key_player_button);
             queueButton.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
         }
         updateModeButtons();
@@ -698,8 +743,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
 
     private void updateModeButton(TextView button, boolean selected) {
         if (button == null) return;
-        int accent = getThemedColor(Theme.key_featuredStickers_addButton);
-        if (accent == 0) accent = 0xFF3390EC;
+        int accent = getThemeAccentColor();
         button.setTextColor(selected ? 0xFFFFFFFF : 0xB3FFFFFF);
         button.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(15), selected ? accent : 0x00000000));
         button.setScaleX(selected ? 1f : 0.96f);

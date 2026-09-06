@@ -6,12 +6,10 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.SystemClock;
 import android.text.TextUtils;
-import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -25,15 +23,16 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.graphics.ColorUtils;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.ItemOptions;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.util.ArrayList;
@@ -43,38 +42,30 @@ import app.miogram.bridge.MiogramLocale;
 import app.miogram.bridge.customui.MiogramHaptic;
 
 /**
- * Modern High-Fidelity Karaoke Lyrics View matching the reference player:
- * - Top title & artist with translation toggle [A], source selector [≡-], and close [✕]
- * - Horizontal rhythm waveform dots visualizer
- * - Live synchronized scrolling karaoke with bold active line and subtle glow/underline
- * - Click-to-seek to any lyric timestamp
- * - Source selection dialog integration (LRCLib, NetEase, Yandex, Genius, YouTube, AI)
- * - Floating pill toast feedback on source change
- * - Graceful fallback when lyrics not found without covering player controls
+ * Modern High-Fidelity Synced Lyrics View with:
+ * - Transparent background inheriting player theme
+ * - Integrated, clean sub-bar with native ItemOptions source picker and translation toggles
+ * - Themed accent colors matching custom Telegram themes (red, blue, purple, etc.)
+ * - Word-by-word karaoke & line highlights
+ * - On-demand translation with immediate feedback
  */
 public class MiogramLyricsView extends FrameLayout {
 
-    public static final int MODE_BILINGUAL = 0;
-    public static final int MODE_ORIGINAL = 1;
+    public static final int MODE_ORIGINAL = 0;
+    public static final int MODE_BILINGUAL = 1;
     public static final int MODE_TRANSLATION = 2;
 
-    private int displayMode = MODE_BILINGUAL;
+    private int displayMode = MODE_ORIGINAL;
     private int currentSourceId = MiogramLyricsEngine.SOURCE_AUTO;
 
     private final Theme.ResourcesProvider resourcesProvider;
 
-    // Header Views
-    private final LinearLayout headerLayout;
-    private final LinearLayout titleBox;
-    private final TextView titleView;
-    private final TextView artistView;
-    private final LinearLayout actionsBox;
-    private final TextView modeButton;
-    private final ImageView sourceButton;
-    private final ImageView closeButton;
-    private final WaveformDotsView waveformDotsView;
+    // Sub-Bar Toolbar (Source selector + Translation toggles)
+    private final LinearLayout subBar;
+    private final TextView sourcePillButton;
+    private final TextView translationPillButton;
 
-    // Content Views
+    // Lyrics Recycler
     private final RecyclerView recyclerView;
     private final LyricsAdapter adapter;
     private final LinearLayoutManager layoutManager;
@@ -112,111 +103,56 @@ public class MiogramLyricsView extends FrameLayout {
         this.layoutManager = new LinearLayoutManager(context);
         this.adapter = new LyricsAdapter();
 
-        setBackgroundColor(0xEE0B1118); // Deep midnight backdrop
+        setBackgroundColor(0x00000000); // Fully transparent, inherits player's themed background
 
-        // 1. Top Header Row
-        headerLayout = new LinearLayout(context);
-        headerLayout.setOrientation(LinearLayout.VERTICAL);
-        headerLayout.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(10), AndroidUtilities.dp(20), AndroidUtilities.dp(8));
+        int accent = getThemedAccent();
 
-        LinearLayout topRow = new LinearLayout(context);
-        topRow.setOrientation(LinearLayout.HORIZONTAL);
-        topRow.setGravity(Gravity.CENTER_VERTICAL);
+        // 1. Sub-Bar (Source selector pill on left + Translation mode pill on right)
+        subBar = new LinearLayout(context);
+        subBar.setOrientation(LinearLayout.HORIZONTAL);
+        subBar.setGravity(Gravity.CENTER_VERTICAL);
+        subBar.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(4));
 
-        // Title and Artist column
-        titleBox = new LinearLayout(context);
-        titleBox.setOrientation(LinearLayout.VERTICAL);
-
-        titleView = new TextView(context);
-        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19);
-        titleView.setTypeface(AndroidUtilities.bold());
-        titleView.setTextColor(0xFFFFFFFF);
-        titleView.setSingleLine(true);
-        titleView.setEllipsize(TextUtils.TruncateAt.MARQUEE);
-        titleView.setSelected(true);
-        titleBox.addView(titleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-
-        artistView = new TextView(context);
-        artistView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-        artistView.setTextColor(0xAAFFFFFF);
-        artistView.setSingleLine(true);
-        artistView.setEllipsize(TextUtils.TruncateAt.END);
-        titleBox.addView(artistView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
-
-        topRow.addView(titleBox, new LinearLayout.LayoutParams(0, LayoutHelper.WRAP_CONTENT, 1.0f));
-
-        // Actions Row: [A] [≡-] [✕]
-        actionsBox = new LinearLayout(context);
-        actionsBox.setOrientation(LinearLayout.HORIZONTAL);
-        actionsBox.setGravity(Gravity.CENTER_VERTICAL);
-
-        // Language / Mode button [A]
-        modeButton = new TextView(context);
-        modeButton.setText("A");
-        modeButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-        modeButton.setTypeface(AndroidUtilities.bold());
-        modeButton.setTextColor(0xFFFFFFFF);
-        modeButton.setGravity(Gravity.CENTER);
-        modeButton.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(5), AndroidUtilities.dp(10), AndroidUtilities.dp(5));
-        GradientDrawable modeBg = new GradientDrawable();
-        modeBg.setColor(0x28FFFFFF);
-        modeBg.setCornerRadius(AndroidUtilities.dp(14));
-        modeButton.setBackground(modeBg);
-        modeButton.setContentDescription(MiogramLocale.get("Переклад тексту", "Перевод текста", "Translation"));
-        modeButton.setOnClickListener(v -> {
+        sourcePillButton = new TextView(context);
+        sourcePillButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+        sourcePillButton.setTypeface(AndroidUtilities.bold());
+        sourcePillButton.setTextColor(0xFFFFFFFF);
+        sourcePillButton.setGravity(Gravity.CENTER);
+        sourcePillButton.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(6), AndroidUtilities.dp(12), AndroidUtilities.dp(6));
+        sourcePillButton.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), ColorUtils.setAlphaComponent(accent, 35)));
+        sourcePillButton.setOnClickListener(v -> {
             MiogramHaptic.tap(v);
-            displayMode = (displayMode + 1) % 3;
-            updateModeButtonText();
-            adapter.notifyDataSetChanged();
-            showToastPill(getModeToastText());
+            showSourceOptions(v);
         });
-        actionsBox.addView(modeButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 8, 0));
+        updateSourcePillText();
+        subBar.addView(sourcePillButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
-        // Source button [≡-] (filter_setup)
-        sourceButton = new ImageView(context);
-        sourceButton.setImageResource(R.drawable.filter_setup);
-        sourceButton.setColorFilter(new PorterDuffColorFilter(0xFFFFFFFF, PorterDuff.Mode.SRC_IN));
-        sourceButton.setBackground(Theme.createSelectorDrawable(0x2BFFFFFF, 1, AndroidUtilities.dp(16)));
-        sourceButton.setScaleType(ImageView.ScaleType.CENTER);
-        sourceButton.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6));
-        sourceButton.setContentDescription(MiogramLocale.get("Джерело тексту", "Источник текста", "Lyrics Source"));
-        sourceButton.setOnClickListener(v -> {
+        View spacer = new View(context);
+        subBar.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1.0f));
+
+        translationPillButton = new TextView(context);
+        translationPillButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+        translationPillButton.setTypeface(AndroidUtilities.bold());
+        translationPillButton.setTextColor(0xFFFFFFFF);
+        translationPillButton.setGravity(Gravity.CENTER);
+        translationPillButton.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(6), AndroidUtilities.dp(12), AndroidUtilities.dp(6));
+        translationPillButton.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), ColorUtils.setAlphaComponent(accent, 35)));
+        translationPillButton.setOnClickListener(v -> {
             MiogramHaptic.tap(v);
-            showSourceSelectDialog();
+            showTranslationOptions(v);
         });
-        actionsBox.addView(sourceButton, LayoutHelper.createLinear(32, 32, 0, 0, 8, 0));
+        updateTranslationButton();
+        subBar.addView(translationPillButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
-        // Close button [✕]
-        closeButton = new ImageView(context);
-        closeButton.setImageResource(R.drawable.msg_close);
-        closeButton.setColorFilter(new PorterDuffColorFilter(0xFFFFFFFF, PorterDuff.Mode.SRC_IN));
-        closeButton.setBackground(Theme.createSelectorDrawable(0x2BFFFFFF, 1, AndroidUtilities.dp(16)));
-        closeButton.setScaleType(ImageView.ScaleType.CENTER);
-        closeButton.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6));
-        closeButton.setContentDescription(LocaleController.getString(R.string.Close));
-        closeButton.setOnClickListener(v -> {
-            MiogramHaptic.tap(v);
-            if (onCloseClickListener != null) {
-                onCloseClickListener.run();
-            }
-        });
-        actionsBox.addView(closeButton, LayoutHelper.createLinear(32, 32));
-
-        topRow.addView(actionsBox, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
-        headerLayout.addView(topRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-
-        // Waveform visualizer dots
-        waveformDotsView = new WaveformDotsView(context);
-        headerLayout.addView(waveformDotsView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 12, 0, 8, 0, 0));
-
-        addView(headerLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
+        addView(subBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 0, 4, 0, 0));
 
         // 2. RecyclerView with lyrics
         recyclerView = new RecyclerView(context);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setClipToPadding(false);
-        recyclerView.setPadding(0, AndroidUtilities.dp(78), 0, AndroidUtilities.dp(160));
+        recyclerView.setPadding(0, AndroidUtilities.dp(44), 0, AndroidUtilities.dp(120));
         recyclerView.setAdapter(adapter);
+        recyclerView.setVerticalScrollBarEnabled(false);
 
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -235,7 +171,7 @@ public class MiogramLyricsView extends FrameLayout {
         emptyContainer = new LinearLayout(context);
         emptyContainer.setOrientation(LinearLayout.VERTICAL);
         emptyContainer.setGravity(Gravity.CENTER);
-        emptyContainer.setPadding(AndroidUtilities.dp(28), AndroidUtilities.dp(80), AndroidUtilities.dp(28), AndroidUtilities.dp(140));
+        emptyContainer.setPadding(AndroidUtilities.dp(28), AndroidUtilities.dp(40), AndroidUtilities.dp(28), AndroidUtilities.dp(120));
         emptyContainer.setVisibility(View.GONE);
 
         progressBar = new ProgressBar(context);
@@ -259,139 +195,149 @@ public class MiogramLyricsView extends FrameLayout {
         emptyButtonsRow.setGravity(Gravity.CENTER);
 
         aiActionButton = new TextView(context);
-        aiActionButton.setText(MiogramLocale.get("✨ Розпізнати слова через ШІ зі звуку", "✨ Распознать слова через ИИ со звука", "✨ Transcribe lyrics with AI"));
+        aiActionButton.setText(MiogramLocale.get("✨ Розпізнати текст через ШІ Gemini", "✨ Распознать текст через ИИ Gemini", "✨ Transcribe lyrics with Gemini AI"));
         aiActionButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         aiActionButton.setTypeface(AndroidUtilities.bold());
         aiActionButton.setTextColor(0xFFFFFFFF);
-        aiActionButton.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(10), AndroidUtilities.dp(20), AndroidUtilities.dp(10));
-        GradientDrawable aiBtnBg = new GradientDrawable();
-        int accent = Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider);
-        if (accent == 0) accent = 0xFF3390EC;
-        aiBtnBg.setColor(accent);
-        aiBtnBg.setCornerRadius(AndroidUtilities.dp(20));
-        aiActionButton.setBackground(aiBtnBg);
+        aiActionButton.setGravity(Gravity.CENTER);
+        aiActionButton.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(11), AndroidUtilities.dp(20), AndroidUtilities.dp(11));
+        aiActionButton.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(20), accent));
         aiActionButton.setOnClickListener(v -> {
             MiogramHaptic.tap(v);
-            triggerAiTranscription();
+            if (currentMessageObject != null) {
+                transcribeWithAi(currentMessageObject);
+            }
         });
         emptyButtonsRow.addView(aiActionButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
 
         changeSourceButton = new TextView(context);
-        changeSourceButton.setText(MiogramLocale.get("⚙️ Змінити сервіс пошуку", "⚙️ Сменить сервис поиска", "⚙️ Change search service"));
+        changeSourceButton.setText(MiogramLocale.get("🔄 Змінити джерело пошуку", "🔄 Изменить источник поиска", "🔄 Change search source"));
         changeSourceButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        changeSourceButton.setTypeface(AndroidUtilities.bold());
         changeSourceButton.setTextColor(0xCCFFFFFF);
-        changeSourceButton.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
-        GradientDrawable csBg = new GradientDrawable();
-        csBg.setColor(0x22FFFFFF);
-        csBg.setCornerRadius(AndroidUtilities.dp(16));
-        changeSourceButton.setBackground(csBg);
+        changeSourceButton.setGravity(Gravity.CENTER);
+        changeSourceButton.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(8), AndroidUtilities.dp(18), AndroidUtilities.dp(8));
+        changeSourceButton.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(16), 0x25FFFFFF));
         changeSourceButton.setOnClickListener(v -> {
             MiogramHaptic.tap(v);
-            showSourceSelectDialog();
+            showSourceOptions(v);
         });
         emptyButtonsRow.addView(changeSourceButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
-        emptyContainer.addView(emptyButtonsRow, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+        emptyContainer.addView(emptyButtonsRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         addView(emptyContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
 
-        // 4. Floating Pill Toast [Имя сервиса ✓]
+        // 4. Floating Toast Notification Pill
         toastPillView = new TextView(context);
-        toastPillView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        toastPillView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         toastPillView.setTypeface(AndroidUtilities.bold());
         toastPillView.setTextColor(0xFFFFFFFF);
-        toastPillView.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(10), AndroidUtilities.dp(20), AndroidUtilities.dp(10));
-        GradientDrawable pillBg = new GradientDrawable();
-        pillBg.setColor(0xDC1E2833);
-        pillBg.setCornerRadius(AndroidUtilities.dp(20));
-        pillBg.setStroke(AndroidUtilities.dp(1), 0x33FFFFFF);
-        toastPillView.setBackground(pillBg);
+        toastPillView.setGravity(Gravity.CENTER);
+        toastPillView.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        GradientDrawable toastBg = new GradientDrawable();
+        toastBg.setColor(0xE610151E);
+        toastBg.setCornerRadius(AndroidUtilities.dp(18));
+        toastBg.setStroke(AndroidUtilities.dp(1), ColorUtils.setAlphaComponent(accent, 120));
+        toastPillView.setBackground(toastBg);
         toastPillView.setVisibility(View.GONE);
-        toastPillView.setAlpha(0f);
-        addView(toastPillView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
-    }
-
-    public void setOnCloseClickListener(Runnable listener) {
-        this.onCloseClickListener = listener;
-    }
-
-    public void setOnActiveLineChangeListener(OnActiveLineChangeListener listener) {
-        this.onActiveLineChangeListener = listener;
-    }
-
-    public void setSong(MessageObject messageObject) {
-        if (messageObject == null) return;
-        if (isSameMessage(messageObject, currentMessageObject)) {
-            titleView.setText(messageObject.getMusicTitle());
-            artistView.setText(messageObject.getMusicAuthor());
-            return;
+        toastPillView.setAlpha(0.0f);
+        if (Build.VERSION.SDK_INT >= 21) {
+            toastPillView.setElevation(AndroidUtilities.dp(8));
         }
-        this.currentMessageObject = messageObject;
-
-        titleView.setText(messageObject.getMusicTitle());
-        artistView.setText(messageObject.getMusicAuthor());
-
-        loadLyrics(messageObject, currentSourceId);
+        addView(toastPillView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 52, 0, 0));
     }
 
-    private boolean isSameMessage(MessageObject first, MessageObject second) {
-        return first == second || first != null && second != null
-                && first.getId() == second.getId() && first.getDialogId() == second.getDialogId();
+    private void updateSourcePillText() {
+        sourcePillButton.setText("🎵 " + MiogramSourceSelectAlert.getSourceName(currentSourceId) + " ▾");
     }
 
-    public void updateTime(long currentMs) {
-        waveformDotsView.setPlaying(!MediaController.getInstance().isMessagePaused());
-        if (currentSong == null || currentSong.lines.isEmpty()) return;
-
-        if (isUserScrolling && SystemClock.elapsedRealtime() - lastUserScrollTime > 3500) {
-            isUserScrolling = false;
+    private void updateTranslationButton() {
+        String modeText;
+        if (displayMode == MODE_ORIGINAL) {
+            modeText = MiogramLocale.get("Оригінал", "Оригинал", "Original");
+        } else if (displayMode == MODE_BILINGUAL) {
+            modeText = MiogramLocale.get("Двомовний", "Двуязычный", "Bilingual");
+        } else {
+            modeText = MiogramLocale.get("Переклад", "Перевод", "Translation");
         }
-
-        int newIndex = currentSong.findLineIndex(currentMs);
-        if (newIndex != activePosition && newIndex >= 0) {
-            int old = activePosition;
-            activePosition = newIndex;
-
-            if (old >= 0) adapter.notifyItemChanged(old);
-            adapter.notifyItemChanged(activePosition);
-
-            if (onActiveLineChangeListener != null && activePosition < currentSong.lines.size()) {
-                MiogramLrcModel.LrcLine line = currentSong.lines.get(activePosition);
-                onActiveLineChangeListener.onActiveLineChanged(line.text, line.translation, activePosition);
-            }
-
-            if (!isUserScrolling) {
-                smoothCenterTo(activePosition);
-            }
-        }
+        translationPillButton.setText("🌐 " + modeText + " ▾");
     }
 
-    private void smoothCenterTo(int position) {
-        if (position < 0 || position >= adapter.getItemCount()) return;
+    private void showSourceOptions(View anchor) {
+        ViewGroup root = (ViewGroup) getRootView();
+        if (root == null) root = this;
+        ItemOptions options = ItemOptions.makeOptions(root, resourcesProvider, anchor);
+        options.setRoundRadius(AndroidUtilities.dp(14));
 
-        LinearSmoothScroller scroller = new LinearSmoothScroller(getContext()) {
-            @Override
-            public int calculateDtToFit(int viewStart, int viewEnd, int boxStart, int boxEnd, int snapPreference) {
-                return (boxStart + (boxEnd - boxStart) / 2) - (viewStart + (viewEnd - viewStart) / 2);
-            }
+        options.add(R.drawable.player_new_order, MiogramLocale.get("Автоматично (Auto)", "Автоматически (Auto)", "Automatic (Auto)"), () -> selectSource(MiogramLyricsEngine.SOURCE_AUTO));
+        options.add(R.drawable.player_new_order, "LRCLib", () -> selectSource(MiogramLyricsEngine.SOURCE_LRCLIB));
+        options.add(R.drawable.player_new_order, "NetEase", () -> selectSource(MiogramLyricsEngine.SOURCE_NETEASE));
+        options.add(R.drawable.player_new_order, MiogramLocale.get("Яндекс Музика", "Яндекс Музыка", "Yandex Music"), () -> selectSource(MiogramLyricsEngine.SOURCE_YANDEX));
+        options.add(R.drawable.player_new_order, "Genius", () -> selectSource(MiogramLyricsEngine.SOURCE_GENIUS));
+        options.add(R.drawable.player_new_order, MiogramLocale.get("YouTube (Опис)", "YouTube (Описание)", "YouTube (Description)"), () -> selectSource(MiogramLyricsEngine.SOURCE_YOUTUBE));
+        options.add(R.drawable.msg_bot, MiogramLocale.get("✨ ШІ зі звуку (Gemini)", "✨ ИИ со слуха (Gemini)", "✨ AI by ear (Gemini)"), () -> selectSource(MiogramLyricsEngine.SOURCE_AI));
 
-            @Override
-            protected float calculateSpeedPerPixel(DisplayMetrics displayMetrics) {
-                return 160f / displayMetrics.densityDpi;
-            }
-        };
-        scroller.setTargetPosition(position);
-        layoutManager.startSmoothScroll(scroller);
+        options.show();
     }
 
-    private void showSourceSelectDialog() {
-        MiogramSourceSelectAlert alert = new MiogramSourceSelectAlert(getContext(), currentSourceId, resourcesProvider, (sourceId, sourceTitle) -> {
-            this.currentSourceId = sourceId;
-            showToastPill(sourceTitle + " ✓");
-            if (currentMessageObject != null) {
+    private void selectSource(int sourceId) {
+        this.currentSourceId = sourceId;
+        updateSourcePillText();
+        showToastPill(MiogramSourceSelectAlert.getSourceName(sourceId) + " ✓");
+        if (currentMessageObject != null) {
+            if (sourceId == MiogramLyricsEngine.SOURCE_AI) {
+                transcribeWithAi(currentMessageObject);
+            } else {
                 loadLyrics(currentMessageObject, sourceId);
             }
+        }
+    }
+
+    private void showTranslationOptions(View anchor) {
+        ViewGroup root = (ViewGroup) getRootView();
+        if (root == null) root = this;
+        ItemOptions options = ItemOptions.makeOptions(root, resourcesProvider, anchor);
+        options.setRoundRadius(AndroidUtilities.dp(14));
+
+        options.add(0, MiogramLocale.get("Оригінальний текст", "Оригинальный текст", "Original Lyrics"), () -> {
+            displayMode = MODE_ORIGINAL;
+            updateTranslationButton();
+            adapter.notifyDataSetChanged();
+            showToastPill(MiogramLocale.get("Тільки оригінал", "Только оригинал", "Original only"));
         });
-        alert.show();
+
+        options.add(0, MiogramLocale.get("Двомовний режим", "Двуязычный режим", "Bilingual mode"), () -> {
+            displayMode = MODE_BILINGUAL;
+            updateTranslationButton();
+            if (currentSong != null && !currentSong.hasAnyTranslation()) {
+                requestTranslation();
+            } else {
+                adapter.notifyDataSetChanged();
+                showToastPill(MiogramLocale.get("Двомовний режим увімкнено", "Двуязычный режим включен", "Bilingual mode on"));
+            }
+        });
+
+        options.add(0, MiogramLocale.get("Тільки переклад", "Только перевод", "Translation only"), () -> {
+            displayMode = MODE_TRANSLATION;
+            updateTranslationButton();
+            if (currentSong != null && !currentSong.hasAnyTranslation()) {
+                requestTranslation();
+            } else {
+                adapter.notifyDataSetChanged();
+                showToastPill(MiogramLocale.get("Тільки переклад", "Только перевод", "Translation only"));
+            }
+        });
+
+        options.show();
+    }
+
+    private void requestTranslation() {
+        if (currentSong == null) return;
+        showToastPill(MiogramLocale.get("Перекладаємо текст...", "Переводим текст...", "Translating lyrics..."));
+        MiogramLyricsEngine.getInstance().translateSongLines(currentSong, () -> {
+            adapter.notifyDataSetChanged();
+            showToastPill(MiogramLocale.get("Переклад готовий! ✓", "Перевод готов! ✓", "Translation ready! ✓"));
+        });
     }
 
     private void showToastPill(String text) {
@@ -412,179 +358,148 @@ public class MiogramLyricsView extends FrameLayout {
                 }
             }).start();
         };
-        postDelayed(hideToastRunnable, 1400);
+        postDelayed(hideToastRunnable, 1500);
     }
 
-    private void updateModeButtonText() {
-        if (displayMode == MODE_BILINGUAL) {
-            modeButton.setText("A / UA");
-        } else if (displayMode == MODE_ORIGINAL) {
-            modeButton.setText("A");
-        } else {
-            modeButton.setText("UA");
-        }
+    public void setOnCloseClickListener(Runnable listener) {
+        this.onCloseClickListener = listener;
     }
 
-    private String getModeToastText() {
-        if (displayMode == MODE_BILINGUAL) {
-            return MiogramLocale.get("Двомовний режим ✓", "Двуязычный режим ✓", "Bilingual mode ✓");
-        } else if (displayMode == MODE_ORIGINAL) {
-            return MiogramLocale.get("Лише оригінал ✓", "Только оригинал ✓", "Original only ✓");
-        } else {
-            return MiogramLocale.get("Лише переклад ✓", "Только перевод ✓", "Translation only ✓");
-        }
+    public void setOnActiveLineChangeListener(OnActiveLineChangeListener listener) {
+        this.onActiveLineChangeListener = listener;
     }
 
-    private void loadLyrics(MessageObject messageObject, int sourceId) {
-        final long requestGeneration = ++lyricsRequestGeneration;
-        showLoading(true);
+    public void setSong(MessageObject messageObject) {
+        this.currentMessageObject = messageObject;
         activePosition = -1;
+        adapter.setLines(null);
+        if (messageObject != null) {
+            loadLyrics(messageObject, currentSourceId);
+        } else {
+            showEmptyState(false, "");
+        }
+    }
 
-        MiogramLyricsEngine.getInstance().fetchLyrics(messageObject, sourceId, new MiogramLyricsEngine.LyricsCallback() {
+    private void loadLyrics(final MessageObject messageObject, final int preferredSource) {
+        final long reqGen = ++lyricsRequestGeneration;
+        showLoading(true);
+
+        MiogramLyricsEngine.getInstance().fetchLyrics(messageObject, preferredSource, new MiogramLyricsEngine.LyricsCallback() {
             @Override
             public void onLyricsLoaded(MiogramLrcModel.LrcSong song) {
-                if (requestGeneration != lyricsRequestGeneration || !isSameMessage(messageObject, currentMessageObject)) return;
-                showLoading(false);
+                if (reqGen != lyricsRequestGeneration) return;
                 currentSong = song;
+                showLoading(false);
                 adapter.setLines(song.lines);
-                emptyContainer.setVisibility(View.GONE);
-                recyclerView.setVisibility(View.VISIBLE);
-
-                long currentMs = messageObject.audioProgressMs > 0
-                        ? messageObject.audioProgressMs
-                        : (long) (messageObject.audioProgress * (messageObject.audioPlayerDuration > 0 ? messageObject.audioPlayerDuration * 1000L : messageObject.getDuration() * 1000L));
-                updateTime(currentMs);
+                updateTranslationButton();
+                updateTime(MediaController.getInstance().getPlayingMessageObject() != null
+                        ? MediaController.getInstance().getPlayingMessageObject().audioProgressMs
+                        : 0L);
             }
 
             @Override
             public void onError(String message) {
-                if (requestGeneration != lyricsRequestGeneration || !isSameMessage(messageObject, currentMessageObject)) return;
-                showLoading(false);
-                currentSong = null;
-                adapter.setLines(new ArrayList<>());
-                recyclerView.setVisibility(View.GONE);
-                emptyContainer.setVisibility(View.VISIBLE);
-                progressBar.setVisibility(View.GONE);
-                emptyButtonsRow.setVisibility(View.VISIBLE);
-                emptyTitle.setText(MiogramLocale.get("Слова пісні не знайдено", "Слова песни не найдены", "Lyrics not found"));
-                emptySubtitle.setText(MiogramLocale.get("Ви можете обрати інше джерело або розпізнати слова через ШІ", "Вы можете выбрать другой источник или распознать слова через ИИ", "You can switch source or transcribe using AI"));
-
-                if (onActiveLineChangeListener != null) {
-                    onActiveLineChangeListener.onActiveLineChanged(null, null, -1);
-                }
+                if (reqGen != lyricsRequestGeneration) return;
+                showEmptyState(true, message);
             }
         });
     }
 
-    public void triggerAiTranscription() {
-        if (currentMessageObject == null) return;
-        final MessageObject requestedMessage = currentMessageObject;
-        final long requestGeneration = ++lyricsRequestGeneration;
+    private void transcribeWithAi(final MessageObject messageObject) {
+        final long reqGen = ++lyricsRequestGeneration;
         showLoading(true);
-        emptyTitle.setText(MiogramLocale.get("ШІ розпізнає трек...", "ИИ распознает трек...", "AI is transcribing..."));
-        emptySubtitle.setText(MiogramLocale.get("Синхронізація слів з ритмом музики", "Синхронизация слов с ритмом музыки", "Synchronizing lyrics with music rhythm"));
+        emptyTitle.setText(MiogramLocale.get("ШІ розпізнає текст пісні...", "ИИ распознает текст песни...", "AI is transcribing lyrics..."));
+        emptySubtitle.setText(MiogramLocale.get("Це може зайняти до 10-15 секунд", "Это может занять до 10-15 секунд", "This may take 10-15 seconds"));
+
+        MiogramLyricsEngine.getInstance().transcribeAudioWithAi(messageObject, new MiogramLyricsEngine.LyricsCallback() {
+            @Override
+            public void onLyricsLoaded(MiogramLrcModel.LrcSong song) {
+                if (reqGen != lyricsRequestGeneration) return;
+                currentSong = song;
+                currentSourceId = MiogramLyricsEngine.SOURCE_AI;
+                updateSourcePillText();
+                showLoading(false);
+                adapter.setLines(song.lines);
+                updateTranslationButton();
+                showToastPill(MiogramLocale.get("ШІ-розпізнавання завершено! ✓", "ИИ-распознавание завершено! ✓", "AI transcription complete! ✓"));
+            }
+
+            @Override
+            public void onError(String message) {
+                if (reqGen != lyricsRequestGeneration) return;
+                showEmptyState(true, message);
+            }
+        });
+    }
+
+    public void updateTime(long currentPositionMs) {
+        if (currentSong == null || currentSong.lines.isEmpty()) {
+            if (onActiveLineChangeListener != null) {
+                onActiveLineChangeListener.onActiveLineChanged(null, null, -1);
+            }
+            return;
+        }
+
+        int newActive = currentSong.findLineIndex(currentPositionMs);
+        if (newActive != activePosition) {
+            int oldActive = activePosition;
+            activePosition = newActive;
+
+            if (oldActive != -1) adapter.notifyItemChanged(oldActive);
+            if (activePosition != -1) adapter.notifyItemChanged(activePosition);
+
+            if (activePosition != -1 && onActiveLineChangeListener != null) {
+                MiogramLrcModel.LrcLine line = currentSong.lines.get(activePosition);
+                onActiveLineChangeListener.onActiveLineChanged(line.text, line.translation, activePosition);
+            }
+
+            if (activePosition != -1 && !isUserScrolling && SystemClock.elapsedRealtime() - lastUserScrollTime > 3000L) {
+                scrollToCenter(activePosition);
+            }
+        }
+    }
+
+    private void scrollToCenter(int position) {
+        int height = recyclerView.getHeight();
+        if (height <= 0) return;
+        int targetOffset = height / 3;
+        layoutManager.scrollToPositionWithOffset(position, targetOffset);
+    }
+
+    private void showLoading(boolean show) {
+        emptyContainer.setVisibility(show ? View.VISIBLE : View.GONE);
+        progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+        recyclerView.setVisibility(show ? View.GONE : View.VISIBLE);
         emptyButtonsRow.setVisibility(View.GONE);
 
-        MiogramLyricsEngine.getInstance().transcribeAudioWithAi(currentMessageObject, new MiogramLyricsEngine.LyricsCallback() {
-            @Override
-            public void onLyricsLoaded(MiogramLrcModel.LrcSong song) {
-                if (requestGeneration != lyricsRequestGeneration || !isSameMessage(requestedMessage, currentMessageObject)) return;
-                showLoading(false);
-                currentSong = song;
-                adapter.setLines(song.lines);
-                emptyContainer.setVisibility(View.GONE);
-                recyclerView.setVisibility(View.VISIBLE);
-                showToastPill(MiogramLocale.get("ШІ зі звуку ✓", "ИИ со слуха ✓", "AI by ear ✓"));
-
-                long currentMs = currentMessageObject.audioProgressMs > 0
-                        ? currentMessageObject.audioProgressMs
-                        : (long) (currentMessageObject.audioProgress * (currentMessageObject.audioPlayerDuration > 0 ? currentMessageObject.audioPlayerDuration * 1000L : currentMessageObject.getDuration() * 1000L));
-                updateTime(currentMs);
-            }
-
-            @Override
-            public void onError(String message) {
-                if (requestGeneration != lyricsRequestGeneration || !isSameMessage(requestedMessage, currentMessageObject)) return;
-                showLoading(false);
-                emptyContainer.setVisibility(View.VISIBLE);
-                emptyButtonsRow.setVisibility(View.VISIBLE);
-                emptyTitle.setText(MiogramLocale.get("Помилка розпізнавання", "Ошибка распознавания", "Transcription error"));
-                emptySubtitle.setText(message);
-            }
-        });
-    }
-
-    private void showLoading(boolean loading) {
-        if (loading) {
-            emptyContainer.setVisibility(View.VISIBLE);
-            progressBar.setVisibility(View.VISIBLE);
-            emptyButtonsRow.setVisibility(View.GONE);
-            emptyTitle.setText(MiogramLocale.get("Завантаження слів...", "Загрузка слов...", "Loading lyrics..."));
-            emptySubtitle.setText(MiogramLocale.get("Пошук у джерелі: ", "Поиск в источнике: ", "Searching source: ") + MiogramSourceSelectAlert.getSourceName(currentSourceId));
-            recyclerView.setVisibility(View.GONE);
-        } else {
-            progressBar.setVisibility(View.GONE);
+        if (show) {
+            emptyTitle.setText(MiogramLocale.get("Пошук тексту пісні...", "Поиск текста песни...", "Searching lyrics..."));
+            emptySubtitle.setText(MiogramLocale.get("Джерело: ", "Источник: ", "Source: ") + MiogramSourceSelectAlert.getSourceName(currentSourceId));
         }
     }
 
-    @Override
-    protected void onDetachedFromWindow() {
-        lyricsRequestGeneration++;
-        if (hideToastRunnable != null) removeCallbacks(hideToastRunnable);
-        toastPillView.animate().cancel();
-        waveformDotsView.setPlaying(false);
-        super.onDetachedFromWindow();
+    private void showEmptyState(boolean error, String message) {
+        emptyContainer.setVisibility(View.VISIBLE);
+        progressBar.setVisibility(View.GONE);
+        recyclerView.setVisibility(View.GONE);
+        emptyButtonsRow.setVisibility(View.VISIBLE);
+
+        emptyTitle.setText(MiogramLocale.get("Текст не знайдено", "Текст не найден", "Lyrics not found"));
+        emptySubtitle.setText(TextUtils.isEmpty(message)
+                ? MiogramLocale.get("Спробуйте розпізнати через ШІ або змінити джерело", "Попробуйте распознать через ИИ или сменить источник", "Try AI transcription or change source")
+                : message);
     }
 
-    /* =========================================================================
-     * WAVEFORM DOTS VISUALIZER
-     * ========================================================================= */
-
-    private static class WaveformDotsView extends View {
-        private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private boolean isPlaying = false;
-        private float phase = 0f;
-
-        public WaveformDotsView(Context context) {
-            super(context);
-            dotPaint.setColor(0x66FFFFFF);
+    private int getThemedAccent() {
+        int color = Theme.getColor(Theme.key_player_progress, resourcesProvider);
+        if (color == 0 || color == 0xFF3390EC) {
+            int active = Theme.getColor(Theme.key_player_buttonActive, resourcesProvider);
+            if (active != 0 && active != 0xFF3390EC) return active;
+            int chats = Theme.getColor(Theme.key_chats_actionBackground, resourcesProvider);
+            if (chats != 0 && chats != 0xFF3390EC) return chats;
+            if (active != 0) return active;
         }
-
-        public void setPlaying(boolean playing) {
-            if (this.isPlaying != playing) {
-                this.isPlaying = playing;
-                invalidate();
-            }
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas);
-            int width = getWidth();
-            int height = getHeight();
-            if (width <= 0 || height <= 0) return;
-
-            int dotCount = 28;
-            float step = (float) width / (dotCount + 1);
-            float centerY = height / 2.0f;
-
-            if (isPlaying) {
-                phase += 0.08f;
-            }
-
-            for (int i = 0; i < dotCount; i++) {
-                float x = step * (i + 1);
-                float wave = (float) Math.sin(i * 0.35f + phase);
-                float radius = AndroidUtilities.dp(isPlaying ? (2.0f + 1.2f * wave) : 2.0f);
-                int alpha = isPlaying ? (int) (120 + 80 * wave) : 80;
-                dotPaint.setColor(ColorUtils.setAlphaComponent(0xFFFFFFFF, Math.max(40, Math.min(255, alpha))));
-                canvas.drawCircle(x, centerY, radius, dotPaint);
-            }
-
-            if (isPlaying) {
-                postInvalidateOnAnimation();
-            }
-        }
+        return color != 0 ? color : 0xFF3390EC;
     }
 
     /* =========================================================================
@@ -616,7 +531,6 @@ public class MiogramLyricsView extends FrameLayout {
             item.addView(main, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
             View underline = new View(parent.getContext());
-            underline.setBackgroundColor(0xCCFFFFFF);
             underline.setVisibility(View.GONE);
             item.addView(underline, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 2, 0, 4, 0, 2));
 
@@ -633,6 +547,7 @@ public class MiogramLyricsView extends FrameLayout {
         public void onBindViewHolder(@NonNull LyricsViewHolder holder, int position) {
             MiogramLrcModel.LrcLine line = items.get(position);
             boolean isActive = (position == activePosition);
+            int accent = getThemedAccent();
 
             if (displayMode == MODE_BILINGUAL) {
                 holder.mainText.setText(line.text);
@@ -649,6 +564,8 @@ public class MiogramLyricsView extends FrameLayout {
                 holder.mainText.setText(line.hasTranslation() ? line.translation : line.text);
                 holder.transText.setVisibility(View.GONE);
             }
+
+            holder.underline.setBackgroundColor(accent);
 
             if (isActive) {
                 holder.mainText.setTextColor(0xFFFFFFFF);
@@ -675,13 +592,9 @@ public class MiogramLyricsView extends FrameLayout {
                             ? (float) currentMessageObject.audioPlayerDuration
                             : (float) currentMessageObject.getDuration();
                     if (dur > 0) {
-                        float progress = (float) line.timeMs / (dur * 1000f);
-                        progress = Math.max(0.0f, Math.min(1.0f, progress));
-                        MediaController.getInstance().seekToProgress(currentMessageObject, progress);
+                        float progress = (float) line.timestampMs / (dur * 1000f);
+                        MediaController.getInstance().seekToProgress(currentMessageObject, Math.max(0f, Math.min(1f, progress)));
                     }
-                    activePosition = holder.getAdapterPosition();
-                    notifyDataSetChanged();
-                    smoothCenterTo(activePosition);
                 }
             });
         }
@@ -697,11 +610,11 @@ public class MiogramLyricsView extends FrameLayout {
         final View underline;
         final TextView transText;
 
-        public LyricsViewHolder(@NonNull View itemView, TextView mainText, View underline, TextView transText) {
+        public LyricsViewHolder(View itemView, TextView main, View underline, TextView trans) {
             super(itemView);
-            this.mainText = mainText;
+            this.mainText = main;
             this.underline = underline;
-            this.transText = transText;
+            this.transText = trans;
         }
     }
 }

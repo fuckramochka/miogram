@@ -629,49 +629,64 @@ public class MiogramLyricsEngine {
         postSuccess(callback, song);
     }
 
-    private void translateSongLines(MiogramLrcModel.LrcSong song) {
-        try {
-            String targetLang = app.miogram.bridge.MiogramLocale.isUkrainian() ? "uk" : "ru";
+    public void translateSongLines(final MiogramLrcModel.LrcSong song) {
+        translateSongLines(song, null);
+    }
 
-            StringBuilder batch = new StringBuilder();
-            int count = Math.min(song.lines.size(), 40);
-            for (int i = 0; i < count; i++) {
-                batch.append(song.lines.get(i).text).append("\n");
-            }
+    public void translateSongLines(final MiogramLrcModel.LrcSong song, final Runnable onDone) {
+        if (song == null || song.lines.isEmpty()) {
+            if (onDone != null) AndroidUtilities.runOnUIThread(onDone);
+            return;
+        }
+        executor.execute(() -> {
+            try {
+                String targetLang = app.miogram.bridge.MiogramLocale.isUkrainian() ? "uk" : "ru";
 
-            String url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=" +
-                    targetLang + "&dt=t&q=" + URLEncoder.encode(batch.toString(), "UTF-8");
+                StringBuilder batch = new StringBuilder();
+                int count = Math.min(song.lines.size(), 40);
+                for (int i = 0; i < count; i++) {
+                    batch.append(song.lines.get(i).text).append("\n");
+                }
 
-            Request request = new Request.Builder()
-                    .url(url)
-                    .header("User-Agent", "Mozilla/5.0")
-                    .build();
+                String url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=" +
+                        targetLang + "&dt=t&q=" + URLEncoder.encode(batch.toString(), "UTF-8");
 
-            try (Response response = httpClient.newCall(request).execute()) {
-                if (response.isSuccessful() && response.body() != null) {
-                    String resStr = response.body().string();
-                    JSONArray root = new JSONArray(resStr);
-                    JSONArray parts = root.optJSONArray(0);
-                    if (parts != null) {
-                        StringBuilder fullTranslated = new StringBuilder();
-                        for (int i = 0; i < parts.length(); i++) {
-                            JSONArray part = parts.optJSONArray(i);
-                            if (part != null) {
-                                fullTranslated.append(part.optString(0, ""));
+                Request request = new Request.Builder()
+                        .url(url)
+                        .header("User-Agent", "Mozilla/5.0")
+                        .build();
+
+                try (Response response = httpClient.newCall(request).execute()) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        String resStr = response.body().string();
+                        JSONArray root = new JSONArray(resStr);
+                        JSONArray parts = root.optJSONArray(0);
+                        if (parts != null) {
+                            StringBuilder fullTranslated = new StringBuilder();
+                            for (int i = 0; i < parts.length(); i++) {
+                                JSONArray part = parts.optJSONArray(i);
+                                if (part != null) {
+                                    fullTranslated.append(part.optString(0, ""));
+                                }
                             }
-                        }
 
-                        String[] transLines = fullTranslated.toString().split("\\r?\\n");
-                        for (int i = 0; i < Math.min(song.lines.size(), transLines.length); i++) {
-                            String tr = transLines[i].trim();
-                            if (!tr.isEmpty() && !tr.equals(song.lines.get(i).text)) {
-                                song.lines.get(i).translation = tr;
+                            String[] transLines = fullTranslated.toString().split("\\r?\\n");
+                            for (int i = 0; i < Math.min(song.lines.size(), transLines.length); i++) {
+                                String tr = transLines[i].trim();
+                                if (!tr.isEmpty() && !tr.equals(song.lines.get(i).text)) {
+                                    song.lines.get(i).translation = tr;
+                                }
                             }
                         }
                     }
                 }
+            } catch (Throwable ignored) {
+            } finally {
+                if (onDone != null) {
+                    AndroidUtilities.runOnUIThread(onDone);
+                }
             }
-        } catch (Throwable ignored) {}
+        });
     }
 
     /* =========================================================================
