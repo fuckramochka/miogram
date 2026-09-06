@@ -292,7 +292,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             // Slot 4: Queue / Playlist Toggle Button
             FrameLayout slot4 = new FrameLayout(getContext());
             queueButton = new ImageView(getContext());
-            queueButton.setImageResource(R.drawable.player_new_list);
+            queueButton.setImageResource(R.drawable.msg_list);
             queueButton.setScaleType(ImageView.ScaleType.CENTER);
             queueButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_player_button), PorterDuff.Mode.SRC_IN));
             queueButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, AndroidUtilities.dp(18)));
@@ -387,6 +387,14 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         if (lyricsView != null && messageObject != null) {
             lyricsView.setSong(messageObject);
         }
+    }
+
+    public void setSpeedText(String speed) {
+        // Handled in audio player state
+    }
+
+    public void setFavorite(boolean fav) {
+        // Handled in audio player state
     }
 
     private int getThemedColor(int key) {

@@ -29,6 +29,7 @@ import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.R;
@@ -184,7 +185,7 @@ public class MiogramLyricsView extends FrameLayout {
 
         // Close button [✕]
         closeButton = new ImageView(context);
-        closeButton.setImageResource(R.drawable.ic_close);
+        closeButton.setImageResource(R.drawable.msg_close);
         closeButton.setColorFilter(new PorterDuffColorFilter(0xFFFFFFFF, PorterDuff.Mode.SRC_IN));
         closeButton.setBackground(Theme.createSelectorDrawable(0x2BFFFFFF, 1, AndroidUtilities.dp(16)));
         closeButton.setScaleType(ImageView.ScaleType.CENTER);
@@ -644,8 +645,8 @@ public class MiogramLyricsView extends FrameLayout {
                 if (currentMessageObject != null) {
                     MiogramHaptic.select(v);
                     float dur = currentMessageObject.audioPlayerDuration > 0
-                            ? currentMessageObject.audioPlayerDuration
-                            : currentMessageObject.getDuration();
+                            ? (float) currentMessageObject.audioPlayerDuration
+                            : (float) currentMessageObject.getDuration();
                     if (dur > 0) {
                         float progress = (float) line.timeMs / (dur * 1000f);
                         progress = Math.max(0.0f, Math.min(1.0f, progress));
