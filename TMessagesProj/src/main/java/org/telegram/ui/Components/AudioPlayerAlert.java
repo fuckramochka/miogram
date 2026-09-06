@@ -1582,32 +1582,14 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         lyricsView = new app.miogram.bridge.lyrics.MiogramLyricsView(context, resourcesProvider);
         lyricsView.setVisibility(View.VISIBLE);
 
-        shuffleButton = new ImageView(context);
-        shuffleButton.setImageResource(SharedConfig.shuffleMusic ? R.drawable.player_new_shuffle : R.drawable.player_new_shuffle_off);
-        shuffleButton.setScaleType(ImageView.ScaleType.CENTER);
-        shuffleButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, dp(18)));
-        updateShuffleButton();
-        shuffleButton.setOnClickListener(v -> {
-            app.miogram.bridge.customui.MiogramHaptic.tap(v);
-            if (SharedConfig.shuffleMusic) {
-                MediaController.getInstance().setPlaybackOrderType(0);
-            } else {
-                MediaController.getInstance().setPlaybackOrderType(2);
-            }
-            updateShuffleButton();
-            listAdapter.notifyDataSetChanged();
-        });
-
         modernPlayerLayout = new app.miogram.bridge.player.MiogramModernPlayerLayout(context, this, resourcesProvider);
-        coverContainer.setCoverRoundRadius(dp(24));
+        coverContainer.setCoverRoundRadius(dp(20));
         modernPlayerLayout.setCoverView(coverContainer);
         modernPlayerLayout.setLyricsView(lyricsView);
         modernPlayerLayout.setQueueListView(listView);
-        modernPlayerLayout.setOptionsButton(optionsButton);
-        modernPlayerLayout.setTrackInfoViews(titleTextView, authorTextView);
         modernPlayerLayout.setSeekBarViews(seekBarView, timeTextView, durationTextView);
-        modernPlayerLayout.setControlButtons(shuffleButton, prevButton, playButton, nextButton, repeatButton);
-        modernPlayerLayout.setCastButton(castItemButton);
+        modernPlayerLayout.setControlButtons(repeatButton, prevButton, playButton, nextButton);
+        modernPlayerLayout.setProfileButtons(saveToProfileButton, unsaveFromProfileButton);
 
         containerView.addView(modernPlayerLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
@@ -2339,8 +2321,8 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
 
     @Override
     public void onBackPressed() {
-        if (modernPlayerLayout != null && modernPlayerLayout.getCurrentTab() != app.miogram.bridge.player.MiogramModernPlayerLayout.TAB_TRACK) {
-            modernPlayerLayout.switchToTab(app.miogram.bridge.player.MiogramModernPlayerLayout.TAB_TRACK, true);
+        if (modernPlayerLayout != null && modernPlayerLayout.isQueueVisible()) {
+            modernPlayerLayout.showQueue(false, true);
             return;
         }
         if (lyricsView != null && lyricsView.getVisibility() == View.VISIBLE) {
@@ -2444,7 +2426,10 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
 
     private void updateProgress(MessageObject messageObject, boolean animated) {
         if (lyricsView != null && messageObject != null) {
-            lyricsView.updateTime(messageObject.audioProgressMs);
+            long currentMs = messageObject.audioProgressMs > 0
+                    ? messageObject.audioProgressMs
+                    : (long) (messageObject.audioProgress * (messageObject.audioPlayerDuration > 0 ? messageObject.audioPlayerDuration * 1000L : messageObject.getDuration() * 1000L));
+            lyricsView.updateTime(currentMs);
         }
         if (seekBarView != null) {
             int newTime;
@@ -2576,15 +2561,12 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
             titleTextView.setText(title);
             authorTextView.setText(author);
             if (modernPlayerLayout != null) {
-                modernPlayerLayout.setHeaderTitle(title);
+                modernPlayerLayout.setSong(messageObject);
             }
 
             final MessagesController.SavedMusicIds musicIds = MessagesController.getInstance(currentAccount).getSavedMusicIds();
             saveToProfileButton.setLoading(musicIds.loading);
             setVisibleInProfile(musicIds.ids.contains(docId));
-            if (modernPlayerLayout != null) {
-                modernPlayerLayout.setFavorite(musicIds.ids.contains(docId));
-            }
 
             int duration = lastDuration = (int) messageObject.getDuration();
 

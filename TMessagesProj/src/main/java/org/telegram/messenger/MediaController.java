@@ -1677,6 +1677,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                                     currentPlayingMessageObject.audioPlayerDuration = (int) (duration / 1000);
                                     currentPlayingMessageObject.audioProgress = value;
                                     currentPlayingMessageObject.audioProgressSec = (int) (lastProgress / 1000);
+                                    currentPlayingMessageObject.audioProgressMs = (int) lastProgress;
                                     currentPlayingMessageObject.bufferedProgress = bufferedValue;
                                     if (value >= 0 && shouldSavePositionForCurrentAudio != null && SystemClock.elapsedRealtime() - lastSaveTime >= 1000) {
                                         final String saveFor = shouldSavePositionForCurrentAudio;

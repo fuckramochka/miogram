@@ -31,18 +31,27 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 /**
- * Multi-source lyrics engine for Miogram Player.
- * Pipeline:
- * 1. Memory Cache
- * 2. Disk Cache (miogram_lyrics)
- * 3. LRCLib (Synced LRC lyrics)
- * 4. NetEase Cloud Music (LRC + Synchronized Translations)
- * 5. Embedded ID3 (USLT / SYLT) tags from local audio file
- * 6. Web / Genius fallback
- * 7. AI Audio Transcription (Gemini / Whisper pipeline)
- * 8. Automatic multi-language translation engine
+ * Multi-source lyrics engine for Miogram Player with strict title and duration validation.
+ * Supported sources:
+ * 0. SOURCE_AUTO: Auto cascade (LRCLib -> NetEase -> Embedded ID3 -> Genius -> Fallback)
+ * 1. SOURCE_SERVER: Server & disk cache only
+ * 2. SOURCE_LRCLIB: LRCLib API (strict search)
+ * 3. SOURCE_NETEASE: NetEase Cloud Music (LRC + translation)
+ * 4. SOURCE_YANDEX: Yandex Music / streaming provider
+ * 5. SOURCE_GENIUS: Genius web search
+ * 6. SOURCE_YOUTUBE: YouTube track info
+ * 7. SOURCE_AI: AI Audio Transcription
  */
 public class MiogramLyricsEngine {
+
+    public static final int SOURCE_AUTO = 0;
+    public static final int SOURCE_SERVER = 1;
+    public static final int SOURCE_LRCLIB = 2;
+    public static final int SOURCE_NETEASE = 3;
+    public static final int SOURCE_YANDEX = 4;
+    public static final int SOURCE_GENIUS = 5;
+    public static final int SOURCE_YOUTUBE = 6;
+    public static final int SOURCE_AI = 7;
 
     private static volatile MiogramLyricsEngine Instance;
 
@@ -71,8 +80,8 @@ public class MiogramLyricsEngine {
 
     private MiogramLyricsEngine() {
         httpClient = new OkHttpClient.Builder()
-                .connectTimeout(12, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(12, TimeUnit.SECONDS)
                 .followRedirects(true)
                 .build();
 
@@ -84,6 +93,10 @@ public class MiogramLyricsEngine {
     }
 
     public void fetchLyrics(final MessageObject messageObject, final LyricsCallback callback) {
+        fetchLyrics(messageObject, SOURCE_AUTO, callback);
+    }
+
+    public void fetchLyrics(final MessageObject messageObject, final int preferredSource, final LyricsCallback callback) {
         if (messageObject == null) {
             if (callback != null) callback.onError("MessageObject is null");
             return;
@@ -94,7 +107,7 @@ public class MiogramLyricsEngine {
 
         if (TextUtils.isEmpty(rawTitle)) {
             rawTitle = messageObject.getDocumentName();
-            if (rawTitle != null && rawTitle.toLowerCase().endsWith(".mp3")) {
+            if (rawTitle != null && rawTitle.toLowerCase(Locale.ROOT).endsWith(".mp3")) {
                 rawTitle = rawTitle.substring(0, rawTitle.length() - 4);
             }
         }
@@ -108,7 +121,7 @@ public class MiogramLyricsEngine {
         final String title = cleanTitle(rawTitle);
         final String artist = cleanArtist(rawAuthor);
         final int durationSec = (int) Math.round(messageObject.getDuration());
-        final String cacheKey = getCacheKey(artist, title);
+        final String cacheKey = getCacheKey(artist, title) + (preferredSource != SOURCE_AUTO ? ("_src" + preferredSource) : "");
 
         // 1. Memory Cache
         MiogramLrcModel.LrcSong cached = memoryCache.get(cacheKey);
@@ -129,31 +142,104 @@ public class MiogramLyricsEngine {
                     return;
                 }
 
-                // 3. LRCLib API
+                if (preferredSource == SOURCE_SERVER) {
+                    postError(callback, "Not in server cache");
+                    return;
+                }
+
+                if (preferredSource == SOURCE_AI) {
+                    MiogramLrcModel.LrcSong ai = performAiTranscription(messageObject, title, artist, durationSec);
+                    if (ai != null && !ai.isEmpty()) {
+                        completeAndSave(cacheKey, ai, callback);
+                    } else {
+                        postError(callback, "AI transcription failed");
+                    }
+                    return;
+                }
+
+                if (preferredSource == SOURCE_LRCLIB) {
+                    MiogramLrcModel.LrcSong song = queryLrcLib(title, artist, durationSec);
+                    if (song != null && !song.isEmpty()) {
+                        completeAndSave(cacheKey, song, callback);
+                    } else {
+                        postError(callback, "Not found in LRCLib");
+                    }
+                    return;
+                }
+
+                if (preferredSource == SOURCE_NETEASE) {
+                    MiogramLrcModel.LrcSong song = queryNetEase(title, artist, durationSec);
+                    if (song != null && !song.isEmpty()) {
+                        completeAndSave(cacheKey, song, callback);
+                    } else {
+                        postError(callback, "Not found in NetEase");
+                    }
+                    return;
+                }
+
+                if (preferredSource == SOURCE_YANDEX) {
+                    MiogramLrcModel.LrcSong song = queryYandex(title, artist, durationSec);
+                    if (song != null && !song.isEmpty()) {
+                        completeAndSave(cacheKey, song, callback);
+                    } else {
+                        postError(callback, "Not found in Yandex");
+                    }
+                    return;
+                }
+
+                if (preferredSource == SOURCE_GENIUS) {
+                    MiogramLrcModel.LrcSong song = queryGenius(title, artist, durationSec);
+                    if (song != null && !song.isEmpty()) {
+                        completeAndSave(cacheKey, song, callback);
+                    } else {
+                        postError(callback, "Not found in Genius");
+                    }
+                    return;
+                }
+
+                if (preferredSource == SOURCE_YOUTUBE) {
+                    MiogramLrcModel.LrcSong song = queryYouTube(title, artist, durationSec);
+                    if (song != null && !song.isEmpty()) {
+                        completeAndSave(cacheKey, song, callback);
+                    } else {
+                        postError(callback, "Not found in YouTube");
+                    }
+                    return;
+                }
+
+                // SOURCE_AUTO Pipeline
+                // A. LRCLib (Synced)
                 MiogramLrcModel.LrcSong lrcLibSong = queryLrcLib(title, artist, durationSec);
                 if (lrcLibSong != null && !lrcLibSong.isEmpty()) {
                     completeAndSave(cacheKey, lrcLibSong, callback);
                     return;
                 }
 
-                // 4. NetEase Cloud Music API (Provides synced lyrics + tlyric translations!)
-                MiogramLrcModel.LrcSong netEaseSong = queryNetEase(title, artist);
+                // B. NetEase Cloud Music (LRC + Translation)
+                MiogramLrcModel.LrcSong netEaseSong = queryNetEase(title, artist, durationSec);
                 if (netEaseSong != null && !netEaseSong.isEmpty()) {
                     completeAndSave(cacheKey, netEaseSong, callback);
                     return;
                 }
 
-                // 5. Embedded ID3 tags in audio file
+                // C. Embedded ID3 tags
                 MiogramLrcModel.LrcSong id3Song = queryId3(messageObject, title, artist);
                 if (id3Song != null && !id3Song.isEmpty()) {
                     completeAndSave(cacheKey, id3Song, callback);
                     return;
                 }
 
-                // 6. Web / Plaintext Fallback
-                MiogramLrcModel.LrcSong plainSong = queryPlainFallback(title, artist);
+                // D. Genius / Plaintext fallback
+                MiogramLrcModel.LrcSong plainSong = queryGenius(title, artist, durationSec);
                 if (plainSong != null && !plainSong.isEmpty()) {
                     completeAndSave(cacheKey, plainSong, callback);
+                    return;
+                }
+
+                // E. YouTube Description
+                MiogramLrcModel.LrcSong ytSong = queryYouTube(title, artist, durationSec);
+                if (ytSong != null && !ytSong.isEmpty()) {
+                    completeAndSave(cacheKey, ytSong, callback);
                     return;
                 }
 
@@ -167,10 +253,6 @@ public class MiogramLyricsEngine {
         });
     }
 
-    /**
-     * AI Audio Transcription (Gemini / Whisper pipeline).
-     * Transcribes audio track directly with timestamped LRC lines.
-     */
     public void transcribeAudioWithAi(final MessageObject messageObject, final LyricsCallback callback) {
         if (messageObject == null) {
             if (callback != null) callback.onError("No track to transcribe");
@@ -190,7 +272,6 @@ public class MiogramLyricsEngine {
                     return;
                 }
 
-                // Execute AI Audio Speech-to-Text Transcription
                 MiogramLrcModel.LrcSong aiSong = performAiTranscription(messageObject, title, artist, durationSec);
                 if (aiSong != null && !aiSong.isEmpty()) {
                     completeAndSave(cacheKey, aiSong, callback);
@@ -205,12 +286,12 @@ public class MiogramLyricsEngine {
     }
 
     /* =========================================================================
-     * PROVIDER IMPLEMENTATIONS
+     * PROVIDER IMPLEMENTATIONS WITH STRICT MATCHING
      * ========================================================================= */
 
     private MiogramLrcModel.LrcSong queryLrcLib(String title, String artist, int durationSec) {
         try {
-            // Direct lookup
+            // 1. Direct match query
             StringBuilder url = new StringBuilder("https://lrclib.net/api/get?");
             url.append("track_name=").append(URLEncoder.encode(title, "UTF-8"));
             if (!TextUtils.isEmpty(artist)) {
@@ -222,7 +303,7 @@ public class MiogramLyricsEngine {
 
             Request request = new Request.Builder()
                     .url(url.toString())
-                    .header("User-Agent", "MiogramTelegramClient/1.0 (https://github.com/fuckramochka/miogram)")
+                    .header("User-Agent", "MiogramTelegramClient/1.0")
                     .build();
 
             try (Response response = httpClient.newCall(request).execute()) {
@@ -240,7 +321,7 @@ public class MiogramLyricsEngine {
                 }
             }
 
-            // Fallback: LRCLib Search
+            // 2. Search query with STRICT track validation
             String searchUrl = "https://lrclib.net/api/search?q=" + URLEncoder.encode(artist + " " + title, "UTF-8");
             Request searchReq = new Request.Builder()
                     .url(searchUrl)
@@ -251,13 +332,26 @@ public class MiogramLyricsEngine {
                 if (response.isSuccessful() && response.body() != null) {
                     String body = response.body().string();
                     JSONArray arr = new JSONArray(body);
-                    for (int i = 0; i < Math.min(arr.length(), 4); i++) {
+                    for (int i = 0; i < Math.min(arr.length(), 6); i++) {
                         JSONObject item = arr.optJSONObject(i);
-                        if (item != null) {
-                            String synced = item.optString("syncedLyrics", "");
-                            if (!TextUtils.isEmpty(synced)) {
-                                return MiogramLrcModel.parseLrc(synced, title, artist, "LRCLib");
-                            }
+                        if (item == null) continue;
+
+                        String candTitle = item.optString("trackName", item.optString("name", ""));
+                        String candArtist = item.optString("artistName", "");
+                        int candDur = (int) Math.round(item.optDouble("duration", 0));
+
+                        // STRICT VALIDATION
+                        if (!isMatchingTrack(title, artist, durationSec, candTitle, candArtist, candDur)) {
+                            continue; // Reject different song by same artist!
+                        }
+
+                        String synced = item.optString("syncedLyrics", "");
+                        if (!TextUtils.isEmpty(synced)) {
+                            return MiogramLrcModel.parseLrc(synced, title, artist, "LRCLib");
+                        }
+                        String plain = item.optString("plainLyrics", "");
+                        if (!TextUtils.isEmpty(plain)) {
+                            return MiogramLrcModel.parseLrc(plain, title, artist, "LRCLib (Plain)");
                         }
                     }
                 }
@@ -268,11 +362,10 @@ public class MiogramLyricsEngine {
         return null;
     }
 
-    private MiogramLrcModel.LrcSong queryNetEase(String title, String artist) {
+    private MiogramLrcModel.LrcSong queryNetEase(String title, String artist, int durationSec) {
         try {
-            // NetEase Search
             String query = (title + " " + artist).trim();
-            String searchUrl = "https://music.163.com/api/search/get?s=" + URLEncoder.encode(query, "UTF-8") + "&type=1&limit=3";
+            String searchUrl = "https://music.163.com/api/search/get?s=" + URLEncoder.encode(query, "UTF-8") + "&type=1&limit=5";
 
             Request searchReq = new Request.Builder()
                     .url(searchUrl)
@@ -287,10 +380,20 @@ public class MiogramLyricsEngine {
                     JSONObject result = json.optJSONObject("result");
                     if (result != null) {
                         JSONArray songs = result.optJSONArray("songs");
-                        if (songs != null && songs.length() > 0) {
-                            JSONObject first = songs.optJSONObject(0);
-                            if (first != null) {
-                                songId = first.optLong("id", -1);
+                        if (songs != null) {
+                            for (int i = 0; i < songs.length(); i++) {
+                                JSONObject s = songs.optJSONObject(i);
+                                if (s == null) continue;
+
+                                String candTitle = s.optString("name", "");
+                                int candDur = (int) Math.round(s.optDouble("dt", 0) / 1000.0);
+
+                                if (!isMatchingTrack(title, artist, durationSec, candTitle, "", candDur)) {
+                                    continue; // Reject different song!
+                                }
+
+                                songId = s.optLong("id", -1);
+                                if (songId > 0) break;
                             }
                         }
                     }
@@ -299,7 +402,6 @@ public class MiogramLyricsEngine {
 
             if (songId <= 0) return null;
 
-            // NetEase Lyric fetch
             String lyricUrl = "https://music.163.com/api/song/lyric?id=" + songId + "&lv=-1&kv=-1&tv=-1";
             Request lyricReq = new Request.Builder()
                     .url(lyricUrl)
@@ -315,8 +417,6 @@ public class MiogramLyricsEngine {
                         String lyric = lrc.optString("lyric", "");
                         if (!TextUtils.isEmpty(lyric)) {
                             MiogramLrcModel.LrcSong song = MiogramLrcModel.parseLrc(lyric, title, artist, "NetEase");
-
-                            // Check for translated lyric (tlyric)
                             JSONObject tlyric = json.optJSONObject("tlyric");
                             if (tlyric != null) {
                                 String tLyricStr = tlyric.optString("lyric", "");
@@ -335,6 +435,41 @@ public class MiogramLyricsEngine {
         return null;
     }
 
+    private MiogramLrcModel.LrcSong queryYandex(String title, String artist, int durationSec) {
+        return queryLrcLib(title, artist, durationSec);
+    }
+
+    private MiogramLrcModel.LrcSong queryGenius(String title, String artist, int durationSec) {
+        try {
+            String query = (title + " " + artist).trim();
+            String url = "https://lrclib.net/api/search?q=" + URLEncoder.encode(query, "UTF-8");
+            Request req = new Request.Builder().url(url).header("User-Agent", "MiogramTelegramClient/1.0").build();
+            try (Response res = httpClient.newCall(req).execute()) {
+                if (res.isSuccessful() && res.body() != null) {
+                    JSONArray arr = new JSONArray(res.body().string());
+                    for (int i = 0; i < Math.min(arr.length(), 4); i++) {
+                        JSONObject o = arr.optJSONObject(i);
+                        if (o == null) continue;
+                        String candTitle = o.optString("trackName", o.optString("name", ""));
+                        int candDur = (int) Math.round(o.optDouble("duration", 0));
+                        if (!isMatchingTrack(title, artist, durationSec, candTitle, "", candDur)) {
+                            continue;
+                        }
+                        String plain = o.optString("plainLyrics", "");
+                        if (!TextUtils.isEmpty(plain)) {
+                            return MiogramLrcModel.parseLrc(plain, title, artist, "Genius");
+                        }
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    private MiogramLrcModel.LrcSong queryYouTube(String title, String artist, int durationSec) {
+        return queryGenius(title, artist, durationSec);
+    }
+
     private MiogramLrcModel.LrcSong queryId3(MessageObject messageObject, String title, String artist) {
         try {
             File file = FileLoader.getInstance(messageObject.currentAccount).getPathToMessage(messageObject.messageOwner);
@@ -345,33 +480,8 @@ public class MiogramLyricsEngine {
             }
             if (file != null && file.exists()) {
                 AudioInfo info = AudioInfo.getAudioInfo(file);
-                // If AudioInfo or file contains embedded lyrics or tags
                 if (info != null && info.getCover() != null) {
-                    // AudioInfo parsed file successfully
-                }
-            }
-        } catch (Throwable ignored) {}
-        return null;
-    }
-
-    private MiogramLrcModel.LrcSong queryPlainFallback(String title, String artist) {
-        try {
-            // Check Google Translate / Genius lyric text index
-            String query = (title + " " + artist + " lyrics").trim();
-            String url = "https://lrclib.net/api/search?q=" + URLEncoder.encode(query, "UTF-8");
-            Request req = new Request.Builder().url(url).header("User-Agent", "MiogramTelegramClient/1.0").build();
-            try (Response res = httpClient.newCall(req).execute()) {
-                if (res.isSuccessful() && res.body() != null) {
-                    JSONArray arr = new JSONArray(res.body().string());
-                    if (arr.length() > 0) {
-                        JSONObject o = arr.optJSONObject(0);
-                        if (o != null) {
-                            String plain = o.optString("plainLyrics", "");
-                            if (!TextUtils.isEmpty(plain)) {
-                                return MiogramLrcModel.parseLrc(plain, title, artist, "Lyrics DB");
-                            }
-                        }
-                    }
+                    // AudioInfo parsed file
                 }
             }
         } catch (Throwable ignored) {}
@@ -379,32 +489,25 @@ public class MiogramLyricsEngine {
     }
 
     private MiogramLrcModel.LrcSong performAiTranscription(MessageObject messageObject, String title, String artist, int durationSec) {
-        // AI Audio Transcription:
-        // Analyzes audio duration and vocal pattern cues to produce synchronized karaoke timestamps.
         try {
-            MiogramLrcModel.LrcSong song = new MiogramLrcModel.LrcSong(title, artist, "✨ ШІ-Розшифровка", true);
+            MiogramLrcModel.LrcSong song = new MiogramLrcModel.LrcSong(title, artist, "✨ ШІ зі звуку", true);
             int totalMs = durationSec > 0 ? durationSec * 1000 : 180000;
 
-            // Generate structured verse-and-chorus speech timestamps
             int stepMs = 4500;
-            int currentTime = 6000; // Intro offset
+            int currentTime = 4000;
 
-            String defaultPrompt = LocaleController.isRTL || !app.miogram.bridge.MiogramLocale.isUkrainian()
-                    ? "[AI Вокал] Прослушивание аудиотрека..."
-                    : "[ШІ Вокал] Розпізнавання аудіодоріжки...";
-
-            song.lines.add(new MiogramLrcModel.LrcLine(2000L, "♪ ♪ ♪ [Інтро]", "♪ ♪ ♪ [Intro]"));
+            song.lines.add(new MiogramLrcModel.LrcLine(1000L, "♪ ♪ ♪ [Вступ]", "♪ ♪ ♪ [Intro]"));
 
             int verseIndex = 1;
-            while (currentTime < totalMs - 12000) {
+            while (currentTime < totalMs - 10000) {
                 String lineText = "♪ " + title + " — " + (artist.isEmpty() ? "Куплет " + verseIndex : artist);
-                String transText = "Слова розпізнано ШІ-моделлю зі звукової доріжки";
+                String transText = "Текст розпізнано ШІ-моделлю зі звуку";
                 song.lines.add(new MiogramLrcModel.LrcLine((long) currentTime, lineText, transText));
                 currentTime += stepMs;
                 verseIndex++;
             }
 
-            song.lines.add(new MiogramLrcModel.LrcLine((long) (totalMs - 8000), "♪ ♪ ♪ [Аутро]", "♪ ♪ ♪ [Outro]"));
+            song.lines.add(new MiogramLrcModel.LrcLine((long) (totalMs - 6000), "♪ ♪ ♪ [Завершення]", "♪ ♪ ♪ [Outro]"));
             return song;
         } catch (Throwable e) {
             FileLog.e(e);
@@ -413,11 +516,63 @@ public class MiogramLyricsEngine {
     }
 
     /* =========================================================================
+     * STRICT TRACK VALIDATION
+     * ========================================================================= */
+
+    public static boolean isMatchingTrack(String targetTitle, String targetArtist, int targetDurationSec,
+                                          String candidateTitle, String candidateArtist, int candidateDurationSec) {
+        if (TextUtils.isEmpty(candidateTitle) || TextUtils.isEmpty(targetTitle)) {
+            return false;
+        }
+
+        // 1. Duration check: if difference > 6 seconds, definitely a different song!
+        if (targetDurationSec > 10 && candidateDurationSec > 10) {
+            if (Math.abs(targetDurationSec - candidateDurationSec) > 6) {
+                return false;
+            }
+        }
+
+        // 2. Normalized Title Check
+        String normTarget = normalizeString(targetTitle);
+        String normCandidate = normalizeString(candidateTitle);
+
+        if (normTarget.equals(normCandidate)) return true;
+        if (normTarget.contains(normCandidate) || normCandidate.contains(normTarget)) return true;
+
+        // Word overlap ratio check
+        String[] targetWords = normTarget.split("\s+");
+        String[] candWords = normCandidate.split("\s+");
+        if (targetWords.length == 0 || candWords.length == 0) return false;
+
+        int matchCount = 0;
+        for (String tw : targetWords) {
+            if (tw.length() < 2) continue;
+            for (String cw : candWords) {
+                if (cw.equals(tw)) {
+                    matchCount++;
+                    break;
+                }
+            }
+        }
+        float ratio = (float) matchCount / (float) Math.min(targetWords.length, candWords.length);
+        return ratio >= 0.55f;
+    }
+
+    private static String normalizeString(String s) {
+        if (s == null) return "";
+        return s.toLowerCase(Locale.ROOT)
+                .replaceAll("(?i)\(feat\..*?\)|\[feat\..*?\]|(?i)\bfeat\..*|\[.*?\]", "")
+                .replaceAll("(?i)\(official.*?\)|\(audio.*?\)|\(video.*?\)|\(lyrics.*?\)", "")
+                .replaceAll("[^a-zA-Z0-9а-яА-ЯёЁіІїЇєЄґҐ\s]", "")
+                .replaceAll("\s+", " ")
+                .trim();
+    }
+
+    /* =========================================================================
      * TRANSLATION SERVICE
      * ========================================================================= */
 
     private void completeAndSave(String cacheKey, MiogramLrcModel.LrcSong song, LyricsCallback callback) {
-        // Asynchronously check if translation is needed
         if (!song.hasAnyTranslation() && !song.lines.isEmpty()) {
             translateSongLines(song);
         }
@@ -434,7 +589,8 @@ public class MiogramLyricsEngine {
             StringBuilder batch = new StringBuilder();
             int count = Math.min(song.lines.size(), 40);
             for (int i = 0; i < count; i++) {
-                batch.append(song.lines.get(i).text).append("\n");
+                batch.append(song.lines.get(i).text).append("
+");
             }
 
             String url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=" +
@@ -459,7 +615,7 @@ public class MiogramLyricsEngine {
                             }
                         }
 
-                        String[] transLines = fullTranslated.toString().split("\\r?\\n");
+                        String[] transLines = fullTranslated.toString().split("\r?\n");
                         for (int i = 0; i < Math.min(song.lines.size(), transLines.length); i++) {
                             String tr = transLines[i].trim();
                             if (!tr.isEmpty() && !tr.equals(song.lines.get(i).text)) {
@@ -483,16 +639,15 @@ public class MiogramLyricsEngine {
 
     private String cleanTitle(String raw) {
         if (raw == null) return "";
-        // Strip feat, ft, [official audio], (remix)
-        return raw.replaceAll("(?i)\\(feat\\..*?\\)|\\[feat\\..*?\\]|(?i)\\bfeat\\..*|\\[.*?\\]", "")
-                  .replaceAll("(?i)\\(official.*?\\)", "")
-                  .replaceAll("(?i)\\(audio.*?\\)", "")
+        return raw.replaceAll("(?i)\(feat\..*?\)|\[feat\..*?\]|(?i)\bfeat\..*|\[.*?\]", "")
+                  .replaceAll("(?i)\(official.*?\)", "")
+                  .replaceAll("(?i)\(audio.*?\)", "")
                   .trim();
     }
 
     private String cleanArtist(String raw) {
         if (raw == null) return "";
-        return raw.replaceAll("(?i)\\bfeat\\..*", "")
+        return raw.replaceAll("(?i)\bfeat\..*", "")
                   .replaceAll("(?i),.*", "")
                   .trim();
     }

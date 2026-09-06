@@ -61,3 +61,5 @@ release_apk_latest/
 *.plugin
 *.dex
 CustomProfile_java_src/
+
+*.mp4
