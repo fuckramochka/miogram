@@ -472,12 +472,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
         private final Map<String, List<View>> groups = new HashMap<>();
         private String currentGroup = null;
         private BottomSheet bottomSheet;
-
-        private final Runnable restoreRunnable = () -> {
-            if (content != null) {
-                content.animate().alpha(1.0f).setDuration(110).start();
-            }
-        };
+        private final Runnable restoreRunnable;
 
         public EditSheet(Context context, String title) {
             this.context = context;
@@ -489,6 +484,12 @@ public class MiogramCustomUiActivity extends BaseFragment {
             content = new LinearLayout(context);
             content.setOrientation(LinearLayout.VERTICAL);
             halfScreen.addView(content, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            restoreRunnable = () -> {
+                if (content != null) {
+                    content.animate().alpha(1.0f).setDuration(110).start();
+                }
+            };
 
             // Acoustic zipper feedback: plays zipIn on attach, zipOut on detach
             MiogramHaptic.zipper(halfScreen);
