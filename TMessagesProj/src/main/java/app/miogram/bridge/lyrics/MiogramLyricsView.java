@@ -592,7 +592,7 @@ public class MiogramLyricsView extends FrameLayout {
                             ? (float) currentMessageObject.audioPlayerDuration
                             : (float) currentMessageObject.getDuration();
                     if (dur > 0) {
-                        float progress = (float) line.timestampMs / (dur * 1000f);
+                        float progress = (float) line.timeMs / (dur * 1000f);
                         MediaController.getInstance().seekToProgress(currentMessageObject, Math.max(0f, Math.min(1f, progress)));
                     }
                 }
