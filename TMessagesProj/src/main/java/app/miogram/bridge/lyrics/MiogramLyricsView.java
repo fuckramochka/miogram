@@ -223,6 +223,15 @@ public class MiogramLyricsView extends FrameLayout {
         }
     }
 
+    public interface OnActiveLineChangeListener {
+        void onActiveLineChanged(String text, String translation, int index);
+    }
+    private OnActiveLineChangeListener onActiveLineChangeListener;
+
+    public void setOnActiveLineChangeListener(OnActiveLineChangeListener listener) {
+        this.onActiveLineChangeListener = listener;
+    }
+
     public void setSong(MessageObject messageObject) {
         if (messageObject == null) return;
         this.currentMessageObject = messageObject;
@@ -244,6 +253,11 @@ public class MiogramLyricsView extends FrameLayout {
 
             if (old >= 0) adapter.notifyItemChanged(old);
             adapter.notifyItemChanged(activePosition);
+
+            if (onActiveLineChangeListener != null && activePosition < currentSong.lines.size()) {
+                MiogramLrcModel.LrcLine line = currentSong.lines.get(activePosition);
+                onActiveLineChangeListener.onActiveLineChanged(line.text, line.translation, activePosition);
+            }
 
             if (!isUserScrolling) {
                 smoothCenterTo(activePosition);
@@ -301,6 +315,9 @@ public class MiogramLyricsView extends FrameLayout {
                 emptyTitle.setText(MiogramLocale.get("Слова пісні не знайдено", "Слова песни не найдены", "Lyrics not found"));
                 emptySubtitle.setText(MiogramLocale.get("Ви можете розпізнати слова безпосередньо зі звукової доріжки", "Вы можете распознать слова прямо из аудиодорожки", "You can transcribe lyrics from the audio track using AI"));
                 aiActionButton.setVisibility(View.VISIBLE);
+                if (onActiveLineChangeListener != null) {
+                    onActiveLineChangeListener.onActiveLineChanged(null, null, -1);
+                }
             }
         });
     }
