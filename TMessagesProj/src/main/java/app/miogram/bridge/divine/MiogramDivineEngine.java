@@ -73,8 +73,7 @@ public class MiogramDivineEngine {
                 MiogramFlags.setSpatialDecoration(true);
                 MiogramVisualsPrefs.saveBool(context, "agsl_enabled", true);
                 MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", true);
-                MiogramVisualsPrefs.saveBool(context, "apple_music_player", true);
-                MiogramVisualsPrefs.saveBool(context, "mini_bass_glow", true);
+                MiogramVisualsPrefs.saveBool(context, "player_active_lyric", true);
                 AppearanceConfig.singleCornerRadius.setConfigBool(true);
                 AppearanceConfig.senderMiniAvatars.setConfigBool(false);
                 NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(false);
@@ -86,8 +85,7 @@ public class MiogramDivineEngine {
                 MiogramFlags.setSpatialDecoration(false);
                 MiogramVisualsPrefs.saveBool(context, "agsl_enabled", false);
                 MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", false);
-                MiogramVisualsPrefs.saveBool(context, "apple_music_player", false);
-                MiogramVisualsPrefs.saveBool(context, "mini_bass_glow", false);
+                MiogramVisualsPrefs.saveBool(context, "player_active_lyric", false);
                 AppearanceConfig.singleCornerRadius.setConfigBool(false);
                 AppearanceConfig.senderMiniAvatars.setConfigBool(false);
                 NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(true);
@@ -101,8 +99,7 @@ public class MiogramDivineEngine {
                 MiogramFlags.setSpatialDecoration(true);
                 MiogramVisualsPrefs.saveBool(context, "agsl_enabled", true);
                 MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", true);
-                MiogramVisualsPrefs.saveBool(context, "apple_music_player", true);
-                MiogramVisualsPrefs.saveBool(context, "mini_bass_glow", true);
+                MiogramVisualsPrefs.saveBool(context, "player_active_lyric", true);
                 AppearanceConfig.singleCornerRadius.setConfigBool(true);
                 AppearanceConfig.senderMiniAvatars.setConfigBool(true);
                 NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(false);

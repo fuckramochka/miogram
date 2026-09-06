@@ -2,6 +2,7 @@ package app.miogram.bridge.ai;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Base64;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -12,7 +13,8 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.Utilities;
 
-import java.io.IOException;
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -43,6 +45,8 @@ public class MiogramAiService {
     private static final String AI_PREFS = "miogram_ai_prefs";
     private static final String KEY_API_KEYS = "gemini_api_keys";
     private static final AtomicInteger apiKeyCursor = new AtomicInteger();
+    // Base64 expands data; stay well below Gemini's 20 MB inline audio limit.
+    private static final long MAX_INLINE_AUDIO_BYTES = 14L * 1024L * 1024L;
 
     public static int getProvider() {
         try {
@@ -161,7 +165,7 @@ public class MiogramAiService {
             String model = LlmConfig.getEffectiveModelName(PresetRegistry.GOOGLE_AI_STUDIO);
             if (!TextUtils.isEmpty(model)) return model;
         } catch (Throwable ignored) {}
-        return "gemini-3.5-flash-lite";
+        return "gemini-2.0-flash";
     }
 
     public static void setModel(String model) {
@@ -297,6 +301,121 @@ public class MiogramAiService {
                 callback.run(null, e.getMessage());
             }
         });
+    }
+
+    /**
+     * Sends a downloaded audio track to Gemini for a real LRC transcription.
+     * This deliberately refuses large files rather than creating placeholder lyrics.
+     */
+    public static void transcribeAudio(File audioFile, String mimeType, String title, String artist,
+                                       int durationSeconds, Utilities.Callback2<String, String> callback) {
+        if (audioFile == null || !audioFile.isFile() || audioFile.length() <= 0) {
+            callback.run(null, "Audio file is not downloaded yet");
+            return;
+        }
+        if (audioFile.length() > MAX_INLINE_AUDIO_BYTES) {
+            callback.run(null, "Audio file is too large for AI transcription (maximum 14 MB)");
+            return;
+        }
+        List<String> apiKeys = getApiKeys();
+        if (apiKeys.isEmpty()) {
+            callback.run(null, "No Gemini API key configured");
+            return;
+        }
+
+        executor.submit(() -> {
+            byte[] audioBytes = null;
+            try (FileInputStream input = new FileInputStream(audioFile)) {
+                audioBytes = new byte[(int) audioFile.length()];
+                int offset = 0;
+                while (offset < audioBytes.length) {
+                    int read = input.read(audioBytes, offset, audioBytes.length - offset);
+                    if (read < 0) break;
+                    offset += read;
+                }
+                if (offset != audioBytes.length) {
+                    callback.run(null, "Could not read the complete audio file");
+                    return;
+                }
+
+                String prompt = "Transcribe the lyrics in this audio track. Return only standard LRC lines "
+                        + "in the exact format [mm:ss.xx] lyric text, one line per timestamp. "
+                        + "Do not use Markdown, headings, translations, descriptions, or invented words. "
+                        + "If there are no confidently intelligible lyrics, return exactly [00:00.00] [Instrumental]. "
+                        + "Track metadata: title=" + (title == null ? "" : title)
+                        + ", artist=" + (artist == null ? "" : artist)
+                        + ", duration=" + Math.max(0, durationSeconds) + " seconds.";
+
+                JsonObject root = new JsonObject();
+                JsonArray contents = new JsonArray();
+                JsonObject content = new JsonObject();
+                JsonArray parts = new JsonArray();
+                JsonObject textPart = new JsonObject();
+                textPart.addProperty("text", prompt);
+                parts.add(textPart);
+                JsonObject audioPart = new JsonObject();
+                JsonObject inlineData = new JsonObject();
+                inlineData.addProperty("mimeType", TextUtils.isEmpty(mimeType) ? "audio/mpeg" : mimeType);
+                inlineData.addProperty("data", Base64.encodeToString(audioBytes, Base64.NO_WRAP));
+                audioPart.add("inlineData", inlineData);
+                parts.add(audioPart);
+                content.add("parts", parts);
+                contents.add(content);
+                root.add("contents", contents);
+
+                RequestBody body = RequestBody.create(gson.toJson(root), JSON);
+                String lastError = "No usable Gemini API key";
+                int start = Math.floorMod(apiKeyCursor.getAndIncrement(), apiKeys.size());
+                for (int offsetKey = 0; offsetKey < apiKeys.size(); offsetKey++) {
+                    String apiKey = apiKeys.get((start + offsetKey) % apiKeys.size());
+                    Request request = new Request.Builder()
+                            .url("https://generativelanguage.googleapis.com/v1beta/models/" + getModel() + ":generateContent")
+                            .header("x-goog-api-key", apiKey)
+                            .post(body)
+                            .build();
+                    try (Response response = client.newCall(request).execute()) {
+                        String responseBody = response.body() != null ? response.body().string() : "";
+                        if (!response.isSuccessful()) {
+                            lastError = "Error " + response.code() + ": " + truncateError(responseBody);
+                            if (response.code() == 401 || response.code() == 403 || response.code() == 429) continue;
+                            callback.run(null, lastError);
+                            return;
+                        }
+                        String lrc = extractGeneratedText(responseBody);
+                        if (!TextUtils.isEmpty(lrc)) {
+                            callback.run(lrc.trim(), null);
+                            return;
+                        }
+                        callback.run(null, "Gemini returned no transcription text");
+                        return;
+                    }
+                }
+                callback.run(null, lastError);
+            } catch (Exception e) {
+                FileLog.e(e);
+                callback.run(null, e.getMessage() != null ? e.getMessage() : "Audio transcription failed");
+            } finally {
+                if (audioBytes != null) java.util.Arrays.fill(audioBytes, (byte) 0);
+            }
+        });
+    }
+
+    private static String extractGeneratedText(String responseBody) {
+        try {
+            JsonObject root = gson.fromJson(responseBody, JsonObject.class);
+            if (root == null || !root.has("candidates")) return "";
+            JsonArray candidates = root.getAsJsonArray("candidates");
+            if (candidates == null || candidates.size() == 0) return "";
+            JsonObject candidate = candidates.get(0).getAsJsonObject();
+            JsonObject content = candidate.getAsJsonObject("content");
+            if (content == null || !content.has("parts")) return "";
+            JsonArray parts = content.getAsJsonArray("parts");
+            for (int i = 0; i < parts.size(); i++) {
+                JsonObject part = parts.get(i).getAsJsonObject();
+                if (part.has("text")) return part.get("text").getAsString();
+            }
+        } catch (Exception ignored) {}
+        return "";
     }
 
     private static String truncateError(String error) {

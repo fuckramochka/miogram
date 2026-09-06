@@ -68,6 +68,19 @@ public class MiogramLyricsEngine {
         return local;
     }
 
+    public MiogramLrcModel.LrcSong getCachedSong(MessageObject messageObject) {
+        if (messageObject == null) return null;
+        String rawTitle = messageObject.getMusicTitle();
+        String rawAuthor = messageObject.getMusicAuthor();
+        if (TextUtils.isEmpty(rawTitle)) return null;
+        String title = cleanTitle(rawTitle);
+        String artist = cleanArtist(rawAuthor);
+        String cacheKey = getCacheKey(artist, title);
+        MiogramLrcModel.LrcSong song = memoryCache.get(cacheKey);
+        if (song != null) return song;
+        return loadFromDisk(cacheKey);
+    }
+
     public interface LyricsCallback {
         void onLyricsLoaded(MiogramLrcModel.LrcSong song);
         void onError(String message);
@@ -272,12 +285,42 @@ public class MiogramLyricsEngine {
                     return;
                 }
 
-                MiogramLrcModel.LrcSong aiSong = performAiTranscription(messageObject, title, artist, durationSec);
-                if (aiSong != null && !aiSong.isEmpty()) {
-                    completeAndSave(cacheKey, aiSong, callback);
-                } else {
-                    postError(callback, "AI transcription could not extract text from audio.");
+                File audioFile = resolveAudioFile(messageObject);
+                if (audioFile == null) {
+                    if (messageObject.getDocument() != null) {
+                        FileLoader.getInstance(messageObject.currentAccount).loadFile(messageObject.getDocument(), messageObject, FileLoader.PRIORITY_HIGH, 0);
+                    }
+                    postError(callback, app.miogram.bridge.MiogramLocale.get(
+                            "Завантаження аудіофайлу... Зачекайте пару секунд і спробуйте знову.",
+                            "Загрузка аудиофайла... Подождите пару секунд и попробуйте снова.",
+                            "Downloading audio file... Please wait a few seconds and try again."));
+                    return;
                 }
+
+                if (!app.miogram.bridge.ai.MiogramAiService.hasApiKey()) {
+                    postError(callback, app.miogram.bridge.MiogramLocale.get(
+                            "Вкажіть Gemini API ключ у Налаштуваннях Miogram -> ШІ.",
+                            "Укажите Gemini API ключ в Настройках Miogram -> ИИ.",
+                            "Configure Gemini API key in Miogram Settings -> AI."));
+                    return;
+                }
+
+                app.miogram.bridge.ai.MiogramAiService.transcribeAudio(audioFile, resolveAudioMimeType(messageObject, audioFile), title, artist, durationSec,
+                        (lrc, error) -> {
+                            if (!TextUtils.isEmpty(lrc)) {
+                                MiogramLrcModel.LrcSong aiSong = MiogramLrcModel.parseLrc(stripCodeFence(lrc), title, artist, "✨ Gemini AI");
+                                if (aiSong != null && !aiSong.isEmpty()) {
+                                    completeAndSave(cacheKey, aiSong, callback);
+                                    return;
+                                }
+                                postError(callback, app.miogram.bridge.MiogramLocale.get(
+                                        "ШІ не зміг розпізнати розбірливий текст пісні.",
+                                        "ИИ не смог распознать разборчивый текст песни.",
+                                        "AI could not extract recognizable lyrics from audio."));
+                                return;
+                            }
+                            postError(callback, TextUtils.isEmpty(error) ? "AI transcription failed." : error);
+                        });
             } catch (Throwable e) {
                 FileLog.e(e);
                 postError(callback, "AI error: " + e.getMessage());
@@ -488,31 +531,40 @@ public class MiogramLyricsEngine {
         return null;
     }
 
-    private MiogramLrcModel.LrcSong performAiTranscription(MessageObject messageObject, String title, String artist, int durationSec) {
+    private File resolveAudioFile(MessageObject messageObject) {
         try {
-            MiogramLrcModel.LrcSong song = new MiogramLrcModel.LrcSong(title, artist, "✨ ШІ зі звуку", true);
-            int totalMs = durationSec > 0 ? durationSec * 1000 : 180000;
-
-            int stepMs = 4500;
-            int currentTime = 4000;
-
-            song.lines.add(new MiogramLrcModel.LrcLine(1000L, "♪ ♪ ♪ [Вступ]", "♪ ♪ ♪ [Intro]"));
-
-            int verseIndex = 1;
-            while (currentTime < totalMs - 10000) {
-                String lineText = "♪ " + title + " — " + (artist.isEmpty() ? "Куплет " + verseIndex : artist);
-                String transText = "Текст розпізнано ШІ-моделлю зі звуку";
-                song.lines.add(new MiogramLrcModel.LrcLine((long) currentTime, lineText, transText));
-                currentTime += stepMs;
-                verseIndex++;
+            if (messageObject.messageOwner != null && !TextUtils.isEmpty(messageObject.messageOwner.attachPath)) {
+                File file = new File(messageObject.messageOwner.attachPath);
+                if (file.isFile() && file.length() > 0) return file;
             }
+            File file = FileLoader.getInstance(messageObject.currentAccount).getPathToMessage(messageObject.messageOwner);
+            if (file != null && file.isFile() && file.length() > 0) return file;
+            if (messageObject.getDocument() != null) {
+                file = FileLoader.getInstance(messageObject.currentAccount).getPathToAttach(messageObject.getDocument(), true);
+                if (file != null && file.isFile() && file.length() > 0) return file;
+                file = FileLoader.getInstance(messageObject.currentAccount).getPathToAttach(messageObject.getDocument(), false);
+                if (file != null && file.isFile() && file.length() > 0) return file;
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
 
-            song.lines.add(new MiogramLrcModel.LrcLine((long) (totalMs - 6000), "♪ ♪ ♪ [Завершення]", "♪ ♪ ♪ [Outro]"));
-            return song;
-        } catch (Throwable e) {
-            FileLog.e(e);
-            return null;
-        }
+    private String resolveAudioMimeType(MessageObject messageObject, File audioFile) {
+        try {
+            if (messageObject.getDocument() != null && !TextUtils.isEmpty(messageObject.getDocument().mime_type)) {
+                return messageObject.getDocument().mime_type;
+            }
+        } catch (Throwable ignored) {}
+        String name = audioFile != null ? audioFile.getName().toLowerCase(Locale.ROOT) : "";
+        if (name.endsWith(".ogg") || name.endsWith(".opus")) return "audio/ogg";
+        if (name.endsWith(".m4a") || name.endsWith(".mp4")) return "audio/mp4";
+        if (name.endsWith(".wav")) return "audio/wav";
+        return "audio/mpeg";
+    }
+
+    private String stripCodeFence(String content) {
+        if (content == null) return "";
+        return content.replace("```lrc", "").replace("```LRC", "").replace("```", "").trim();
     }
 
     /* =========================================================================

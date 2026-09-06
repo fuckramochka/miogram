@@ -33,7 +33,7 @@ import tw.nekomimi.nekogram.ui.cells.HeaderCell;
  * Features:
  * - Interface Mode (Telegram Classic vs Discord Style)
  * - Needy Streamer Overload / Ame-chan Aesthetic
- * - Apple Music 1:1 Player & Live Mini-Bass Visualizer
+ * - One Telegram-native music player with an optional active lyric line
  * - Liquid Frosted Glass (AGSL) & Avatar Geometry
  */
 public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
@@ -41,8 +41,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
     private int headerModeRow;
     private int discordUiRow;
     private int ameVibeRow;
-    private int appleMusicRow;
-    private int miniBassRow;
+    private int activeLyricsLineRow;
     private int modeInfoRow;
 
     private int headerGlassRow;
@@ -74,12 +73,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         headerModeRow = addRow();
         discordUiRow = addRow();
         ameVibeRow = addRow();
-        appleMusicRow = addRow();
-        if (appleMusicEnabled()) {
-            miniBassRow = addRow();
-        } else {
-            miniBassRow = -1;
-        }
+        activeLyricsLineRow = addRow();
         modeInfoRow = addRow();
 
         headerGlassRow = addRow();
@@ -121,12 +115,8 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         return MiogramVisualsPrefs.loadBool(getSafeContext(), "ame_vibe_enabled", true);
     }
 
-    private boolean appleMusicEnabled() {
-        return MiogramVisualsPrefs.loadBool(getSafeContext(), "apple_music_player", true);
-    }
-
-    private boolean miniBassEnabled() {
-        return MiogramVisualsPrefs.loadBool(getSafeContext(), "mini_bass_glow", true);
+    private boolean activeLyricsLineEnabled() {
+        return MiogramVisualsPrefs.loadBool(getSafeContext(), "player_active_lyric", true);
     }
 
     @Override
@@ -137,15 +127,11 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
             boolean next = !ameVibeEnabled();
             MiogramVisualsPrefs.saveBool(getSafeContext(), "ame_vibe_enabled", next);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(next);
-        } else if (position == appleMusicRow) {
-            boolean next = !appleMusicEnabled();
-            MiogramVisualsPrefs.saveBool(getSafeContext(), "apple_music_player", next);
-            updateRows();
-            listAdapter.notifyDataSetChanged();
-        } else if (position == miniBassRow) {
-            boolean next = !miniBassEnabled();
-            MiogramVisualsPrefs.saveBool(getSafeContext(), "mini_bass_glow", next);
+        } else if (position == activeLyricsLineRow) {
+            boolean next = !activeLyricsLineEnabled();
+            MiogramVisualsPrefs.saveBool(getSafeContext(), "player_active_lyric", next);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(next);
+            app.miogram.bridge.lyrics.MiogramFloatingLyricsTicker.getInstance().updateLyricsState();
         } else if (position == glassToggleRow) {
             boolean enabled = !decorationEnabled();
             MiogramFlags.setSpatialDecoration(enabled);
@@ -316,7 +302,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
         public int getItemViewType(int position) {
             if (position == headerModeRow || position == headerGlassRow || position == headerAvatarsRow || position == headerUiRow) {
                 return TYPE_HEADER;
-            } else if (position == ameVibeRow || position == appleMusicRow || position == miniBassRow
+            } else if (position == ameVibeRow || position == activeLyricsLineRow
                     || position == glassToggleRow || position == singleCornerRadiusRow
                     || position == senderMiniAvatarsRow || position == squareFabRow) {
                 return TYPE_CHECK;
@@ -346,10 +332,8 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
                     if (position == ameVibeRow) {
                         cell.setTextAndCheck(MiogramLocale.get("Вайб Needy Streamer Overload (Ame-chan)", "Вайб Needy Streamer Overload (Ame-chan)", "Needy Streamer Overload Aesthetic (Ame-chan)"), ameVibeEnabled(), true);
-                    } else if (position == appleMusicRow) {
-                        cell.setTextAndCheck(MiogramLocale.get("Музичний плеєр Apple Music + Spotify", "Музыкальный плеер Apple Music + Spotify", "Apple Music Design + Spotify Ergonomics"), appleMusicEnabled(), true);
-                    } else if (position == miniBassRow) {
-                        cell.setTextAndCheck(MiogramLocale.get("Живий візуалізатор та міні-баси інтерфейсу", "Живой визуализатор и мини-басы интерфейса", "Live Mini-Bass UI Visualizer"), miniBassEnabled(), false);
+                    } else if (position == activeLyricsLineRow) {
+                        cell.setTextAndCheck(MiogramLocale.get("Активний рядок тексту в плеєрі", "Активная строка текста в плеере", "Active lyric line in player"), activeLyricsLineEnabled(), true);
                     } else if (position == glassToggleRow) {
                         cell.setTextAndCheck(MiogramLocale.get("Ефект рідкого скла на AGSL", "Эффект жидкого стекла на AGSL", "Liquid glass effect via AGSL"), decorationEnabled(), true);
                     } else if (position == singleCornerRadiusRow) {

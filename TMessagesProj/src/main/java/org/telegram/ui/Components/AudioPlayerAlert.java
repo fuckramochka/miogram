@@ -188,6 +188,9 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
     private ActionBarMenuItem searchItem;
     private app.miogram.bridge.lyrics.MiogramLyricsView lyricsView;
     private app.miogram.bridge.player.MiogramModernPlayerLayout modernPlayerLayout;
+    private boolean isFullScreen = false;
+    private float fullScreenProgress = 0.0f;
+    private android.animation.ValueAnimator fullScreenAnimator;
     private ImageView shuffleButton;
     private ActionBarMenuItem lyricsButton;
     private boolean lyricsVisible;
@@ -342,9 +345,11 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                 }
                 if (modernPlayerLayout != null) {
                     ignoreLayout = false;
-                    super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(totalHeight, MeasureSpec.EXACTLY));
-                    inFullSize = true;
-                    scrollOffsetY = 0;
+                    int compactHeight = Math.min(dp(440), totalHeight - AndroidUtilities.statusBarHeight);
+                    int targetHeight = (int) (compactHeight + (totalHeight - compactHeight) * fullScreenProgress);
+                    super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(targetHeight, MeasureSpec.EXACTLY));
+                    inFullSize = fullScreenProgress >= 0.99f;
+                    scrollOffsetY = Math.max(0, totalHeight - targetHeight);
                     return;
                 }
                 ignoreLayout = true;
@@ -401,7 +406,10 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
             @Override
             public boolean onInterceptTouchEvent(MotionEvent ev) {
                 if (modernPlayerLayout != null) {
-                    if (ev.getAction() == MotionEvent.ACTION_DOWN && ev.getY() < dp(56)) {
+                    if (isFullScreen) {
+                        return false;
+                    }
+                    if (ev.getAction() == MotionEvent.ACTION_DOWN && ev.getY() < dp(48)) {
                         return false;
                     }
                     return super.onInterceptTouchEvent(ev);
@@ -1590,6 +1598,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         modernPlayerLayout.setSeekBarViews(seekBarView, timeTextView, durationTextView);
         modernPlayerLayout.setControlButtons(repeatButton, prevButton, playButton, nextButton);
         modernPlayerLayout.setProfileButtons(saveToProfileButton, unsaveFromProfileButton);
+        modernPlayerLayout.setSong(MediaController.getInstance().getPlayingMessageObject());
 
         containerView.addView(modernPlayerLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
@@ -2319,10 +2328,69 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         shuffleButton.setContentDescription(on ? app.miogram.bridge.MiogramLocale.get("Вимкнути перемішування", "Выключить перемешивание", "Shuffle Off") : app.miogram.bridge.MiogramLocale.get("Увімкнути перемішування", "Включить перемешивание", "Shuffle On"));
     }
 
+    public boolean isFullScreen() {
+        return isFullScreen;
+    }
+
+    public void setFullScreen(boolean fullScreen, boolean animated) {
+        if (this.isFullScreen == fullScreen) {
+            return;
+        }
+        this.isFullScreen = fullScreen;
+        if (fullScreenAnimator != null) {
+            fullScreenAnimator.cancel();
+            fullScreenAnimator = null;
+        }
+        if (animated) {
+            float start = fullScreenProgress;
+            float end = fullScreen ? 1.0f : 0.0f;
+            fullScreenAnimator = android.animation.ValueAnimator.ofFloat(start, end);
+            fullScreenAnimator.addUpdateListener(animation -> {
+                fullScreenProgress = (float) animation.getAnimatedValue();
+                if (modernPlayerLayout != null) {
+                    modernPlayerLayout.setFullScreenProgress(fullScreenProgress);
+                }
+                if (containerView != null) {
+                    containerView.requestLayout();
+                }
+            });
+            fullScreenAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(android.animation.Animator animation) {
+                    fullScreenProgress = end;
+                    fullScreenAnimator = null;
+                    if (modernPlayerLayout != null) {
+                        modernPlayerLayout.setFullScreenProgress(fullScreenProgress);
+                        modernPlayerLayout.setFullScreen(isFullScreen, false);
+                    }
+                    if (containerView != null) {
+                        containerView.requestLayout();
+                    }
+                }
+            });
+            fullScreenAnimator.setInterpolator(org.telegram.ui.Components.CubicBezierInterpolator.EASE_OUT_QUINT);
+            fullScreenAnimator.setDuration(300);
+            fullScreenAnimator.start();
+        } else {
+            fullScreenProgress = fullScreen ? 1.0f : 0.0f;
+            if (modernPlayerLayout != null) {
+                modernPlayerLayout.setFullScreenProgress(fullScreenProgress);
+                modernPlayerLayout.setFullScreen(isFullScreen, false);
+            }
+            if (containerView != null) {
+                containerView.requestLayout();
+            }
+        }
+    }
+
     @Override
     public void onBackPressed() {
         if (modernPlayerLayout != null && modernPlayerLayout.isQueueVisible()) {
             modernPlayerLayout.showQueue(false, true);
+            return;
+        }
+        if (isFullScreen) {
+            setFullScreen(false, true);
             return;
         }
         if (lyricsView != null && lyricsView.getVisibility() == View.VISIBLE) {

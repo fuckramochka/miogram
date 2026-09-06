@@ -444,6 +444,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         AndroidUtilities.runOnUIThread(() -> app.miogram.bridge.updater.MiogramUpdater.initAutoUpdate(this), 3500);
         app.miogram.bridge.plugins.MiogramInAppNotifications.getInstance().register();
         app.miogram.bridge.performance.MiogramFpsController.applyToWindow(this);
+        app.miogram.bridge.lyrics.MiogramFloatingLyricsTicker.getInstance().attach(this);
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if (!UserConfig.getInstance(currentAccount).isClientActivated()) {
             Intent intent = getIntent();
@@ -3268,11 +3269,9 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             } else if (showPlayer) {
                 if (!actionBarLayout.getFragmentStack().isEmpty()) {
                     BaseFragment fragment = actionBarLayout.getFragmentStack().get(0);
-                    if (app.miogram.bridge.ui.MiogramVisualsPrefs.loadBool(this, "apple_music_player", true)) {
-                        new app.miogram.bridge.ui.player.MiogramAppleMusicSheet(fragment).show();
-                    } else {
-                        fragment.showDialog(new AudioPlayerAlert(this, null));
-                    }
+                    // The Telegram context bar is the compact state; every tap opens
+                    // the same full Miogram player, regardless of source screen.
+                    fragment.showDialog(new AudioPlayerAlert(this, null));
                 }
                 pushOpened = false;
             } else if (showLocations) {
@@ -7089,6 +7088,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         isActive = false;
         activeInstanceCount--;
         unregisterReceiver(batteryReceiver);
+        app.miogram.bridge.lyrics.MiogramFloatingLyricsTicker.getInstance().detach();
 
         if (activeInstanceCount == 0) {
             onDestroyStaticResources();

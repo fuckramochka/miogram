@@ -95,7 +95,7 @@ class GeminiCloudClient(
 
     companion object {
         const val DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
-        const val DEFAULT_MODEL = "gemini-3.5-flash-lite"
+        const val DEFAULT_MODEL = "gemini-2.0-flash"
 
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 

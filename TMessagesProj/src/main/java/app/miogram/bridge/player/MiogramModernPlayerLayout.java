@@ -4,16 +4,17 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
 import android.graphics.Color;
-import android.graphics.Outline;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
+import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
+import android.graphics.Outline;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -32,39 +33,59 @@ import org.telegram.ui.Components.LayoutHelper;
 import app.miogram.bridge.MiogramLocale;
 import app.miogram.bridge.customui.MiogramHaptic;
 import app.miogram.bridge.lyrics.MiogramLyricsView;
+import app.miogram.bridge.ui.MiogramVisualsPrefs;
 
 /**
- * Modern High-Fidelity Audio Player Layout matching the reference design:
- * - Direct full-screen Karaoke Lyrics view (with Top Header: Title, Artist, [A], [≡-], [✕] + Waveform Dots)
- * - Seamless toggle to Album Cover / Playlist Queue
- * - Compact, beautifully balanced bottom controls:
- *   - Seekbar with current and total timestamps
- *   - 5 reliable playback buttons: Repeat, Prev, Play/Pause, Next, Queue
- *   - Profile "+ Додати в профіль" button
+ * Unified Telegram-native Audio Player Layout.
+ * Supports two distinct, cohesive states:
+ * 1. Compact Sheet (~440dp): drag handle, rounded cover art, marquee title/artist,
+ *    active lyric pill, seekbar, playback controls, and expand button.
+ * 2. Full-Screen: full-height synced lyrics (MiogramLyricsView) with karaoke,
+ *    waveform, tabs for [ Lyrics | Cover | Queue ], and collapse button.
  */
 public class MiogramModernPlayerLayout extends FrameLayout {
+
+    public enum PlayerMode {
+        LYRICS,
+        COVER,
+        QUEUE
+    }
 
     private final AudioPlayerAlert alert;
     private final Theme.ResourcesProvider resourcesProvider;
 
-    // Content Container
-    private final FrameLayout contentContainer;
-    private MiogramLyricsView lyricsView;
-    private FrameLayout coverContainer;
-    private View coverView;
-    private FrameLayout queueContainer;
-    private View queueListView;
-    private enum PlayerMode { LYRICS, COVER, QUEUE }
-
-    // A single source of truth prevents delayed fade callbacks from restoring an old page.
+    private boolean isFullScreen = false;
+    private float fullScreenProgress = 0f;
     private PlayerMode playerMode = PlayerMode.LYRICS;
 
-    // Bottom Controls Section
-    private final LinearLayout bottomSection;
+    // Header / Top section
+    private final LinearLayout topSection;
+    private final View dragHandle;
+    private final LinearLayout topControlsRow;
+    private final ImageView collapseBtn;
     private final LinearLayout pageSwitcher;
     private final TextView lyricsModeButton;
     private final TextView coverModeButton;
     private final TextView queueModeButton;
+    private final ImageView expandOrCloseBtn;
+
+    // Center Section: Compact Info vs Full Content
+    private final FrameLayout centerContainer;
+    private final LinearLayout compactInfoContainer;
+    private final FrameLayout compactCoverWrapper;
+    private final TextView compactTitleView;
+    private final TextView compactAuthorView;
+    private final TextView compactActiveLyricView;
+
+    private final FrameLayout fullContentContainer;
+    private final FrameLayout fullCoverWrapper;
+    private final FrameLayout queueContainer;
+    private MiogramLyricsView lyricsView;
+    private View queueListView;
+    private View coverView;
+
+    // Bottom Controls Section
+    private final LinearLayout bottomSection;
     private final LinearLayout seekbarContainer;
     private View seekBarView;
     private final FrameLayout timersRow;
@@ -84,6 +105,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     private View saveToProfileButton;
     private View unsaveFromProfileButton;
 
+    private MessageObject currentMessageObject;
     private boolean isPlaying = false;
 
     public MiogramModernPlayerLayout(Context context, AudioPlayerAlert alert, Theme.ResourcesProvider resourcesProvider) {
@@ -91,59 +113,56 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         this.alert = alert;
         this.resourcesProvider = resourcesProvider;
 
-        GradientDrawable background = new GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                new int[]{0xFF101C2B, 0xFF0C131D, 0xFF080D14});
-        setBackground(background);
+        updateBackgroundShape(0f);
 
-        // Central Content Area (Lyrics / Cover / Queue)
-        contentContainer = new FrameLayout(context);
-        addView(contentContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, 0, 0, 140));
+        // --- 1. Top Section (Drag Handle + Header Controls) ---
+        topSection = new LinearLayout(context);
+        topSection.setOrientation(LinearLayout.VERTICAL);
+        topSection.setGravity(Gravity.CENTER_HORIZONTAL);
+        topSection.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(4));
 
-        // Cover Container (Centered, for fallback or cover view)
-        coverContainer = new FrameLayout(context);
-        coverContainer.setVisibility(View.GONE);
-        if (Build.VERSION.SDK_INT >= 21) {
-            coverContainer.setElevation(AndroidUtilities.dp(10));
-            coverContainer.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), AndroidUtilities.dp(20));
-                }
-            });
-            coverContainer.setClipToOutline(true);
-        }
-        contentContainer.addView(coverContainer, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+        dragHandle = new View(context);
+        dragHandle.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(2), 0x44888888));
+        topSection.addView(dragHandle, LayoutHelper.createLinear(36, 4, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 8));
 
-        // Queue Container (Full width/height inside contentContainer)
-        queueContainer = new FrameLayout(context);
-        queueContainer.setVisibility(View.GONE);
-        GradientDrawable queueBackground = new GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0xF7132030, 0xFF0C131D});
-        queueContainer.setBackground(queueBackground);
-        contentContainer.addView(queueContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        topControlsRow = new LinearLayout(context);
+        topControlsRow.setOrientation(LinearLayout.HORIZONTAL);
+        topControlsRow.setGravity(Gravity.CENTER_VERTICAL);
 
-        // Bottom Controls Section
-        bottomSection = new LinearLayout(context);
-        bottomSection.setOrientation(LinearLayout.VERTICAL);
-        bottomSection.setGravity(Gravity.BOTTOM);
-        bottomSection.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(10));
-        GradientDrawable dockBackground = new GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0x00101C2B, 0xFA080D14});
-        bottomSection.setBackground(dockBackground);
+        int buttonColor = getThemedColor(Theme.key_player_button);
+        if (buttonColor == 0) buttonColor = 0xFF888888;
+        int accentColor = getThemedColor(Theme.key_featuredStickers_addButton);
+        if (accentColor == 0) accentColor = 0xFF3390EC;
 
-        // This control keeps every player scene discoverable instead of hiding lyrics behind one entry point.
+        // Left button: Collapse / Close down chevron
+        collapseBtn = new ImageView(context);
+        collapseBtn.setImageResource(R.drawable.baseline_keyboard_arrow_down_24);
+        collapseBtn.setScaleType(ImageView.ScaleType.CENTER);
+        collapseBtn.setColorFilter(new PorterDuffColorFilter(buttonColor, PorterDuff.Mode.SRC_IN));
+        collapseBtn.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, AndroidUtilities.dp(18)));
+        collapseBtn.setContentDescription(MiogramLocale.get("Згорнути", "Свернуть", "Collapse"));
+        collapseBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            if (isFullScreen) {
+                if (alert != null) alert.setFullScreen(false, true);
+            } else {
+                if (alert != null) alert.dismiss();
+            }
+        });
+        topControlsRow.addView(collapseBtn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL));
+
+        // Center Switcher: [ Lyrics | Cover | Queue ] (Visible only in FullScreen)
         pageSwitcher = new LinearLayout(context);
         pageSwitcher.setOrientation(LinearLayout.HORIZONTAL);
         pageSwitcher.setGravity(Gravity.CENTER);
         pageSwitcher.setPadding(AndroidUtilities.dp(3), AndroidUtilities.dp(3), AndroidUtilities.dp(3), AndroidUtilities.dp(3));
-        pageSwitcher.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(18), 0x26FFFFFF));
+        pageSwitcher.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(18), ColorUtils.setAlphaComponent(accentColor, 25)));
+        pageSwitcher.setVisibility(View.GONE);
 
         lyricsModeButton = createModeButton(MiogramLocale.get("Текст", "Текст", "Lyrics"));
         coverModeButton = createModeButton(MiogramLocale.get("Обкладинка", "Обложка", "Cover"));
         queueModeButton = createModeButton(MiogramLocale.get("Черга", "Очередь", "Queue"));
+
         lyricsModeButton.setOnClickListener(v -> {
             MiogramHaptic.select(v);
             showLyrics(true);
@@ -156,39 +175,159 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             MiogramHaptic.select(v);
             showQueue(true, true);
         });
-        pageSwitcher.addView(lyricsModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
-        pageSwitcher.addView(coverModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
-        pageSwitcher.addView(queueModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
-        bottomSection.addView(pageSwitcher, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 38, 0, 0, 0, 6));
 
-        // 1. Seekbar & Timestamps
+        pageSwitcher.addView(lyricsModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(30), 1f));
+        pageSwitcher.addView(coverModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(30), 1f));
+        pageSwitcher.addView(queueModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(30), 1f));
+        topControlsRow.addView(pageSwitcher, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(36), 1f));
+
+        // Right button: Expand to fullscreen (in compact) or Dismiss 'X' (in fullscreen)
+        expandOrCloseBtn = new ImageView(context);
+        expandOrCloseBtn.setImageResource(R.drawable.baseline_fullscreen_24);
+        expandOrCloseBtn.setScaleType(ImageView.ScaleType.CENTER);
+        expandOrCloseBtn.setColorFilter(new PorterDuffColorFilter(buttonColor, PorterDuff.Mode.SRC_IN));
+        expandOrCloseBtn.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, AndroidUtilities.dp(18)));
+        expandOrCloseBtn.setContentDescription(MiogramLocale.get("Розгорнути", "Развернуть", "Expand"));
+        expandOrCloseBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            if (!isFullScreen) {
+                if (alert != null) alert.setFullScreen(true, true);
+            } else {
+                if (alert != null) alert.dismiss();
+            }
+        });
+        topControlsRow.addView(expandOrCloseBtn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL));
+
+        topSection.addView(topControlsRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        addView(topSection, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
+
+        // --- 2. Center Container ---
+        centerContainer = new FrameLayout(context);
+        addView(centerContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, 68, 0, 142));
+
+        // 2A: Compact Info Container
+        compactInfoContainer = new LinearLayout(context);
+        compactInfoContainer.setOrientation(LinearLayout.VERTICAL);
+        compactInfoContainer.setGravity(Gravity.CENTER_HORIZONTAL);
+        compactInfoContainer.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(4), AndroidUtilities.dp(20), 0);
+
+        compactCoverWrapper = new FrameLayout(context);
+        if (Build.VERSION.SDK_INT >= 21) {
+            compactCoverWrapper.setElevation(AndroidUtilities.dp(8));
+            compactCoverWrapper.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), AndroidUtilities.dp(16));
+                }
+            });
+            compactCoverWrapper.setClipToOutline(true);
+        }
+        compactCoverWrapper.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            if (alert != null) alert.setFullScreen(true, true);
+        });
+        compactInfoContainer.addView(compactCoverWrapper, LayoutHelper.createLinear(115, 115, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 10));
+
+        compactTitleView = new TextView(context);
+        compactTitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
+        compactTitleView.setTypeface(AndroidUtilities.bold());
+        compactTitleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        compactTitleView.setGravity(Gravity.CENTER);
+        compactTitleView.setSingleLine(true);
+        compactTitleView.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+        compactTitleView.setSelected(true);
+        compactTitleView.setPadding(AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8), 0);
+        compactTitleView.setOnClickListener(v -> {
+            if (alert != null) alert.setFullScreen(true, true);
+        });
+        compactInfoContainer.addView(compactTitleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 2));
+
+        compactAuthorView = new TextView(context);
+        compactAuthorView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        compactAuthorView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText2));
+        compactAuthorView.setGravity(Gravity.CENTER);
+        compactAuthorView.setSingleLine(true);
+        compactAuthorView.setEllipsize(TextUtils.TruncateAt.END);
+        compactAuthorView.setPadding(AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8), 0);
+        compactInfoContainer.addView(compactAuthorView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 6));
+
+        compactActiveLyricView = new TextView(context);
+        compactActiveLyricView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        compactActiveLyricView.setTypeface(AndroidUtilities.bold());
+        compactActiveLyricView.setTextColor(accentColor);
+        compactActiveLyricView.setGravity(Gravity.CENTER);
+        compactActiveLyricView.setSingleLine(true);
+        compactActiveLyricView.setEllipsize(TextUtils.TruncateAt.END);
+        compactActiveLyricView.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(4), AndroidUtilities.dp(14), AndroidUtilities.dp(4));
+        compactActiveLyricView.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), ColorUtils.setAlphaComponent(accentColor, 26)));
+        compactActiveLyricView.setVisibility(View.GONE);
+        compactActiveLyricView.setOnClickListener(v -> {
+            MiogramHaptic.select(v);
+            showLyrics(false);
+            if (alert != null) alert.setFullScreen(true, true);
+        });
+        compactInfoContainer.addView(compactActiveLyricView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 4));
+
+        centerContainer.addView(compactInfoContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+
+        // 2B: Full Content Container
+        fullContentContainer = new FrameLayout(context);
+        fullContentContainer.setVisibility(View.GONE);
+
+        fullCoverWrapper = new FrameLayout(context);
+        fullCoverWrapper.setVisibility(View.GONE);
+        if (Build.VERSION.SDK_INT >= 21) {
+            fullCoverWrapper.setElevation(AndroidUtilities.dp(12));
+            fullCoverWrapper.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), AndroidUtilities.dp(22));
+                }
+            });
+            fullCoverWrapper.setClipToOutline(true);
+        }
+        fullContentContainer.addView(fullCoverWrapper, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+
+        queueContainer = new FrameLayout(context);
+        queueContainer.setVisibility(View.GONE);
+        int surface = getThemedColor(Theme.key_windowBackgroundWhite);
+        queueContainer.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{ColorUtils.blendARGB(surface, accentColor, 0.08f), surface}));
+        fullContentContainer.addView(queueContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
+        centerContainer.addView(fullContentContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
+        // --- 3. Bottom Controls Section ---
+        bottomSection = new LinearLayout(context);
+        bottomSection.setOrientation(LinearLayout.VERTICAL);
+        bottomSection.setGravity(Gravity.BOTTOM);
+        bottomSection.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(6), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        bottomSection.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{ColorUtils.setAlphaComponent(surface, 0), surface}));
+
+        // Seekbar & Timestamps
         seekbarContainer = new LinearLayout(context);
         seekbarContainer.setOrientation(LinearLayout.VERTICAL);
         timersRow = new FrameLayout(context);
         seekbarContainer.addView(timersRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 0));
         bottomSection.addView(seekbarContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 2));
 
-        // 2. Main Playback Controls Row (Repeat, Prev, Play/Pause, Next, Queue)
+        // Main Controls Row (Repeat, Prev, Hero Play/Pause, Next, Queue)
         mainControlsRow = new LinearLayout(context);
         mainControlsRow.setOrientation(LinearLayout.HORIZONTAL);
         mainControlsRow.setGravity(Gravity.CENTER_VERTICAL);
         mainControlsRow.setWeightSum(5);
 
-        // Circular Hero Play button container (56x56 dp)
         heroPlayButton = new FrameLayout(context);
         GradientDrawable heroBg = new GradientDrawable();
-        int accent = getThemedColor(Theme.key_featuredStickers_addButton);
-        if (accent == 0) accent = 0xFF3390EC;
-        heroBg.setColor(accent);
+        heroBg.setColor(accentColor);
         heroBg.setShape(GradientDrawable.OVAL);
         heroPlayButton.setBackground(heroBg);
         if (Build.VERSION.SDK_INT >= 21) {
             heroPlayButton.setElevation(AndroidUtilities.dp(4));
         }
 
-        bottomSection.addView(mainControlsRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 58, 0, 2, 0, 4));
+        bottomSection.addView(mainControlsRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 56, 0, 2, 0, 4));
 
-        // 3. Profile Button Container ("+ Додати в профіль")
+        // Profile Button Container ("+ Додати в профіль")
         profileButtonContainer = new FrameLayout(context);
         bottomSection.addView(profileButtonContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
 
@@ -215,10 +354,15 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             }
             view.setOnCloseClickListener(() -> {
                 if (alert != null) {
-                    alert.dismiss();
+                    if (isFullScreen) {
+                        alert.setFullScreen(false, true);
+                    } else {
+                        alert.dismiss();
+                    }
                 }
             });
-            contentContainer.addView(view, 0, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+            view.setOnActiveLineChangeListener((text, translation, index) -> updateActiveLyric(text));
+            fullContentContainer.addView(view, 0, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
             view.setVisibility(playerMode == PlayerMode.LYRICS ? View.VISIBLE : View.GONE);
             view.setAlpha(playerMode == PlayerMode.LYRICS ? 1f : 0f);
         }
@@ -226,13 +370,22 @@ public class MiogramModernPlayerLayout extends FrameLayout {
 
     public void setCoverView(View cover) {
         this.coverView = cover;
-        if (coverContainer != null && cover != null) {
-            if (cover.getParent() instanceof ViewGroup) {
-                ((ViewGroup) cover.getParent()).removeView(cover);
-            }
-            coverContainer.removeAllViews();
+        updateCoverAttachment();
+    }
+
+    private void updateCoverAttachment() {
+        if (coverView == null) return;
+        if (coverView.getParent() instanceof ViewGroup) {
+            ((ViewGroup) coverView.getParent()).removeView(coverView);
+        }
+        if (!isFullScreen || fullScreenProgress < 0.5f) {
+            compactCoverWrapper.removeAllViews();
+            int size = AndroidUtilities.dp(115);
+            compactCoverWrapper.addView(coverView, LayoutHelper.createFrame(size, size, Gravity.CENTER));
+        } else if (playerMode == PlayerMode.COVER) {
+            fullCoverWrapper.removeAllViews();
             int size = Math.min(AndroidUtilities.dp(250), AndroidUtilities.displaySize.x - AndroidUtilities.dp(64));
-            coverContainer.addView(cover, LayoutHelper.createFrame(size, size, Gravity.CENTER));
+            fullCoverWrapper.addView(coverView, LayoutHelper.createFrame(size, size, Gravity.CENTER));
         }
     }
 
@@ -303,7 +456,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             }
             mainControlsRow.addView(slot0, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
 
-            // Slot 1: Previous (Explicit OnClickListener for 100% reliability)
+            // Slot 1: Previous
             FrameLayout slot1 = new FrameLayout(getContext());
             if (prev != null) {
                 if (prev.getParent() instanceof ViewGroup) ((ViewGroup) prev.getParent()).removeView(prev);
@@ -315,7 +468,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             }
             mainControlsRow.addView(slot1, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
 
-            // Slot 2: Hero Play/Pause Button (56dp)
+            // Slot 2: Hero Play/Pause Button (54dp)
             FrameLayout slot2 = new FrameLayout(getContext());
             if (play != null) {
                 if (play.getParent() instanceof ViewGroup) ((ViewGroup) play.getParent()).removeView(play);
@@ -334,7 +487,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             slot2.addView(heroPlayButton, LayoutHelper.createFrame(54, 54, Gravity.CENTER));
             mainControlsRow.addView(slot2, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
 
-            // Slot 3: Next (Explicit OnClickListener for 100% reliability)
+            // Slot 3: Next
             FrameLayout slot3 = new FrameLayout(getContext());
             if (next != null) {
                 if (next.getParent() instanceof ViewGroup) ((ViewGroup) next.getParent()).removeView(next);
@@ -346,17 +499,24 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             }
             mainControlsRow.addView(slot3, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
 
-            // Slot 4: Queue / Playlist Toggle Button
+            // Slot 4: Queue / Mode Toggle Button
             FrameLayout slot4 = new FrameLayout(getContext());
             queueButton = new ImageView(getContext());
             queueButton.setImageResource(R.drawable.msg_list);
             queueButton.setScaleType(ImageView.ScaleType.CENTER);
-            queueButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_player_button), PorterDuff.Mode.SRC_IN));
+            int buttonColor = getThemedColor(Theme.key_player_button);
+            if (buttonColor == 0) buttonColor = 0xFF888888;
+            queueButton.setColorFilter(new PorterDuffColorFilter(buttonColor, PorterDuff.Mode.SRC_IN));
             queueButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, AndroidUtilities.dp(18)));
             queueButton.setContentDescription(MiogramLocale.get("Черга", "Очередь", "Queue"));
             queueButton.setOnClickListener(v -> {
                 MiogramHaptic.tap(v);
-                toggleQueue();
+                if (!isFullScreen) {
+                    showQueue(true, false);
+                    if (alert != null) alert.setFullScreen(true, true);
+                } else {
+                    toggleQueue();
+                }
             });
             slot4.addView(queueButton, LayoutHelper.createFrame(44, 44, Gravity.CENTER));
             mainControlsRow.addView(slot4, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
@@ -378,6 +538,82 @@ public class MiogramModernPlayerLayout extends FrameLayout {
                 profileButtonContainer.addView(unsaveBtn, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 42, Gravity.CENTER));
             }
         }
+    }
+
+    public void setFullScreen(boolean fullScreen, boolean animated) {
+        this.isFullScreen = fullScreen;
+        this.fullScreenProgress = fullScreen ? 1.0f : 0.0f;
+        applyFullScreenVisualState(animated);
+    }
+
+    public void setFullScreenProgress(float progress) {
+        this.fullScreenProgress = Math.max(0f, Math.min(1f, progress));
+        this.isFullScreen = this.fullScreenProgress >= 0.5f;
+        updateBackgroundShape(this.fullScreenProgress);
+
+        dragHandle.setAlpha(Math.max(0f, 1.0f - this.fullScreenProgress * 2f));
+        dragHandle.setVisibility(this.fullScreenProgress >= 0.9f ? View.GONE : View.VISIBLE);
+
+        compactInfoContainer.setAlpha(Math.max(0f, 1.0f - this.fullScreenProgress * 2.2f));
+        fullContentContainer.setAlpha(Math.max(0f, (this.fullScreenProgress - 0.2f) / 0.8f));
+        pageSwitcher.setAlpha(Math.max(0f, (this.fullScreenProgress - 0.35f) / 0.65f));
+
+        if (this.fullScreenProgress <= 0.05f) {
+            compactInfoContainer.setVisibility(View.VISIBLE);
+            fullContentContainer.setVisibility(View.GONE);
+            pageSwitcher.setVisibility(View.GONE);
+            expandOrCloseBtn.setImageResource(R.drawable.baseline_fullscreen_24);
+            expandOrCloseBtn.setContentDescription(MiogramLocale.get("Розгорнути", "Развернуть", "Expand"));
+            updateCoverAttachment();
+        } else if (this.fullScreenProgress >= 0.95f) {
+            compactInfoContainer.setVisibility(View.GONE);
+            fullContentContainer.setVisibility(View.VISIBLE);
+            pageSwitcher.setVisibility(View.VISIBLE);
+            expandOrCloseBtn.setImageResource(R.drawable.ic_ab_close);
+            expandOrCloseBtn.setContentDescription(MiogramLocale.get("Закрити", "Закрыть", "Close"));
+            updateCoverAttachment();
+        } else {
+            compactInfoContainer.setVisibility(View.VISIBLE);
+            fullContentContainer.setVisibility(View.VISIBLE);
+            pageSwitcher.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void applyFullScreenVisualState(boolean animated) {
+        updateBackgroundShape(fullScreenProgress);
+        pageSwitcher.setVisibility(isFullScreen ? View.VISIBLE : View.GONE);
+        pageSwitcher.setAlpha(isFullScreen ? 1f : 0f);
+
+        dragHandle.setVisibility(isFullScreen ? View.GONE : View.VISIBLE);
+        dragHandle.setAlpha(isFullScreen ? 0f : 1f);
+
+        expandOrCloseBtn.setImageResource(isFullScreen ? R.drawable.ic_ab_close : R.drawable.baseline_fullscreen_24);
+        expandOrCloseBtn.setContentDescription(isFullScreen
+                ? MiogramLocale.get("Закрити", "Закрыть", "Close")
+                : MiogramLocale.get("Розгорнути", "Развернуть", "Expand"));
+
+        compactInfoContainer.setVisibility(isFullScreen ? View.GONE : View.VISIBLE);
+        compactInfoContainer.setAlpha(isFullScreen ? 0f : 1f);
+
+        fullContentContainer.setVisibility(isFullScreen ? View.VISIBLE : View.GONE);
+        fullContentContainer.setAlpha(isFullScreen ? 1f : 0f);
+
+        updateCoverAttachment();
+        updateModeButtons();
+    }
+
+    private void updateBackgroundShape(float progress) {
+        int surface = getThemedColor(Theme.key_windowBackgroundWhite);
+        int accentColor = getThemedColor(Theme.key_featuredStickers_addButton);
+        if (accentColor == 0) accentColor = 0xFF3390EC;
+
+        GradientDrawable background = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{ColorUtils.blendARGB(surface, accentColor, 0.10f), surface, ColorUtils.blendARGB(surface, 0xFF000000, 0.05f)});
+
+        float radius = AndroidUtilities.dp(24) * (1.0f - progress);
+        background.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
+        setBackground(background);
     }
 
     public void toggleQueue() {
@@ -405,8 +641,12 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         PlayerMode previousMode = playerMode;
         playerMode = mode;
 
-        View target = mode == PlayerMode.QUEUE ? queueContainer : mode == PlayerMode.COVER ? coverContainer : lyricsView;
-        View previous = previousMode == PlayerMode.QUEUE ? queueContainer : previousMode == PlayerMode.COVER ? coverContainer : lyricsView;
+        if (mode == PlayerMode.COVER) {
+            updateCoverAttachment();
+        }
+
+        View target = mode == PlayerMode.QUEUE ? queueContainer : mode == PlayerMode.COVER ? fullCoverWrapper : lyricsView;
+        View previous = previousMode == PlayerMode.QUEUE ? queueContainer : previousMode == PlayerMode.COVER ? fullCoverWrapper : lyricsView;
         if (target == null) return;
 
         if (queueButton != null) {
@@ -468,15 +708,36 @@ public class MiogramModernPlayerLayout extends FrameLayout {
 
     public void setPlaying(boolean playing) {
         this.isPlaying = playing;
-        if (coverContainer != null) {
-            coverContainer.animate().scaleX(playing ? 1.0f : 0.94f).scaleY(playing ? 1.0f : 0.94f).setDuration(220).start();
+        if (compactCoverWrapper != null) {
+            compactCoverWrapper.animate().scaleX(playing ? 1.0f : 0.94f).scaleY(playing ? 1.0f : 0.94f).setDuration(220).start();
+        }
+        if (fullCoverWrapper != null) {
+            fullCoverWrapper.animate().scaleX(playing ? 1.0f : 0.94f).scaleY(playing ? 1.0f : 0.94f).setDuration(220).start();
         }
     }
 
     public void setSong(MessageObject messageObject) {
+        this.currentMessageObject = messageObject;
+        updateActiveLyric(null);
+        if (messageObject != null) {
+            String title = messageObject.getMusicTitle();
+            String author = messageObject.getMusicAuthor();
+            if (TextUtils.isEmpty(title)) {
+                title = messageObject.getDocumentName();
+            }
+            compactTitleView.setText(title != null ? title : "");
+            compactAuthorView.setText(author != null ? author : "");
+        }
         if (lyricsView != null && messageObject != null) {
             lyricsView.setSong(messageObject);
         }
+    }
+
+    private void updateActiveLyric(String text) {
+        boolean enabled = MiogramVisualsPrefs.loadBool(getContext(), "player_active_lyric", true);
+        boolean hasText = text != null && !text.trim().isEmpty();
+        compactActiveLyricView.setText(hasText ? ("🎵 " + text.trim()) : "");
+        compactActiveLyricView.setVisibility(enabled && hasText ? View.VISIBLE : View.GONE);
     }
 
     public void setSpeedText(String speed) {
