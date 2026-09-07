@@ -110,7 +110,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
         searchInner.setBackground(searchBg);
 
         ImageView searchIcon = new ImageView(context);
-        searchIcon.setImageResource(R.drawable.ic_search);
+        searchIcon.setImageResource(R.drawable.outline_header_search);
         searchIcon.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
         searchInner.addView(searchIcon, LayoutHelper.createFrame(22, 22, Gravity.CENTER_VERTICAL | Gravity.LEFT, 12, 0, 0, 0));
 
@@ -153,7 +153,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
             updateChipStyle(chip, sf == currentFilter);
 
             chip.setOnClickListener(v -> {
-                MiogramHaptic.click(v);
+                MiogramHaptic.tap(v);
                 currentFilter = sf;
                 for (int i = 0; i < chipLayout.getChildCount(); i++) {
                     View c = chipLayout.getChildAt(i);
@@ -375,12 +375,12 @@ public class MiogramMusicSearchActivity extends BaseFragment {
 
             // Play Button
             playBtn = new ImageView(context);
-            playBtn.setImageResource(R.drawable.inline_play);
+            playBtn.setImageResource(R.drawable.ic_play);
             playBtn.setColorFilter(Theme.getColor(Theme.key_chats_actionBackground));
             playBtn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1));
             playBtn.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6));
             playBtn.setOnClickListener(v -> {
-                MiogramHaptic.click(v);
+                MiogramHaptic.tap(v);
                 if (currentTrack != null) {
                     if (currentTrack.telegramMessage != null) {
                         MediaController.getInstance().playMessage(currentTrack.telegramMessage);
@@ -408,7 +408,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
             downloadContainer.addView(progressBar, LayoutHelper.createFrame(30, 30, Gravity.CENTER));
 
             downloadBtn.setOnClickListener(v -> {
-                MiogramHaptic.click(v);
+                MiogramHaptic.tap(v);
                 if (currentTrack != null && !currentTrack.isDownloading) {
                     downloadBtn.setVisibility(View.GONE);
                     progressBar.setVisibility(View.VISIBLE);

@@ -92,6 +92,10 @@ public final class MiogramHaptic {
         play(view, TAP, TAP_A, HapticFeedbackConstants.KEYBOARD_TAP, false);
     }
 
+    public static void click(View view) {
+        tap(view);
+    }
+
     public static void select(View view) {
         play(view, SELECT, SELECT_A, HapticFeedbackConstants.CLOCK_TICK, false);
     }

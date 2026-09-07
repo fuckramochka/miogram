@@ -348,9 +348,9 @@ public class MiogramMusicSearchEngine {
 
                 // Auto-save to user's Saved Messages (permanent cloud sync)
                 long myUserId = UserConfig.getInstance(currentAccount).getClientUserId();
-                SendMessagesHelper.getInstance(currentAccount).sendMessage(
-                        SendMessagesHelper.SendMessageParams.of(track.telegramMessage, myUserId, null, null, null, true, 0)
-                );
+                ArrayList<MessageObject> forwardList = new ArrayList<>();
+                forwardList.add(track.telegramMessage);
+                SendMessagesHelper.getInstance(currentAccount).sendMessage(forwardList, myUserId, false, false, true, 0, 0L);
 
                 Utilities.globalQueue.postRunnable(() -> {
                     File attachFile = FileLoader.getInstance(currentAccount).getPathToAttach(doc, true);
