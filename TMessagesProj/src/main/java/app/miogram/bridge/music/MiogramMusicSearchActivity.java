@@ -26,13 +26,16 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaController;
+import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.R;
+import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.UserConfig;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.ActionBarMenu;
 import org.telegram.ui.ActionBar.ActionBarMenuItem;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.EmptyTextProgressView;
 import org.telegram.ui.Components.LayoutHelper;
@@ -63,6 +66,23 @@ public class MiogramMusicSearchActivity extends BaseFragment {
         }
     }
 
+    private long targetDialogId;
+    private ChatActivity targetChatActivity;
+
+    public MiogramMusicSearchActivity() {
+        this(0, null);
+    }
+
+    public MiogramMusicSearchActivity(long dialogId, ChatActivity chatActivity) {
+        super();
+        this.targetDialogId = dialogId;
+        this.targetChatActivity = chatActivity;
+    }
+
+    public static MiogramMusicSearchActivity createForChat(long dialogId, ChatActivity chatActivity) {
+        return new MiogramMusicSearchActivity(dialogId, chatActivity);
+    }
+
     private EditText searchEditText;
     private RecyclerListView listView;
     private TrackAdapter adapter;
@@ -78,7 +98,9 @@ public class MiogramMusicSearchActivity extends BaseFragment {
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle(MiogramLocale.get("Пошук музики", "Поиск музыки", "Music Search"));
+        actionBar.setTitle(targetDialogId != 0
+                ? MiogramLocale.get("Надіслати музику", "Отправить музыку", "Send Music")
+                : MiogramLocale.get("Пошук музики", "Поиск музыки", "Music Search"));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -307,6 +329,80 @@ public class MiogramMusicSearchActivity extends BaseFragment {
         }
     }
 
+    public void sendTrackToChat(MiogramMusicTrack track, ProgressBar loadingBar, ImageView sendButton) {
+        if (track == null || targetDialogId == 0) return;
+
+        if (track.telegramMessage != null) {
+            ArrayList<MessageObject> forwardList = new ArrayList<>();
+            forwardList.add(track.telegramMessage);
+            SendMessagesHelper.getInstance(currentAccount).sendMessage(forwardList, targetDialogId, false, false, true, 0, 0L);
+            Toast.makeText(getParentActivity() != null ? getParentActivity() : getContext(),
+                    MiogramLocale.get("Трек надіслано в чат", "Трек отправлен в чат", "Track sent to chat"),
+                    Toast.LENGTH_SHORT).show();
+            finishFragment();
+            return;
+        }
+
+        if (track.isInstalled && track.localFile != null && track.localFile.exists()) {
+            SendMessagesHelper.prepareSendingDocument(
+                    getAccountInstance(),
+                    track.localFile.getAbsolutePath(),
+                    track.localFile.getAbsolutePath(),
+                    null,
+                    null,
+                    "audio/mpeg",
+                    targetDialogId,
+                    null, null, null, null, null,
+                    true, 0, null, null, false
+            );
+            Toast.makeText(getParentActivity() != null ? getParentActivity() : getContext(),
+                    MiogramLocale.get("Трек надіслано в чат", "Трек отправлен в чат", "Track sent to chat"),
+                    Toast.LENGTH_SHORT).show();
+            finishFragment();
+            return;
+        }
+
+        if (loadingBar != null) loadingBar.setVisibility(View.VISIBLE);
+        if (sendButton != null) sendButton.setVisibility(View.GONE);
+
+        MiogramMusicSearchEngine.fastInstallTrack(getParentActivity() != null ? getParentActivity() : getContext(), track, currentAccount, new MiogramMusicSearchEngine.InstallCallback() {
+            @Override
+            public void onProgress(float progress) {
+            }
+
+            @Override
+            public void onSuccess(File localFile) {
+                if (loadingBar != null) loadingBar.setVisibility(View.GONE);
+                if (sendButton != null) sendButton.setVisibility(View.VISIBLE);
+
+                SendMessagesHelper.prepareSendingDocument(
+                        getAccountInstance(),
+                        localFile.getAbsolutePath(),
+                        localFile.getAbsolutePath(),
+                        null,
+                        null,
+                        "audio/mpeg",
+                        targetDialogId,
+                        null, null, null, null, null,
+                        true, 0, null, null, false
+                );
+                Toast.makeText(getParentActivity() != null ? getParentActivity() : getContext(),
+                        MiogramLocale.get("Трек надіслано в чат", "Трек отправлен в чат", "Track sent to chat"),
+                        Toast.LENGTH_SHORT).show();
+                finishFragment();
+            }
+
+            @Override
+            public void onError(String error) {
+                if (loadingBar != null) loadingBar.setVisibility(View.GONE);
+                if (sendButton != null) sendButton.setVisibility(View.VISIBLE);
+                Toast.makeText(getParentActivity() != null ? getParentActivity() : getContext(),
+                        "Помилка завантаження: " + error,
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     private class TrackCell extends FrameLayout {
 
         private final BackupImageView coverView;
@@ -317,6 +413,8 @@ public class MiogramMusicSearchActivity extends BaseFragment {
         private final ImageView playBtn;
         private final ImageView downloadBtn;
         private final ProgressBar progressBar;
+        private final ImageView sendBtn;
+        private final ProgressBar sendProgressBar;
 
         private MiogramMusicTrack currentTrack;
 
@@ -366,7 +464,8 @@ public class MiogramMusicSearchActivity extends BaseFragment {
 
             infoCol.addView(subRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 3, 0, 0));
 
-            addView(infoCol, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, 64, 0, 88, 0));
+            int rightPadding = targetDialogId != 0 ? 128 : 88;
+            addView(infoCol, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, 64, 0, rightPadding, 0));
 
             // Right action buttons
             LinearLayout actionsRow = new LinearLayout(context);
@@ -385,7 +484,6 @@ public class MiogramMusicSearchActivity extends BaseFragment {
                     if (currentTrack.telegramMessage != null) {
                         MediaController.getInstance().playMessage(currentTrack.telegramMessage);
                     } else if (currentTrack.streamUrl != null) {
-                        // Open stream in external player or telegram audio service
                         Toast.makeText(context, "▶ " + currentTrack.getDisplayTitle(), Toast.LENGTH_SHORT).show();
                     }
                 }
@@ -424,7 +522,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
                             downloadBtn.setVisibility(View.VISIBLE);
                             downloadBtn.setImageResource(R.drawable.msg_check);
                             downloadBtn.setColorFilter(0xFF34C759);
-                            Toast.makeText(context, MiogramLocale.get("🎵 Трек збережено у 'Збережені' та папку Музика!", "🎵 Трек сохранён в 'Избранное' и папку Музыка!", "🎵 Saved to Cloud & Device Music!"), Toast.LENGTH_LONG).show();
+                            Toast.makeText(context, MiogramLocale.get("Трек збережено у 'Збережені' та папку Музика!", "Трек сохранён в 'Избранное' и папку Музыка!", "Saved to Cloud & Device Music!"), Toast.LENGTH_LONG).show();
                         }
 
                         @Override
@@ -438,6 +536,39 @@ public class MiogramMusicSearchActivity extends BaseFragment {
             });
 
             actionsRow.addView(downloadContainer, LayoutHelper.createLinear(36, 36));
+
+            // Send to Chat Button (if opened from chat)
+            if (targetDialogId != 0) {
+                FrameLayout sendContainer = new FrameLayout(context);
+
+                sendBtn = new ImageView(context);
+                sendBtn.setImageResource(R.drawable.attach_send);
+                sendBtn.setColorFilter(Theme.getColor(Theme.key_chats_actionBackground));
+                sendBtn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1));
+                sendBtn.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6));
+
+                sendProgressBar = new ProgressBar(context);
+                sendProgressBar.setVisibility(View.GONE);
+
+                sendContainer.addView(sendBtn, LayoutHelper.createFrame(36, 36, Gravity.CENTER));
+                sendContainer.addView(sendProgressBar, LayoutHelper.createFrame(30, 30, Gravity.CENTER));
+
+                sendBtn.setOnClickListener(v -> {
+                    MiogramHaptic.tap(v);
+                    sendTrackToChat(currentTrack, sendProgressBar, sendBtn);
+                });
+
+                actionsRow.addView(sendContainer, LayoutHelper.createLinear(36, 36, 4, 0, 0, 0));
+
+                setOnClickListener(v -> {
+                    MiogramHaptic.tap(v);
+                    sendTrackToChat(currentTrack, sendProgressBar, sendBtn);
+                });
+            } else {
+                sendBtn = null;
+                sendProgressBar = null;
+            }
+
             addView(actionsRow, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL | Gravity.RIGHT));
         }
 

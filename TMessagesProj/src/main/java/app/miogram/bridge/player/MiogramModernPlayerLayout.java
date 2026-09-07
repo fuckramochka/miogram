@@ -669,18 +669,22 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         if (surface == 0) surface = getThemedColor(Theme.key_windowBackgroundWhite);
         int accentColor = getThemeAccentColor();
 
-        // Strong frosted glass effect (~82% opacity)
-        int frostedSurface = ColorUtils.setAlphaComponent(surface, 210);
+        // Sleek TG 7 glassmorphism (~72% opacity with translucent subtle gradient & 1dp glass stroke)
+        int frostedSurface = ColorUtils.setAlphaComponent(surface, 184);
+        int topGradient = ColorUtils.blendARGB(frostedSurface, accentColor, 0.16f);
+        int bottomGradient = ColorUtils.blendARGB(frostedSurface, 0xFF000000, 0.12f);
+
         GradientDrawable background = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
                 new int[]{
-                        ColorUtils.blendARGB(frostedSurface, accentColor, 0.14f),
+                        topGradient,
                         frostedSurface,
-                        ColorUtils.blendARGB(frostedSurface, 0xFF000000, 0.08f)
+                        bottomGradient
                 });
 
         float radius = AndroidUtilities.dp(24) * (1.0f - progress);
         background.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
+        background.setStroke(AndroidUtilities.dp(1), 0x28FFFFFF);
         setBackground(background);
     }
 
@@ -815,7 +819,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     private void updateActiveLyric(String text) {
         boolean enabled = MiogramVisualsPrefs.loadBool(getContext(), "player_active_lyric", true);
         boolean hasText = text != null && !text.trim().isEmpty();
-        compactActiveLyricView.setText(hasText ? ("🎵 " + text.trim()) : "");
+        compactActiveLyricView.setText(hasText ? text.trim() : "");
         compactActiveLyricView.setVisibility(enabled && hasText ? View.VISIBLE : View.GONE);
     }
 

@@ -448,8 +448,6 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
             @Override
             protected void onDraw(Canvas canvas) {
                 if (modernPlayerLayout != null) {
-                    shadowDrawable.setBounds(0, 0, getMeasuredWidth(), getMeasuredHeight() + backgroundPaddingTop);
-                    shadowDrawable.draw(canvas);
                     return;
                 }
                 if (playlist.size() <= 1) {

@@ -49,16 +49,16 @@ public class MiogramDivineEngine {
     public static String getPresetTitle(Preset preset) {
         switch (preset) {
             case DISCORD_ULTRA:
-                return app.miogram.bridge.MiogramLocale.get("🎮 Discord Ultra (Автентичний 2026)", "🎮 Discord Ultra (Аутентичный 2026)", "🎮 Discord Ultra (Authentic 2026)");
+                return app.miogram.bridge.MiogramLocale.get("Discord Ultra (Dark Compact)", "Discord Ultra (Dark Compact)", "Discord Ultra (Dark Compact)");
             case IOS_GLASS:
-                return app.miogram.bridge.MiogramLocale.get("🍏 iOS Glassmorphism (1:1 Apple Style)", "🍏 iOS Glassmorphism (1:1 Apple Style)", "🍏 iOS Glassmorphism (1:1 Apple Style)");
+                return app.miogram.bridge.MiogramLocale.get("iOS Glassmorphism (Apple Style)", "iOS Glassmorphism (Apple Style)", "iOS Glassmorphism (Apple Style)");
             case MINIMALIST:
-                return app.miogram.bridge.MiogramLocale.get("⚡ Minimalist (Швидкість та фокус)", "⚡ Minimalist (Скорость и фокус)", "⚡ Minimalist (Speed & Focus)");
+                return app.miogram.bridge.MiogramLocale.get("Minimalist (Швидкість та фокус)", "Minimalist (Скорость и фокус)", "Minimalist (Speed & Focus)");
             case WINDOWS_XP:
-                return app.miogram.bridge.MiogramLocale.get("🪟 Windows XP (Luna Blue Класика)", "🪟 Windows XP (Luna Blue Классика)", "🪟 Windows XP (Luna Blue Classic)");
+                return app.miogram.bridge.MiogramLocale.get("Windows XP (Luna Blue)", "Windows XP (Luna Blue)", "Windows XP (Luna Blue)");
             case CLASSIC_TG:
             default:
-                return app.miogram.bridge.MiogramLocale.get("📱 Classic TG (Ame-Chan Стандарт)", "📱 Classic TG (Ame-Chan Стандарт)", "📱 Classic TG (Ame-Chan Standard)");
+                return app.miogram.bridge.MiogramLocale.get("Classic TG (Ame-Chan)", "Classic TG (Ame-Chan)", "Classic TG (Ame-Chan)");
         }
     }
 

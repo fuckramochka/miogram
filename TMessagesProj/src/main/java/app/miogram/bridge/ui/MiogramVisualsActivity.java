@@ -40,6 +40,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
 
     private int headerModeRow;
     private int discordUiRow;
+    private int customUiRow;
     private int ameVibeRow;
     private int activeLyricsLineRow;
     private int modeInfoRow;
@@ -72,6 +73,7 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
 
         headerModeRow = addRow();
         discordUiRow = addRow();
+        customUiRow = addRow();
         ameVibeRow = addRow();
         activeLyricsLineRow = addRow();
         modeInfoRow = addRow();
@@ -123,6 +125,8 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
     public void onItemClick(View view, int position, float x, float y) {
         if (position == discordUiRow) {
             showLayoutModeDialog();
+        } else if (position == customUiRow) {
+            app.miogram.bridge.customui.MiogramCustomUiActivity.ExtraFeaturesSheet.show(getParentActivity() != null ? getParentActivity() : getContext());
         } else if (position == ameVibeRow) {
             boolean next = !ameVibeEnabled();
             MiogramVisualsPrefs.saveBool(getSafeContext(), "ame_vibe_enabled", next);
@@ -350,7 +354,9 @@ public class MiogramVisualsActivity extends BaseNekoSettingsActivity {
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                     if (position == discordUiRow) {
                         app.miogram.bridge.divine.MiogramDivineEngine.Preset current = app.miogram.bridge.divine.MiogramDivineEngine.getCurrentPreset(getSafeContext());
-                        cell.setTextAndValue(MiogramLocale.get("Налаштування інтерфейсу", "Настройки интерфейса", "Interface Settings"), app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(current), true);
+                        cell.setTextAndValue(MiogramLocale.get("Пресет оформлення", "Пресет оформления", "Layout Preset"), app.miogram.bridge.divine.MiogramDivineEngine.getPresetTitle(current), true);
+                    } else if (position == customUiRow) {
+                        cell.setTextAndValue(MiogramLocale.get("Кастомний профіль (Custom Profile)", "Кастомный профиль (Custom Profile)", "Custom Profile & Layout"), MiogramLocale.get("Налаштувати", "Настроить", "Configure"), true);
                     } else if (position == glassIntensityRow) {
                         cell.setTextAndValue(MiogramLocale.get("Інтенсивність скла", "Интенсивность стекла", "Glass Intensity"), intensityPercent() + "%", false);
                     } else if (position == avatarCornersRow) {

@@ -280,9 +280,11 @@ public class ChatAttachAlertAudioLayout extends ChatAttachAlert.AttachAlertLayou
     private int LOAD_MORE_SEARCH_CHATS = 1;
     private int LOAD_MORE_SEARCH_GLOBAL = 2;
     private int LOAD_MORE_SEARCH_PROFILE = 3;
+    private static final int MIOGRAM_ONLINE_SEARCH_BUTTON = 10077;
 
     private void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
         items.add(UItem.asSpace(-100, dp(1)));
+        items.add(UItem.asButton(MIOGRAM_ONLINE_SEARCH_BUTTON, R.drawable.outline_header_search, app.miogram.bridge.MiogramLocale.get("Онлайн-пошук музики (Deezer, iTunes, Cloud)", "Онлайн-поиск музыки (Deezer, iTunes, Cloud)", "Online Music Search (Deezer, iTunes, Cloud)")).accent());
         int firstIndex = items.size();
         if (TextUtils.isEmpty(query)) {
             adapter.whiteSectionStart();
@@ -479,6 +481,17 @@ public class ChatAttachAlertAudioLayout extends ChatAttachAlert.AttachAlertLayou
     };
 
     private void onItemClick(UItem item, View view, int position, float x, float y) {
+        if (item != null && item.id == MIOGRAM_ONLINE_SEARCH_BUTTON) {
+            if (parentAlert != null) {
+                long dialogId = parentAlert.getDialogId();
+                org.telegram.ui.ChatActivity chatActivity = parentAlert.baseFragment instanceof org.telegram.ui.ChatActivity ? (org.telegram.ui.ChatActivity) parentAlert.baseFragment : null;
+                parentAlert.dismiss(true);
+                if (chatActivity != null) {
+                    chatActivity.presentFragment(app.miogram.bridge.music.MiogramMusicSearchActivity.createForChat(dialogId, chatActivity));
+                }
+            }
+            return;
+        }
         if (item != null && item.id == LOAD_MORE_SEARCH_PROFILE) {
             savedMusicList.load();
             return;

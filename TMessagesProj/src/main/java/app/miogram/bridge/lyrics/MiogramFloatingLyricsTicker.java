@@ -13,6 +13,7 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -284,10 +285,26 @@ public class MiogramFloatingLyricsTicker implements NotificationCenter.Notificat
             FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
-                    Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL
+                    Gravity.TOP | Gravity.CENTER_HORIZONTAL
             );
-            lp.bottomMargin = AndroidUtilities.dp(64);
             addView(pillContainer, lp);
+        }
+
+        private final ViewTreeObserver.OnPreDrawListener preDrawListener = () -> {
+            updatePillPosition();
+            return true;
+        };
+
+        @Override
+        protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            getViewTreeObserver().addOnPreDrawListener(preDrawListener);
+        }
+
+        @Override
+        protected void onDetachedFromWindow() {
+            super.onDetachedFromWindow();
+            getViewTreeObserver().removeOnPreDrawListener(preDrawListener);
         }
 
         public void setText(String text) {
@@ -295,37 +312,48 @@ public class MiogramFloatingLyricsTicker implements NotificationCenter.Notificat
         }
 
         public void updatePosition(LaunchActivity activity) {
-            if (activity == null) return;
-            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) pillContainer.getLayoutParams();
-            if (lp == null) return;
+            updatePillPosition();
+        }
 
-            BaseFragment fragment = activity.getActionBarLayout() != null ? activity.getActionBarLayout().getLastFragment() : null;
-            int bottomMargin = AndroidUtilities.dp(64);
+        public void updatePillPosition() {
+            if (currentActivity == null || pillContainer == null) return;
+
+            BaseFragment fragment = currentActivity.getActionBarLayout() != null ? currentActivity.getActionBarLayout().getLastFragment() : null;
+            float targetY;
 
             if (fragment instanceof ChatActivity) {
                 ChatActivity chat = (ChatActivity) fragment;
                 View enterView = chat.getChatActivityEnterView();
                 if (enterView != null && enterView.getVisibility() == View.VISIBLE) {
-                    int h = enterView.getMeasuredHeight() > 0 ? enterView.getMeasuredHeight() : enterView.getHeight();
-                    bottomMargin = (h > 0 ? h : AndroidUtilities.dp(54)) + AndroidUtilities.dp(10);
+                    int[] loc = new int[2];
+                    enterView.getLocationInWindow(loc);
+                    int pillH = pillContainer.getHeight() > 0 ? pillContainer.getHeight() : AndroidUtilities.dp(34);
+                    targetY = loc[1] - pillH - AndroidUtilities.dp(8);
                 } else {
-                    bottomMargin = AndroidUtilities.dp(16);
+                    int h = getHeight() > 0 ? getHeight() : AndroidUtilities.displaySize.y;
+                    targetY = h - AndroidUtilities.dp(64);
                 }
             } else if (fragment instanceof DialogsActivity) {
-                bottomMargin = AndroidUtilities.dp(68);
+                int h = getHeight() > 0 ? getHeight() : AndroidUtilities.displaySize.y;
+                targetY = h - AndroidUtilities.dp(72);
+            } else {
+                int h = getHeight() > 0 ? getHeight() : AndroidUtilities.displaySize.y;
+                targetY = h - AndroidUtilities.dp(56);
             }
 
-            if (lp.bottomMargin != bottomMargin) {
-                lp.bottomMargin = bottomMargin;
-                pillContainer.setLayoutParams(lp);
+            int minTop = AndroidUtilities.statusBarHeight + AndroidUtilities.dp(48);
+            if (targetY < minTop) {
+                targetY = minTop;
             }
+
+            pillContainer.setTranslationY(targetY);
         }
 
         @Override
         public boolean dispatchTouchEvent(MotionEvent ev) {
             if (pillContainer != null && pillContainer.getVisibility() == View.VISIBLE && getAlpha() > 0.5f) {
-                float x = ev.getX();
-                float y = ev.getY();
+                float x = ev.getX() - pillContainer.getTranslationX();
+                float y = ev.getY() - pillContainer.getTranslationY();
                 if (x >= pillContainer.getLeft() && x <= pillContainer.getRight() &&
                     y >= pillContainer.getTop() && y <= pillContainer.getBottom()) {
                     return pillContainer.dispatchTouchEvent(ev);

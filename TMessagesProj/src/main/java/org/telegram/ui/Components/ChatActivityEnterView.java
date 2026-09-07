@@ -2887,6 +2887,13 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
                 delegate.didPressAttachButton();
             });
+            attachButton.setOnLongClickListener(v -> {
+                if (parentFragment instanceof ChatActivity) {
+                    parentFragment.presentFragment(app.miogram.bridge.music.MiogramMusicSearchActivity.createForChat(dialog_id, (ChatActivity) parentFragment));
+                    return true;
+                }
+                return false;
+            });
             attachButton.setContentDescription(getString(R.string.AccDescrAttachButton));
             updateFieldRight(1);
         }

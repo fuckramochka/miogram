@@ -29,8 +29,6 @@ import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     private int headerMiogramFeaturesRow;
-    private int musicSearchRow;
-    private int customUiRow;
     private int multichatRow;
     private int badgeStudioRow;
     private int miogramFeaturesInfoRow;
@@ -62,8 +60,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         super.updateRows();
 
         headerMiogramFeaturesRow = addRow();
-        musicSearchRow = addRow();
-        customUiRow = addRow();
         multichatRow = addRow();
         badgeStudioRow = addRow();
         miogramFeaturesInfoRow = addRow();
@@ -88,11 +84,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == musicSearchRow) {
-            presentFragment(new app.miogram.bridge.music.MiogramMusicSearchActivity());
-        } else if (position == customUiRow) {
-            app.miogram.bridge.customui.MiogramCustomUiActivity.ExtraFeaturesSheet.show(getParentActivity() != null ? getParentActivity() : getContext());
-        } else if (position == multichatRow) {
+        if (position == multichatRow) {
             presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0));
         } else if (position == badgeStudioRow) {
             app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(getParentActivity(), currentAccount);
@@ -148,7 +140,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerMiogramFeaturesRow) {
-                        cell.setText(MiogramLocale.get("Ексклюзивні функції Miogram ໒꒱", "Эксклюзивные функции Miogram ໒꒱", "Miogram Exclusive Features ໒꒱"));
+                        cell.setText(MiogramLocale.get("Ексклюзивні функції Miogram", "Эксклюзивные функции Miogram", "Miogram Exclusive Features"));
                     } else if (position == headerCategoriesRow) {
                         cell.setText(MiogramLocale.get("Зовнішній вигляд та функції", "Внешний вид и функции", "Appearance & Features"));
                     } else if (position == headerAdvancedRow) {
@@ -158,14 +150,10 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
-                    if (position == musicSearchRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Пошук музики 🎵", "Поиск музыки 🎵", "Music Search 🎵"), R.drawable.search_music_filled, true);
-                    } else if (position == customUiRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Додаткові функції (Custom Profile)", "Дополнительные функции (Custom Profile)", "Extra Features (Custom Profile)"), R.drawable.msg_colors, true);
-                    } else if (position == multichatRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Мультичат (Split-Screen) 🪟", "Мультичат (Split-Screen) 🪟", "Multi-Chat (Split-Screen) 🪟"), R.drawable.msg_fave, true);
+                    if (position == multichatRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Мультичат (Split-Screen)", "Мультичат (Split-Screen)", "Multi-Chat (Split-Screen)"), R.drawable.msg_fave, true);
                     } else if (position == badgeStudioRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Канонічні відзнаки Miogram ໒꒱", "Канонические отличия Miogram ໒꒱", "Miogram Canonical Badges ໒꒱"), R.drawable.msg_premium_badge, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Канонічні відзнаки Miogram", "Канонические отличия Miogram", "Miogram Canonical Badges"), R.drawable.msg_premium_badge, true);
                     } else if (position == visualsRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Зовнішній вигляд та стиль", "Внешний вид и стиль", "Appearance & Style"), R.drawable.msg_theme, true);
                     } else if (position == navigationRow) {
