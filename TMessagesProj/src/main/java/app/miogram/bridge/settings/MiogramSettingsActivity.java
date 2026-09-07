@@ -36,11 +36,13 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     private int headerCategoriesRow;
     private int visualsRow;
     private int navigationRow;
+    private int subfoldersRow;
     private int iconPacksRow;
     private int chatsRow;
     private int privacyRow;
     private int generalRow;
     private int translatorRow;
+    private int localizerRow;
     private int performanceRow;
     private int categoriesInfoRow;
 
@@ -67,11 +69,13 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         headerCategoriesRow = addRow();
         visualsRow = addRow();
         navigationRow = addRow();
+        subfoldersRow = addRow();
         iconPacksRow = addRow();
         chatsRow = addRow();
         privacyRow = addRow();
         generalRow = addRow();
         translatorRow = addRow();
+        localizerRow = addRow();
         performanceRow = addRow();
         categoriesInfoRow = addRow();
 
@@ -92,6 +96,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
             presentFragment(new MiogramVisualsActivity());
         } else if (position == navigationRow) {
             presentFragment(new app.exteraless.settings.OpenExteraAppNavigationActivity());
+        } else if (position == subfoldersRow) {
+            presentFragment(new app.miogram.bridge.folders.MiogramSubfolderSettingsActivity());
         } else if (position == iconPacksRow) {
             presentFragment(new app.exteraless.icons.IconPacksActivity());
         } else if (position == chatsRow) {
@@ -102,6 +108,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
             presentFragment(new app.exteraless.settings.OpenExteraGeneralActivity());
         } else if (position == translatorRow) {
             presentFragment(new NekoTranslatorSettingsActivity());
+        } else if (position == localizerRow) {
+            presentFragment(new app.miogram.bridge.localizer.MiogramLocalizerActivity());
         } else if (position == performanceRow) {
             presentFragment(new MiogramPerformanceActivity());
         } else if (position == aiRow) {
@@ -158,6 +166,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                         cell.setTextAndIcon(MiogramLocale.get("Зовнішній вигляд та стиль", "Внешний вид и стиль", "Appearance & Style"), R.drawable.msg_theme, true);
                     } else if (position == navigationRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Навігація та Меню", "Навигация и Меню", "Navigation & Menu"), R.drawable.msg_folders, true);
+                    } else if (position == subfoldersRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Підпапки та Розумні фільтри", "Подпапки и Умные фильтры", "Subfolders & Smart Filters"), R.drawable.msg_folders, true);
                     } else if (position == iconPacksRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Паки іконок", "Паки иконок", "Icon Packs"), R.drawable.msg_sticker, true);
                     } else if (position == chatsRow) {
@@ -168,6 +178,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                         cell.setTextAndIcon(MiogramLocale.get("Розширені налаштування", "Расширенные настройки", "Advanced Preferences"), R.drawable.msg_settings, true);
                     } else if (position == translatorRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Перекладач", "Переводчик", "Translator"), R.drawable.msg_translate, true);
+                    } else if (position == localizerRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Локалізатор (Кастомні переклади)", "Локализатор (Кастомные переводы)", "Localizer (Custom Translations)"), R.drawable.msg_edit, true);
                     } else if (position == performanceRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Продуктивність", "Производительность", "Performance"), R.drawable.msg_speed, false);
                     } else if (position == aiRow) {

@@ -1456,6 +1456,16 @@ public class LocaleController {
     }
 
     private String getStringInternal(String key, String fallback, int fallbackRes, int res) {
+        String miogramOverride = app.miogram.bridge.localizer.MiogramLocalizerEngine.getOverride(key);
+        if (miogramOverride != null) {
+            return miogramOverride;
+        }
+        if (fallback != null) {
+            String fallbackOverride = app.miogram.bridge.localizer.MiogramLocalizerEngine.getOverride(fallback);
+            if (fallbackOverride != null) {
+                return fallbackOverride;
+            }
+        }
         // exteraGram 12.9.0, LocaleController.java:2301 — перехват ДО обращения к localeValues.
         // Иначе на любом облачном языке (русский — облачный) ключ AppName подтягивается
         // из языкового пакета телеграма и форк снова называется «Telegram» во всех диалогах,

@@ -335,7 +335,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
         if (track.telegramMessage != null) {
             ArrayList<MessageObject> forwardList = new ArrayList<>();
             forwardList.add(track.telegramMessage);
-            SendMessagesHelper.getInstance(currentAccount).sendMessage(forwardList, targetDialogId, false, false, true, 0, 0L);
+            SendMessagesHelper.getInstance(currentAccount).sendMessage(forwardList, targetDialogId, true, true, true, 0, 0L);
             Toast.makeText(getParentActivity() != null ? getParentActivity() : getContext(),
                     MiogramLocale.get("Трек надіслано в чат", "Трек отправлен в чат", "Track sent to chat"),
                     Toast.LENGTH_SHORT).show();

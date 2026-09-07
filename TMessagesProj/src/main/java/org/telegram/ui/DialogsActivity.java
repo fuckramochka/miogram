@@ -547,6 +547,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private int undoViewIndex;
     private UndoView[] undoView = new UndoView[2];
     private FilterTabsView filterTabsView;
+    private app.miogram.bridge.folders.MiogramSubfolderBar subfolderBar;
     private boolean askingForPermissions;
     private int searchViewPagerIndex;
     @Nullable
@@ -921,10 +922,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 return super.drawChild(canvas, child, drawingTime);
             }
             boolean result;
-            if (child == viewPages[0] || (viewPages.length > 1 && child == viewPages[1]) || child == topPanelLayout || child == filterTabsView) {
+            if (child == viewPages[0] || (viewPages.length > 1 && child == viewPages[1]) || child == topPanelLayout || child == filterTabsView || child == subfolderBar) {
                 canvas.save();
 
-                final boolean doNotClip = child == topPanelLayout || child == filterTabsView;
+                final boolean doNotClip = child == topPanelLayout || child == filterTabsView || child == subfolderBar;
                 if (!doNotClip) {
                     canvas.clipRect(0, -getY() + getActionBarTop() + getActionBarFullHeight(), getMeasuredWidth(), getMeasuredHeight());
                 }
@@ -1336,6 +1337,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     childTop = actionBar.getMeasuredHeight();
                 } else if (child instanceof ViewPage) {
                     childTop = 0;
+                } else if (child == subfolderBar) {
+                    childTop += actionBar.getMeasuredHeight();
+                    childTop += getIdleSearchFieldHeight();
+                    if (filterTabsView != null && filterTabsView.getVisibility() == View.VISIBLE) {
+                        childTop += filterTabsView.getMeasuredHeight();
+                    }
                 } else if (child == topPanelLayout || child == topBubblesFadeView || child == filterTabsView) {
                     childTop += actionBar.getMeasuredHeight();
                     childTop += getIdleSearchFieldHeight();
@@ -2112,6 +2119,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
             t += (int) (dp(36 + 14) * filterTabsVisibility);
             additionalPadding += (int) (dp(36 + 14) * filterTabsVisibility);
+
+            if (subfolderBar != null && subfolderBar.getVisibility() == View.VISIBLE) {
+                final int sh = (int) (subfolderBar.getMeasuredHeight() * filterTabsVisibility);
+                t += sh;
+                additionalPadding += sh;
+            }
 
             if (topPanelLayout != null) {
                 final int h = (int) topPanelLayout.getAnimatedHeightWithPadding(lerp((float) dp(14), dp(7), filterTabsVisibility));
@@ -3767,6 +3780,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     showScrollbars(false);
                     switchToCurrentSelectedMode(true);
                     animatingForward = forward;
+                    if (subfolderBar != null) {
+                        subfolderBar.onParentTabChanged(tab.id);
+                    }
                 }
 
                 @Override
@@ -5357,6 +5373,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             contentView.addView(filterTabsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 36 + 7 + 7, Gravity.TOP, 4, 0, 4, 0));
         }
 
+        if (app.miogram.bridge.folders.MiogramSubfolderEngine.isSubfoldersEnabled()) {
+            subfolderBar = new app.miogram.bridge.folders.MiogramSubfolderBar(context, resourceProvider, this);
+            contentView.addView(subfolderBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 36, Gravity.TOP, 0, 0, 0, 0));
+        }
+
         if (fragmentSearchField != null) {
             fragmentSearchField.setupBlurredBackground(iBlur3FactoryLiquidGlass.create(fragmentSearchField, BlurredBackgroundProviderImpl.topPanel(resourceProvider)));
         }
@@ -6816,6 +6837,16 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             totalOffset += filtersTabHeight;
         }
 
+        if (subfolderBar != null) {
+            float subAlpha = (1f - searchAnimationProgress) * (filterTabsView != null ? filterTabsView.getAlpha() : 1f);
+            subfolderBar.setAlpha(subAlpha);
+            subfolderBar.setVisibility(subAlpha > 0.01f ? View.VISIBLE : View.GONE);
+            if (subAlpha > 0.01f) {
+                subfolderBar.setTranslationY(totalOffset - searchOffset);
+                totalOffset += subfolderBar.getMeasuredHeight() * subAlpha;
+            }
+        }
+
         if (topPanelLayout != null) {
             final float searchTopPanelOffset = dp(SEARCH_FIELD_HEIGHT) - getIdleSearchFieldHeight();
             topPanelLayout.setTranslationY(lerp(
@@ -7099,6 +7130,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         if (filterTabsView.showAllChatsTab) filterTabsView.addTab(a, 0, LocaleController.getString(R.string.FilterAllChats), filters.get(a).emoticon, null, false, true, filters.get(a).locked);
                     } else {
                         final MessagesController.DialogFilter filter = filters.get(a);
+                        if (app.miogram.bridge.folders.MiogramSubfolderEngine.isCollapseSubfoldersEnabled() && app.miogram.bridge.folders.MiogramSubfolderEngine.isChildFilter(filters, filter)) {
+                            continue;
+                        }
                         filterTabsView.addTab(a, filter.localId, filter.name, filter.emoticon, filter.entities, filter.title_noanimate, false, filters.get(a).locked);
                     }
                 }
@@ -7130,6 +7164,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     viewPages[a].listView.setScrollingTouchSlop(RecyclerView.TOUCH_SLOP_PAGING);
                 }
                 filterTabsView.finishAddingTabs(animatedUpdateItems);
+                if (subfolderBar != null) {
+                    subfolderBar.onTabsUpdated();
+                }
                 if (updateCurrentTab) {
                     switchToCurrentSelectedMode(false);
                 }
@@ -7418,6 +7455,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 return (
                     (actionBar != null ? actionBar.getMeasuredHeight() : 0) +
                     (filterTabsView != null && filterTabsView.getVisibility() == View.VISIBLE ? filterTabsView.getMeasuredHeight() : 0) +
+                    (subfolderBar != null && subfolderBar.getVisibility() == View.VISIBLE ? subfolderBar.getMeasuredHeight() : 0) +
                     (topPanelLayout != null ? topPanelLayout.getHeight() : 0) +
                     (dialogStoriesCell != null && dialogStoriesCellVisible ? (int) ((1f - dialogStoriesCell.getCollapsedProgress()) * dp(DialogStoriesCell.HEIGHT_IN_DP)) : 0) +
                     (getIdleSearchFieldHeight())
@@ -9999,6 +10037,16 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
+    public void onSubfolderChanged() {
+        if (viewPages != null && viewPages[0] != null && viewPages[0].dialogsAdapter != null) {
+            viewPages[0].dialogsAdapter.notifyDataSetChanged();
+            if (viewPages[0].listView != null) {
+                viewPages[0].listView.scrollToPosition(0);
+            }
+        }
+        updateCounters(false);
+    }
+
     public void scrollToTop(boolean animated, boolean expandStories) {
         if (rightSlidingDialogContainer != null && rightSlidingDialogContainer.hasFragment()) {
             return;
@@ -11306,6 +11354,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     return filtered;
                 }
             }
+            if (app.miogram.bridge.folders.MiogramSubfolderEngine.isSubfoldersEnabled() && !frozen) {
+                list = app.miogram.bridge.folders.MiogramSubfolderEngine.applySubfolderFiltering(currentAccount, list);
+            }
             return list;
         } else if (dialogsType == DIALOGS_TYPE_WIDGET || dialogsType == DIALOGS_TYPE_IMPORT_HISTORY) {
             ArrayList<TLRPC.Dialog> list = messagesController.dialogsServerOnly;
@@ -11362,14 +11413,20 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             return messagesController.dialogsGroupsOnly;
         } else if (dialogsType == 7 || dialogsType == 8) {
             MessagesController.DialogFilter dialogFilter = messagesController.selectedDialogFilter[dialogsType == 7 ? 0 : 1];
+            ArrayList<TLRPC.Dialog> list;
             if (dialogFilter == null) {
-                return messagesController.getDialogs(folderId);
+                list = messagesController.getDialogs(folderId);
             } else {
                 if (initialDialogsType == DIALOGS_TYPE_FORWARD) {
-                    return dialogFilter.dialogsForward;
+                    list = dialogFilter.dialogsForward;
+                } else {
+                    list = dialogFilter.dialogs;
                 }
-                return dialogFilter.dialogs;
             }
+            if (app.miogram.bridge.folders.MiogramSubfolderEngine.isSubfoldersEnabled() && !frozen) {
+                list = app.miogram.bridge.folders.MiogramSubfolderEngine.applySubfolderFiltering(currentAccount, list);
+            }
+            return list;
         } else if (dialogsType == DIALOGS_TYPE_BLOCK) {
             return messagesController.dialogsForBlock;
         } else if (dialogsType == DIALOGS_TYPE_BOT_SHARE || dialogsType == DIALOGS_TYPE_BOT_SELECT_VERIFY || dialogsType == DIALOGS_TYPE_START_ATTACH_BOT) {
@@ -14953,6 +15010,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             + getIdleSearchFieldHeight()
             + dp(hasStories ? DialogStoriesCell.HEIGHT_IN_DP : 0)
             + (filterTabsView != null && filterTabsView.getVisibility() == View.VISIBLE ? filterTabsView.getMeasuredHeight() : 0)
+            + (subfolderBar != null && subfolderBar.getVisibility() == View.VISIBLE ? subfolderBar.getMeasuredHeight() : 0)
             + (topPanelLayout != null && topPanelLayout.getVisibility() == View.VISIBLE ? topPanelLayout.getSumHeightOfAllVisibleChild() : 0)
             + ((int) scrollYOffset);
 
