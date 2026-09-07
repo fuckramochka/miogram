@@ -101,6 +101,7 @@ public class MiogramPerformanceActivity extends BaseNekoSettingsActivity {
         } else if (position == disableVibrationRow) {
             boolean v = !NekoConfig.disableVibration.Bool();
             NekoConfig.disableVibration.setConfigBool(v);
+            app.miogram.bridge.customui.MiogramCustomUiPrefs.setHapticEnabled(!v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(v);
         }
     }

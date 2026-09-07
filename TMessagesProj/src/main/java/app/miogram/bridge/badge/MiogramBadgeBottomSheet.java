@@ -188,7 +188,7 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
             okButton.setBackground(btnBg);
             okButton.setPadding(0, AndroidUtilities.dp(13), 0, AndroidUtilities.dp(13));
             okButton.setOnClickListener(v -> {
-                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                if (app.miogram.bridge.customui.MiogramHaptic.isEnabled()) v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 dismiss();
             });
             root.addView(okButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
@@ -310,7 +310,7 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
             okButton.setBackground(btnBg);
             okButton.setPadding(0, AndroidUtilities.dp(13), 0, AndroidUtilities.dp(13));
             okButton.setOnClickListener(v -> {
-                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                if (app.miogram.bridge.customui.MiogramHaptic.isEnabled()) v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 dismiss();
             });
             root.addView(okButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
@@ -356,7 +356,7 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
                 card.addView(name, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 4, 0, 0));
 
                 card.setOnClickListener(v -> {
-                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                    if (app.miogram.bridge.customui.MiogramHaptic.isEnabled()) v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                     selectedBadge = type;
 
                     // Update Top Preview
@@ -445,7 +445,7 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
             saveButton.setPadding(0, AndroidUtilities.dp(13), 0, AndroidUtilities.dp(13));
 
             saveButton.setOnClickListener(v -> {
-                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                if (app.miogram.bridge.customui.MiogramHaptic.isEnabled()) v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 long curUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
                 MiogramSupabaseBridge.setSyncEnabledForAccount(finalContext, curUserId, true);
                 MiogramSupabaseBridge.setSelectedBadgeForAccount(finalContext, curUserId, selectedBadge);

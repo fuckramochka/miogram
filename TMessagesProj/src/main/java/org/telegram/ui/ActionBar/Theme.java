@@ -9171,6 +9171,12 @@ public class Theme {
                 return customColor;
             }
         }
+        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            int discordColor = getDiscordPresetColor(key);
+            if (discordColor != 0) {
+                return discordColor;
+            }
+        }
         if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
             int iosColor = getIosPresetColor(key);
             if (iosColor != 0) {
@@ -9207,6 +9213,39 @@ public class Theme {
             return ColorUtils.blendARGB(app.miogram.bridge.customui.MiogramCustomUiPrefs.getBubbleColor(), 0xFF000000, 0.15f);
         }
         return -1;
+    }
+
+    public static int getDiscordPresetColor(int key) {
+        if (!app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            return 0;
+        }
+        if (key == Theme.key_chats_name) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
+        if (key == Theme.key_chats_message || key == Theme.key_chats_message_threeLines) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
+        if (key == Theme.key_windowBackgroundWhite) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHAT_BG;
+        if (key == Theme.key_windowBackgroundGray) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_RAIL_BG;
+        if (key == Theme.key_windowBackgroundWhiteBlackText) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
+        if (key == Theme.key_windowBackgroundWhiteGrayText || key == Theme.key_windowBackgroundWhiteGrayText2) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
+        if (key == Theme.key_chats_actionBackground) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_BLURPLE;
+        if (key == Theme.key_actionBarDefault) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHAT_BG;
+        if (key == Theme.key_actionBarDefaultTitle) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
+        if (key == Theme.key_actionBarDefaultSubtitle) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
+        if (key == Theme.key_actionBarDefaultIcon) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
+        if (key == Theme.key_actionBarDefaultSelector) return 0x20FFFFFF;
+        if (key == Theme.key_chat_messagePanelBackground) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHANNELS_BG;
+        if (key == Theme.key_chat_messagePanelShadow) return 0x00000000;
+        if (key == Theme.key_chat_messagePanelText) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
+        if (key == Theme.key_chat_messagePanelHint) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
+        if (key == Theme.key_chat_messagePanelIcons) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
+        if (key == Theme.key_chat_messagePanelSend) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_BLURPLE;
+        if (key == Theme.key_chat_inBubble) return 0xFF383A40;
+        if (key == Theme.key_chat_outBubble) return 0xFF404249;
+        if (key == Theme.key_chat_inBubbleSelected) return 0xFF474B53;
+        if (key == Theme.key_chat_outBubbleSelected) return 0xFF4E525B;
+        if (key == Theme.key_chat_messageTextIn) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
+        if (key == Theme.key_chat_messageTextOut) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
+        if (key == Theme.key_chat_inTimeText || key == Theme.key_chat_outTimeText) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
+        if (key == Theme.key_chat_messageLinkIn || key == Theme.key_chat_messageLinkOut) return 0xFF00A8FC;
+        return 0;
     }
 
     public static int getIosPresetColor(int key) {
@@ -9246,6 +9285,16 @@ public class Theme {
         if (key == Theme.key_chat_messagePanelVoiceDuration) return 0xFFFFFFFF;
         if (key == Theme.key_switchTrack) return isCurrentThemeDark() ? 0xFF39393D : 0xFFE9E9EA;
         if (key == Theme.key_switchTrackChecked) return 0xFF34C759;
+        if (key == Theme.key_chat_inBubble) return isCurrentThemeDark() ? 0xFF262628 : 0xFFE9E9EB;
+        if (key == Theme.key_chat_outBubble) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+        if (key == Theme.key_chat_inBubbleSelected) return isCurrentThemeDark() ? 0xFF333336 : 0xFFDCDCE0;
+        if (key == Theme.key_chat_outBubbleSelected) return 0xFF0062CC;
+        if (key == Theme.key_chat_messageTextIn) return isCurrentThemeDark() ? 0xFFFFFFFF : 0xFF000000;
+        if (key == Theme.key_chat_messageTextOut) return 0xFFFFFFFF;
+        if (key == Theme.key_chat_inTimeText) return 0xFF8E8E93;
+        if (key == Theme.key_chat_outTimeText) return 0xB3FFFFFF;
+        if (key == Theme.key_chat_messageLinkIn) return app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent();
+        if (key == Theme.key_chat_messageLinkOut) return 0xFFFFFFFF;
         return 0;
     }
 
@@ -9275,13 +9324,10 @@ public class Theme {
             }
         }
         if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
-            if (key == Theme.key_chats_name) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
-            if (key == Theme.key_chats_message || key == Theme.key_chats_message_threeLines) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
-            if (key == Theme.key_windowBackgroundWhite) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHAT_BG;
-            if (key == Theme.key_windowBackgroundGray) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_RAIL_BG;
-            if (key == Theme.key_windowBackgroundWhiteBlackText) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
-            if (key == Theme.key_windowBackgroundWhiteGrayText || key == Theme.key_windowBackgroundWhiteGrayText2) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
-            if (key == Theme.key_chats_actionBackground) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_BLURPLE;
+            int discordColor = getDiscordPresetColor(key);
+            if (discordColor != 0) {
+                return discordColor;
+            }
         }
         if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(null)) {
             int iosColor = getIosPresetColor(key);

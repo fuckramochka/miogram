@@ -163,8 +163,30 @@ public final class MiogramHaptic {
         play(view, ERROR, ERROR_A, HapticFeedbackConstants.LONG_PRESS, false);
     }
 
-    private static void play(View view, long[] timings, int[] amplitudes, int fallbackConstant, boolean isTick) {
+    public static boolean isEnabled() {
+        if (tw.nekomimi.nekogram.NekoConfig.disableVibration.Bool()) {
+            return false;
+        }
         if (!MiogramCustomUiPrefs.isHapticEnabled()) {
+            return false;
+        }
+        Context ctx = ApplicationLoader.applicationContext;
+        if (ctx != null) {
+            try {
+                int haptic = android.provider.Settings.System.getInt(
+                        ctx.getContentResolver(),
+                        android.provider.Settings.System.HAPTIC_FEEDBACK_ENABLED, 1);
+                if (haptic == 0) {
+                    return false;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return true;
+    }
+
+    private static void play(View view, long[] timings, int[] amplitudes, int fallbackConstant, boolean isTick) {
+        if (!isEnabled()) {
             return;
         }
         long now = SystemClock.uptimeMillis();
@@ -186,6 +208,9 @@ public final class MiogramHaptic {
     }
 
     private static boolean shake(long[] timings, int[] amplitudes) {
+        if (!isEnabled()) {
+            return false;
+        }
         Vibrator v = getVibrator();
         if (v != null && v.hasVibrator()) {
             try {

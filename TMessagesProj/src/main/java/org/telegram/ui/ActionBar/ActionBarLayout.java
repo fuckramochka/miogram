@@ -1558,7 +1558,8 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                                     swipeProgress = MathUtils.clamp((float) dx / containerView.getMeasuredWidth(), 0f, 1f);
                                 }
                                 if (containerView.getMeasuredWidth() > 0) {
-                                    if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+                                    if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())
+                                            || app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
                                         containerView.setScaleX(1.0f);
                                         containerView.setScaleY(1.0f);
                                         containerView.setTranslationY(0f);
@@ -1916,7 +1917,8 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                     swipeProgress = progress;
                 }
                 if (!m3PredictiveBack) {
-                    if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+                    if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())
+                            || app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
                         containerView.setScaleX(1.0f);
                         containerView.setScaleY(1.0f);
                         containerView.setTranslationY(0f);
@@ -2188,7 +2190,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
             animationProgress = 0.0f;
             lastFrameTime = System.nanoTime() / 1000000;
         }
-        if (USE_SPRING_ANIMATION) {
+        if (USE_SPRING_ANIMATION && !app.miogram.bridge.perf.MiogramPerformanceOptimizer.isPowerSaveOrLowBattery(getContext())) {
             if (USE_ACTIONBAR_CROSSFADE) {
                 swipeProgress = open ? 1f : 0f;
                 invalidateActionBars();
@@ -2249,10 +2251,12 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                         containerView.invalidate();
                         invalidate();
                     } else {
+                        containerView.setAlpha(1.0f);
                         containerView.setTranslationX((1.0f - interpolated) * widthNoPaddings);
                         containerViewBack.setTranslationX(-interpolated * 0.35f * widthNoPaddings);
                         setInnerTranslationX((1.0f - interpolated) * widthNoPaddings);
-                        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+                        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())
+                                || app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
                             containerView.setScaleX(1.0f);
                             containerView.setScaleY(1.0f);
                         } else {
@@ -2282,7 +2286,8 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                         containerViewBack.setTranslationX(interpolated * widthNoPaddings);
                         containerView.setTranslationX(-(1f - interpolated) * 0.35f * widthNoPaddings);
                         setInnerTranslationX(interpolated * widthNoPaddings);
-                        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
+                        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())
+                                || app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
                             containerViewBack.setScaleX(1.0f);
                             containerViewBack.setScaleY(1.0f);
                         } else {
@@ -2716,17 +2721,19 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                     animation = fragment.onCustomTransitionAnimation(true, () -> onAnimationEndCheck(false));
                 }
                 if (animation == null) {
-                    if (USE_SPRING_ANIMATION) {
+                    boolean useSpring = USE_SPRING_ANIMATION && !app.miogram.bridge.perf.MiogramPerformanceOptimizer.isPowerSaveOrLowBattery(getContext());
+                    if (useSpring) {
                         if (preview) {
                             containerView.setAlpha(0.0f);
                             containerView.setTranslationX(0.0f);
                             containerView.setScaleX(0.5f);
                             containerView.setScaleY(0.5f);
                         } else {
+                            containerView.setAlpha(1.0f);
                             containerView.setTranslationX(getWidth() - getPaddingLeft() - getPaddingRight());
                         }
                     } else {
-                        containerView.setAlpha(0.0f);
+                        containerView.setAlpha(preview ? 0.0f : 1.0f);
                         if (preview) {
                             containerView.setTranslationX(0.0f);
                             containerView.setScaleX(0.9f);

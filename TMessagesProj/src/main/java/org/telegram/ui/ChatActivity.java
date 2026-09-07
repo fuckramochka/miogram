@@ -9656,36 +9656,8 @@ public class ChatActivity extends BaseFragment implements
         ViewCompat.setOnApplyWindowInsetsListener(fragmentView, this::onApplyWindowInsets);
         if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
             contentView.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHAT_BG);
-            if (chatInputViewsContainer != null) {
-                chatInputViewsContainer.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHANNELS_BG);
-            }
-            if (chatActivityEnterView != null) {
-                chatActivityEnterView.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_INPUT_BG);
-            }
             if (actionBar != null) {
-                actionBar.setBackgroundColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHAT_BG);
-                actionBar.setTitleColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY);
-                actionBar.setSubtitleColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED);
-                actionBar.setItemsColor(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY, false);
-                actionBar.setItemsBackgroundColor(0x20FFFFFF, false);
                 actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-                if (avatarContainer != null) {
-                    avatarContainer.setTitleColors(app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY, app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED);
-                }
-            }
-        } else if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
-            if (actionBar != null) {
-                actionBar.setBackgroundColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getNavBarBg());
-                actionBar.setTitleColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListTitle());
-                actionBar.setSubtitleColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListMessage());
-                actionBar.setItemsColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getAccent(), false);
-                actionBar.setItemsBackgroundColor(0x18007AFF, false);
-                if (avatarContainer != null) {
-                    avatarContainer.setTitleColors(app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListTitle(), app.miogram.bridge.ui.ios.MiogramIosTheme.getChatListMessage());
-                }
-            }
-            if (chatActivityEnterView != null) {
-                chatActivityEnterView.setBackgroundColor(app.miogram.bridge.ui.ios.MiogramIosTheme.getNavBarBg());
             }
         }
         

@@ -88,8 +88,9 @@ public class MiogramUiEngine {
         if (!MiogramCustomUiPrefs.isBubbleColorEnabled() || !MiogramCustomUiPrefs.isBubbleGlowEnabled() || canvas == null || backgroundDrawable == null) {
             return;
         }
-        if (org.telegram.messenger.SharedConfig.getDevicePerformanceClass() <= org.telegram.messenger.SharedConfig.PERFORMANCE_CLASS_LOW) {
-            return; // Skip expensive blur/glow on budget hardware
+        if (org.telegram.messenger.SharedConfig.getDevicePerformanceClass() <= org.telegram.messenger.SharedConfig.PERFORMANCE_CLASS_LOW
+                || app.miogram.bridge.perf.MiogramPerformanceOptimizer.isPowerSaveOrLowBattery(null)) {
+            return; // Skip expensive blur/glow on budget hardware or low battery
         }
         Rect bounds = backgroundDrawable.getBounds();
         if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {
@@ -146,7 +147,8 @@ public class MiogramUiEngine {
             }
         }
 
-        boolean isLowEnd = org.telegram.messenger.SharedConfig.getDevicePerformanceClass() <= org.telegram.messenger.SharedConfig.PERFORMANCE_CLASS_LOW;
+        boolean isLowEnd = org.telegram.messenger.SharedConfig.getDevicePerformanceClass() <= org.telegram.messenger.SharedConfig.PERFORMANCE_CLASS_LOW
+                || app.miogram.bridge.perf.MiogramPerformanceOptimizer.isPowerSaveOrLowBattery(null);
 
         // 3. Shadow or Glow
         if (!isLowEnd && MiogramCustomUiPrefs.isNameShadowEnabled()) {
@@ -364,7 +366,7 @@ public class MiogramUiEngine {
         int radius = MiogramCustomUiPrefs.getAvatarRadius();
         int roundness = MiogramCustomUiPrefs.getAvatarRound();
 
-        if (MiogramCustomUiPrefs.isAvatarRingPulse()) {
+        if (MiogramCustomUiPrefs.isAvatarRingPulse() && !app.miogram.bridge.perf.MiogramPerformanceOptimizer.isPowerSaveOrLowBattery(null)) {
             float phase = (SystemClock.elapsedRealtime() % 1600L) / 1600f;
             int alpha = (int) (160 + 95 * Math.sin(phase * Math.PI * 2));
             ringPaint.setColor((ringColor & 0x00FFFFFF) | (alpha << 24));
@@ -441,7 +443,7 @@ public class MiogramUiEngine {
             thoughtRect.set(left, top, right, bottom);
 
             thoughtBgPaint.setColor(MiogramCustomUiPrefs.getThoughtBgColor());
-            if (MiogramCustomUiPrefs.isThoughtShadowEnabled()) {
+            if (MiogramCustomUiPrefs.isThoughtShadowEnabled() && !app.miogram.bridge.perf.MiogramPerformanceOptimizer.isPowerSaveOrLowBattery(null)) {
                 int sColor = MiogramCustomUiPrefs.getThoughtShadowColor();
                 float sRadius = Math.max(0.1f, AndroidUtilities.dp(MiogramCustomUiPrefs.getThoughtShadowRadius()));
                 float dx = AndroidUtilities.dp(MiogramCustomUiPrefs.getThoughtShadowDx());
@@ -527,7 +529,8 @@ public class MiogramUiEngine {
         cardPaint.setColor(baseColor);
         cardPaint.setStyle(Paint.Style.FILL);
 
-        if (org.telegram.messenger.SharedConfig.getDevicePerformanceClass() >= org.telegram.messenger.SharedConfig.PERFORMANCE_CLASS_AVERAGE) {
+        if (org.telegram.messenger.SharedConfig.getDevicePerformanceClass() >= org.telegram.messenger.SharedConfig.PERFORMANCE_CLASS_AVERAGE
+                && !app.miogram.bridge.perf.MiogramPerformanceOptimizer.isPowerSaveOrLowBattery(null)) {
             cardPaint.setShadowLayer(AndroidUtilities.dpf2(3f), 0, AndroidUtilities.dpf2(1f), 0x1A000000);
         } else {
             cardPaint.clearShadowLayer();
@@ -552,12 +555,15 @@ public class MiogramUiEngine {
         float cx = avatarRect.right - dotRadius + AndroidUtilities.dpf2(0.5f);
         float cy = avatarRect.bottom - dotRadius + AndroidUtilities.dpf2(0.5f);
 
-        // Breathing halo pulse
-        float phase = (SystemClock.elapsedRealtime() % 1800L) / 1800f;
-        float pulseScale = 1.0f + 0.35f * (float) Math.sin(phase * Math.PI * 2);
-        int haloAlpha = (int) (110 - 70 * Math.sin(phase * Math.PI * 2));
-        onlineHaloPaint.setColor((0x0034C759) | (haloAlpha << 24));
-        canvas.drawCircle(cx, cy, dotRadius * pulseScale, onlineHaloPaint);
+        boolean isPowerSave = app.miogram.bridge.perf.MiogramPerformanceOptimizer.isPowerSaveOrLowBattery(null);
+        if (!isPowerSave) {
+            // Breathing halo pulse
+            float phase = (SystemClock.elapsedRealtime() % 1800L) / 1800f;
+            float pulseScale = 1.0f + 0.35f * (float) Math.sin(phase * Math.PI * 2);
+            int haloAlpha = (int) (110 - 70 * Math.sin(phase * Math.PI * 2));
+            onlineHaloPaint.setColor((0x0034C759) | (haloAlpha << 24));
+            canvas.drawCircle(cx, cy, dotRadius * pulseScale, onlineHaloPaint);
+        }
 
         // Background stroke ring
         onlineBorderPaint.setColor(bgStrokeColor);

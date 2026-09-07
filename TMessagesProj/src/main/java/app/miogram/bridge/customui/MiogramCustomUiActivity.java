@@ -1021,6 +1021,13 @@ public class MiogramCustomUiActivity extends BaseFragment {
 
             sheet.endGroup(); // end bubble_opts
 
+            sheet.header(MiogramLocale.get("Тактильний відгук та вібрація", "Тактильный отклик и вибрация", "Haptics & Vibration"));
+            sheet.check(MiogramLocale.get("Тактильні вібрації в додатку", "Тактильные вибрации в приложении", "Tactile in-app vibrations"), MiogramCustomUiPrefs.isHapticEnabled(), true, val -> {
+                boolean enabled = val != 0;
+                MiogramCustomUiPrefs.setHapticEnabled(enabled);
+                tw.nekomimi.nekogram.NekoConfig.disableVibration.setConfigBool(!enabled);
+            });
+
             bubbleVis(sheet);
             sheet.show();
         }

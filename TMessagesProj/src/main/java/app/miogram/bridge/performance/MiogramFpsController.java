@@ -67,9 +67,17 @@ public class MiogramFpsController {
         if (window == null) return;
         try {
             Context ctx = window.getContext();
-            android.os.PowerManager pm = (android.os.PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
-            if (pm != null && pm.isPowerSaveMode()) {
-                return; // Respect Android battery saver mode
+            boolean lowBatteryOrPowerSave = app.miogram.bridge.perf.MiogramPerformanceOptimizer.isPowerSaveOrLowBattery(ctx);
+            if (lowBatteryOrPowerSave) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    WindowManager.LayoutParams params = window.getAttributes();
+                    params.preferredRefreshRate = 60.0f;
+                    params.preferredDisplayModeId = 0;
+                    window.setAttributes(params);
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    AndroidUtilities.setPreferredMaxRefreshRate(window, 60.0f);
+                }
+                return;
             }
 
             int mode = getRefreshRateMode();

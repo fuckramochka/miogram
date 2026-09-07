@@ -32,6 +32,7 @@ public final class MiogramIosHapticEngine {
      * UISelectionFeedbackGenerator: Selection changed (e.g. Tab switch).
      */
     public static void selectionChanged(View view) {
+        if (!app.miogram.bridge.customui.MiogramHaptic.isEnabled()) return;
         if (view != null) {
             view.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP);
             return;
@@ -51,6 +52,7 @@ public final class MiogramIosHapticEngine {
      * UIImpactFeedbackGenerator(style: .light)
      */
     public static void impactLight(View view) {
+        if (!app.miogram.bridge.customui.MiogramHaptic.isEnabled()) return;
         if (view != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             view.performHapticFeedback(android.view.HapticFeedbackConstants.TEXT_HANDLE_MOVE);
             return;
@@ -62,6 +64,7 @@ public final class MiogramIosHapticEngine {
      * UIImpactFeedbackGenerator(style: .medium)
      */
     public static void impactMedium(View view) {
+        if (!app.miogram.bridge.customui.MiogramHaptic.isEnabled()) return;
         if (view != null) {
             view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
             return;
@@ -81,6 +84,7 @@ public final class MiogramIosHapticEngine {
      * UIImpactFeedbackGenerator(style: .heavy)
      */
     public static void impactHeavy(View view) {
+        if (!app.miogram.bridge.customui.MiogramHaptic.isEnabled()) return;
         if (view != null) {
             view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
             return;
@@ -100,6 +104,7 @@ public final class MiogramIosHapticEngine {
      * UINotificationFeedbackGenerator(type: .success)
      */
     public static void notificationSuccess() {
+        if (!app.miogram.bridge.customui.MiogramHaptic.isEnabled()) return;
         Vibrator v = getVibrator(null);
         if (v == null || !v.hasVibrator()) return;
         try {
