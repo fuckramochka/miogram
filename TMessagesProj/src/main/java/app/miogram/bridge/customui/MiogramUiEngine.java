@@ -88,6 +88,9 @@ public class MiogramUiEngine {
         if (!MiogramCustomUiPrefs.isBubbleColorEnabled() || !MiogramCustomUiPrefs.isBubbleGlowEnabled() || canvas == null || backgroundDrawable == null) {
             return;
         }
+        if (org.telegram.messenger.SharedConfig.getDevicePerformanceClass() <= org.telegram.messenger.SharedConfig.PERFORMANCE_CLASS_LOW) {
+            return; // Skip expensive blur/glow on budget hardware
+        }
         Rect bounds = backgroundDrawable.getBounds();
         if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {
             try {
@@ -143,15 +146,17 @@ public class MiogramUiEngine {
             }
         }
 
+        boolean isLowEnd = org.telegram.messenger.SharedConfig.getDevicePerformanceClass() <= org.telegram.messenger.SharedConfig.PERFORMANCE_CLASS_LOW;
+
         // 3. Shadow or Glow
-        if (MiogramCustomUiPrefs.isNameShadowEnabled()) {
+        if (!isLowEnd && MiogramCustomUiPrefs.isNameShadowEnabled()) {
             int sColor = MiogramCustomUiPrefs.getNameShadowColor();
             float sRadius = Math.max(0.1f, AndroidUtilities.dp(MiogramCustomUiPrefs.getNameShadowRadius()));
             float dx = AndroidUtilities.dp(MiogramCustomUiPrefs.getNameShadowDx());
             float dy = AndroidUtilities.dp(MiogramCustomUiPrefs.getNameShadowDy());
             paint.setShadowLayer(sRadius, dx, dy, sColor);
             nameShadowSet = true;
-        } else if (MiogramCustomUiPrefs.isNameGlowEnabled()) {
+        } else if (!isLowEnd && MiogramCustomUiPrefs.isNameGlowEnabled()) {
             int gColor = MiogramCustomUiPrefs.getNameGlowColor();
             float gRadius = Math.max(1f, AndroidUtilities.dp(MiogramCustomUiPrefs.getNameGlowRadius()));
             paint.setShadowLayer(gRadius, 0, 0, gColor);
@@ -160,7 +165,7 @@ public class MiogramUiEngine {
 
         // 4. FX Shaders
         int fx = MiogramCustomUiPrefs.getNameFx();
-        if (fx > 0 && width > 0) {
+        if (!isLowEnd && fx > 0 && width > 0) {
             Shader shader = buildFxShader(fx, width, paint.getColor());
             if (shader != null) {
                 paint.setShader(shader);

@@ -57,8 +57,9 @@ public class MiogramLyricsView extends FrameLayout {
     public static final int MODE_BILINGUAL = 1;
     public static final int MODE_TRANSLATION = 2;
 
+    private static int savedSourceId = MiogramLyricsEngine.SOURCE_AUTO;
     private int displayMode = MODE_ORIGINAL;
-    private int currentSourceId = MiogramLyricsEngine.SOURCE_AUTO;
+    private int currentSourceId = savedSourceId;
 
     private final Theme.ResourcesProvider resourcesProvider;
 
@@ -285,6 +286,7 @@ public class MiogramLyricsView extends FrameLayout {
 
     private void selectSource(int sourceId) {
         this.currentSourceId = sourceId;
+        savedSourceId = sourceId;
         updateSourcePillText();
         showToastPill(MiogramSourceSelectAlert.getSourceName(sourceId));
         if (currentMessageObject != null) {
@@ -377,6 +379,22 @@ public class MiogramLyricsView extends FrameLayout {
         activePosition = -1;
         adapter.setLines(null);
         if (messageObject != null) {
+            MiogramLrcModel.LrcSong cached = MiogramLyricsEngine.getInstance().getCachedSong(messageObject);
+            if (cached != null && !cached.isEmpty()) {
+                currentSong = cached;
+                if ("✨ Gemini AI".equals(cached.source)) {
+                    currentSourceId = MiogramLyricsEngine.SOURCE_AI;
+                    savedSourceId = currentSourceId;
+                }
+                updateSourcePillText();
+                showLoading(false);
+                adapter.setLines(cached.lines);
+                updateTranslationButton();
+                updateTime(MediaController.getInstance().getPlayingMessageObject() != null
+                        ? MediaController.getInstance().getPlayingMessageObject().audioProgressMs
+                        : 0L);
+                return;
+            }
             loadLyrics(messageObject, currentSourceId);
         } else {
             showEmptyState(false, "");
@@ -458,6 +476,19 @@ public class MiogramLyricsView extends FrameLayout {
 
             if (activePosition != -1 && !isUserScrolling && SystemClock.elapsedRealtime() - lastUserScrollTime > 3000L) {
                 scrollToCenter(activePosition);
+            }
+        }
+
+        if (activePosition != -1 && currentSong != null && activePosition < currentSong.lines.size()) {
+            LyricsViewHolder holder = (LyricsViewHolder) recyclerView.findViewHolderForAdapterPosition(activePosition);
+            if (holder != null) {
+                MiogramLrcModel.LrcLine line = currentSong.lines.get(activePosition);
+                long nextTime = (activePosition + 1 < currentSong.lines.size())
+                        ? currentSong.lines.get(activePosition + 1).timeMs
+                        : (line.timeMs + 4000L);
+                long lineDuration = Math.max(800L, Math.min(10000L, nextTime - line.timeMs));
+                float fraction = Math.max(0f, Math.min(1f, (float)(currentPositionMs - line.timeMs) / (float)lineDuration));
+                holder.updateKaraokeProgress(fraction);
             }
         }
     }
@@ -573,8 +604,9 @@ public class MiogramLyricsView extends FrameLayout {
             boolean isActive = (position == activePosition);
             int accent = getThemedAccent();
 
+            String displayText;
             if (displayMode == MODE_BILINGUAL) {
-                holder.mainText.setText(line.text);
+                displayText = line.text;
                 if (line.hasTranslation()) {
                     holder.transText.setVisibility(View.VISIBLE);
                     holder.transText.setText(line.translation);
@@ -582,10 +614,10 @@ public class MiogramLyricsView extends FrameLayout {
                     holder.transText.setVisibility(View.GONE);
                 }
             } else if (displayMode == MODE_ORIGINAL) {
-                holder.mainText.setText(line.text);
+                displayText = line.text;
                 holder.transText.setVisibility(View.GONE);
             } else {
-                holder.mainText.setText(line.hasTranslation() ? line.translation : line.text);
+                displayText = line.hasTranslation() ? line.translation : line.text;
                 holder.transText.setVisibility(View.GONE);
             }
 
@@ -599,14 +631,18 @@ public class MiogramLyricsView extends FrameLayout {
                 holder.transText.setAlpha(0.9f);
                 holder.itemView.setScaleX(1.02f);
                 holder.itemView.setScaleY(1.02f);
+                holder.bindText(displayText);
+                holder.updateKaraokeProgress(0f);
             } else {
-                holder.mainText.setTextColor(0xFFFFFFFF);
-                holder.mainText.setAlpha(0.38f);
+                holder.mainText.setTextColor(0x60FFFFFF);
+                holder.mainText.setAlpha(1.0f);
                 holder.mainText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
+                holder.mainText.setText(displayText);
                 holder.underline.setVisibility(View.GONE);
                 holder.transText.setAlpha(0.28f);
                 holder.itemView.setScaleX(1.0f);
                 holder.itemView.setScaleY(1.0f);
+                holder.bindText("");
             }
 
             holder.itemView.setOnClickListener(v -> {
@@ -633,12 +669,37 @@ public class MiogramLyricsView extends FrameLayout {
         final TextView mainText;
         final View underline;
         final TextView transText;
+        private String rawText = "";
+        private int lastSungChars = -1;
 
         public LyricsViewHolder(View itemView, TextView main, View underline, TextView trans) {
             super(itemView);
             this.mainText = main;
             this.underline = underline;
             this.transText = trans;
+        }
+
+        public void bindText(String text) {
+            this.rawText = text != null ? text : "";
+            this.lastSungChars = -1;
+        }
+
+        public void updateKaraokeProgress(float fraction) {
+            if (TextUtils.isEmpty(rawText)) return;
+            int len = rawText.length();
+            int sungChars = Math.round(len * fraction);
+            sungChars = Math.max(0, Math.min(len, sungChars));
+            if (sungChars == lastSungChars) return;
+            lastSungChars = sungChars;
+
+            android.text.SpannableString span = new android.text.SpannableString(rawText);
+            if (sungChars > 0) {
+                span.setSpan(new android.text.style.ForegroundColorSpan(0xFFFFFFFF), 0, sungChars, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            if (sungChars < len) {
+                span.setSpan(new android.text.style.ForegroundColorSpan(0x60FFFFFF), sungChars, len, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            mainText.setText(span, TextView.BufferType.SPANNABLE);
         }
     }
 }

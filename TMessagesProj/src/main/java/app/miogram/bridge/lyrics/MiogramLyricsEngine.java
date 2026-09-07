@@ -72,13 +72,46 @@ public class MiogramLyricsEngine {
         if (messageObject == null) return null;
         String rawTitle = messageObject.getMusicTitle();
         String rawAuthor = messageObject.getMusicAuthor();
+        if (TextUtils.isEmpty(rawTitle)) {
+            rawTitle = messageObject.getDocumentName();
+            if (rawTitle != null && rawTitle.toLowerCase(Locale.ROOT).endsWith(".mp3")) {
+                rawTitle = rawTitle.substring(0, rawTitle.length() - 4);
+            }
+        }
         if (TextUtils.isEmpty(rawTitle)) return null;
         String title = cleanTitle(rawTitle);
-        String artist = cleanArtist(rawAuthor);
-        String cacheKey = getCacheKey(artist, title);
-        MiogramLrcModel.LrcSong song = memoryCache.get(cacheKey);
-        if (song != null) return song;
-        return loadFromDisk(cacheKey);
+        String artist = cleanArtist(rawAuthor != null ? rawAuthor : "");
+        String baseKey = getCacheKey(artist, title);
+
+        MiogramLrcModel.LrcSong song = memoryCache.get(baseKey);
+        if (song != null && !song.isEmpty()) return song;
+
+        for (int src = 0; src <= 6; src++) {
+            song = memoryCache.get(baseKey + "_src" + src);
+            if (song != null && !song.isEmpty()) return song;
+        }
+
+        song = loadFromPersistentDisk(baseKey);
+        if (song != null && !song.isEmpty()) {
+            memoryCache.put(baseKey, song);
+            return song;
+        }
+
+        song = loadFromDisk(baseKey);
+        if (song != null && !song.isEmpty()) {
+            memoryCache.put(baseKey, song);
+            return song;
+        }
+
+        for (int src = 0; src <= 6; src++) {
+            song = loadFromPersistentDisk(baseKey + "_src" + src);
+            if (song != null && !song.isEmpty()) {
+                memoryCache.put(baseKey, song);
+                return song;
+            }
+        }
+
+        return null;
     }
 
     public interface LyricsCallback {
@@ -90,6 +123,7 @@ public class MiogramLyricsEngine {
     private final LruCache<String, MiogramLrcModel.LrcSong> memoryCache = new LruCache<>(80);
     private final OkHttpClient httpClient;
     private final File cacheDir;
+    private final File persistentDir;
 
     private MiogramLyricsEngine() {
         httpClient = new OkHttpClient.Builder()
@@ -102,6 +136,11 @@ public class MiogramLyricsEngine {
         cacheDir = new File(base, "miogram_lyrics");
         if (!cacheDir.exists()) {
             cacheDir.mkdirs();
+        }
+        File filesBase = ApplicationLoader.applicationContext != null ? ApplicationLoader.applicationContext.getFilesDir() : new File("/tmp");
+        persistentDir = new File(filesBase, "miogram_lyrics_persistent");
+        if (!persistentDir.exists()) {
+            persistentDir.mkdirs();
         }
     }
 
@@ -137,20 +176,32 @@ public class MiogramLyricsEngine {
         final String cacheKey = getCacheKey(artist, title) + (preferredSource != SOURCE_AUTO ? ("_src" + preferredSource) : "");
 
         // 1. Memory Cache
+        String baseKey = getCacheKey(artist, title);
         MiogramLrcModel.LrcSong cached = memoryCache.get(cacheKey);
-        if (cached != null) {
-            if (callback != null) {
-                callback.onLyricsLoaded(cached);
-            }
+        if (cached == null && preferredSource == SOURCE_AUTO) {
+            cached = memoryCache.get(baseKey);
+        }
+        if (cached != null && !cached.isEmpty()) {
+            postSuccess(callback, cached);
             return;
         }
 
         executor.execute(() -> {
             try {
-                // 2. Disk Cache
-                MiogramLrcModel.LrcSong diskSong = loadFromDisk(cacheKey);
-                if (diskSong != null) {
+                // 2. Persistent Disk Cache & Temp Disk Cache
+                MiogramLrcModel.LrcSong diskSong = loadFromPersistentDisk(cacheKey);
+                if (diskSong == null && preferredSource == SOURCE_AUTO) {
+                    diskSong = loadFromPersistentDisk(baseKey);
+                }
+                if (diskSong == null) {
+                    diskSong = loadFromDisk(cacheKey);
+                }
+                if (diskSong == null && preferredSource == SOURCE_AUTO) {
+                    diskSong = loadFromDisk(baseKey);
+                }
+                if (diskSong != null && !diskSong.isEmpty()) {
                     memoryCache.put(cacheKey, diskSong);
+                    memoryCache.put(baseKey, diskSong);
                     postSuccess(callback, diskSong);
                     return;
                 }
@@ -674,6 +725,12 @@ public class MiogramLyricsEngine {
 
         memoryCache.put(cacheKey, song);
         saveToDisk(cacheKey, song);
+
+        String baseKey = getCacheKey(song.artist, song.title);
+        if (!TextUtils.isEmpty(baseKey)) {
+            memoryCache.put(baseKey, song);
+            saveToPersistentDisk(baseKey, song);
+        }
         postSuccess(callback, song);
     }
 
@@ -759,6 +816,31 @@ public class MiogramLyricsEngine {
         return raw.replaceAll("(?i)\\\\bfeat\\\\..*", "")
                   .replaceAll("(?i),.*", "")
                   .trim();
+    }
+
+    private void saveToPersistentDisk(String key, MiogramLrcModel.LrcSong song) {
+        try {
+            File f = new File(persistentDir, key + ".json");
+            try (FileOutputStream fos = new FileOutputStream(f)) {
+                fos.write(song.toJson().getBytes(StandardCharsets.UTF_8));
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    private MiogramLrcModel.LrcSong loadFromPersistentDisk(String key) {
+        try {
+            File f = new File(persistentDir, key + ".json");
+            if (f.exists() && f.length() > 0) {
+                byte[] b = new byte[(int) f.length()];
+                try (FileInputStream fis = new FileInputStream(f)) {
+                    int read = fis.read(b);
+                    if (read > 0) {
+                        return MiogramLrcModel.LrcSong.fromJson(new String(b, 0, read, StandardCharsets.UTF_8));
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        return null;
     }
 
     private void saveToDisk(String key, MiogramLrcModel.LrcSong song) {

@@ -9193,10 +9193,12 @@ public class Theme {
         if (key == Theme.key_chat_outBubbleGradient1) {
             return app.miogram.bridge.customui.MiogramCustomUiPrefs.isBubbleGradientEnabled()
                 ? app.miogram.bridge.customui.MiogramCustomUiPrefs.getBubbleColor2()
-                : 0x00000000;
+                : app.miogram.bridge.customui.MiogramCustomUiPrefs.getBubbleColor();
         }
         if (key == Theme.key_chat_outBubbleGradient2 || key == Theme.key_chat_outBubbleGradient3) {
-            return 0x00000000;
+            return app.miogram.bridge.customui.MiogramCustomUiPrefs.isBubbleGradientEnabled()
+                ? app.miogram.bridge.customui.MiogramCustomUiPrefs.getBubbleColor2()
+                : app.miogram.bridge.customui.MiogramCustomUiPrefs.getBubbleColor();
         }
         if (key == Theme.key_chat_messageTextOut) {
             return app.miogram.bridge.customui.MiogramCustomUiPrefs.getBubbleTextColor();

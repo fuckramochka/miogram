@@ -22285,20 +22285,16 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             currentBackgroundDrawable.setTop(keyboardHeight, w, h, (int) parentViewTopOffset, blurredViewTopOffset, blurredViewBottomOffset, pinnedTop, pinnedBottom);
             currentBackgroundDrawable.setBotButtonsBottom(hasInlineBotButtons());
             Drawable currentBackgroundShadowDrawable = currentBackgroundDrawable.getShadowDrawable();
-            if (currentBackgroundShadowDrawable != null && !app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            if (currentBackgroundShadowDrawable != null) {
                 currentBackgroundShadowDrawable.setAlpha((int) (getAlpha() * 255));
                 currentBackgroundShadowDrawable.setBounds(left, top, right, bottom);
                 currentBackgroundShadowDrawable.draw(canvas);
                 currentBackgroundShadowDrawable.setAlpha(255);
             }
-            if (!app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
-                currentBackgroundDrawable.setAlpha((int) (getAlpha() * (shouldTranslucentDeleted() && ayuDeleted ? 255 * 0.75f : 255)));
-                currentBackgroundDrawable.setBounds(left, top, right, bottom);
-                currentBackgroundDrawable.drawCached(canvas, backgroundCacheParams);
-                currentBackgroundDrawable.setAlpha(255);
-            } else {
-                currentBackgroundDrawable.setBounds(left, top, right, bottom);
-            }
+            currentBackgroundDrawable.setAlpha((int) (getAlpha() * (shouldTranslucentDeleted() && ayuDeleted ? 255 * 0.75f : 255)));
+            currentBackgroundDrawable.setBounds(left, top, right, bottom);
+            currentBackgroundDrawable.drawCached(canvas, backgroundCacheParams);
+            currentBackgroundDrawable.setAlpha(255);
         }
 
         animateCheckboxTranslation();

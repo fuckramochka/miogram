@@ -1071,9 +1071,6 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     }
 
     private int getCollapsedHeight() {
-        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
-            return dp(42); // 42dp for Discord channels
-        }
         int height = dp(useForceThreeLines || SharedConfig.useThreeLinesLayout ? heightThreeLines : heightDefault);
         if (useSeparator || true) {
             height += 1;
@@ -1326,11 +1323,6 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
         }
 
         currentDialogFolderDialogsCount = 0;
-        boolean isDiscord = app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled();
-        if (isDiscord) {
-            drawAvatar = (currentDialogId >= 0); // Avatars only in DMs
-            messagePaddingStart = drawAvatar ? 50 : 16;
-        }
         CharSequence nameString = "";
         String timeString = "";
         String countString = null;
@@ -4303,7 +4295,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 }
             }
 
-            if (timeLayout != null && currentDialogFolderId == 0 && !app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            if (timeLayout != null && currentDialogFolderId == 0) {
                 canvas.save();
                 canvas.translate(timeLeft, timeTop);
 
@@ -4376,7 +4368,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 canvas.restore();
             }
 
-            if (messageLayout != null && !app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+            if (messageLayout != null) {
                 if (currentDialogFolderId != 0) {
                     if (chat != null) {
                         Theme.dialogs_messagePaint[paintIndex].setColor(Theme.dialogs_messagePaint[paintIndex].linkColor = Theme.getColor(Theme.key_chats_nameMessageArchived, resourcesProvider));

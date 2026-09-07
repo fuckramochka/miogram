@@ -444,7 +444,6 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         AndroidUtilities.runOnUIThread(() -> app.miogram.bridge.updater.MiogramUpdater.initAutoUpdate(this), 3500);
         app.miogram.bridge.plugins.MiogramInAppNotifications.getInstance().register();
         app.miogram.bridge.performance.MiogramFpsController.applyToWindow(this);
-        app.miogram.bridge.lyrics.MiogramFloatingLyricsTicker.getInstance().attach(this);
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if (!UserConfig.getInstance(currentAccount).isClientActivated()) {
             Intent intent = getIntent();
@@ -588,6 +587,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         });
         actionBarLayout.setDelegate(this);
         Theme.loadWallpaper(true);
+        app.miogram.bridge.lyrics.MiogramFloatingLyricsTicker.getInstance().attach(this);
 
         checkCurrentAccount();
         updateCurrentConnectionState(currentAccount);
