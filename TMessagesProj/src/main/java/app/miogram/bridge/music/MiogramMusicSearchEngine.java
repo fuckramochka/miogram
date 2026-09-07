@@ -376,6 +376,7 @@ public class MiogramMusicSearchEngine {
                             AndroidUtilities.runOnUIThread(() -> {
                                 track.isDownloading = false;
                                 track.isInstalled = true;
+                                track.localFile = destFile;
                                 if (callback != null) callback.onSuccess(destFile);
                             });
                         } catch (Throwable t) {
@@ -437,6 +438,7 @@ public class MiogramMusicSearchEngine {
                     AndroidUtilities.runOnUIThread(() -> {
                         track.isDownloading = false;
                         track.isInstalled = true;
+                        track.localFile = destFile;
                         if (callback != null) callback.onSuccess(destFile);
                     });
                 } catch (Throwable t) {

@@ -1,5 +1,7 @@
 package app.miogram.bridge.music;
 
+import java.io.File;
+
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.MessageObject;
 
@@ -30,6 +32,7 @@ public class MiogramMusicTrack {
     public long fileSize;
     public Source source;
     public MessageObject telegramMessage;
+    public File localFile;
 
     // Download state tracking
     public boolean isDownloading = false;
