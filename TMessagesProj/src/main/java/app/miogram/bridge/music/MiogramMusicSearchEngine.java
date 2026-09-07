@@ -367,16 +367,23 @@ public class MiogramMusicSearchEngine {
                     if (attachFile != null && attachFile.exists()) {
                         String cleanName = sanitizeFilename(track.getDisplayArtist() + " - " + track.getDisplayTitle() + ".mp3");
                         File destFile = new File(targetDir, cleanName);
-                        AndroidUtilities.copyFile(attachFile, destFile);
+                        try {
+                            AndroidUtilities.copyFile(attachFile, destFile);
 
-                        // Scan into Android MediaStore
-                        MediaScannerConnection.scanFile(context, new String[]{destFile.getAbsolutePath()}, new String[]{"audio/mpeg"}, null);
+                            // Scan into Android MediaStore
+                            MediaScannerConnection.scanFile(context, new String[]{destFile.getAbsolutePath()}, new String[]{"audio/mpeg"}, null);
 
-                        AndroidUtilities.runOnUIThread(() -> {
-                            track.isDownloading = false;
-                            track.isInstalled = true;
-                            if (callback != null) callback.onSuccess(destFile);
-                        });
+                            AndroidUtilities.runOnUIThread(() -> {
+                                track.isDownloading = false;
+                                track.isInstalled = true;
+                                if (callback != null) callback.onSuccess(destFile);
+                            });
+                        } catch (Throwable t) {
+                            AndroidUtilities.runOnUIThread(() -> {
+                                track.isDownloading = false;
+                                if (callback != null) callback.onError(t.getMessage());
+                            });
+                        }
                     } else {
                         AndroidUtilities.runOnUIThread(() -> {
                             track.isDownloading = false;
