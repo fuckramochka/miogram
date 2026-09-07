@@ -1,5 +1,6 @@
 package app.miogram.bridge.folders;
 
+import android.content.Context;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -81,78 +82,103 @@ public class MiogramSubfolderSettingsActivity extends BaseNekoSettingsActivity {
         }
     }
 
-    @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position, boolean partial) {
-        switch (holder.getItemViewType()) {
-            case TYPE_HEADER: {
-                HeaderCell cell = (HeaderCell) holder.itemView;
-                if (position == headerGeneralRow) {
-                    cell.setText(MiogramLocale.get("Головні налаштування", "Главные настройки", "General"));
-                } else if (position == headerHierarchyRow) {
-                    cell.setText(MiogramLocale.get("Ієрархія та Групування", "Иерархия и Группировка", "Hierarchy & Grouping"));
-                } else if (position == headerSmartRow) {
-                    cell.setText(MiogramLocale.get("Розумні категорії", "Умные категории", "Smart Categories"));
-                }
-                break;
+    private class ListAdapter extends BaseListAdapter {
+
+        public ListAdapter(Context context) {
+            super(context);
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            if (position == headerGeneralRow || position == headerHierarchyRow || position == headerSmartRow) {
+                return TYPE_HEADER;
+            } else if (position == enabledRow || position == hierarchicalRow || position == collapseTabsRow
+                    || position == smartFiltersRow || position == showCountersRow) {
+                return TYPE_CHECK;
+            } else if (position == enabledInfoRow || position == hierarchyInfoRow || position == smartInfoRow) {
+                return TYPE_INFO_PRIVACY;
             }
-            case TYPE_CHECK: {
-                TextCheckCell cell = (TextCheckCell) holder.itemView;
-                if (position == enabledRow) {
-                    cell.setTextAndCheck(
-                        MiogramLocale.get("Увімкнути панель підпапок", "Включить панель подпапок", "Enable Subfolder Bar"),
-                        MiogramSubfolderEngine.isSubfoldersEnabled(),
-                        false
-                    );
-                } else if (position == hierarchicalRow) {
-                    cell.setTextAndCheck(
-                        MiogramLocale.get("Ієрархічні підпапки (Parent / Child)", "Иерархические подпапки (Parent / Child)", "Hierarchical Subfolders (Parent / Child)"),
-                        MiogramSubfolderEngine.isHierarchicalEnabled(),
-                        true
-                    );
-                } else if (position == collapseTabsRow) {
-                    cell.setTextAndCheck(
-                        MiogramLocale.get("Ховати підпапки з верхніх вкладок", "Скрывать подпапки из верхних вкладок", "Hide Subfolders from Main Tabs"),
-                        MiogramSubfolderEngine.isCollapseSubfoldersEnabled(),
-                        false
-                    );
-                } else if (position == smartFiltersRow) {
-                    cell.setTextAndCheck(
-                        MiogramLocale.get("Розумні фільтри чатів", "Умные фильтры чатов", "Smart Chat Filters"),
-                        MiogramSubfolderEngine.isSmartFiltersEnabled(),
-                        true
-                    );
-                } else if (position == showCountersRow) {
-                    cell.setTextAndCheck(
-                        MiogramLocale.get("Лічильники непрочитаних на бейджах", "Счетчики непрочитанных на бейджах", "Unread Counters on Badges"),
-                        MiogramSubfolderEngine.isShowCountersEnabled(),
-                        false
-                    );
+            return TYPE_TEXT;
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position, boolean partial) {
+            switch (holder.getItemViewType()) {
+                case TYPE_HEADER: {
+                    HeaderCell cell = (HeaderCell) holder.itemView;
+                    if (position == headerGeneralRow) {
+                        cell.setText(MiogramLocale.get("Головні налаштування", "Главные настройки", "General"));
+                    } else if (position == headerHierarchyRow) {
+                        cell.setText(MiogramLocale.get("Ієрархія та Групування", "Иерархия и Группировка", "Hierarchy & Grouping"));
+                    } else if (position == headerSmartRow) {
+                        cell.setText(MiogramLocale.get("Розумні категорії", "Умные категории", "Smart Categories"));
+                    }
+                    break;
                 }
-                break;
-            }
-            case TYPE_INFO_PRIVACY: {
-                TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
-                if (position == enabledInfoRow) {
-                    cell.setText(MiogramLocale.get(
-                        "Відображає горизонтальну смужку підпапок над чатами з можливістю створення нових підпапок в 1 дотик.",
-                        "Отображает горизонтальную полосу подпапок над чатами с возможностью создания новых подпапок в 1 клик.",
-                        "Displays a horizontal subfolder bar above chats with 1-tap subfolder creation."
-                    ));
-                } else if (position == hierarchyInfoRow) {
-                    cell.setText(MiogramLocale.get(
-                        "Папки з роздільником (наприклад 'Робота / Проєкти') автоматично вкладаються в батьківську папку 'Робота'.",
-                        "Папки с разделителем (например 'Работа / Проекты') автоматически вкладываются в родительскую папку 'Работа'.",
-                        "Folders named with a separator (e.g. 'Work / Projects') are nested under 'Work'."
-                    ));
-                } else if (position == smartInfoRow) {
-                    cell.setText(MiogramLocale.get(
-                        "Додає швидкі пігулки 'Особисті', 'Групи', 'Канали', 'Боти' та 'Непрочитані' для миттєвої фільтрації будь-якої папки.",
-                        "Добавляет быстрые пилюли 'Личные', 'Группы', 'Каналы', 'Боты' и 'Непрочитанные' для фильтрации любой папки.",
-                        "Adds quick pills 'Personal', 'Groups', 'Channels', 'Bots', and 'Unread' to filter any folder."
-                    ));
+                case TYPE_CHECK: {
+                    TextCheckCell cell = (TextCheckCell) holder.itemView;
+                    if (position == enabledRow) {
+                        cell.setTextAndCheck(
+                            MiogramLocale.get("Увімкнути панель підпапок", "Включить панель подпапок", "Enable Subfolder Bar"),
+                            MiogramSubfolderEngine.isSubfoldersEnabled(),
+                            false
+                        );
+                    } else if (position == hierarchicalRow) {
+                        cell.setTextAndCheck(
+                            MiogramLocale.get("Ієрархічні підпапки (Parent / Child)", "Иерархические подпапки (Parent / Child)", "Hierarchical Subfolders (Parent / Child)"),
+                            MiogramSubfolderEngine.isHierarchicalEnabled(),
+                            true
+                        );
+                    } else if (position == collapseTabsRow) {
+                        cell.setTextAndCheck(
+                            MiogramLocale.get("Ховати підпапки з верхніх вкладок", "Скрывать подпапки из верхних вкладок", "Hide Subfolders from Main Tabs"),
+                            MiogramSubfolderEngine.isCollapseSubfoldersEnabled(),
+                            false
+                        );
+                    } else if (position == smartFiltersRow) {
+                        cell.setTextAndCheck(
+                            MiogramLocale.get("Розумні фільтри чатів", "Умные фильтры чатов", "Smart Chat Filters"),
+                            MiogramSubfolderEngine.isSmartFiltersEnabled(),
+                            true
+                        );
+                    } else if (position == showCountersRow) {
+                        cell.setTextAndCheck(
+                            MiogramLocale.get("Лічильники непрочитаних на бейджах", "Счетчики непрочитанных на бейджах", "Unread Counters on Badges"),
+                            MiogramSubfolderEngine.isShowCountersEnabled(),
+                            false
+                        );
+                    }
+                    break;
                 }
-                break;
+                case TYPE_INFO_PRIVACY: {
+                    TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
+                    if (position == enabledInfoRow) {
+                        cell.setText(MiogramLocale.get(
+                            "Відображає горизонтальну смужку підпапок над чатами з можливістю створення нових підпапок в 1 дотик.",
+                            "Отображает горизонтальную полосу подпапок над чатами с возможностью создания новых подпапок в 1 клик.",
+                            "Displays a horizontal subfolder bar above chats with 1-tap subfolder creation."
+                        ));
+                    } else if (position == hierarchyInfoRow) {
+                        cell.setText(MiogramLocale.get(
+                            "Папки з роздільником (наприклад 'Робота / Проєкти') автоматично вкладаються в батьківську папку 'Робота'.",
+                            "Папки с разделителем (например 'Работа / Проекты') автоматически вкладываются в родительскую папку 'Работа'.",
+                            "Folders named with a separator (e.g. 'Work / Projects') are nested under 'Work'."
+                        ));
+                    } else if (position == smartInfoRow) {
+                        cell.setText(MiogramLocale.get(
+                            "Додає швидкі пігулки 'Особисті', 'Групи', 'Канали', 'Боти' та 'Непрочитані' для миттєвої фільтрації будь-якої папки.",
+                            "Добавляет быстрые пилюли 'Личные', 'Группы', 'Каналы', 'Боты' и 'Непрочитанные' для фильтрации любой папки.",
+                            "Adds quick pills 'Personal', 'Groups', 'Channels', 'Bots', and 'Unread' to filter any folder."
+                        ));
+                    }
+                    break;
+                }
             }
         }
+    }
+
+    @Override
+    protected BaseListAdapter createAdapter(Context context) {
+        return new ListAdapter(context);
     }
 }

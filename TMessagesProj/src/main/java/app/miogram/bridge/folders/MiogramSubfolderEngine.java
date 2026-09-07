@@ -221,7 +221,7 @@ public class MiogramSubfolderEngine {
             }
             return false;
         } else if (type == TYPE_UNREAD) {
-            return d.unread_count > 0 || d.unread_mentions_count > 0 || d.unread_reactions_count > 0 || d.unread_mark || mc.isDialogUnread(dialogId);
+            return d.unread_count > 0 || d.unread_mentions_count > 0 || d.unread_reactions_count > 0 || d.unread_mark || (mc != null && mc.getDialogUnreadCount(d) > 0);
         }
         return true;
     }
@@ -267,7 +267,7 @@ public class MiogramSubfolderEngine {
             if (type != TYPE_ALL && !matchesType(currentAccount, d, type)) {
                 continue;
             }
-            if (d.unread_count > 0 || d.unread_mentions_count > 0 || d.unread_reactions_count > 0 || d.unread_mark || (mc != null && mc.isDialogUnread(d.id))) {
+            if (d.unread_count > 0 || d.unread_mentions_count > 0 || d.unread_reactions_count > 0 || d.unread_mark || (mc != null && mc.getDialogUnreadCount(d) > 0)) {
                 count++;
             }
         }
