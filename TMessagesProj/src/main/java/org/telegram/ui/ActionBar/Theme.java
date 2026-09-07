@@ -9183,6 +9183,12 @@ public class Theme {
                 return iosColor;
             }
         }
+        if (app.miogram.bridge.divine.MiogramDivineEngine.isWindowsXpPresetActive(null)) {
+            int xpColor = getWindowsXpPresetColor(key);
+            if (xpColor != 0) {
+                return xpColor;
+            }
+        }
         if (provider != null) {
             return provider.getColor(key);
         }
@@ -9298,6 +9304,52 @@ public class Theme {
         return 0;
     }
 
+    public static int getWindowsXpPresetColor(int key) {
+        if (!app.miogram.bridge.divine.MiogramDivineEngine.isWindowsXpPresetActive(null)) {
+            return 0;
+        }
+        if (key == Theme.key_chats_name) return 0xFF000000;
+        if (key == Theme.key_chats_message || key == Theme.key_chats_message_threeLines) return 0xFF333333;
+        if (key == Theme.key_chats_date) return 0xFF555555;
+        if (key == Theme.key_windowBackgroundWhite) return 0xFFECE9D8;
+        if (key == Theme.key_windowBackgroundGray) return 0xFFD4D0C8;
+        if (key == Theme.key_windowBackgroundWhiteBlackText) return 0xFF000000;
+        if (key == Theme.key_windowBackgroundWhiteGrayText || key == Theme.key_windowBackgroundWhiteGrayText2) return 0xFF555555;
+        if (key == Theme.key_windowBackgroundWhiteValueText || key == Theme.key_windowBackgroundWhiteBlueText || key == Theme.key_windowBackgroundWhiteBlueText2 || key == Theme.key_windowBackgroundWhiteBlueText4) return 0xFF0055EA;
+        if (key == Theme.key_chats_actionBackground) return 0xFF0055EA;
+        if (key == Theme.key_chats_unreadCounter) return 0xFF228B22;
+        if (key == Theme.key_chats_unreadCounterMuted) return 0xFF808080;
+        if (key == Theme.key_chats_unreadCounterText) return 0xFFFFFFFF;
+        if (key == Theme.key_divider) return 0xFFD4D0C8;
+        if (key == Theme.key_actionBarDefault) return 0xFF0055EA;
+        if (key == Theme.key_actionBarDefaultTitle) return 0xFFFFFFFF;
+        if (key == Theme.key_actionBarDefaultSubtitle) return 0xFFD6E6FF;
+        if (key == Theme.key_actionBarDefaultIcon) return 0xFFFFFFFF;
+        if (key == Theme.key_actionBarDefaultSelector) return 0x30FFFFFF;
+        if (key == Theme.key_actionBarDefaultSubmenuBackground) return 0xFFECE9D8;
+        if (key == Theme.key_actionBarDefaultSubmenuItem) return 0xFF000000;
+        if (key == Theme.key_actionBarDefaultSubmenuItemIcon) return 0xFF0055EA;
+        if (key == Theme.key_actionBarDefaultSubmenuSeparator) return 0xFFD4D0C8;
+        if (key == Theme.key_chat_messagePanelBackground) return 0xFFECE9D8;
+        if (key == Theme.key_chat_messagePanelShadow) return 0xFFD4D0C8;
+        if (key == Theme.key_chat_messagePanelText) return 0xFF000000;
+        if (key == Theme.key_chat_messagePanelHint) return 0xFF777777;
+        if (key == Theme.key_chat_messagePanelIcons) return 0xFF0055EA;
+        if (key == Theme.key_chat_messagePanelSend) return 0xFF0055EA;
+        if (key == Theme.key_chat_inBubble) return 0xFFFFFFFF;
+        if (key == Theme.key_chat_outBubble) return 0xFFD8E8FE;
+        if (key == Theme.key_chat_inBubbleSelected) return 0xFFE5EEF9;
+        if (key == Theme.key_chat_outBubbleSelected) return 0xFFB8D6FB;
+        if (key == Theme.key_chat_messageTextIn) return 0xFF000000;
+        if (key == Theme.key_chat_messageTextOut) return 0xFF000000;
+        if (key == Theme.key_chat_inTimeText) return 0xFF666666;
+        if (key == Theme.key_chat_outTimeText) return 0xFF555555;
+        if (key == Theme.key_chat_messageLinkIn || key == Theme.key_chat_messageLinkOut) return 0xFF0000EE;
+        if (key == Theme.key_switchTrack) return 0xFFD4D0C8;
+        if (key == Theme.key_switchTrackChecked) return 0xFF228B22;
+        return 0;
+    }
+
     public static int getCurrentColor(int key) {
         return currentColors.get(key);
     }
@@ -9333,6 +9385,12 @@ public class Theme {
             int iosColor = getIosPresetColor(key);
             if (iosColor != 0) {
                 return iosColor;
+            }
+        }
+        if (app.miogram.bridge.divine.MiogramDivineEngine.isWindowsXpPresetActive(null)) {
+            int xpColor = getWindowsXpPresetColor(key);
+            if (xpColor != 0) {
+                return xpColor;
             }
         }
         if (key_divider == key && !resolvingDividerColor && app.exteraless.appearance.AppearanceConfig.dividerHidden()) {

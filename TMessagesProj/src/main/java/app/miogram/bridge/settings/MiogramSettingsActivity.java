@@ -29,6 +29,7 @@ import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     private int headerMiogramFeaturesRow;
+    private int musicSearchRow;
     private int customUiRow;
     private int multichatRow;
     private int badgeStudioRow;
@@ -61,6 +62,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         super.updateRows();
 
         headerMiogramFeaturesRow = addRow();
+        musicSearchRow = addRow();
         customUiRow = addRow();
         multichatRow = addRow();
         badgeStudioRow = addRow();
@@ -86,7 +88,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == customUiRow) {
+        if (position == musicSearchRow) {
+            presentFragment(new app.miogram.bridge.music.MiogramMusicSearchActivity());
+        } else if (position == customUiRow) {
             app.miogram.bridge.customui.MiogramCustomUiActivity.ExtraFeaturesSheet.show(getParentActivity() != null ? getParentActivity() : getContext());
         } else if (position == multichatRow) {
             presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0));
@@ -154,7 +158,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
-                    if (position == customUiRow) {
+                    if (position == musicSearchRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Пошук музики 🎵", "Поиск музыки 🎵", "Music Search 🎵"), R.drawable.search_music_filled, true);
+                    } else if (position == customUiRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Додаткові функції (Custom Profile)", "Дополнительные функции (Custom Profile)", "Extra Features (Custom Profile)"), R.drawable.msg_colors, true);
                     } else if (position == multichatRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Мультичат (Split-Screen) 🪟", "Мультичат (Split-Screen) 🪟", "Multi-Chat (Split-Screen) 🪟"), R.drawable.msg_fave, true);

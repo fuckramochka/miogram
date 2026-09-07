@@ -183,6 +183,21 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         pageSwitcher.addView(queueModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
         topControlsRow.addView(pageSwitcher, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(36), 1f));
 
+        // Search music button
+        ImageView searchBtn = new ImageView(context);
+        searchBtn.setImageResource(R.drawable.search_music_filled);
+        searchBtn.setScaleType(ImageView.ScaleType.CENTER);
+        searchBtn.setColorFilter(new PorterDuffColorFilter(buttonColor, PorterDuff.Mode.SRC_IN));
+        searchBtn.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, AndroidUtilities.dp(18)));
+        searchBtn.setContentDescription(MiogramLocale.get("Пошук музики", "Поиск музыки", "Music Search"));
+        searchBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            if (alert != null) {
+                alert.openMusicSearch();
+            }
+        });
+        topControlsRow.addView(searchBtn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL, 0, 0, 2, 0));
+
         // Right button: Expand to fullscreen (in compact) or Dismiss 'X' (in fullscreen)
         expandOrCloseBtn = new ImageView(context);
         expandOrCloseBtn.setImageResource(R.drawable.baseline_fullscreen_24);

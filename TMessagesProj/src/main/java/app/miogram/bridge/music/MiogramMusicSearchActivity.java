@@ -1,0 +1,483 @@
+package app.miogram.bridge.music;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.drawable.GradientDrawable;
+import android.text.Editable;
+import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MediaController;
+import org.telegram.messenger.R;
+import org.telegram.messenger.UserConfig;
+import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.ActionBarMenu;
+import org.telegram.ui.ActionBar.ActionBarMenuItem;
+import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.BackupImageView;
+import org.telegram.ui.Components.EmptyTextProgressView;
+import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.RecyclerListView;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
+import app.miogram.bridge.MiogramLocale;
+import app.miogram.bridge.customui.MiogramHaptic;
+
+public class MiogramMusicSearchActivity extends BaseFragment {
+
+    private enum SourceFilter {
+        ALL("Усі джерела", "Все источники", "All Sources"),
+        TELEGRAM("Telegram Cloud", "Telegram Cloud", "Telegram Cloud"),
+        DEEZER("Deezer HQ", "Deezer HQ", "Deezer HQ"),
+        ITUNES("iTunes Store", "iTunes Store", "iTunes Store");
+
+        public final String uk, ru, en;
+        SourceFilter(String uk, String ru, String en) {
+            this.uk = uk; this.ru = ru; this.en = en;
+        }
+
+        public String getTitle() {
+            return MiogramLocale.get(uk, ru, en);
+        }
+    }
+
+    private EditText searchEditText;
+    private RecyclerListView listView;
+    private TrackAdapter adapter;
+    private EmptyTextProgressView emptyView;
+    private SourceFilter currentFilter = SourceFilter.ALL;
+
+    private final List<MiogramMusicTrack> allTracks = new ArrayList<>();
+    private final List<MiogramMusicTrack> displayTracks = new ArrayList<>();
+    private Runnable searchRunnable;
+    private boolean isSearching = false;
+
+    @Override
+    public View createView(Context context) {
+        actionBar.setBackButtonImage(R.drawable.ic_ab_back);
+        actionBar.setAllowOverlayTitle(true);
+        actionBar.setTitle(MiogramLocale.get("Пошук музики", "Поиск музыки", "Music Search"));
+        actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
+            @Override
+            public void onItemClick(int id) {
+                if (id == -1) {
+                    finishFragment();
+                }
+            }
+        });
+
+        FrameLayout contentView = new FrameLayout(context);
+        contentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        fragmentView = contentView;
+
+        LinearLayout contentLayout = new LinearLayout(context);
+        contentLayout.setOrientation(LinearLayout.VERTICAL);
+        contentView.addView(contentLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
+        // 1. Search Bar Card
+        FrameLayout searchContainer = new FrameLayout(context);
+        searchContainer.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        int padH = AndroidUtilities.dp(14);
+        int padV = AndroidUtilities.dp(8);
+        searchContainer.setPadding(padH, padV, padH, padV);
+
+        FrameLayout searchInner = new FrameLayout(context);
+        GradientDrawable searchBg = new GradientDrawable();
+        searchBg.setColor(Theme.getColor(Theme.key_chat_messagePanelBackground));
+        searchBg.setCornerRadius(AndroidUtilities.dp(12));
+        searchInner.setBackground(searchBg);
+
+        ImageView searchIcon = new ImageView(context);
+        searchIcon.setImageResource(R.drawable.ic_search);
+        searchIcon.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+        searchInner.addView(searchIcon, LayoutHelper.createFrame(22, 22, Gravity.CENTER_VERTICAL | Gravity.LEFT, 12, 0, 0, 0));
+
+        searchEditText = new EditText(context);
+        searchEditText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        searchEditText.setHint(MiogramLocale.get("Введіть назву треку або артиста...", "Введите трек или артиста...", "Search track or artist..."));
+        searchEditText.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
+        searchEditText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        searchEditText.setBackground(null);
+        searchEditText.setSingleLine(true);
+        searchEditText.setPadding(AndroidUtilities.dp(44), 0, AndroidUtilities.dp(36), 0);
+        searchInner.addView(searchEditText, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 46, Gravity.CENTER_VERTICAL));
+
+        ImageView clearBtn = new ImageView(context);
+        clearBtn.setImageResource(R.drawable.ic_close_white);
+        clearBtn.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+        clearBtn.setVisibility(View.GONE);
+        clearBtn.setOnClickListener(v -> searchEditText.setText(""));
+        searchInner.addView(clearBtn, LayoutHelper.createFrame(24, 24, Gravity.CENTER_VERTICAL | Gravity.RIGHT, 0, 0, 10, 0));
+
+        searchContainer.addView(searchInner, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        contentLayout.addView(searchContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        // 2. Source Filter Chips Row
+        HorizontalScrollView chipScrollView = new HorizontalScrollView(context);
+        chipScrollView.setHorizontalScrollBarEnabled(false);
+        chipScrollView.setClipToPadding(false);
+        chipScrollView.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(4), AndroidUtilities.dp(14), AndroidUtilities.dp(8));
+
+        LinearLayout chipLayout = new LinearLayout(context);
+        chipLayout.setOrientation(LinearLayout.HORIZONTAL);
+        chipScrollView.addView(chipLayout, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        for (SourceFilter sf : SourceFilter.values()) {
+            TextView chip = new TextView(context);
+            chip.setText(sf.getTitle());
+            chip.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            chip.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(6), AndroidUtilities.dp(14), AndroidUtilities.dp(6));
+            chip.setGravity(Gravity.CENTER);
+            updateChipStyle(chip, sf == currentFilter);
+
+            chip.setOnClickListener(v -> {
+                MiogramHaptic.click(v);
+                currentFilter = sf;
+                for (int i = 0; i < chipLayout.getChildCount(); i++) {
+                    View c = chipLayout.getChildAt(i);
+                    if (c instanceof TextView) {
+                        updateChipStyle((TextView) c, c == chip);
+                    }
+                }
+                filterAndDisplay();
+            });
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.rightMargin = AndroidUtilities.dp(8);
+            chipLayout.addView(chip, lp);
+        }
+
+        contentLayout.addView(chipScrollView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        // 3. Results Recycler List
+        FrameLayout listContainer = new FrameLayout(context);
+
+        listView = new RecyclerListView(context);
+        listView.setLayoutManager(new LinearLayoutManager(context));
+        adapter = new TrackAdapter();
+        listView.setAdapter(adapter);
+        listContainer.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
+        emptyView = new EmptyTextProgressView(context);
+        emptyView.setShowAtCenter(true);
+        emptyView.setText(MiogramLocale.get("Шукайте музику за назвою чи виконавцем", "Ищите музыку по названию или исполнителю", "Search music by title or artist"));
+        listContainer.addView(emptyView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        listView.setEmptyView(emptyView);
+
+        contentLayout.addView(listContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 0, 1.0f));
+
+        // Search Input Listener
+        searchEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                clearBtn.setVisibility(TextUtils.isEmpty(s) ? View.GONE : View.VISIBLE);
+                if (searchRunnable != null) {
+                    AndroidUtilities.cancelRunOnUIThread(searchRunnable);
+                }
+                final String q = s.toString().trim();
+                if (q.isEmpty()) {
+                    allTracks.clear();
+                    displayTracks.clear();
+                    adapter.notifyDataSetChanged();
+                    emptyView.showTextView();
+                    emptyView.setText(MiogramLocale.get("Шукайте музику за назвою чи виконавцем", "Ищите музыку по названию или исполнителю", "Search music by title or artist"));
+                    return;
+                }
+
+                searchRunnable = () -> performSearch(q);
+                AndroidUtilities.runOnUIThread(searchRunnable, 350);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        return fragmentView;
+    }
+
+    private void updateChipStyle(TextView chip, boolean selected) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setCornerRadius(AndroidUtilities.dp(16));
+        if (selected) {
+            gd.setColor(Theme.getColor(Theme.key_chats_actionBackground));
+            chip.setTextColor(0xFFFFFFFF);
+        } else {
+            gd.setColor(Theme.getColor(Theme.key_chat_messagePanelBackground));
+            chip.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        }
+        chip.setBackground(gd);
+    }
+
+    private void performSearch(String query) {
+        isSearching = true;
+        emptyView.showProgress();
+
+        MiogramMusicSearchEngine.searchAll(query, currentAccount, new MiogramMusicSearchEngine.SearchCallback() {
+            @Override
+            public void onResults(List<MiogramMusicTrack> tracks, boolean isFinal) {
+                if (isFinal) isSearching = false;
+                allTracks.clear();
+                if (tracks != null) {
+                    allTracks.addAll(tracks);
+                }
+                filterAndDisplay();
+
+                if (isFinal && allTracks.isEmpty()) {
+                    emptyView.showTextView();
+                    emptyView.setText(MiogramLocale.get("Нічого не знайдено", "Ничего не найдено", "No tracks found"));
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                isSearching = false;
+                if (allTracks.isEmpty()) {
+                    emptyView.showTextView();
+                    emptyView.setText(MiogramLocale.get("Помилка пошуку", "Ошибка поиска", "Search error: ") + error);
+                }
+            }
+        });
+    }
+
+    private void filterAndDisplay() {
+        displayTracks.clear();
+        for (MiogramMusicTrack t : allTracks) {
+            if (currentFilter == SourceFilter.ALL) {
+                displayTracks.add(t);
+            } else if (currentFilter == SourceFilter.TELEGRAM && t.source == MiogramMusicTrack.Source.TELEGRAM) {
+                displayTracks.add(t);
+            } else if (currentFilter == SourceFilter.DEEZER && t.source == MiogramMusicTrack.Source.DEEZER) {
+                displayTracks.add(t);
+            } else if (currentFilter == SourceFilter.ITUNES && t.source == MiogramMusicTrack.Source.ITUNES) {
+                displayTracks.add(t);
+            }
+        }
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
+    }
+
+    private class TrackAdapter extends RecyclerListView.SelectionAdapter {
+
+        @Override
+        public boolean isEnabled(RecyclerView.ViewHolder holder) {
+            return true;
+        }
+
+        @Override
+        public int getItemCount() {
+            return displayTracks.size();
+        }
+
+        @Override
+        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            return new RecyclerListView.Holder(new TrackCell(parent.getContext()));
+        }
+
+        @Override
+        public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+            if (holder.itemView instanceof TrackCell) {
+                ((TrackCell) holder.itemView).setTrack(displayTracks.get(position));
+            }
+        }
+    }
+
+    private class TrackCell extends FrameLayout {
+
+        private final BackupImageView coverView;
+        private final TextView titleView;
+        private final TextView artistView;
+        private final TextView badgeView;
+        private final TextView durationView;
+        private final ImageView playBtn;
+        private final ImageView downloadBtn;
+        private final ProgressBar progressBar;
+
+        private MiogramMusicTrack currentTrack;
+
+        public TrackCell(Context context) {
+            super(context);
+            setBackground(Theme.getSelectorDrawable(false));
+            setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(8), AndroidUtilities.dp(14), AndroidUtilities.dp(8));
+
+            // Album Cover
+            coverView = new BackupImageView(context);
+            coverView.setRoundRadius(AndroidUtilities.dp(8));
+            coverView.setImageResource(R.drawable.nocover_big);
+            addView(coverView, LayoutHelper.createFrame(52, 52, Gravity.CENTER_VERTICAL | Gravity.LEFT));
+
+            // Middle info column
+            LinearLayout infoCol = new LinearLayout(context);
+            infoCol.setOrientation(LinearLayout.VERTICAL);
+
+            titleView = new TextView(context);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+            titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            titleView.setSingleLine(true);
+            titleView.setEllipsize(TextUtils.TruncateAt.END);
+            infoCol.addView(titleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+            LinearLayout subRow = new LinearLayout(context);
+            subRow.setOrientation(LinearLayout.HORIZONTAL);
+            subRow.setGravity(Gravity.CENTER_VERTICAL);
+
+            badgeView = new TextView(context);
+            badgeView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10);
+            badgeView.setTextColor(0xFFFFFFFF);
+            badgeView.setPadding(AndroidUtilities.dp(5), AndroidUtilities.dp(1), AndroidUtilities.dp(5), AndroidUtilities.dp(1));
+            subRow.addView(badgeView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 6, 0));
+
+            artistView = new TextView(context);
+            artistView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            artistView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+            artistView.setSingleLine(true);
+            artistView.setEllipsize(TextUtils.TruncateAt.END);
+            subRow.addView(artistView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+
+            durationView = new TextView(context);
+            durationView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+            durationView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+            subRow.addView(durationView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 6, 0, 0, 0));
+
+            infoCol.addView(subRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 3, 0, 0));
+
+            addView(infoCol, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, 64, 0, 88, 0));
+
+            // Right action buttons
+            LinearLayout actionsRow = new LinearLayout(context);
+            actionsRow.setOrientation(LinearLayout.HORIZONTAL);
+            actionsRow.setGravity(Gravity.CENTER_VERTICAL);
+
+            // Play Button
+            playBtn = new ImageView(context);
+            playBtn.setImageResource(R.drawable.inline_play);
+            playBtn.setColorFilter(Theme.getColor(Theme.key_chats_actionBackground));
+            playBtn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1));
+            playBtn.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6));
+            playBtn.setOnClickListener(v -> {
+                MiogramHaptic.click(v);
+                if (currentTrack != null) {
+                    if (currentTrack.telegramMessage != null) {
+                        MediaController.getInstance().playMessage(currentTrack.telegramMessage);
+                    } else if (currentTrack.streamUrl != null) {
+                        // Open stream in external player or telegram audio service
+                        Toast.makeText(context, "▶ " + currentTrack.getDisplayTitle(), Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+            actionsRow.addView(playBtn, LayoutHelper.createLinear(36, 36, 0, 0, 4, 0));
+
+            // Fast Install / Download Button
+            FrameLayout downloadContainer = new FrameLayout(context);
+
+            downloadBtn = new ImageView(context);
+            downloadBtn.setImageResource(R.drawable.msg_download);
+            downloadBtn.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+            downloadBtn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1));
+            downloadBtn.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6));
+
+            progressBar = new ProgressBar(context);
+            progressBar.setVisibility(View.GONE);
+
+            downloadContainer.addView(downloadBtn, LayoutHelper.createFrame(36, 36, Gravity.CENTER));
+            downloadContainer.addView(progressBar, LayoutHelper.createFrame(30, 30, Gravity.CENTER));
+
+            downloadBtn.setOnClickListener(v -> {
+                MiogramHaptic.click(v);
+                if (currentTrack != null && !currentTrack.isDownloading) {
+                    downloadBtn.setVisibility(View.GONE);
+                    progressBar.setVisibility(View.VISIBLE);
+
+                    MiogramMusicSearchEngine.fastInstallTrack(context, currentTrack, currentAccount, new MiogramMusicSearchEngine.InstallCallback() {
+                        @Override
+                        public void onProgress(float progress) {
+                        }
+
+                        @Override
+                        public void onSuccess(File localFile) {
+                            progressBar.setVisibility(View.GONE);
+                            downloadBtn.setVisibility(View.VISIBLE);
+                            downloadBtn.setImageResource(R.drawable.msg_check);
+                            downloadBtn.setColorFilter(0xFF34C759);
+                            Toast.makeText(context, MiogramLocale.get("🎵 Трек збережено у 'Збережені' та папку Музика!", "🎵 Трек сохранён в 'Избранное' и папку Музыка!", "🎵 Saved to Cloud & Device Music!"), Toast.LENGTH_LONG).show();
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            progressBar.setVisibility(View.GONE);
+                            downloadBtn.setVisibility(View.VISIBLE);
+                            Toast.makeText(context, "Помилка завантаження: " + error, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            });
+
+            actionsRow.addView(downloadContainer, LayoutHelper.createLinear(36, 36));
+            addView(actionsRow, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL | Gravity.RIGHT));
+        }
+
+        public void setTrack(MiogramMusicTrack track) {
+            this.currentTrack = track;
+            titleView.setText(track.getDisplayTitle());
+            artistView.setText(track.getDisplayArtist());
+            durationView.setText(track.getFormattedDuration());
+
+            if (track.source != null) {
+                badgeView.setText(track.source.label);
+                GradientDrawable gd = new GradientDrawable();
+                gd.setCornerRadius(AndroidUtilities.dp(4));
+                gd.setColor(track.source.badgeColor);
+                badgeView.setBackground(gd);
+                badgeView.setVisibility(View.VISIBLE);
+            } else {
+                badgeView.setVisibility(View.GONE);
+            }
+
+            if (track.coverUrl != null && !track.coverUrl.isEmpty()) {
+                coverView.setImage(track.coverUrl, null, getResources().getDrawable(R.drawable.nocover_big));
+            } else {
+                coverView.setImageResource(R.drawable.nocover_big);
+            }
+
+            if (track.isDownloading) {
+                downloadBtn.setVisibility(View.GONE);
+                progressBar.setVisibility(View.VISIBLE);
+            } else if (track.isInstalled) {
+                progressBar.setVisibility(View.GONE);
+                downloadBtn.setVisibility(View.VISIBLE);
+                downloadBtn.setImageResource(R.drawable.msg_check);
+                downloadBtn.setColorFilter(0xFF34C759);
+            } else {
+                progressBar.setVisibility(View.GONE);
+                downloadBtn.setVisibility(View.VISIBLE);
+                downloadBtn.setImageResource(R.drawable.msg_download);
+                downloadBtn.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+            }
+        }
+    }
+}

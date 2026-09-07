@@ -193,6 +193,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
     private android.animation.ValueAnimator fullScreenAnimator;
     private ImageView shuffleButton;
     private ActionBarMenuItem lyricsButton;
+    private ActionBarMenuItem musicSearchButton;
     private boolean lyricsVisible;
     private boolean blurredAnimationInProgress;
     private View[] buttons = new View[7];
@@ -1430,6 +1431,10 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         if (lyricsButton != null) {
             lyricsButton.setContentDescription(app.miogram.bridge.MiogramLocale.get("Слова пісні", "Слова песни", "Lyrics"));
         }
+        musicSearchButton = menu.addItem(100, R.drawable.search_music_filled);
+        if (musicSearchButton != null) {
+            musicSearchButton.setContentDescription(app.miogram.bridge.MiogramLocale.get("Пошук музики", "Поиск музыки", "Search Music"));
+        }
         if (isMyList()) {
             addItem = menu.addItem(8, R.drawable.msg_add);
         }
@@ -1450,6 +1455,9 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                     if (lyricsButton != null) {
                         lyricsButton.setVisibility(View.VISIBLE);
                     }
+                    if (musicSearchButton != null) {
+                        musicSearchButton.setVisibility(View.VISIBLE);
+                    }
                 }
             }
 
@@ -1466,6 +1474,9 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                 }
                 if (lyricsButton != null) {
                     lyricsButton.setVisibility(View.GONE);
+                }
+                if (musicSearchButton != null) {
+                    musicSearchButton.setVisibility(View.GONE);
                 }
             }
 
@@ -1856,8 +1867,25 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         }
     }
 
+    public void openMusicSearch() {
+        if (parentActivity != null) {
+            parentActivity.presentFragment(new app.miogram.bridge.music.MiogramMusicSearchActivity());
+            dismiss();
+        } else if (org.telegram.ui.LaunchActivity.instance != null) {
+            org.telegram.ui.ActionBar.INavigationLayout layout = org.telegram.ui.LaunchActivity.instance.getActionBarLayout();
+            if (layout != null) {
+                layout.presentFragment(new app.miogram.bridge.music.MiogramMusicSearchActivity());
+                dismiss();
+            }
+        }
+    }
+
     private void onSubItemClick(int id) {
         final MessageObject messageObject = MediaController.getInstance().getPlayingMessageObject();
+        if (id == 100) {
+            openMusicSearch();
+            return;
+        }
         if (messageObject == null || parentActivity == null) {
             return;
         }

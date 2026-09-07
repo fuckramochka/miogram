@@ -24,7 +24,8 @@ public class MiogramDivineEngine {
         CLASSIC_TG,
         DISCORD_ULTRA,
         IOS_GLASS,
-        MINIMALIST
+        MINIMALIST,
+        WINDOWS_XP
     }
 
     private static final String PREFS_NAME = "miogram_divine_prefs";
@@ -41,6 +42,10 @@ public class MiogramDivineEngine {
         }
     }
 
+    public static boolean isWindowsXpPresetActive(Context context) {
+        return getCurrentPreset(context) == Preset.WINDOWS_XP;
+    }
+
     public static String getPresetTitle(Preset preset) {
         switch (preset) {
             case DISCORD_ULTRA:
@@ -49,6 +54,8 @@ public class MiogramDivineEngine {
                 return app.miogram.bridge.MiogramLocale.get("🍏 iOS Glassmorphism (1:1 Apple Style)", "🍏 iOS Glassmorphism (1:1 Apple Style)", "🍏 iOS Glassmorphism (1:1 Apple Style)");
             case MINIMALIST:
                 return app.miogram.bridge.MiogramLocale.get("⚡ Minimalist (Швидкість та фокус)", "⚡ Minimalist (Скорость и фокус)", "⚡ Minimalist (Speed & Focus)");
+            case WINDOWS_XP:
+                return app.miogram.bridge.MiogramLocale.get("🪟 Windows XP (Luna Blue Класика)", "🪟 Windows XP (Luna Blue Классика)", "🪟 Windows XP (Luna Blue Classic)");
             case CLASSIC_TG:
             default:
                 return app.miogram.bridge.MiogramLocale.get("📱 Classic TG (Ame-Chan Стандарт)", "📱 Classic TG (Ame-Chan Стандарт)", "📱 Classic TG (Ame-Chan Standard)");
@@ -91,6 +98,18 @@ public class MiogramDivineEngine {
                 NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(true);
                 NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(true);
                 NaConfig.INSTANCE.getDisableStories().setConfigBool(true);
+                break;
+
+            case WINDOWS_XP:
+                MiogramDiscordLayout.setDiscordUiEnabled(false);
+                MiogramFlags.setSpatialDecoration(false);
+                MiogramVisualsPrefs.saveBool(context, "agsl_enabled", false);
+                MiogramVisualsPrefs.saveBool(context, "ame_vibe_enabled", false);
+                MiogramVisualsPrefs.saveBool(context, "player_active_lyric", false);
+                AppearanceConfig.singleCornerRadius.setConfigBool(false);
+                AppearanceConfig.senderMiniAvatars.setConfigBool(true);
+                NaConfig.INSTANCE.getMainTabsHideTitles().setConfigBool(false);
+                NaConfig.INSTANCE.getHideBottomNavigationBar().setConfigBool(false);
                 break;
 
             case CLASSIC_TG:
