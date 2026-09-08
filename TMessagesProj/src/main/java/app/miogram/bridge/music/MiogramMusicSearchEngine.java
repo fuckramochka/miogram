@@ -409,6 +409,18 @@ public class MiogramMusicSearchEngine {
         }
     }
 
+    public static File getTargetMusicDir(Context context) {
+        File dir = new File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "Miogram");
+        if (!dir.exists()) dir.mkdirs();
+        try {
+            File pub = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Miogram");
+            if (pub.exists() || pub.mkdirs()) {
+                dir = pub;
+            }
+        } catch (Throwable ignore) {}
+        return dir;
+    }
+
     /**
      * High-Speed Quick Install / Download:
      * 1. Downloads file into Music/Miogram on device.
@@ -426,14 +438,7 @@ public class MiogramMusicSearchEngine {
             // Telegram high-speed CDN download
             TLRPC.Document doc = track.telegramMessage.getDocument();
             if (doc != null) {
-                File targetDir = new File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "Miogram");
-                if (!targetDir.exists()) targetDir.mkdirs();
-                try {
-                    File pub = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Miogram");
-                    if (pub.exists() || pub.mkdirs()) {
-                        targetDir = pub;
-                    }
-                } catch (Throwable ignore) {}
+                final File targetDir = getTargetMusicDir(context);
 
                 FileLoader.getInstance(currentAccount).loadFile(doc, track.telegramMessage, FileLoader.PRIORITY_HIGH, 0);
 
@@ -494,14 +499,7 @@ public class MiogramMusicSearchEngine {
                 InputStream is = null;
                 FileOutputStream fos = null;
                 try {
-                    File targetDir = new File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "Miogram");
-                    if (!targetDir.exists()) targetDir.mkdirs();
-                    try {
-                        File pub = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Miogram");
-                        if (pub.exists() || pub.mkdirs()) {
-                            targetDir = pub;
-                        }
-                    } catch (Throwable ignore) {}
+                    final File targetDir = getTargetMusicDir(context);
 
                     String cleanName = sanitizeFilename(track.getDisplayArtist() + " - " + track.getDisplayTitle() + ".mp3");
                     File destFile = new File(targetDir, cleanName);
