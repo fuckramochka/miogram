@@ -90,11 +90,11 @@ public class MiogramCloudVaultFile {
             case "xls":
             case "xlsx":
             case "txt":
-                return R.drawable.msg_document;
+                return R.drawable.baseline_insert_drive_file_24;
             case "apk":
-                return R.drawable.msg_android;
+                return R.drawable.baseline_android_24;
             default:
-                return R.drawable.msg_file;
+                return R.drawable.baseline_insert_drive_file_24;
         }
     }
 
