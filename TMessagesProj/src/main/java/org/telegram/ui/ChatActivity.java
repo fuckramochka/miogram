@@ -499,6 +499,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int nkbtn_report = 2041;
     private final static int nkbtn_clearDeleted = 2100;
     private final static int nkbtn_viewDeleted = 2101;
+    private final static int OPTION_SAVE_TO_VAULT = 9981;
 
     public int shareAlertDebugMode = DEBUG_SHARE_ALERT_MODE_NORMAL;
     public boolean shareAlertDebugTopicsSlowMotion;
@@ -32748,6 +32749,13 @@ public class ChatActivity extends BaseFragment implements
             }
             // AyuMoments menu end
 
+            // Miogram Cloud Vault: Save to Cloud option
+            if (message != null && (message.messageOwner != null && message.messageOwner.media != null && !(message.messageOwner.media instanceof TLRPC.TL_messageMediaEmpty) || message.getDocument() != null || message.isPhoto() || message.isVideo() || message.isMusic() || message.isVoice() || message.isRoundVideo())) {
+                items.add(app.miogram.bridge.MiogramLocale.get("Зберегти в хмару ☁️", "Сохранить в облако ☁️", "Save to Cloud Vault ☁️"));
+                options.add(OPTION_SAVE_TO_VAULT);
+                icons.add(R.drawable.cloud);
+            }
+
             if (options.isEmpty() && optionsView == null) {
                 return false;
             }
@@ -35319,6 +35327,10 @@ public class ChatActivity extends BaseFragment implements
                 AyuGhostUtils.markReadOnServer(selectedObject, false);
                 BotWebViewVibrationEffect.SELECTION_CHANGE.vibrate();
                 break;
+            case OPTION_SAVE_TO_VAULT:
+                saveSelectedMessageToVault(selectedObject);
+                BotWebViewVibrationEffect.SELECTION_CHANGE.vibrate();
+                break;
             case OPTION_RETRY: {
                 final MessageObject object = selectedObject;
                 final MessageObject.GroupedMessages group = selectedObjectGroup;
@@ -36445,6 +36457,121 @@ public class ChatActivity extends BaseFragment implements
         selectedObjectGroup = null;
         selectedObjectToEditCaption = null;
         closeMenu(!preserveDim);
+    }
+
+    private void saveSelectedMessageToVault(final MessageObject message) {
+        if (message == null || getParentActivity() == null) return;
+        if (!app.miogram.bridge.cloudvault.MiogramCloudVaultEngine.hasVault(currentAccount)) {
+            new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity())
+                    .setTitle(app.miogram.bridge.MiogramLocale.get("Сховище Miogram Vault", "Хранилище Miogram Vault", "Miogram Cloud Vault"))
+                    .setMessage(app.miogram.bridge.MiogramLocale.get(
+                            "Персональне зашифроване хмарне сховище ще не створено. Створити зараз?",
+                            "Персональное зашифрованное облачное хранилище еще не создано. Создать сейчас?",
+                            "Personal encrypted cloud vault is not initialized yet. Would you like to create it now?"))
+                    .setPositiveButton(app.miogram.bridge.MiogramLocale.get("Створити", "Создать", "Create"), (d, w) -> {
+                        presentFragment(new app.miogram.bridge.cloudvault.MiogramCloudVaultActivity());
+                    })
+                    .setNegativeButton(org.telegram.messenger.LocaleController.getString(R.string.Cancel), null)
+                    .show();
+            return;
+        }
+
+        BulletinFactory.of(ChatActivity.this).createSimpleBulletin(
+                R.drawable.cloud,
+                app.miogram.bridge.MiogramLocale.get("Збереження в Miogram Vault...", "Сохранение в Miogram Vault...", "Saving to Miogram Vault...")
+        ).show();
+
+        Utilities.globalQueue.postRunnable(() -> {
+            try {
+                File fileToSave = null;
+                String fileName = null;
+                String mime = null;
+
+                TLRPC.Document doc = message.getDocument();
+                if (doc != null) {
+                    fileName = org.telegram.messenger.FileLoader.getDocumentFileName(doc);
+                    mime = doc.mime_type;
+                    fileToSave = FileLoader.getInstance(currentAccount).getPathToAttach(doc, true);
+                    if (fileToSave == null || !fileToSave.exists()) {
+                        fileToSave = FileLoader.getInstance(currentAccount).getPathToAttach(doc, false);
+                    }
+                }
+
+                if ((fileToSave == null || !fileToSave.exists()) && message.photoThumbs != null && !message.photoThumbs.isEmpty()) {
+                    TLRPC.PhotoSize size = message.photoThumbs.get(message.photoThumbs.size() - 1);
+                    fileToSave = FileLoader.getInstance(currentAccount).getPathToAttach(size, true);
+                    if (fileName == null) fileName = "photo_" + System.currentTimeMillis() + ".jpg";
+                    mime = "image/jpeg";
+                }
+
+                if ((fileToSave == null || !fileToSave.exists()) && message.messageOwner != null) {
+                    fileToSave = FileLoader.getInstance(currentAccount).getPathToMessage(message.messageOwner);
+                }
+
+                if ((fileToSave == null || !fileToSave.exists()) && message.messageOwner != null && message.messageOwner.attachPath != null) {
+                    fileToSave = new File(message.messageOwner.attachPath);
+                }
+
+                if (fileToSave == null || !fileToSave.exists()) {
+                    if (doc != null) {
+                        FileLoader.getInstance(currentAccount).loadFile(doc, null, 0, 0);
+                    } else if (message.messageOwner != null && message.messageOwner.media != null) {
+                        FileLoader.getInstance(currentAccount).loadFile(ImageLocation.getForMessage(message.messageOwner, 0), "photo", null, 0, 0);
+                    }
+
+                    int attempts = 0;
+                    while ((fileToSave == null || !fileToSave.exists()) && attempts < 120) {
+                        Thread.sleep(500);
+                        attempts++;
+                        if (doc != null) {
+                            fileToSave = FileLoader.getInstance(currentAccount).getPathToAttach(doc, true);
+                        } else if (message.photoThumbs != null && !message.photoThumbs.isEmpty()) {
+                            fileToSave = FileLoader.getInstance(currentAccount).getPathToAttach(message.photoThumbs.get(message.photoThumbs.size() - 1), true);
+                        }
+                    }
+                }
+
+                if (fileToSave != null && fileToSave.exists()) {
+                    if (TextUtils.isEmpty(fileName)) {
+                        fileName = fileToSave.getName();
+                    }
+                    final String fName = fileName;
+                    app.miogram.bridge.cloudvault.MiogramCloudVaultEngine.uploadFileToVault(
+                            currentAccount,
+                            fileToSave,
+                            fileName,
+                            mime,
+                            null,
+                            vaultFile -> {
+                                if (getParentActivity() != null) {
+                                    BulletinFactory.of(ChatActivity.this).createSimpleBulletin(
+                                            R.drawable.cloud,
+                                            app.miogram.bridge.MiogramLocale.get("Збережено в хмару: " + fName, "Сохранено в облако: " + fName, "Saved to Vault: " + fName)
+                                    ).show();
+                                }
+                            },
+                            err -> {
+                                if (getParentActivity() != null) {
+                                    BulletinFactory.of(ChatActivity.this).createErrorBulletin("Помилка: " + err, themeDelegate).show();
+                                }
+                            }
+                    );
+                } else {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        if (getParentActivity() != null) {
+                            BulletinFactory.of(ChatActivity.this).createErrorBulletin(getString(R.string.UnsupportedAttachment), themeDelegate).show();
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                FileLog.e(e);
+                AndroidUtilities.runOnUIThread(() -> {
+                    if (getParentActivity() != null) {
+                        BulletinFactory.of(ChatActivity.this).createErrorBulletin("Error: " + e.getMessage(), themeDelegate).show();
+                    }
+                });
+            }
+        });
     }
 
     public void showSuggestionOfferForEditMessage(MessageSuggestionParams oldParams) {

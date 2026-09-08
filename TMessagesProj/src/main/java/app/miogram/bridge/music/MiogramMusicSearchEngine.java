@@ -22,6 +22,7 @@ import org.telegram.tgnet.TLRPC;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -60,7 +61,7 @@ public class MiogramMusicSearchEngine {
         final String q = query.trim();
         final List<MiogramMusicTrack> aggregatedResults = Collections.synchronizedList(new ArrayList<>());
         final Set<String> seenSignatures = Collections.synchronizedSet(new HashSet<>());
-        final AtomicInteger pendingEngines = new AtomicInteger(4);
+        final AtomicInteger pendingEngines = new AtomicInteger(6);
 
         // 1. Search Telegram Global Cloud
         searchTelegram(q, currentAccount, new SearchCallback() {
@@ -156,6 +157,68 @@ public class MiogramMusicSearchEngine {
         // 4. Search Jamendo API
         Utilities.globalQueue.postRunnable(() -> {
             searchJamendo(q, new SearchCallback() {
+                @Override
+                public void onResults(List<MiogramMusicTrack> tracks, boolean isFinal) {
+                    if (tracks != null) {
+                        for (MiogramMusicTrack t : tracks) {
+                            String sig = normalize(t.artist) + "|" + normalize(t.title);
+                            if (seenSignatures.add(sig)) {
+                                aggregatedResults.add(t);
+                            }
+                        }
+                    }
+                    checkFinal();
+                }
+
+                @Override
+                public void onError(String error) {
+                    checkFinal();
+                }
+
+                private void checkFinal() {
+                    if (pendingEngines.decrementAndGet() == 0) {
+                        AndroidUtilities.runOnUIThread(() -> callback.onResults(new ArrayList<>(aggregatedResults), true));
+                    } else {
+                        AndroidUtilities.runOnUIThread(() -> callback.onResults(new ArrayList<>(aggregatedResults), false));
+                    }
+                }
+            });
+        });
+
+        // 5. Search Audius Hi-Fi API
+        Utilities.globalQueue.postRunnable(() -> {
+            searchAudius(q, new SearchCallback() {
+                @Override
+                public void onResults(List<MiogramMusicTrack> tracks, boolean isFinal) {
+                    if (tracks != null) {
+                        for (MiogramMusicTrack t : tracks) {
+                            String sig = normalize(t.artist) + "|" + normalize(t.title);
+                            if (seenSignatures.add(sig)) {
+                                aggregatedResults.add(t);
+                            }
+                        }
+                    }
+                    checkFinal();
+                }
+
+                @Override
+                public void onError(String error) {
+                    checkFinal();
+                }
+
+                private void checkFinal() {
+                    if (pendingEngines.decrementAndGet() == 0) {
+                        AndroidUtilities.runOnUIThread(() -> callback.onResults(new ArrayList<>(aggregatedResults), true));
+                    } else {
+                        AndroidUtilities.runOnUIThread(() -> callback.onResults(new ArrayList<>(aggregatedResults), false));
+                    }
+                }
+            });
+        });
+
+        // 6. Search DriveMusic UA Direct MP3 Catalog
+        Utilities.globalQueue.postRunnable(() -> {
+            searchDriveMusic(q, new SearchCallback() {
                 @Override
                 public void onResults(List<MiogramMusicTrack> tracks, boolean isFinal) {
                     if (tracks != null) {
@@ -401,6 +464,147 @@ public class MiogramMusicSearchEngine {
                 AndroidUtilities.runOnUIThread(() -> callback.onResults(results, true));
             } else {
                 AndroidUtilities.runOnUIThread(() -> callback.onError("Jamendo HTTP " + code));
+            }
+        } catch (Throwable t) {
+            AndroidUtilities.runOnUIThread(() -> callback.onError(t.getMessage()));
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    /**
+     * Audius Direct API Search (Decentralized Hi-Fi 320kbps streams).
+     */
+    public static void searchAudius(String query, SearchCallback callback) {
+        HttpURLConnection conn = null;
+        try {
+            String urlStr = "https://discoveryprovider.audius.co/v1/tracks/search?query=" + URLEncoder.encode(query, "UTF-8") + "&app_name=miogram";
+            URL url = new URL(urlStr);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(7000);
+            conn.setReadTimeout(7000);
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+
+            int code = conn.getResponseCode();
+            if (code == 200) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line);
+                }
+                br.close();
+
+                JSONObject root = new JSONObject(sb.toString());
+                JSONArray data = root.optJSONArray("data");
+                List<MiogramMusicTrack> results = new ArrayList<>();
+                if (data != null) {
+                    for (int i = 0; i < data.length(); i++) {
+                        JSONObject item = data.getJSONObject(i);
+                        String trackId = item.optString("id");
+                        if (trackId == null || trackId.isEmpty()) continue;
+
+                        MiogramMusicTrack track = new MiogramMusicTrack();
+                        track.id = "audius_" + trackId;
+                        track.title = item.optString("title");
+                        JSONObject userObj = item.optJSONObject("user");
+                        track.artist = userObj != null ? userObj.optString("name") : "Audius Artist";
+                        track.durationSeconds = item.optInt("duration");
+                        JSONObject artwork = item.optJSONObject("artwork");
+                        if (artwork != null) {
+                            track.coverUrl = artwork.optString("150x150");
+                            if (track.coverUrl == null || track.coverUrl.isEmpty()) {
+                                track.coverUrl = artwork.optString("480x480");
+                            }
+                        }
+                        track.streamUrl = "https://discoveryprovider.audius.co/v1/tracks/" + trackId + "/stream?app_name=miogram";
+                        track.downloadUrl = track.streamUrl;
+                        track.source = MiogramMusicTrack.Source.AUDIUS;
+                        results.add(track);
+                    }
+                }
+                AndroidUtilities.runOnUIThread(() -> callback.onResults(results, true));
+            } else {
+                AndroidUtilities.runOnUIThread(() -> callback.onError("Audius HTTP " + code));
+            }
+        } catch (Throwable t) {
+            AndroidUtilities.runOnUIThread(() -> callback.onError(t.getMessage()));
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    /**
+     * DriveMusic Direct Search (Full Ukrainian & Eastern European music catalogue with CDN MP3s).
+     */
+    public static void searchDriveMusic(String query, SearchCallback callback) {
+        HttpURLConnection conn = null;
+        try {
+            String urlStr = "https://drivemusic.me/?do=search&subaction=search&story=" + URLEncoder.encode(query, "UTF-8");
+            URL url = new URL(urlStr);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(8000);
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+
+            int code = conn.getResponseCode();
+            if (code == 200) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line);
+                }
+                br.close();
+
+                String html = sb.toString();
+                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("data-url=[\"'](https?://[^\"']+\\.mp3)[\"'][^>]*>.*?<div class=\"popular-play-name\">(.*?)</div>", java.util.regex.Pattern.DOTALL);
+                java.util.regex.Matcher matcher = pattern.matcher(html);
+
+                java.util.regex.Pattern authorPattern = java.util.regex.Pattern.compile("class=[\"']popular-play-author[\"'][^>]*>([^<]+)</a>");
+                java.util.regex.Pattern compPattern = java.util.regex.Pattern.compile("class=[\"']popular-play-composition[\"'][^>]*>\\s*<a[^>]*>([^<]+)</a>");
+
+                List<MiogramMusicTrack> results = new ArrayList<>();
+                int counter = 0;
+                while (matcher.find() && counter < 25) {
+                    String mp3Url = matcher.group(1);
+                    String nameHtml = matcher.group(2);
+
+                    String trackTitle = "";
+                    String artistName = "";
+
+                    java.util.regex.Matcher am = authorPattern.matcher(nameHtml);
+                    if (am.find()) {
+                        trackTitle = am.group(1).trim();
+                    }
+
+                    java.util.regex.Matcher cm = compPattern.matcher(nameHtml);
+                    if (cm.find()) {
+                        artistName = cm.group(1).trim();
+                    }
+
+                    if (trackTitle.isEmpty()) {
+                        trackTitle = query;
+                    }
+                    if (artistName.isEmpty()) {
+                        artistName = "DriveMusic";
+                    }
+
+                    MiogramMusicTrack track = new MiogramMusicTrack();
+                    track.id = "drivemusic_" + Math.abs(mp3Url.hashCode());
+                    track.title = trackTitle;
+                    track.artist = artistName;
+                    track.streamUrl = mp3Url;
+                    track.downloadUrl = mp3Url;
+                    track.source = MiogramMusicTrack.Source.DRIVEMUSIC;
+                    results.add(track);
+                    counter++;
+                }
+                AndroidUtilities.runOnUIThread(() -> callback.onResults(results, true));
+            } else {
+                AndroidUtilities.runOnUIThread(() -> callback.onError("DriveMusic HTTP " + code));
             }
         } catch (Throwable t) {
             AndroidUtilities.runOnUIThread(() -> callback.onError(t.getMessage()));

@@ -54,6 +54,37 @@ public class MiogramCloudVaultFile {
         return "";
     }
 
+    public boolean isImage() {
+        String ext = getFileExtension();
+        return ext.equals("jpg") || ext.equals("jpeg") || ext.equals("png") || ext.equals("webp") || ext.equals("gif")
+                || (mimeType != null && mimeType.startsWith("image/"));
+    }
+
+    public boolean isVideo() {
+        String ext = getFileExtension();
+        return ext.equals("mp4") || ext.equals("mkv") || ext.equals("avi") || ext.equals("mov") || ext.equals("webm") || ext.equals("flv")
+                || (mimeType != null && mimeType.startsWith("video/"));
+    }
+
+    public boolean isMedia() {
+        return isImage() || isVideo();
+    }
+
+    public boolean isAudio() {
+        String ext = getFileExtension();
+        return ext.equals("mp3") || ext.equals("flac") || ext.equals("wav") || ext.equals("m4a") || ext.equals("ogg") || ext.equals("aac")
+                || (mimeType != null && mimeType.startsWith("audio/"));
+    }
+
+    public boolean isArchive() {
+        String ext = getFileExtension();
+        return ext.equals("zip") || ext.equals("rar") || ext.equals("7z") || ext.equals("tar") || ext.equals("gz") || ext.equals("iso");
+    }
+
+    public boolean isDocument() {
+        return !isMedia() && !isAudio() && !isArchive();
+    }
+
     public int getIconRes() {
         String ext = getFileExtension();
         switch (ext) {

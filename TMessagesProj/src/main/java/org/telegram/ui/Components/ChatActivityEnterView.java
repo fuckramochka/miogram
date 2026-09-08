@@ -3583,7 +3583,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
         });
 
-        sendButton = new SendButton(context, isInScheduleMode() ? R.drawable.input_schedule : R.drawable.send_plane_24, resourcesProvider, true) {
+        sendButton = new SendButton(context, isInScheduleMode() ? R.drawable.input_schedule : (app.miogram.bridge.ui.ios.MiogramEnterViewIosHelper.isIosInputPanelEnabled() ? R.drawable.baseline_arrow_upward_24 : R.drawable.send_plane_24), resourcesProvider, true) {
             @Override
             public boolean isInScheduleMode() {
                 return ChatActivityEnterView.this.isInScheduleMode();
@@ -4650,6 +4650,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         controlsView = new ControlsView(getContext());
         controlsView.setVisibility(GONE);
         sizeNotifierLayout.addView(controlsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
+        app.miogram.bridge.ui.ios.MiogramEnterViewIosHelper.apply(this);
     }
 
     public boolean isRecordCircleOrControlsView(View view) {

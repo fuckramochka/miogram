@@ -27,7 +27,12 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.graphics.Outline;
+import android.graphics.Rect;
+import android.view.ViewOutlineProvider;
+
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -37,6 +42,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
@@ -52,6 +58,7 @@ import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ChatActivity;
+import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.DialogsActivity;
 import org.telegram.messenger.MessagesStorage;
 import androidx.core.content.FileProvider;
@@ -72,10 +79,20 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
     private static final int MENU_SEARCH = 1;
     private static final int MENU_OTHER = 2;
+    private static final int MENU_VIEW_MODE = 3;
     private static final int SUBMENU_CHAT = 101;
     private static final int SUBMENU_SYNC = 102;
     private static final int SUBMENU_KEY = 103;
     private static final int SUBMENU_UNLINK = 104;
+
+    public static final int VIEW_TYPE_LIST = 0;
+    public static final int VIEW_TYPE_GRID = 1;
+
+    public static final int CATEGORY_ALL = 0;
+    public static final int CATEGORY_MEDIA = 1;
+    public static final int CATEGORY_DOCS = 2;
+    public static final int CATEGORY_AUDIO = 3;
+    public static final int CATEGORY_ARCHIVES = 4;
 
     private static final int REQUEST_PICK_FILE = 2101;
 
@@ -92,7 +109,13 @@ public class MiogramCloudVaultActivity extends BaseFragment {
     private RecyclerView filesRecyclerView;
     private FilesAdapter filesAdapter;
     private LinearLayout emptyView;
+    private TextView emptyText;
+    private TextView emptyHint;
     private FrameLayout fabButton;
+
+    private int currentCategoryFilter = CATEGORY_ALL;
+    private int currentViewMode = VIEW_TYPE_GRID; // Default to Gallery!
+    private ActionBarMenuItem viewModeItem;
 
     private long currentSelectedTopicId = 0; // 0 = All files
     private String currentSelectedTopicName = "";
@@ -103,6 +126,10 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
     @Override
     public View createView(Context context) {
+        currentViewMode = ApplicationLoader.applicationContext
+                .getSharedPreferences("miogram_cloud_vault_prefs", Context.MODE_PRIVATE)
+                .getInt("vault_view_mode", VIEW_TYPE_GRID);
+
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
         actionBar.setTitle(MiogramLocale.get("Хмарне сховище ☁️", "Облачное хранилище ☁️", "Cloud Vault ☁️"));
@@ -129,6 +156,8 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         });
         searchItem.setSearchFieldHint(MiogramLocale.get("Пошук файлів...", "Поиск файлов...", "Search files..."));
 
+        viewModeItem = menu.addItem(MENU_VIEW_MODE, currentViewMode == VIEW_TYPE_GRID ? R.drawable.ic_filter_list : R.drawable.files_gallery);
+
         ActionBarMenuItem otherItem = menu.addItem(MENU_OTHER, R.drawable.ic_ab_other);
         otherItem.addSubItem(SUBMENU_CHAT, R.drawable.msg_channel, MiogramLocale.get("Відкрити форум у чаті", "Открыть форум в чате", "Open Forum in Chat"));
         otherItem.addSubItem(SUBMENU_SYNC, R.drawable.msg_retry, MiogramLocale.get("Синхронізувати з хмарою", "Синхронизировать с облаком", "Sync with Cloud"));
@@ -140,6 +169,8 @@ public class MiogramCloudVaultActivity extends BaseFragment {
             public void onItemClick(int id) {
                 if (id == -1) {
                     finishFragment();
+                } else if (id == MENU_VIEW_MODE) {
+                    toggleViewMode();
                 } else if (id == SUBMENU_CHAT) {
                     openVaultChat();
                 } else if (id == SUBMENU_SYNC) {
@@ -162,6 +193,34 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         updateVaultVisibility();
         fragmentView = rootLayout;
         return fragmentView;
+    }
+
+    private void toggleViewMode() {
+        currentViewMode = (currentViewMode == VIEW_TYPE_GRID) ? VIEW_TYPE_LIST : VIEW_TYPE_GRID;
+        ApplicationLoader.applicationContext
+                .getSharedPreferences("miogram_cloud_vault_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .putInt("vault_view_mode", currentViewMode)
+                .apply();
+        if (viewModeItem != null) {
+            viewModeItem.setIcon(currentViewMode == VIEW_TYPE_GRID ? R.drawable.ic_filter_list : R.drawable.files_gallery);
+        }
+        updateLayoutManager();
+        if (filesAdapter != null) {
+            filesAdapter.notifyDataSetChanged();
+        }
+    }
+
+    private void updateLayoutManager() {
+        if (filesRecyclerView == null) return;
+        Context context = getContext();
+        if (context == null) context = getParentActivity();
+        if (context == null) return;
+        if (currentViewMode == VIEW_TYPE_GRID) {
+            filesRecyclerView.setLayoutManager(new GridLayoutManager(context, 3));
+        } else {
+            filesRecyclerView.setLayoutManager(new LinearLayoutManager(context));
+        }
     }
 
     @Override
@@ -334,7 +393,18 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         FrameLayout listContainer = new FrameLayout(context);
 
         filesRecyclerView = new RecyclerView(context);
-        filesRecyclerView.setLayoutManager(new LinearLayoutManager(context));
+        updateLayoutManager();
+        filesRecyclerView.addItemDecoration(new RecyclerView.ItemDecoration() {
+            @Override
+            public void getItemOffsets(@NonNull Rect outRect, @NonNull View view, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+                if (currentViewMode == VIEW_TYPE_GRID) {
+                    int s = AndroidUtilities.dp(3);
+                    outRect.set(s, s, s, s);
+                } else {
+                    outRect.set(0, 0, 0, 0);
+                }
+            }
+        });
         filesAdapter = new FilesAdapter();
         filesRecyclerView.setAdapter(filesAdapter);
         listContainer.addView(filesRecyclerView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
@@ -349,14 +419,14 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         emptyIco.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
         emptyView.addView(emptyIco, LayoutHelper.createLinear(64, 64, Gravity.CENTER, 0, 0, 0, 12));
 
-        TextView emptyText = new TextView(context);
+        emptyText = new TextView(context);
         emptyText.setText(MiogramLocale.get("У цій папці поки немає файлів", "В этой папке пока нет файлов", "No files in this folder yet"));
         emptyText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         emptyText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
         emptyText.setGravity(Gravity.CENTER);
         emptyView.addView(emptyText, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 0, 0, 6));
 
-        TextView emptyHint = new TextView(context);
+        emptyHint = new TextView(context);
         emptyHint.setText(MiogramLocale.get("Натисніть (+), щоб завантажити файл будь-якого розміру", "Нажмите (+), чтобы загрузить файл любого размера", "Tap (+) to upload files of any size"));
         emptyHint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         emptyHint.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
@@ -400,10 +470,21 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         Context context = getContext();
         if (context == null) return;
 
-        // "All files" pill
-        addTopicPill(context, 0, MiogramLocale.get("📁 Усі файли", "📁 Все файлы", "📁 All files"), currentSelectedTopicId == 0);
+        // 1. Media Type Filter Pills
+        addCategoryPill(context, CATEGORY_ALL, MiogramLocale.get("📁 Всі", "📁 Все", "📁 All"), currentCategoryFilter == CATEGORY_ALL);
+        addCategoryPill(context, CATEGORY_MEDIA, MiogramLocale.get("🖼️ Галерея", "🖼️ Галерея", "🖼️ Gallery"), currentCategoryFilter == CATEGORY_MEDIA);
+        addCategoryPill(context, CATEGORY_DOCS, MiogramLocale.get("📄 Документи", "📄 Документы", "📄 Docs"), currentCategoryFilter == CATEGORY_DOCS);
+        addCategoryPill(context, CATEGORY_AUDIO, MiogramLocale.get("🎵 Музика", "🎵 Музыка", "🎵 Music"), currentCategoryFilter == CATEGORY_AUDIO);
+        addCategoryPill(context, CATEGORY_ARCHIVES, MiogramLocale.get("📦 Архіви", "📦 Архивы", "📦 Archives"), currentCategoryFilter == CATEGORY_ARCHIVES);
 
-        // Topics from supergroup
+        // Separator between categories and folder topics
+        if (!cachedTopics.isEmpty()) {
+            View sep = new View(context);
+            sep.setBackgroundColor(0x33888888);
+            topicsContainer.addView(sep, LayoutHelper.createLinear(1, 20, Gravity.CENTER_VERTICAL, 4, 0, 8, 0));
+        }
+
+        // 2. Topics from supergroup
         for (TLRPC.TL_forumTopic t : cachedTopics) {
             boolean active = (currentSelectedTopicId == t.id);
             addTopicPill(context, t.id, t.title != null ? t.title : "Папка #" + t.id, active);
@@ -425,6 +506,36 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
         addPill.setOnClickListener(v -> promptCreateFolder());
         topicsContainer.addView(addPill, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 6, 0));
+    }
+
+    private void addCategoryPill(Context context, int category, String title, boolean active) {
+        TextView pill = new TextView(context);
+        pill.setText(title);
+        pill.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        pill.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        pill.setPadding(AndroidUtilities.dp(13), AndroidUtilities.dp(6), AndroidUtilities.dp(13), AndroidUtilities.dp(6));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(AndroidUtilities.dp(16));
+        if (active) {
+            bg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton));
+            pill.setTextColor(Color.WHITE);
+        } else {
+            bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+            pill.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        }
+        pill.setBackground(bg);
+
+        pill.setOnClickListener(v -> {
+            currentCategoryFilter = category;
+            if (category == CATEGORY_MEDIA && currentViewMode != VIEW_TYPE_GRID) {
+                toggleViewMode();
+            }
+            refreshTopicPills();
+            filterAndReloadFiles();
+        });
+
+        topicsContainer.addView(pill, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 6, 0));
     }
 
     private void addTopicPill(Context context, long topicId, String title, boolean active) {
@@ -502,6 +613,11 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         displayedFiles.clear();
 
         for (MiogramCloudVaultFile f : rawFiles) {
+            if (currentCategoryFilter == CATEGORY_MEDIA && !f.isMedia()) continue;
+            if (currentCategoryFilter == CATEGORY_DOCS && !f.isDocument()) continue;
+            if (currentCategoryFilter == CATEGORY_AUDIO && !f.isAudio()) continue;
+            if (currentCategoryFilter == CATEGORY_ARCHIVES && !f.isArchive()) continue;
+
             if (!TextUtils.isEmpty(currentSearchQuery)) {
                 if (f.name == null || !f.name.toLowerCase().contains(currentSearchQuery.toLowerCase())) {
                     continue;
@@ -516,6 +632,15 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
         if (emptyView != null) {
             emptyView.setVisibility(displayedFiles.isEmpty() ? View.VISIBLE : View.GONE);
+            if (emptyText != null && emptyHint != null) {
+                if (currentCategoryFilter == CATEGORY_MEDIA) {
+                    emptyText.setText(MiogramLocale.get("У галереї ще немає медіафайлів", "В галерее еще нет медиафайлов", "No media in gallery yet"));
+                    emptyHint.setText(MiogramLocale.get("Збережіть фото чи відео з будь-якого чату!", "Сохраните фото или видео из любого чата!", "Save photos or videos from any chat!"));
+                } else {
+                    emptyText.setText(MiogramLocale.get("У цій папці поки немає файлів", "В этой папке пока нет файлов", "No files in this folder yet"));
+                    emptyHint.setText(MiogramLocale.get("Натисніть (+), щоб завантажити файл будь-якого розміру", "Нажмите (+), чтобы загрузить файл любого размера", "Tap (+) to upload files of any size"));
+                }
+            }
         }
 
         updateStatsBanner();
@@ -1028,17 +1153,31 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
     // --- RecyclerView Adapter ---
 
-    private class FilesAdapter extends RecyclerView.Adapter<FileViewHolder> {
+    private class FilesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+        @Override
+        public int getItemViewType(int position) {
+            return currentViewMode == VIEW_TYPE_GRID ? VIEW_TYPE_GRID : VIEW_TYPE_LIST;
+        }
 
         @NonNull
         @Override
-        public FileViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new FileViewHolder(new VaultFileCell(parent.getContext()));
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            if (viewType == VIEW_TYPE_GRID) {
+                return new GridViewHolder(new VaultGridCell(parent.getContext()));
+            } else {
+                return new ListViewHolder(new VaultFileCell(parent.getContext()));
+            }
         }
 
         @Override
-        public void onBindViewHolder(@NonNull FileViewHolder holder, int position) {
-            holder.cell.bind(displayedFiles.get(position));
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+            MiogramCloudVaultFile file = displayedFiles.get(position);
+            if (holder instanceof GridViewHolder) {
+                ((GridViewHolder) holder).cell.bind(file);
+            } else if (holder instanceof ListViewHolder) {
+                ((ListViewHolder) holder).cell.bind(file);
+            }
         }
 
         @Override
@@ -1047,11 +1186,223 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         }
     }
 
-    private static class FileViewHolder extends RecyclerView.ViewHolder {
+    private static class ListViewHolder extends RecyclerView.ViewHolder {
         VaultFileCell cell;
-        public FileViewHolder(VaultFileCell cell) {
+        public ListViewHolder(VaultFileCell cell) {
             super(cell);
             this.cell = cell;
+        }
+    }
+
+    private static class GridViewHolder extends RecyclerView.ViewHolder {
+        VaultGridCell cell;
+        public GridViewHolder(VaultGridCell cell) {
+            super(cell);
+            this.cell = cell;
+        }
+    }
+
+    // --- Modern Vault Gallery Grid Cell (1:1 Square) ---
+
+    private class VaultGridCell extends FrameLayout {
+
+        private final BackupImageView imageView;
+        private final FrameLayout iconBox;
+        private final ImageView iconView;
+        private final TextView extBadge;
+        private final TextView nameView;
+        private final TextView sizeView;
+        private final View gradientScrim;
+        private final LinearLayout videoBadge;
+        private final ImageView statusIcon;
+        private final ProgressBar progressBar;
+        private MiogramCloudVaultFile currentFile;
+
+        public VaultGridCell(Context context) {
+            super(context);
+
+            setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), AndroidUtilities.dp(12));
+                }
+            });
+            setClipToOutline(true);
+            setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+
+            // 1. Thumbnail Image (Covering whole card)
+            imageView = new BackupImageView(context);
+            imageView.setAspectFit(false);
+            addView(imageView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
+            // 2. Centered Icon Box (For non-images or files without thumbs)
+            iconBox = new FrameLayout(context);
+            GradientDrawable circleBg = new GradientDrawable();
+            circleBg.setShape(GradientDrawable.OVAL);
+            circleBg.setColor(Theme.getColor(Theme.key_windowBackgroundGray));
+            iconBox.setBackground(circleBg);
+
+            iconView = new ImageView(context);
+            iconView.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton));
+            iconBox.addView(iconView, LayoutHelper.createFrame(26, 26, Gravity.CENTER));
+            addView(iconBox, LayoutHelper.createFrame(52, 52, Gravity.CENTER));
+
+            // 3. File extension badge (top-left for non-media)
+            extBadge = new TextView(context);
+            extBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+            extBadge.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+            extBadge.setTextColor(Color.WHITE);
+            extBadge.setGravity(Gravity.CENTER);
+            GradientDrawable extBg = new GradientDrawable();
+            extBg.setColor(0xBB000000);
+            extBg.setCornerRadius(AndroidUtilities.dp(4));
+            extBadge.setBackground(extBg);
+            extBadge.setPadding(AndroidUtilities.dp(5), AndroidUtilities.dp(2), AndroidUtilities.dp(5), AndroidUtilities.dp(2));
+            addView(extBadge, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.START, 8, 8, 0, 0));
+
+            // 4. Video badge (top-left for videos)
+            videoBadge = new LinearLayout(context);
+            videoBadge.setOrientation(LinearLayout.HORIZONTAL);
+            videoBadge.setGravity(Gravity.CENTER_VERTICAL);
+            GradientDrawable vidBg = new GradientDrawable();
+            vidBg.setColor(0x99000000);
+            vidBg.setCornerRadius(AndroidUtilities.dp(4));
+            videoBadge.setBackground(vidBg);
+            videoBadge.setPadding(AndroidUtilities.dp(5), AndroidUtilities.dp(2), AndroidUtilities.dp(6), AndroidUtilities.dp(2));
+
+            ImageView playIco = new ImageView(context);
+            playIco.setImageResource(R.drawable.msg_video);
+            playIco.setColorFilter(Color.WHITE);
+            videoBadge.addView(playIco, LayoutHelper.createLinear(12, 12, Gravity.CENTER_VERTICAL, 0, 0, 3, 0));
+
+            TextView vidLabel = new TextView(context);
+            vidLabel.setText("VIDEO");
+            vidLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
+            vidLabel.setTextColor(Color.WHITE);
+            vidLabel.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+            videoBadge.addView(vidLabel, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
+            addView(videoBadge, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.START, 8, 8, 0, 0));
+
+            // 5. Dark gradient scrim at bottom
+            gradientScrim = new View(context);
+            GradientDrawable scrimDrawable = new GradientDrawable(
+                    GradientDrawable.Orientation.BOTTOM_TOP,
+                    new int[]{0xDD000000, 0x66000000, 0x00000000}
+            );
+            gradientScrim.setBackground(scrimDrawable);
+            addView(gradientScrim, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 58, Gravity.BOTTOM));
+
+            // 6. Text container at bottom
+            LinearLayout textLayout = new LinearLayout(context);
+            textLayout.setOrientation(LinearLayout.VERTICAL);
+            textLayout.setPadding(AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8), AndroidUtilities.dp(6));
+
+            nameView = new TextView(context);
+            nameView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            nameView.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+            nameView.setTextColor(Color.WHITE);
+            nameView.setSingleLine(true);
+            nameView.setEllipsize(TextUtils.TruncateAt.MIDDLE);
+            textLayout.addView(nameView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 1));
+
+            sizeView = new TextView(context);
+            sizeView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+            sizeView.setTextColor(0xCCFFFFFF);
+            sizeView.setSingleLine(true);
+            textLayout.addView(sizeView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+            addView(textLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
+
+            // 7. Top-right status icon
+            FrameLayout statusContainer = new FrameLayout(context);
+            GradientDrawable statusBg = new GradientDrawable();
+            statusBg.setShape(GradientDrawable.OVAL);
+            statusBg.setColor(0x88000000);
+            statusContainer.setBackground(statusBg);
+
+            statusIcon = new ImageView(context);
+            statusIcon.setColorFilter(Color.WHITE);
+            statusContainer.addView(statusIcon, LayoutHelper.createFrame(14, 14, Gravity.CENTER));
+            addView(statusContainer, LayoutHelper.createFrame(24, 24, Gravity.TOP | Gravity.END, 0, 8, 8, 0));
+
+            progressBar = new ProgressBar(context);
+            progressBar.setVisibility(View.GONE);
+            addView(progressBar, LayoutHelper.createFrame(24, 24, Gravity.TOP | Gravity.END, 0, 8, 8, 0));
+
+            setOnClickListener(v -> {
+                if (currentFile != null) downloadOrOpenFile(currentFile);
+            });
+
+            setOnLongClickListener(v -> {
+                if (currentFile != null) {
+                    showFileOptions(currentFile);
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            super.onMeasure(widthMeasureSpec, widthMeasureSpec); // Square 1:1 Aspect Ratio
+        }
+
+        public void bind(MiogramCloudVaultFile file) {
+            this.currentFile = file;
+            nameView.setText(file.name);
+            sizeView.setText(file.getFormattedSize());
+
+            boolean hasLocal = !TextUtils.isEmpty(file.localPath) && new File(file.localPath).exists();
+            boolean isMedia = file.isMedia();
+
+            videoBadge.setVisibility(file.isVideo() ? View.VISIBLE : View.GONE);
+            extBadge.setVisibility((!isMedia && !TextUtils.isEmpty(file.getFileExtension())) ? View.VISIBLE : View.GONE);
+            if (extBadge.getVisibility() == View.VISIBLE) {
+                extBadge.setText(file.getFileExtension().toUpperCase());
+            }
+
+            boolean hasThumb = false;
+            if (isMedia) {
+                if (hasLocal) {
+                    imageView.setImage(ImageLocation.getForPath(file.localPath), "200_200", null, null, null);
+                    hasThumb = true;
+                } else if (!file.chunkDocuments.isEmpty()) {
+                    TLRPC.Document doc = file.chunkDocuments.get(0);
+                    if (doc.thumbs != null && !doc.thumbs.isEmpty()) {
+                        TLRPC.PhotoSize thumb = FileLoader.getClosestPhotoSizeWithSize(doc.thumbs, 320);
+                        imageView.setImage(ImageLocation.getForDocument(thumb, doc), "200_200", null, null, null);
+                        hasThumb = true;
+                    }
+                }
+            }
+
+            if (hasThumb) {
+                imageView.setVisibility(View.VISIBLE);
+                iconBox.setVisibility(View.GONE);
+                gradientScrim.setVisibility(View.VISIBLE);
+                nameView.setTextColor(Color.WHITE);
+                sizeView.setTextColor(0xCCFFFFFF);
+            } else {
+                imageView.setVisibility(View.GONE);
+                iconBox.setVisibility(View.VISIBLE);
+                iconView.setImageResource(file.getIconRes());
+                gradientScrim.setVisibility(View.GONE);
+                nameView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                sizeView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+            }
+
+            if (file.isDownloading) {
+                progressBar.setVisibility(View.VISIBLE);
+                statusIcon.setVisibility(View.GONE);
+            } else {
+                progressBar.setVisibility(View.GONE);
+                statusIcon.setVisibility(View.VISIBLE);
+                if (hasLocal) {
+                    statusIcon.setImageResource(R.drawable.baseline_check_24);
+                } else {
+                    statusIcon.setImageResource(R.drawable.baseline_cloud_download_24);
+                }
+            }
         }
     }
 

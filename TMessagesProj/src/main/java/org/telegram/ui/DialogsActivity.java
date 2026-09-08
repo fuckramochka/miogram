@@ -6831,7 +6831,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             totalOffset += filtersTabHeight;
         }
 
-        if (subfolderBar != null) {
+        if (subfolderBar != null && subfolderBar.hasPills()) {
             float subAlpha = (1f - searchAnimationProgress) * (filterTabsView != null ? filterTabsView.getAlpha() : 1f);
             subfolderBar.setAlpha(subAlpha);
             subfolderBar.setVisibility(subAlpha > 0.01f ? View.VISIBLE : View.GONE);
@@ -6839,6 +6839,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 subfolderBar.setTranslationY(totalOffset - searchOffset);
                 totalOffset += subfolderBar.getMeasuredHeight() * subAlpha;
             }
+        } else if (subfolderBar != null) {
+            subfolderBar.setVisibility(View.GONE);
         }
 
         if (topPanelLayout != null) {

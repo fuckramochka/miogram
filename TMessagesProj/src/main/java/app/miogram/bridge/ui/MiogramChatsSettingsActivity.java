@@ -17,6 +17,7 @@ import org.telegram.ui.Cells.TextSettingsCell;
 
 import app.exteraless.chats.ChatsConfig;
 import app.miogram.bridge.MiogramLocale;
+import app.miogram.bridge.ui.ios.MiogramEnterViewIosHelper;
 import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import xyz.nextalone.nagram.NaConfig;
@@ -36,6 +37,7 @@ public class MiogramChatsSettingsActivity extends BaseNekoSettingsActivity {
     private int cameraInfoRow;
 
     private int headerChatActionsRow;
+    private int iosInputPanelRow;
     private int doubleTapActionRow;
     private int noQuoteForwardRow;
     private int combineMessagesRow;
@@ -75,6 +77,7 @@ public class MiogramChatsSettingsActivity extends BaseNekoSettingsActivity {
         cameraInfoRow = addRow();
 
         headerChatActionsRow = addRow();
+        iosInputPanelRow = addRow();
         doubleTapActionRow = addRow();
         noQuoteForwardRow = addRow();
         combineMessagesRow = addRow();
@@ -111,6 +114,10 @@ public class MiogramChatsSettingsActivity extends BaseNekoSettingsActivity {
         } else if (position == cameraZoomRow) {
             boolean v = !ChatsConfig.zoomSlider.Bool();
             ChatsConfig.zoomSlider.setConfigBool(v);
+            if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(v);
+        } else if (position == iosInputPanelRow) {
+            boolean v = !MiogramEnterViewIosHelper.isIosInputPanelEnabled();
+            MiogramEnterViewIosHelper.setIosInputPanelEnabled(v);
             if (view instanceof TextCheckCell) ((TextCheckCell) view).setChecked(v);
         } else if (position == doubleTapActionRow) {
             showDoubleTapDialog();
@@ -228,9 +235,9 @@ public class MiogramChatsSettingsActivity extends BaseNekoSettingsActivity {
                 return TYPE_HEADER;
             } else if (position == cameraMirrorRow || position == cameraWideAngleRow
                     || position == cameraStabilizationRow || position == cameraFpsRow
-                    || position == cameraZoomRow || position == noQuoteForwardRow
-                    || position == combineMessagesRow || position == showMessageIdRow
-                    || position == showOnlineStatusRow) {
+                    || position == cameraZoomRow || position == iosInputPanelRow
+                    || position == noQuoteForwardRow || position == combineMessagesRow
+                    || position == showMessageIdRow || position == showOnlineStatusRow) {
                 return TYPE_CHECK;
             } else if (position == cameraInfoRow || position == chatActionsInfoRow || position == stickersInfoRow) {
                 return TYPE_INFO_PRIVACY;
@@ -254,7 +261,15 @@ public class MiogramChatsSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_CHECK: {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
-                    if (position == cameraMirrorRow) {
+                    if (position == iosInputPanelRow) {
+                        cell.setTextAndValueAndCheck(
+                                MiogramLocale.get("iOS панель вводу (Cupertino)", "iOS панель ввода (Cupertino)", "iOS Input Panel (Cupertino)"),
+                                MiogramLocale.get("Стильна заокруглена капсула та кругла кнопка відправки", "Стильная скругленная капсула и круглая кнопка отправки", "Sleek rounded capsule & circular send button"),
+                                MiogramEnterViewIosHelper.isIosInputPanelEnabled(),
+                                true,
+                                true
+                        );
+                    } else if (position == cameraMirrorRow) {
                         cell.setTextAndCheck(MiogramLocale.get("Дзеркальне відображення фронтальної камери", "Зеркальное отображение фронтальной камеры", "Mirror front camera"), ChatsConfig.cameraMirrorMode.Bool(), true);
                     } else if (position == cameraWideAngleRow) {
                         cell.setTextAndCheck(MiogramLocale.get("Починати запис із ширококутної камери", "Начинать запись с широкоугольной камеры", "Start recording with ultra-wide lens"), ChatsConfig.startWithWideAngleCamera.Bool(), true);

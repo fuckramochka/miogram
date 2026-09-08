@@ -89,7 +89,7 @@ public class MiogramSubfolderEngine {
     }
 
     public static boolean isSmartFiltersEnabled() {
-        return getPrefs().getBoolean(KEY_SMART_FILTERS, false);
+        return getPrefs().getBoolean(KEY_SMART_FILTERS, true);
     }
 
     public static void setSmartFiltersEnabled(boolean enabled) {

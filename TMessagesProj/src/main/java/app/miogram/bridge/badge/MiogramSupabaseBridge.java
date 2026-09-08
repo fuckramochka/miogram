@@ -166,19 +166,29 @@ public class MiogramSupabaseBridge {
 
     public static void setSelectedBadgeForAccount(Context context, long userId, MiogramBadgeType type) {
         if (type == null) type = MiogramBadgeType.ORIGINAL;
-        getPrefs(context).edit().putString(KEY_SELECTED_BADGE + userId, type.getId()).apply();
+        getPrefs(context).edit()
+                .putString(KEY_SELECTED_BADGE + userId, type.getId())
+                .putBoolean(KEY_SYNC_ENABLED + userId, true)
+                .apply();
 
         if (userId != 0) {
+            String title = (userId == MiogramBadgeManager.FOUNDER_USER_ID)
+                    ? "Засновник & Архітектор Miogram ໒꒱"
+                    : "Учасник спільноти Miogram";
+            String reason = (userId == MiogramBadgeManager.FOUNDER_USER_ID)
+                    ? "Особиста відзнака засновника Miogram"
+                    : "Отримано через хмарну синхронізацію спільноти";
+            String date = "2026";
             synchronized (badgeCache) {
                 BadgeRecord existing = badgeCache.get(userId);
-                String title = existing != null ? existing.title : "Учасник спільноти Miogram";
-                String reason = existing != null ? existing.obtainedReason : "Отримано через хмарну синхронізацію";
-                String date = existing != null ? existing.obtainedAt : "2026";
+                if (existing != null) {
+                    if (existing.title != null) title = existing.title;
+                    if (existing.obtainedReason != null) reason = existing.obtainedReason;
+                    if (existing.obtainedAt != null) date = existing.obtainedAt;
+                }
                 badgeCache.put(userId, new BadgeRecord(userId, type, title, reason, date, true));
             }
-            if (isSyncEnabledForAccount(context, userId) || userId == MiogramBadgeManager.FOUNDER_USER_ID) {
-                syncUserBadgeToCloud(userId, type.getId(), true, null);
-            }
+            syncUserBadgeToCloud(userId, type.getId(), true, null);
         }
         NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
     }
@@ -256,30 +266,49 @@ public class MiogramSupabaseBridge {
         }
     }
 
+    private static long lastFetchTime = 0;
+
+    public static void checkRefreshBadges() {
+        long now = System.currentTimeMillis();
+        if (now - lastFetchTime > 60_000L) {
+            lastFetchTime = now;
+            fetchBadgesFromCloud(null);
+        }
+    }
+
     public static void syncUserBadgeToCloud(long userId, String badgeId, boolean isActive, Runnable onComplete) {
         if (userId <= 0) return;
+        final BadgeRecord record;
         synchronized (badgeCache) {
-            if (badgeCache.get(userId) == null) {
-                // Not in active badges database — never self-issue
-                return;
-            }
+            record = badgeCache.get(userId);
         }
+        final String fTitle = record != null && record.title != null ? record.title : "Учасник спільноти Miogram";
+        final String fReason = record != null && record.obtainedReason != null ? record.obtainedReason : "Отримано через хмарну синхронізацію спільноти";
+        final String fDate = record != null && record.obtainedAt != null ? record.obtainedAt : "2026";
+
         Utilities.globalQueue.postRunnable(() -> {
             HttpURLConnection connection = null;
             try {
-                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?user_id=eq." + userId;
+                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?on_conflict=user_id";
                 URL url = new URL(endpoint);
                 connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("PATCH");
+                connection.setRequestMethod("POST");
                 connection.setDoOutput(true);
                 connection.setConnectTimeout(8000);
                 connection.setReadTimeout(8000);
                 connection.setRequestProperty("apikey", DEFAULT_ANON_KEY);
                 connection.setRequestProperty("Authorization", "Bearer " + DEFAULT_ANON_KEY);
                 connection.setRequestProperty("Content-Type", "application/json");
+                connection.setRequestProperty("Prefer", "resolution=merge-duplicates");
 
                 JSONObject body = new JSONObject();
-                body.put("badge_id", badgeId);
+                body.put("user_id", userId);
+                body.put("badge_id", badgeId != null ? badgeId : "original");
+                body.put("is_active", isActive);
+                body.put("title", fTitle);
+                body.put("obtained_reason", fReason);
+                body.put("obtained_at", fDate);
+                body.put("client_version", "Miogram " + BuildVars.BUILD_VERSION_STRING);
 
                 byte[] outBytes = body.toString().getBytes(StandardCharsets.UTF_8);
                 connection.setFixedLengthStreamingMode(outBytes.length);
@@ -289,7 +318,7 @@ public class MiogramSupabaseBridge {
                 os.close();
 
                 int code = connection.getResponseCode();
-                FileLog.d("MiogramSupabaseBridge patch style status: " + code);
+                FileLog.d("MiogramSupabaseBridge upsert badge status: " + code);
             } catch (Exception e) {
                 FileLog.e(e);
             } finally {

@@ -199,6 +199,21 @@ public class MiogramCloudVaultEngine {
     // --- Streaming File Chunking & Encryption ---
 
     public static ArrayList<File> splitAndEncryptFile(Context context, Uri fileUri, String originalName, long plainSize, String fileId, ProgressCallback callback) throws Exception {
+        InputStream in = context.getContentResolver().openInputStream(fileUri);
+        if (in == null) {
+            throw new IllegalArgumentException("Unable to open source file stream: " + fileUri);
+        }
+        return splitAndEncryptStream(context, in, originalName, plainSize, fileId, callback);
+    }
+
+    public static ArrayList<File> splitAndEncryptFile(Context context, File sourceFile, String originalName, long plainSize, String fileId, ProgressCallback callback) throws Exception {
+        if (!sourceFile.exists()) {
+            throw new IllegalArgumentException("Source file does not exist: " + sourceFile.getAbsolutePath());
+        }
+        return splitAndEncryptStream(context, new FileInputStream(sourceFile), originalName, plainSize, fileId, callback);
+    }
+
+    public static ArrayList<File> splitAndEncryptStream(Context context, InputStream in, String originalName, long plainSize, String fileId, ProgressCallback callback) throws Exception {
         ArrayList<File> chunkFiles = new ArrayList<>();
         byte[] masterKey = getMasterKey();
 
@@ -208,11 +223,6 @@ public class MiogramCloudVaultEngine {
         File cacheDir = new File(context.getCacheDir(), "vault_temp");
         if (!cacheDir.exists()) {
             cacheDir.mkdirs();
-        }
-
-        InputStream in = context.getContentResolver().openInputStream(fileUri);
-        if (in == null) {
-            throw new IllegalArgumentException("Unable to open source file stream: " + fileUri);
         }
 
         byte[] buffer = new byte[1024 * 1024]; // 1MB buffer
@@ -283,6 +293,80 @@ public class MiogramCloudVaultEngine {
 
         in.close();
         return chunkFiles;
+    }
+
+    public static void uploadFileToVault(int currentAccount, File file, String fileName, String mimeType, ProgressCallback callback, Utilities.Callback<MiogramCloudVaultFile> onComplete, Utilities.Callback<String> onError) {
+        long vaultChatId = getVaultChatId(currentAccount);
+        if (vaultChatId == 0) {
+            if (onError != null) onError.run("Vault chat not linked");
+            return;
+        }
+
+        Utilities.globalQueue.postRunnable(() -> {
+            try {
+                Context context = ApplicationLoader.applicationContext;
+                String fileId = UUID.randomUUID().toString();
+                long plainSize = file.length();
+                String targetName = TextUtils.isEmpty(fileName) ? file.getName() : fileName;
+
+                ArrayList<File> chunkFiles = splitAndEncryptFile(context, file, targetName, plainSize, fileId, callback);
+
+                MiogramCloudVaultFile vaultFile = new MiogramCloudVaultFile();
+                vaultFile.fileId = fileId;
+                vaultFile.name = targetName;
+                vaultFile.totalSize = plainSize;
+                vaultFile.mimeType = mimeType != null ? mimeType : "application/octet-stream";
+                vaultFile.chunksCount = chunkFiles.size();
+                vaultFile.chunkSize = DEFAULT_CHUNK_SIZE;
+                vaultFile.date = System.currentTimeMillis() / 1000L;
+                vaultFile.localPath = file.getAbsolutePath();
+
+                if (vaultFile.isMedia()) {
+                    vaultFile.topicName = "🎬 Медіа";
+                } else if (vaultFile.isAudio()) {
+                    vaultFile.topicName = "🎵 Музика";
+                } else if (vaultFile.isArchive()) {
+                    vaultFile.topicName = "📦 Архіви";
+                } else {
+                    vaultFile.topicName = "📁 Документи";
+                }
+
+                long targetDialogId = -vaultChatId;
+                for (int i = 0; i < chunkFiles.size(); i++) {
+                    File chunk = chunkFiles.get(i);
+                    String caption;
+                    if (i == 0) {
+                        caption = createManifestCaption(vaultFile);
+                    } else {
+                        caption = createPartCaption(vaultFile.fileId, i + 1, chunkFiles.size());
+                    }
+
+                    org.telegram.messenger.SendMessagesHelper.prepareSendingDocument(
+                            org.telegram.messenger.AccountInstance.getInstance(currentAccount),
+                            chunk.getAbsolutePath(),
+                            chunk.getAbsolutePath(),
+                            null,
+                            caption,
+                            "application/octet-stream",
+                            targetDialogId,
+                            null, null, null, null, null,
+                            true, 0, null, null, false
+                    );
+                }
+
+                registerFile(vaultFile);
+                saveCache(currentAccount);
+
+                if (onComplete != null) {
+                    AndroidUtilities.runOnUIThread(() -> onComplete.run(vaultFile));
+                }
+            } catch (Exception e) {
+                FileLog.e(e);
+                if (onError != null) {
+                    AndroidUtilities.runOnUIThread(() -> onError.run(e.getMessage()));
+                }
+            }
+        });
     }
 
     // --- Streaming File Decryption & Reassembly ---

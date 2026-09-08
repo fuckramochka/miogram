@@ -95,6 +95,10 @@ public class MiogramSubfolderBar extends FrameLayout {
         scrollView.scrollTo(0, 0);
     }
 
+    public boolean hasPills() {
+        return !pillViews.isEmpty();
+    }
+
     public void onTabsUpdated() {
         refreshPills();
     }
