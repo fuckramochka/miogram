@@ -1851,6 +1851,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int charge_fee = 72;
 
     private final static int chat_menu_topic_create = 73;
+    private final static int chat_menu_cloud_vault = 74;
 
     private final static int id_chat_compose_panel = 1000;
     private final static int to_the_beginning = 200;
@@ -4556,6 +4557,8 @@ public class ChatActivity extends BaseFragment implements
                     }
                 } else if (id == chat_menu_topic_create) {
                     presentFragment(TopicCreateFragment.create(-dialog_id, 0).setOpenInChatActivity(ChatActivity.this));
+                } else if (id == chat_menu_cloud_vault) {
+                    presentFragment(new app.miogram.bridge.cloudvault.MiogramCloudVaultActivity());
                 } else if (id == 888) {
                     dumpCanvas();
                 } else if (id == 889) {
@@ -4755,6 +4758,12 @@ public class ChatActivity extends BaseFragment implements
 
         if (UserObject.isBotForumWithEditableTopics(currentUser) && chatMode == 0) {
             topicCreateItem = menu.addItem(chat_menu_topic_create, R.drawable.menu_topic_add_30);
+        }
+
+        long vaultChatId = app.miogram.bridge.cloudvault.MiogramCloudVaultEngine.getVaultChatId(currentAccount);
+        if (vaultChatId != 0 && (dialog_id == -vaultChatId || (currentChat != null && currentChat.id == vaultChatId))) {
+            ActionBarMenuItem vaultDriveItem = menu.addItem(chat_menu_cloud_vault, R.drawable.cloud);
+            vaultDriveItem.setContentDescription("Cloud Drive");
         }
 
         if (currentEncryptedChat == null && (chatMode == 0 || chatMode == MODE_SAVED || chatMode == MODE_SUGGESTIONS) && !isReport()) {

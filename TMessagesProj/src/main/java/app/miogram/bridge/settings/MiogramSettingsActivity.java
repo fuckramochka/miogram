@@ -29,6 +29,7 @@ import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     private int headerMiogramFeaturesRow;
+    private int cloudVaultRow;
     private int multichatRow;
     private int badgeStudioRow;
     private int miogramFeaturesInfoRow;
@@ -62,6 +63,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         super.updateRows();
 
         headerMiogramFeaturesRow = addRow();
+        cloudVaultRow = addRow();
         multichatRow = addRow();
         badgeStudioRow = addRow();
         miogramFeaturesInfoRow = addRow();
@@ -88,7 +90,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == multichatRow) {
+        if (position == cloudVaultRow) {
+            presentFragment(new app.miogram.bridge.cloudvault.MiogramCloudVaultActivity());
+        } else if (position == multichatRow) {
             presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0));
         } else if (position == badgeStudioRow) {
             app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(getParentActivity(), currentAccount);
@@ -158,7 +162,9 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
-                    if (position == multichatRow) {
+                    if (position == cloudVaultRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Хмарне сховище (Cloud Vault)", "Облачное хранилище (Cloud Vault)", "Encrypted Cloud Vault"), R.drawable.cloud, true);
+                    } else if (position == multichatRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Мультичат (Split-Screen)", "Мультичат (Split-Screen)", "Multi-Chat (Split-Screen)"), R.drawable.msg_fave, true);
                     } else if (position == badgeStudioRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Канонічні відзнаки Miogram", "Канонические отличия Miogram", "Miogram Canonical Badges"), R.drawable.msg_premium_badge, true);
@@ -194,7 +200,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     if (position == miogramFeaturesInfoRow) {
-                        cell.setText(MiogramLocale.get("Розумна стрічка каналів з очищенням від реклами через Gemini AI, подвійні чати, канбан та 10 канонічних відзнак.", "Умная лента каналов с очисткой от рекламы через Gemini AI, двойные чаты, канбан и 10 канонических бейджей.", "Smart Feed with Gemini AI ad-filtering, dual split-screen chats, kanban organizer, and 10 canonical badges."));
+                        cell.setText(MiogramLocale.get("Зашифрований хмарний диск на базі форум-супергрупи, нарізка файлів >2 ГБ, мультичат, розумна стрічка та 10 канонічних відзнак.", "Зашифрованный облачный диск на базе форум-супергруппы, нарезка файлов >2 ГБ, мультичат, умная лента и 10 канонических бейджей.", "Encrypted cloud vault on forum supergroup, >2GB file chunking, multi-chat, smart feed, and 10 canonical badges."));
                     } else if (position == categoriesInfoRow) {
                         cell.setText(MiogramLocale.get("Зовнішній вигляд, персоналізація, навігація, паки іконок та розширені параметри чатів.", "Внешний вид, персонализация, навигация, паки иконок и расширенные параметры чатов.", "Appearance, customization, navigation, icon packs, and enhanced chat options."));
                     } else if (position == advancedInfoRow) {
