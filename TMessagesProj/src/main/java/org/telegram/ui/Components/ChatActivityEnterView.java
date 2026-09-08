@@ -627,7 +627,7 @@ public class ChatActivityEnterView extends FrameLayout implements
     private int slowModeTimer;
     private Runnable updateSlowModeRunnable;
     private SendButtonBlockedByTypingView sendButtonBlockedByTypingView;
-    private SendButton sendButton;
+    public SendButton sendButton;
     private int sendButtonBackgroundColor;
     public MessageSendPreview messageSendPreview;
     private long sentFromPreview;

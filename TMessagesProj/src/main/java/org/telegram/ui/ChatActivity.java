@@ -36514,9 +36514,10 @@ public class ChatActivity extends BaseFragment implements
 
                 if (fileToSave == null || !fileToSave.exists()) {
                     if (doc != null) {
-                        FileLoader.getInstance(currentAccount).loadFile(doc, null, 0, 0);
-                    } else if (message.messageOwner != null && message.messageOwner.media != null) {
-                        FileLoader.getInstance(currentAccount).loadFile(ImageLocation.getForMessage(message.messageOwner, 0), "photo", null, 0, 0);
+                        FileLoader.getInstance(currentAccount).loadFile(doc, message, 0, 0);
+                    } else if (message.photoThumbs != null && !message.photoThumbs.isEmpty()) {
+                        TLRPC.PhotoSize size = message.photoThumbs.get(message.photoThumbs.size() - 1);
+                        FileLoader.getInstance(currentAccount).loadFile(ImageLocation.getForObject(size, message.messageOwner), message, "jpg", 0, 1);
                     }
 
                     int attempts = 0;
