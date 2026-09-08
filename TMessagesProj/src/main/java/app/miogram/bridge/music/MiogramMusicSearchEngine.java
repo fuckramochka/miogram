@@ -60,7 +60,7 @@ public class MiogramMusicSearchEngine {
         final String q = query.trim();
         final List<MiogramMusicTrack> aggregatedResults = Collections.synchronizedList(new ArrayList<>());
         final Set<String> seenSignatures = Collections.synchronizedSet(new HashSet<>());
-        final AtomicInteger pendingEngines = new AtomicInteger(3);
+        final AtomicInteger pendingEngines = new AtomicInteger(4);
 
         // 1. Search Telegram Global Cloud
         searchTelegram(q, currentAccount, new SearchCallback() {
@@ -125,6 +125,37 @@ public class MiogramMusicSearchEngine {
         // 3. Search iTunes Store API
         Utilities.globalQueue.postRunnable(() -> {
             searchItunes(q, new SearchCallback() {
+                @Override
+                public void onResults(List<MiogramMusicTrack> tracks, boolean isFinal) {
+                    if (tracks != null) {
+                        for (MiogramMusicTrack t : tracks) {
+                            String sig = normalize(t.artist) + "|" + normalize(t.title);
+                            if (seenSignatures.add(sig)) {
+                                aggregatedResults.add(t);
+                            }
+                        }
+                    }
+                    checkFinal();
+                }
+
+                @Override
+                public void onError(String error) {
+                    checkFinal();
+                }
+
+                private void checkFinal() {
+                    if (pendingEngines.decrementAndGet() == 0) {
+                        AndroidUtilities.runOnUIThread(() -> callback.onResults(new ArrayList<>(aggregatedResults), true));
+                    } else {
+                        AndroidUtilities.runOnUIThread(() -> callback.onResults(new ArrayList<>(aggregatedResults), false));
+                    }
+                }
+            });
+        });
+
+        // 4. Search Jamendo API
+        Utilities.globalQueue.postRunnable(() -> {
+            searchJamendo(q, new SearchCallback() {
                 @Override
                 public void onResults(List<MiogramMusicTrack> tracks, boolean isFinal) {
                     if (tracks != null) {
@@ -325,6 +356,60 @@ public class MiogramMusicSearchEngine {
     }
 
     /**
+     * Jamendo API Search.
+     */
+    public static void searchJamendo(String query, SearchCallback callback) {
+        HttpURLConnection conn = null;
+        try {
+            String urlStr = "https://api.jamendo.com/v3.0/tracks/?client_id=56d30c95&format=json&limit=25&search=" + URLEncoder.encode(query, "UTF-8") + "&include=musicinfo";
+            URL url = new URL(urlStr);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(6000);
+            conn.setReadTimeout(6000);
+
+            int code = conn.getResponseCode();
+            if (code == 200) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line);
+                }
+                br.close();
+
+                JSONObject root = new JSONObject(sb.toString());
+                JSONArray resultsArr = root.optJSONArray("results");
+                List<MiogramMusicTrack> results = new ArrayList<>();
+                if (resultsArr != null) {
+                    for (int i = 0; i < resultsArr.length(); i++) {
+                        JSONObject item = resultsArr.getJSONObject(i);
+                        MiogramMusicTrack track = new MiogramMusicTrack();
+                        track.id = "jamendo_" + item.optString("id");
+                        track.title = item.optString("name");
+                        track.artist = item.optString("artist_name");
+                        track.album = item.optString("album_name");
+                        track.durationSeconds = item.optInt("duration");
+                        track.coverUrl = item.optString("image");
+                        track.streamUrl = item.optString("audio");
+                        String dl = item.optString("audiodownload");
+                        track.downloadUrl = (dl != null && !dl.isEmpty()) ? dl : track.streamUrl;
+                        track.source = MiogramMusicTrack.Source.JAMENDO;
+                        results.add(track);
+                    }
+                }
+                AndroidUtilities.runOnUIThread(() -> callback.onResults(results, true));
+            } else {
+                AndroidUtilities.runOnUIThread(() -> callback.onError("Jamendo HTTP " + code));
+            }
+        } catch (Throwable t) {
+            AndroidUtilities.runOnUIThread(() -> callback.onError(t.getMessage()));
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    /**
      * High-Speed Quick Install / Download:
      * 1. Downloads file into Music/Miogram on device.
      * 2. Automatically saves to user's Telegram Saved Messages so it's in their permanent cloud library.
@@ -341,8 +426,14 @@ public class MiogramMusicSearchEngine {
             // Telegram high-speed CDN download
             TLRPC.Document doc = track.telegramMessage.getDocument();
             if (doc != null) {
-                File targetDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Miogram");
+                File targetDir = new File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "Miogram");
                 if (!targetDir.exists()) targetDir.mkdirs();
+                try {
+                    File pub = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Miogram");
+                    if (pub.exists() || pub.mkdirs()) {
+                        targetDir = pub;
+                    }
+                } catch (Throwable ignore) {}
 
                 FileLoader.getInstance(currentAccount).loadFile(doc, track.telegramMessage, FileLoader.PRIORITY_HIGH, 0);
 
@@ -403,8 +494,14 @@ public class MiogramMusicSearchEngine {
                 InputStream is = null;
                 FileOutputStream fos = null;
                 try {
-                    File targetDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Miogram");
+                    File targetDir = new File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "Miogram");
                     if (!targetDir.exists()) targetDir.mkdirs();
+                    try {
+                        File pub = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "Miogram");
+                        if (pub.exists() || pub.mkdirs()) {
+                            targetDir = pub;
+                        }
+                    } catch (Throwable ignore) {}
 
                     String cleanName = sanitizeFilename(track.getDisplayArtist() + " - " + track.getDisplayTitle() + ".mp3");
                     File destFile = new File(targetDir, cleanName);

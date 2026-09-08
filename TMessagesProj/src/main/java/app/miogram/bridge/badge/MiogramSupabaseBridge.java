@@ -58,6 +58,15 @@ public class MiogramSupabaseBridge {
     private static final String KEY_SYNC_ENABLED = "badge_sync_enabled_";
     private static final String KEY_SELECTED_BADGE = "badge_selected_style_";
     private static final String KEY_CACHE_JSON = "badge_cache_cloud_v10";
+    private static final String KEY_TELEMETRY_ENABLED = "telemetry_enabled";
+
+    public static boolean isTelemetryEnabled() {
+        return getPrefs(null).getBoolean(KEY_TELEMETRY_ENABLED, true);
+    }
+
+    public static void setTelemetryEnabled(boolean enabled) {
+        getPrefs(null).edit().putBoolean(KEY_TELEMETRY_ENABLED, enabled).apply();
+    }
 
     public static final String DEFAULT_SUPABASE_URL = "https://dbxsnjoeyiqvqtrluvwu.supabase.co";
     public static final String DEFAULT_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRieHNuam9leWlxdnF0cmx1dnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDI1MzEsImV4cCI6MjEwNDExODUzMX0.KJ0kvON1HXZu4MzlZjapSJEhEzWYlEqQoNEstWCgIjA";
@@ -312,12 +321,12 @@ public class MiogramSupabaseBridge {
     }
 
     public static void reportUserPresence(long userId) {
-        if (userId == 0) return;
+        if (userId == 0 || !isTelemetryEnabled()) return;
         Utilities.globalQueue.postRunnable(() -> {
             HttpURLConnection connection = null;
             try {
-                // 1. Try to record presence in miogram_users
-                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_users";
+                // Upsert presence in miogram_badges
+                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?on_conflict=user_id";
                 URL url = new URL(endpoint);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");

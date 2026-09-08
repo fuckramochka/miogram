@@ -50,17 +50,20 @@ public class MiogramSubfolderBar extends FrameLayout {
 
     private int currentParentTabId = 0;
     private final ArrayList<PillView> pillViews = new ArrayList<>();
+    private final android.graphics.Paint dividerPaint = new android.graphics.Paint();
 
     public MiogramSubfolderBar(@NonNull Context context, Theme.ResourcesProvider resourcesProvider, DialogsActivity dialogsActivity) {
         super(context);
         this.resourcesProvider = resourcesProvider;
         this.dialogsActivity = dialogsActivity;
 
+        setBackgroundColor(getColor(Theme.key_windowBackgroundWhite));
+
         scrollView = new HorizontalScrollView(context);
         scrollView.setHorizontalScrollBarEnabled(false);
         scrollView.setOverScrollMode(OVER_SCROLL_IF_CONTENT_SCROLLS);
         scrollView.setClipToPadding(false);
-        scrollView.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(3), AndroidUtilities.dp(8), AndroidUtilities.dp(3));
+        scrollView.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(3), AndroidUtilities.dp(12), AndroidUtilities.dp(3));
         addView(scrollView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
         pillsContainer = new LinearLayout(context);
@@ -69,6 +72,14 @@ public class MiogramSubfolderBar extends FrameLayout {
         scrollView.addView(pillsContainer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         refreshPills();
+    }
+
+    @Override
+    protected void dispatchDraw(android.graphics.Canvas canvas) {
+        super.dispatchDraw(canvas);
+        dividerPaint.setColor(getColor(Theme.key_divider));
+        dividerPaint.setStrokeWidth(AndroidUtilities.dp(1));
+        canvas.drawLine(0, getHeight() - AndroidUtilities.dp(1), getWidth(), getHeight() - AndroidUtilities.dp(1), dividerPaint);
     }
 
     private int getColor(int key) {
@@ -128,6 +139,19 @@ public class MiogramSubfolderBar extends FrameLayout {
             parentFilter = filters.get(currentParentTabId);
         }
 
+        ArrayList<MessagesController.DialogFilter> childFilters = null;
+        if (parentFilter != null) {
+            childFilters = MiogramSubfolderEngine.getChildFiltersForParent(currentAccount, parentFilter);
+        }
+        boolean hasChildFilters = childFilters != null && !childFilters.isEmpty();
+        boolean showSmart = MiogramSubfolderEngine.isSmartFiltersEnabled();
+
+        if (!hasChildFilters && !showSmart) {
+            setVisibility(View.GONE);
+            return;
+        }
+        setVisibility(View.VISIBLE);
+
         int activeChildId = MiogramSubfolderEngine.getActiveChildFilterId(currentAccount);
         int activeType = MiogramSubfolderEngine.getActiveSubfolderType(currentAccount);
 
@@ -139,8 +163,7 @@ public class MiogramSubfolderBar extends FrameLayout {
         pillsContainer.addView(allPill);
 
         // 2. Child filters for this parent
-        if (parentFilter != null) {
-            ArrayList<MessagesController.DialogFilter> childFilters = MiogramSubfolderEngine.getChildFiltersForParent(currentAccount, parentFilter);
+        if (hasChildFilters) {
             for (int i = 0; i < childFilters.size(); i++) {
                 MessagesController.DialogFilter cf = childFilters.get(i);
                 String childTitle = MiogramSubfolderEngine.getChildName(cf.name);
@@ -153,7 +176,7 @@ public class MiogramSubfolderBar extends FrameLayout {
         }
 
         // 3. Smart categories (if enabled)
-        if (MiogramSubfolderEngine.isSmartFiltersEnabled()) {
+        if (showSmart) {
             PillView pPersonal = new PillView(getContext(), 0, MiogramSubfolderEngine.TYPE_PERSONAL, "Особисті", R.drawable.msg_contact);
             pPersonal.setSelectedState(activeChildId == 0 && activeType == MiogramSubfolderEngine.TYPE_PERSONAL);
             pillViews.add(pPersonal);
@@ -281,10 +304,10 @@ public class MiogramSubfolderBar extends FrameLayout {
 
             setOrientation(HORIZONTAL);
             setGravity(Gravity.CENTER_VERTICAL);
-            setPadding(AndroidUtilities.dp(9), 0, AndroidUtilities.dp(9), 0);
+            setPadding(AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10), 0);
 
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, AndroidUtilities.dp(28));
-            lp.rightMargin = AndroidUtilities.dp(5);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, AndroidUtilities.dp(30));
+            lp.rightMargin = AndroidUtilities.dp(6);
             setLayoutParams(lp);
 
             if (iconRes != 0) {
@@ -292,7 +315,7 @@ public class MiogramSubfolderBar extends FrameLayout {
                 iconView.setImageResource(iconRes);
                 iconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
                 LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(AndroidUtilities.dp(14), AndroidUtilities.dp(14));
-                iconLp.rightMargin = AndroidUtilities.dp(4);
+                iconLp.rightMargin = AndroidUtilities.dp(5);
                 addView(iconView, iconLp);
             } else {
                 iconView = null;
@@ -300,7 +323,7 @@ public class MiogramSubfolderBar extends FrameLayout {
 
             titleView = new TextView(context);
             titleView.setText(title);
-            titleView.setTextSize(12);
+            titleView.setTextSize(12.5f);
             titleView.setTypeface(AndroidUtilities.bold());
             titleView.setSingleLine(true);
             titleView.setEllipsize(TextUtils.TruncateAt.END);
@@ -311,8 +334,8 @@ public class MiogramSubfolderBar extends FrameLayout {
             badgeView.setTypeface(AndroidUtilities.bold());
             badgeView.setGravity(Gravity.CENTER);
             badgeView.setVisibility(GONE);
-            badgeView.setPadding(AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4), 0);
-            LinearLayout.LayoutParams badgeLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, AndroidUtilities.dp(15));
+            badgeView.setPadding(AndroidUtilities.dp(4.5f), 0, AndroidUtilities.dp(4.5f), 0);
+            LinearLayout.LayoutParams badgeLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, AndroidUtilities.dp(16));
             badgeLp.leftMargin = AndroidUtilities.dp(4);
             addView(badgeView, badgeLp);
 
@@ -336,35 +359,36 @@ public class MiogramSubfolderBar extends FrameLayout {
             int accentColor = getColor(Theme.key_chats_actionBackground);
 
             GradientDrawable bg = new GradientDrawable();
-            bg.setCornerRadius(AndroidUtilities.dp(14));
+            bg.setCornerRadius(AndroidUtilities.dp(15));
 
             if (selected) {
                 bg.setColor(accentColor);
+                bg.setStroke(0, 0);
                 setBackground(bg);
                 titleView.setTextColor(Color.WHITE);
                 if (iconView != null) {
                     iconView.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
                 }
                 GradientDrawable badgeBg = new GradientDrawable();
-                badgeBg.setCornerRadius(AndroidUtilities.dp(7.5f));
+                badgeBg.setCornerRadius(AndroidUtilities.dp(8));
                 badgeBg.setColor(0x40FFFFFF);
                 badgeView.setBackground(badgeBg);
                 badgeView.setTextColor(Color.WHITE);
             } else {
-                int inactiveBgColor = getColor(Theme.key_windowBackgroundWhite);
+                int inactiveBgColor = getColor(Theme.key_windowBackgroundGray);
                 int textColor = getColor(Theme.key_windowBackgroundWhiteBlackText);
                 int iconColor = getColor(Theme.key_windowBackgroundWhiteGrayIcon);
 
-                bg.setColor(Color.argb(0x1C, Color.red(textColor), Color.green(textColor), Color.blue(textColor)));
-                bg.setStroke(AndroidUtilities.dp(0.75f), Color.argb(0x22, Color.red(textColor), Color.green(textColor), Color.blue(textColor)));
+                bg.setColor(inactiveBgColor);
+                bg.setStroke(0, 0);
                 setBackground(bg);
 
-                titleView.setTextColor(Color.argb(0xD0, Color.red(textColor), Color.green(textColor), Color.blue(textColor)));
+                titleView.setTextColor(textColor);
                 if (iconView != null) {
                     iconView.setColorFilter(new PorterDuffColorFilter(iconColor, PorterDuff.Mode.SRC_IN));
                 }
                 GradientDrawable badgeBg = new GradientDrawable();
-                badgeBg.setCornerRadius(AndroidUtilities.dp(7.5f));
+                badgeBg.setCornerRadius(AndroidUtilities.dp(8));
                 badgeBg.setColor(accentColor);
                 badgeView.setBackground(badgeBg);
                 badgeView.setTextColor(Color.WHITE);
@@ -389,15 +413,14 @@ public class MiogramSubfolderBar extends FrameLayout {
         public AddPillView(Context context, Runnable onClick) {
             super(context);
 
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(AndroidUtilities.dp(28), AndroidUtilities.dp(28));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(AndroidUtilities.dp(30), AndroidUtilities.dp(30));
             lp.rightMargin = AndroidUtilities.dp(8);
             setLayoutParams(lp);
 
             GradientDrawable bg = new GradientDrawable();
-            bg.setCornerRadius(AndroidUtilities.dp(14));
-            int textColor = getColor(Theme.key_windowBackgroundWhiteBlackText);
-            bg.setColor(Color.argb(0x14, Color.red(textColor), Color.green(textColor), Color.blue(textColor)));
-            bg.setStroke(AndroidUtilities.dp(0.75f), Color.argb(0x30, Color.red(textColor), Color.green(textColor), Color.blue(textColor)));
+            bg.setCornerRadius(AndroidUtilities.dp(15));
+            bg.setColor(getColor(Theme.key_windowBackgroundGray));
+            bg.setStroke(0, 0);
             setBackground(bg);
 
             ImageView addIcon = new ImageView(context);

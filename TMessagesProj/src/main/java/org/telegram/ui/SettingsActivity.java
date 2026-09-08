@@ -744,6 +744,9 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         items.add(SettingCell.Factory.of(102, 0xFF993C38, 0xFF993C38, R.drawable.exteraless_icon_tile,
                 app.miogram.bridge.MiogramLocale.get("Налаштування Miogram", "Настройки Miogram", "Miogram Settings"),
                 app.miogram.bridge.MiogramLocale.get("Усі функції, дизайн, конфіденційність та інструменти", "Все функции, дизайн, конфиденциальность и инструменты", "All features, design, privacy & tools")));
+        items.add(SettingCell.Factory.of(103, 0xFF6B4EE6, 0xFF8A6DF4, R.drawable.msg_plugins,
+                app.miogram.bridge.MiogramLocale.get("Плагіни Miogram", "Плагины Miogram", "Miogram Plugins"),
+                app.miogram.bridge.MiogramLocale.get("Каталог розширень, Python скрипти та модифікації", "Каталог расширений, Python скрипты и модификации", "Extensions catalog, Python scripts & modifications")));
         items.add(UItem.asShadow(null));
 
         items.add(SettingCell.Factory.of(1, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.settings_account, getString(R.string.SettingsAccount), getString(R.string.SettingsAccountInfo)));
@@ -965,6 +968,10 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             }
             case 102: {
                 presentFragment(new app.miogram.bridge.settings.MiogramSettingsActivity());
+                break;
+            }
+            case 103: {
+                presentFragment(new app.exteraless.plugins.ui.PluginsActivity());
                 break;
             }
         }

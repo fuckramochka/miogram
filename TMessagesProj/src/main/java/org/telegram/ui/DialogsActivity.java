@@ -1337,13 +1337,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     childTop = actionBar.getMeasuredHeight();
                 } else if (child instanceof ViewPage) {
                     childTop = 0;
-                } else if (child == subfolderBar) {
-                    childTop += actionBar.getMeasuredHeight();
-                    childTop += getIdleSearchFieldHeight();
-                    if (filterTabsView != null && filterTabsView.getVisibility() == View.VISIBLE) {
-                        childTop += filterTabsView.getMeasuredHeight();
-                    }
-                } else if (child == topPanelLayout || child == topBubblesFadeView || child == filterTabsView) {
+                } else if (child == topPanelLayout || child == topBubblesFadeView || child == filterTabsView || child == subfolderBar) {
                     childTop += actionBar.getMeasuredHeight();
                     childTop += getIdleSearchFieldHeight();
                 } else if (dialogStoriesCell != null && dialogStoriesCell.getPremiumHint() == child) {

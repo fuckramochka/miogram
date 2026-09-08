@@ -62,6 +62,8 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     private float fullScreenProgress = 0f;
     private PlayerMode playerMode = PlayerMode.LYRICS;
 
+    private final ImageView backgroundBlurView;
+
     // Header / Top section
     private final LinearLayout topSection;
     private final View dragHandle;
@@ -116,6 +118,12 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         super(context);
         this.alert = alert;
         this.resourcesProvider = resourcesProvider;
+
+        // Background Blur Backdrop View
+        backgroundBlurView = new ImageView(context);
+        backgroundBlurView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        addView(backgroundBlurView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        captureBlurBackground();
 
         updateBackgroundShape(0f);
 
@@ -334,14 +342,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         int bottomTop = ColorUtils.setAlphaComponent(surface, 210);
         bottomSection.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{bottomTop, bottomSolid}));
 
-        // Seekbar & Timestamps
-        seekbarContainer = new LinearLayout(context);
-        seekbarContainer.setOrientation(LinearLayout.VERTICAL);
-        timersRow = new FrameLayout(context);
-        seekbarContainer.addView(timersRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 0));
-        bottomSection.addView(seekbarContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 2));
-
-        // Main Controls Row (Repeat, Prev, Hero Play/Pause, Next, Queue)
+        // Main Controls Row (Repeat, Prev, Hero Play/Pause, Next, Queue) - ABOVE seekbar
         mainControlsRow = new LinearLayout(context);
         mainControlsRow.setOrientation(LinearLayout.HORIZONTAL);
         mainControlsRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -356,7 +357,14 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             heroPlayButton.setElevation(AndroidUtilities.dp(4));
         }
 
-        bottomSection.addView(mainControlsRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 56, 0, 2, 0, 4));
+        bottomSection.addView(mainControlsRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 56, 0, 2, 0, 2));
+
+        // Seekbar & Timestamps - AT BOTTOM below buttons
+        seekbarContainer = new LinearLayout(context);
+        seekbarContainer.setOrientation(LinearLayout.VERTICAL);
+        timersRow = new FrameLayout(context);
+        seekbarContainer.addView(timersRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 0));
+        bottomSection.addView(seekbarContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 4));
 
         // Profile Button Container ("+ Додати в профіль")
         profileButtonContainer = new FrameLayout(context);
@@ -669,10 +677,10 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         if (surface == 0) surface = getThemedColor(Theme.key_windowBackgroundWhite);
         int accentColor = getThemeAccentColor();
 
-        // Sleek TG 7 glassmorphism (~72% opacity with translucent subtle gradient & 1dp glass stroke)
-        int frostedSurface = ColorUtils.setAlphaComponent(surface, 184);
+        // Sleek TG frosted glassmorphism (~82% opacity with translucent subtle gradient & 1dp glass stroke)
+        int frostedSurface = ColorUtils.setAlphaComponent(surface, 210);
         int topGradient = ColorUtils.blendARGB(frostedSurface, accentColor, 0.16f);
-        int bottomGradient = ColorUtils.blendARGB(frostedSurface, 0xFF000000, 0.12f);
+        int bottomGradient = ColorUtils.blendARGB(frostedSurface, 0xFF000000, 0.14f);
 
         GradientDrawable background = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
@@ -686,6 +694,29 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         background.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
         background.setStroke(AndroidUtilities.dp(1), 0x28FFFFFF);
         setBackground(background);
+
+        if (backgroundBlurView != null && Build.VERSION.SDK_INT >= 21) {
+            backgroundBlurView.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radius);
+                }
+            });
+            backgroundBlurView.setClipToOutline(radius > 0);
+        }
+    }
+
+    public void captureBlurBackground() {
+        try {
+            org.telegram.ui.Components.ScrimOptions.makeGlobalBlurBitmaps((bitmapBg, bitmapOptions) -> {
+                if (bitmapBg != null && backgroundBlurView != null) {
+                    backgroundBlurView.setImageBitmap(bitmapBg);
+                    backgroundBlurView.setAlpha(0.88f);
+                }
+            });
+        } catch (Throwable t) {
+            org.telegram.messenger.FileLog.e(t);
+        }
     }
 
     public int getThemeAccentColor() {

@@ -52,6 +52,9 @@ import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ChatActivity;
+import org.telegram.ui.DialogsActivity;
+import org.telegram.messenger.MessagesStorage;
+import androidx.core.content.FileProvider;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.io.File;
@@ -681,14 +684,14 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
     // --- File Download & Decryption Flow ---
 
-    private void downloadOrOpenFile(MiogramCloudVaultFile file) {
-        Context context = getParentActivity() != null ? getParentActivity() : getContext();
-        if (context == null) return;
-
+    private void ensureFileDownloaded(MiogramCloudVaultFile file, Runnable onReady) {
         if (!TextUtils.isEmpty(file.localPath) && new File(file.localPath).exists()) {
-            AndroidUtilities.openForView(new File(file.localPath), file.name, file.mimeType, getParentActivity(), null, false);
+            if (onReady != null) onReady.run();
             return;
         }
+
+        Context context = getParentActivity() != null ? getParentActivity() : getContext();
+        if (context == null) return;
 
         if (file.chunkDocuments.isEmpty()) {
             Toast.makeText(context, MiogramLocale.get("Очікування синхронізації чанків...", "Ожидание синхронизации чанков...", "Awaiting chunks sync..."), Toast.LENGTH_SHORT).show();
@@ -740,9 +743,7 @@ public class MiogramCloudVaultActivity extends BaseFragment {
                     file.localPath = assembled.getAbsolutePath();
                     progressDialog.dismiss();
                     if (filesAdapter != null) filesAdapter.notifyDataSetChanged();
-
-                    Toast.makeText(context, MiogramLocale.get("Збережено в Downloads/Miogram Vault/", "Сохранено в Downloads/Miogram Vault/", "Saved to Downloads/Miogram Vault/"), Toast.LENGTH_LONG).show();
-                    AndroidUtilities.openForView(assembled, file.name, file.mimeType, getParentActivity(), null, false);
+                    if (onReady != null) onReady.run();
                 });
 
             } catch (Exception e) {
@@ -755,6 +756,99 @@ public class MiogramCloudVaultActivity extends BaseFragment {
                 });
             }
         });
+    }
+
+    private void downloadOrOpenFile(MiogramCloudVaultFile file) {
+        ensureFileDownloaded(file, () -> {
+            Context context = getParentActivity() != null ? getParentActivity() : getContext();
+            if (context != null && !TextUtils.isEmpty(file.localPath)) {
+                Toast.makeText(context, MiogramLocale.get("Збережено в Downloads/Miogram Vault/", "Сохранено в Downloads/Miogram Vault/", "Saved to Downloads/Miogram Vault/"), Toast.LENGTH_LONG).show();
+                AndroidUtilities.openForView(new File(file.localPath), file.name, file.mimeType, getParentActivity(), null, false);
+            }
+        });
+    }
+
+    private void shareToTelegramChat(MiogramCloudVaultFile file) {
+        ensureFileDownloaded(file, () -> {
+            Bundle args = new Bundle();
+            args.putBoolean("onlySelect", true);
+            args.putBoolean("canSelectTopics", true);
+            DialogsActivity dialogs = new DialogsActivity(args);
+            dialogs.setDelegate((fragment1, dids, message, param, notify, scheduleDate, scheduleRepeatPeriod, topicsFragment) -> {
+                if (dids != null && !dids.isEmpty()) {
+                    for (int i = 0; i < dids.size(); i++) {
+                        long did = dids.get(i).dialogId;
+                        SendMessagesHelper.prepareSendingDocument(
+                                getAccountInstance(),
+                                file.localPath,
+                                file.localPath,
+                                null,
+                                file.name,
+                                file.mimeType != null ? file.mimeType : "application/octet-stream",
+                                did,
+                                null, null, null, null, null,
+                                true, 0, null, null, false
+                        );
+                    }
+                    fragment1.finishFragment();
+                    Toast.makeText(getParentActivity(), MiogramLocale.get("Файл надіслано в чат!", "Файл отправлен в чат!", "File sent to chat!"), Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            });
+            presentFragment(dialogs);
+        });
+    }
+
+    private void shareFileExternal(MiogramCloudVaultFile file) {
+        if (getParentActivity() == null) return;
+        ensureFileDownloaded(file, () -> {
+            try {
+                File f = new File(file.localPath);
+                Uri uri = FileProvider.getUriForFile(
+                        ApplicationLoader.applicationContext,
+                        ApplicationLoader.getApplicationId() + ".provider",
+                        f
+                );
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                intent.setType(file.mimeType != null ? file.mimeType : "application/octet-stream");
+                intent.putExtra(Intent.EXTRA_STREAM, uri);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                getParentActivity().startActivity(Intent.createChooser(intent, MiogramLocale.get("Поділитися файлом", "Поделиться файлом", "Share File")));
+            } catch (Exception e) {
+                FileLog.e(e);
+                Toast.makeText(getParentActivity(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void showMoveFileToTopicDialog(MiogramCloudVaultFile file) {
+        if (getParentActivity() == null) return;
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(MiogramLocale.get("Перемістити в папку", "Переместить в папку", "Move to folder"));
+
+        ArrayList<String> topicNames = new ArrayList<>();
+        ArrayList<Long> topicIds = new ArrayList<>();
+
+        topicNames.add(MiogramLocale.get("Головна папка (Усі файли)", "Корень (Все файлы)", "Root (All files)"));
+        topicIds.add(0L);
+
+        for (TLRPC.TL_forumTopic topic : cachedTopics) {
+            topicNames.add(topic.title);
+            topicIds.add((long) topic.id);
+        }
+
+        CharSequence[] items = topicNames.toArray(new CharSequence[0]);
+        builder.setItems(items, (d, which) -> {
+            long newTopicId = topicIds.get(which);
+            String newTopicName = which == 0 ? "" : topicNames.get(which);
+            file.topicId = newTopicId;
+            file.topicName = newTopicName;
+            MiogramCloudVaultEngine.saveCache(currentAccount);
+            filterAndReloadFiles();
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Файл переміщено!", "Файл перемещен!", "File moved!"), Toast.LENGTH_SHORT).show();
+        });
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(builder.create());
     }
 
     // --- Vault Management & Dialogs ---
@@ -899,7 +993,10 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         builder.setTitle(file.name);
 
         CharSequence[] items = new CharSequence[]{
-                MiogramLocale.get("Завантажити та розшифрувати", "Скачать и расшифровать", "Download & Decrypt"),
+                MiogramLocale.get("Переглянути / Відкрити", "Просмотреть / Открыть", "Preview / Open"),
+                MiogramLocale.get("Поділитися в чат Telegram", "Поделиться в чат Telegram", "Share to Telegram Chat"),
+                MiogramLocale.get("Поділитися через інші додатки", "Поделиться через другие приложения", "Share via Other Apps"),
+                MiogramLocale.get("Перемістити в папку (топік)", "Переместить в папку (топик)", "Move to Folder (Topic)"),
                 MiogramLocale.get("Копіювати назву", "Копировать название", "Copy Name"),
                 MiogramLocale.get("Видалити зі сховища", "Удалить из хранилища", "Delete from Vault")
         };
@@ -908,12 +1005,18 @@ public class MiogramCloudVaultActivity extends BaseFragment {
             if (which == 0) {
                 downloadOrOpenFile(file);
             } else if (which == 1) {
+                shareToTelegramChat(file);
+            } else if (which == 2) {
+                shareFileExternal(file);
+            } else if (which == 3) {
+                showMoveFileToTopicDialog(file);
+            } else if (which == 4) {
                 ClipboardManager cm = (ClipboardManager) ApplicationLoader.applicationContext.getSystemService(Context.CLIPBOARD_SERVICE);
                 if (cm != null) {
                     cm.setPrimaryClip(ClipData.newPlainText("Filename", file.name));
-                    Toast.makeText(getParentActivity(), "Copied", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getParentActivity(), MiogramLocale.get("Назву скопійовано", "Название скопировано", "Name copied"), Toast.LENGTH_SHORT).show();
                 }
-            } else if (which == 2) {
+            } else if (which == 5) {
                 long vaultChatId = MiogramCloudVaultEngine.getVaultChatId(currentAccount);
                 MiogramCloudVaultEngine.deleteVaultFile(currentAccount, vaultChatId, file, true);
                 filterAndReloadFiles();

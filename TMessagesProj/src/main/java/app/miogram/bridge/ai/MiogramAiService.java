@@ -165,7 +165,7 @@ public class MiogramAiService {
             String model = LlmConfig.getEffectiveModelName(PresetRegistry.GOOGLE_AI_STUDIO);
             if (!TextUtils.isEmpty(model)) return model;
         } catch (Throwable ignored) {}
-        return "gemini-2.0-flash";
+        return "gemini-2.5-flash";
     }
 
     public static void setModel(String model) {

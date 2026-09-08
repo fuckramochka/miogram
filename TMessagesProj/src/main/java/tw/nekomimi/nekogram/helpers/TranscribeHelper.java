@@ -61,7 +61,7 @@ public class TranscribeHelper {
     public static final int TRANSCRIBE_WORKERSAI = 2;
     public static final int TRANSCRIBE_GEMINI = 3;
     public static final int TRANSCRIBE_OPENAI = 4;
-    private static final String GEMINI_API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=%s";
+    private static final String GEMINI_API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=%s";
     private static final String GEMINI_PROMPT = """
     Your task is to transcribe the provided voice/audio message with high accuracy, preserving the speaker's emotional state, intensity, and tone directly in the text formatting:
 
@@ -73,6 +73,17 @@ public class TranscribeHelper {
        - **Laughter:** Naturally integrate natural laughter markers like "(сміється)" without interrupting or skipping spoken words.
     3. **No Acoustic Clutter:** Do not output standalone environmental noise brackets like [footsteps], [music], [door creaks], [sigh].
     4. **Output Only:** Output ONLY the final transcribed text in the original language spoken. No introductions, explanations, or meta-comments.
+    """.trim();
+
+    private static final String GEMINI_VIDEO_CIRCLE_PROMPT = """
+    Це кружечок (відеоповідомлення) у Telegram.
+    Твоє завдання — транскрибувати мову спікера та описати ключові візуальні дії/жести:
+
+    1. Почни відповідь із позначки: "[Кружечок] " (щоб було чітко видно, що це відеоповідомлення, а не просто голосове).
+    2. Дослівно розпізнай слова спікера.
+    3. Візуальні дії, жести або події у відео позначай курсивом у зірочках (наприклад: *махає рукою*, *посміхається*, *показує кімнату*, *знизує плечима*), розміщуючи їх там, де вони відбуваються.
+    4. Емоції передавай пунктуацією або КАПСОМ, якщо спікер вигукує.
+    5. Виведи ТІЛЬКИ текст транскрипції та дії мовою оригіналу без зайвих вступів.
     """.trim();
 
     private static final String OPENAI_COMPATIBLE_DEFAULT_PROMPT = GEMINI_PROMPT;
@@ -401,29 +412,40 @@ public class TranscribeHelper {
         final String finalApiKey = apiKey;
         final String finalPrompt = customPrompt.isEmpty() ? GEMINI_PROMPT : customPrompt;
         executorService.submit(() -> {
-            String audioPath;
             try {
-                if (video) {
+                File mediaFile = new File(path);
+                String mimeType;
+                String promptToUse;
+
+                if (video && mediaFile.exists() && mediaFile.length() <= 15 * 1024 * 1024) {
+                    mimeType = "video/mp4";
+                    promptToUse = (customPrompt.isEmpty() || customPrompt.equals(GEMINI_PROMPT)) ? GEMINI_VIDEO_CIRCLE_PROMPT : customPrompt;
+                } else if (video) {
                     var audioFile = new File(path + ".m4a");
                     try {
                         extractAudio(path, audioFile.getAbsolutePath());
                     } catch (IOException e) {
                         FileLog.e(e);
                     }
-                    audioPath = audioFile.exists() ? audioFile.getAbsolutePath() : path;
+                    if (audioFile.exists()) {
+                        mediaFile = audioFile;
+                    }
+                    mimeType = "audio/m4a";
+                    promptToUse = (customPrompt.isEmpty() || customPrompt.equals(GEMINI_PROMPT)) ? GEMINI_VIDEO_CIRCLE_PROMPT : customPrompt;
                 } else {
-                    audioPath = path;
+                    mimeType = "audio/ogg";
+                    promptToUse = finalPrompt;
                 }
-                File audioFile = new File(audioPath);
-                if (!audioFile.exists()) {
-                    throw new IOException("Audio file not found: " + audioPath);
+
+                if (!mediaFile.exists()) {
+                    throw new IOException("Media file not found: " + path);
                 }
-                byte[] audioBytes = Files.readAllBytes(audioFile.toPath());
-                String base64Audio = Base64.encodeToString(audioBytes, Base64.NO_WRAP);
-                GeminiRequest.InlineData inlineData = new GeminiRequest.InlineData(video ? "audio/m4a" : "audio/ogg", base64Audio);
-                GeminiRequest.Part audioPart = new GeminiRequest.Part(null, inlineData);
-                GeminiRequest.Part textPart = new GeminiRequest.Part(finalPrompt, null);
-                GeminiRequest.Content content = new GeminiRequest.Content(List.of(textPart, audioPart));
+                byte[] mediaBytes = Files.readAllBytes(mediaFile.toPath());
+                String base64Data = Base64.encodeToString(mediaBytes, Base64.NO_WRAP);
+                GeminiRequest.InlineData inlineData = new GeminiRequest.InlineData(mimeType, base64Data);
+                GeminiRequest.Part mediaPart = new GeminiRequest.Part(null, inlineData);
+                GeminiRequest.Part textPart = new GeminiRequest.Part(promptToUse, null);
+                GeminiRequest.Content content = new GeminiRequest.Content(List.of(textPart, mediaPart));
                 GeminiRequest geminiRequest = new GeminiRequest(List.of(content));
                 String jsonRequest = gson.toJson(geminiRequest);
 
@@ -438,24 +460,14 @@ public class TranscribeHelper {
                 Response response = client.newCall(request).execute();
                 String responseBody = response.body() != null ? response.body().string() : "";
                 if (!response.isSuccessful() && (response.code() == 404 || response.code() == 400 || response.code() == 503)) {
-                    // Fallback hierarchy: gemini-3.5-flash-lite -> gemini-3.1-flash-lite -> gemini-2.5-flash
-                    String fallbackModel = "gemini-3.1-flash-lite".equals(model) ? "gemini-2.5-flash" : "gemini-3.1-flash-lite";
+                    // Fallback hierarchy: gemini-2.5-flash -> gemini-2.0-flash
+                    String fallbackModel = !"gemini-2.5-flash".equals(model) ? "gemini-2.5-flash" : "gemini-2.0-flash";
                     String fallbackUrl = "https://generativelanguage.googleapis.com/v1beta/models/" + fallbackModel + ":generateContent?key=" + finalApiKey;
                     Request fallbackReq = new Request.Builder().url(fallbackUrl).post(requestBody).build();
                     try (Response fbResp = client.newCall(fallbackReq).execute()) {
                         if (fbResp.isSuccessful()) {
                             response = fbResp;
                             responseBody = fbResp.body() != null ? fbResp.body().string() : "";
-                        } else if (!"gemini-2.5-flash".equals(fallbackModel)) {
-                            // Secondary fallback to 2.5
-                            String fb2Url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + finalApiKey;
-                            Request fb2Req = new Request.Builder().url(fb2Url).post(requestBody).build();
-                            try (Response fb2Resp = client.newCall(fb2Req).execute()) {
-                                if (fb2Resp.isSuccessful()) {
-                                    response = fb2Resp;
-                                    responseBody = fb2Resp.body() != null ? fb2Resp.body().string() : "";
-                                }
-                            }
                         }
                     }
                 }

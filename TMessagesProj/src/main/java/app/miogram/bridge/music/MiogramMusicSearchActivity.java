@@ -54,7 +54,8 @@ public class MiogramMusicSearchActivity extends BaseFragment {
         ALL("Усі джерела", "Все источники", "All Sources"),
         TELEGRAM("Telegram Cloud", "Telegram Cloud", "Telegram Cloud"),
         DEEZER("Deezer HQ", "Deezer HQ", "Deezer HQ"),
-        ITUNES("iTunes Store", "iTunes Store", "iTunes Store");
+        ITUNES("iTunes Store", "iTunes Store", "iTunes Store"),
+        JAMENDO("Jamendo HQ", "Jamendo HQ", "Jamendo HQ");
 
         public final String uk, ru, en;
         SourceFilter(String uk, String ru, String en) {
@@ -297,11 +298,87 @@ public class MiogramMusicSearchActivity extends BaseFragment {
                 displayTracks.add(t);
             } else if (currentFilter == SourceFilter.ITUNES && t.source == MiogramMusicTrack.Source.ITUNES) {
                 displayTracks.add(t);
+            } else if (currentFilter == SourceFilter.JAMENDO && t.source == MiogramMusicTrack.Source.JAMENDO) {
+                displayTracks.add(t);
             }
         }
         if (adapter != null) {
             adapter.notifyDataSetChanged();
         }
+    }
+
+    private static android.media.MediaPlayer activePlayer = null;
+    private static MiogramMusicTrack currentlyPlayingTrack = null;
+
+    private void playStreamTrack(MiogramMusicTrack track) {
+        if (track == null || track.streamUrl == null || track.streamUrl.isEmpty()) return;
+
+        Context ctx = getParentActivity() != null ? getParentActivity() : getContext();
+
+        if (currentlyPlayingTrack == track && activePlayer != null) {
+            try {
+                if (activePlayer.isPlaying()) {
+                    activePlayer.pause();
+                } else {
+                    activePlayer.start();
+                }
+            } catch (Throwable ignore) {}
+            if (adapter != null) adapter.notifyDataSetChanged();
+            return;
+        }
+
+        stopActivePlayer();
+        try {
+            MediaController.getInstance().cleanupPlayer(true, true);
+        } catch (Throwable ignore) {}
+
+        try {
+            currentlyPlayingTrack = track;
+            if (adapter != null) adapter.notifyDataSetChanged();
+
+            activePlayer = new android.media.MediaPlayer();
+            activePlayer.setAudioStreamType(android.media.AudioManager.STREAM_MUSIC);
+            activePlayer.setDataSource(track.streamUrl);
+            activePlayer.setOnPreparedListener(mp -> {
+                try {
+                    mp.start();
+                } catch (Throwable ignore) {}
+                if (adapter != null) adapter.notifyDataSetChanged();
+            });
+            activePlayer.setOnCompletionListener(mp -> {
+                stopActivePlayer();
+                if (adapter != null) adapter.notifyDataSetChanged();
+            });
+            activePlayer.setOnErrorListener((mp, what, extra) -> {
+                stopActivePlayer();
+                if (adapter != null) adapter.notifyDataSetChanged();
+                Toast.makeText(ctx, "Помилка відтворення потоку", Toast.LENGTH_SHORT).show();
+                return true;
+            });
+            activePlayer.prepareAsync();
+            Toast.makeText(ctx, "▶ " + track.getDisplayTitle(), Toast.LENGTH_SHORT).show();
+        } catch (Throwable t) {
+            stopActivePlayer();
+            if (adapter != null) adapter.notifyDataSetChanged();
+            Toast.makeText(ctx, "Помилка відтворення: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private static void stopActivePlayer() {
+        if (activePlayer != null) {
+            try {
+                if (activePlayer.isPlaying()) activePlayer.stop();
+                activePlayer.release();
+            } catch (Throwable ignore) {}
+            activePlayer = null;
+        }
+        currentlyPlayingTrack = null;
+    }
+
+    @Override
+    public void onFragmentDestroy() {
+        stopActivePlayer();
+        super.onFragmentDestroy();
     }
 
     private class TrackAdapter extends RecyclerListView.SelectionAdapter {
@@ -482,9 +559,11 @@ public class MiogramMusicSearchActivity extends BaseFragment {
                 MiogramHaptic.tap(v);
                 if (currentTrack != null) {
                     if (currentTrack.telegramMessage != null) {
+                        stopActivePlayer();
                         MediaController.getInstance().playMessage(currentTrack.telegramMessage);
+                        if (adapter != null) adapter.notifyDataSetChanged();
                     } else if (currentTrack.streamUrl != null) {
-                        Toast.makeText(context, "▶ " + currentTrack.getDisplayTitle(), Toast.LENGTH_SHORT).show();
+                        playStreamTrack(currentTrack);
                     }
                 }
             });
@@ -507,28 +586,31 @@ public class MiogramMusicSearchActivity extends BaseFragment {
 
             downloadBtn.setOnClickListener(v -> {
                 MiogramHaptic.tap(v);
-                if (currentTrack != null && !currentTrack.isDownloading) {
+                if (currentTrack != null && !currentTrack.isDownloading && !currentTrack.isInstalled) {
+                    final MiogramMusicTrack targetTrack = currentTrack;
+                    targetTrack.isDownloading = true;
                     downloadBtn.setVisibility(View.GONE);
                     progressBar.setVisibility(View.VISIBLE);
 
-                    MiogramMusicSearchEngine.fastInstallTrack(context, currentTrack, currentAccount, new MiogramMusicSearchEngine.InstallCallback() {
+                    MiogramMusicSearchEngine.fastInstallTrack(context, targetTrack, currentAccount, new MiogramMusicSearchEngine.InstallCallback() {
                         @Override
                         public void onProgress(float progress) {
+                            targetTrack.downloadProgress = progress;
                         }
 
                         @Override
                         public void onSuccess(File localFile) {
-                            progressBar.setVisibility(View.GONE);
-                            downloadBtn.setVisibility(View.VISIBLE);
-                            downloadBtn.setImageResource(R.drawable.msg_check);
-                            downloadBtn.setColorFilter(0xFF34C759);
+                            targetTrack.isDownloading = false;
+                            targetTrack.isInstalled = true;
+                            targetTrack.localFile = localFile;
+                            if (adapter != null) adapter.notifyDataSetChanged();
                             Toast.makeText(context, MiogramLocale.get("Трек збережено у 'Збережені' та папку Музика!", "Трек сохранён в 'Избранное' и папку Музыка!", "Saved to Cloud & Device Music!"), Toast.LENGTH_LONG).show();
                         }
 
                         @Override
                         public void onError(String error) {
-                            progressBar.setVisibility(View.GONE);
-                            downloadBtn.setVisibility(View.VISIBLE);
+                            targetTrack.isDownloading = false;
+                            if (adapter != null) adapter.notifyDataSetChanged();
                             Toast.makeText(context, "Помилка завантаження: " + error, Toast.LENGTH_SHORT).show();
                         }
                     });
@@ -577,6 +659,9 @@ public class MiogramMusicSearchActivity extends BaseFragment {
             titleView.setText(track.getDisplayTitle());
             artistView.setText(track.getDisplayArtist());
             durationView.setText(track.getFormattedDuration());
+
+            boolean isPlaying = (currentlyPlayingTrack == track && activePlayer != null && activePlayer.isPlaying());
+            playBtn.setImageResource(isPlaying ? R.drawable.ic_pause : R.drawable.ic_play);
 
             if (track.source != null) {
                 badgeView.setText(track.source.label);

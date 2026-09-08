@@ -487,7 +487,9 @@ public class MiogramLyricsView extends FrameLayout {
                         ? currentSong.lines.get(activePosition + 1).timeMs
                         : (line.timeMs + 4000L);
                 long lineDuration = Math.max(800L, Math.min(10000L, nextTime - line.timeMs));
-                float fraction = Math.max(0f, Math.min(1f, (float)(currentPositionMs - line.timeMs) / (float)lineDuration));
+                // Highlighting completes slightly ahead of the beat and stays at 100% for ~500ms before advancing
+                long singingDuration = lineDuration > 1200L ? (lineDuration - 500L) : (long) (lineDuration * 0.8f);
+                float fraction = Math.max(0f, Math.min(1f, (float) (currentPositionMs - line.timeMs) / (float) singingDuration));
                 holder.updateKaraokeProgress(fraction);
             }
         }

@@ -167,13 +167,12 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
         if (ctx == null) return;
 
         String[] models = {
-                "gemini-3.5-flash-lite (" + MiogramLocale.get("За замовчуванням", "По умолчанию", "Default") + ")",
                 "gemini-2.5-flash (" + MiogramLocale.get("Швидка, рекомендовано", "Быстрая, рекомендовано", "Fast, recommended") + ")",
                 "gemini-2.5-pro (" + MiogramLocale.get("Глибокий аналіз", "Глубокий анализ", "Deep reasoning") + ")",
-                "gemini-1.5-flash (" + MiogramLocale.get("Стабільна", "Стабильная", "Stable") + ")",
+                "gemini-2.0-flash (" + MiogramLocale.get("Стабільна", "Стабильная", "Stable") + ")",
                 MiogramLocale.get("Вказати власну модель…", "Указать свою модель…", "Custom model…")
         };
-        String[] modelKeys = {"gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "custom"};
+        String[] modelKeys = {"gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "custom"};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
         builder.setTitle(MiogramLocale.get("Модель Miogram AI", "Модель Miogram AI", "Miogram AI Model"));
@@ -197,7 +196,7 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
 
         EditTextBoldCursor input = new EditTextBoldCursor(ctx);
         input.setText(savedModel());
-        input.setHint("gemini-3.5-flash-lite");
+        input.setHint("gemini-2.5-flash");
         input.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         input.setHintColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
         input.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(12), AndroidUtilities.dp(24), AndroidUtilities.dp(12));

@@ -10,6 +10,8 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.ui.Cells.TextCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
+import org.telegram.ui.Cells.TextCheckCell;
+import app.miogram.bridge.badge.MiogramSupabaseBridge;
 
 import app.miogram.bridge.MiogramLocale;
 import app.miogram.bridge.ui.MiogramAiSettingsActivity;
@@ -50,6 +52,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     private int headerAdvancedRow;
     private int aiRow;
     private int pluginsRow;
+    private int telemetryRow;
     private int updaterRow;
     private int advancedInfoRow;
 
@@ -84,6 +87,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         headerAdvancedRow = addRow();
         aiRow = addRow();
         pluginsRow = addRow();
+        telemetryRow = addRow();
         updaterRow = addRow();
         advancedInfoRow = addRow();
     }
@@ -120,6 +124,12 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
             presentFragment(new MiogramAiSettingsActivity());
         } else if (position == pluginsRow) {
             presentFragment(new app.exteraless.plugins.ui.PluginsActivity());
+        } else if (position == telemetryRow) {
+            boolean nextState = !MiogramSupabaseBridge.isTelemetryEnabled();
+            MiogramSupabaseBridge.setTelemetryEnabled(nextState);
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(nextState);
+            }
         } else if (position == updaterRow) {
             MiogramUpdater.checkAndShowUpdate(this, true);
         }
@@ -149,6 +159,17 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position, boolean partial) {
             switch (holder.getItemViewType()) {
+                case TYPE_CHECK: {
+                    TextCheckCell cell = (TextCheckCell) holder.itemView;
+                    if (position == telemetryRow) {
+                        cell.setTextAndCheck(
+                                MiogramLocale.get("Хмарна телеметрія та бейджі спільноти", "Облачная телеметрия и бейджи сообщества", "Community Cloud Telemetry & Badges"),
+                                MiogramSupabaseBridge.isTelemetryEnabled(),
+                                true
+                        );
+                    }
+                    break;
+                }
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == headerMiogramFeaturesRow) {
@@ -191,7 +212,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     } else if (position == aiRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Miogram AI", "Miogram AI", "Miogram AI"), R.drawable.msg_bot, true);
                     } else if (position == pluginsRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Плагіни Miogram", "Плагины Miogram", "Plugins"), R.drawable.msg_plugins, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Плагіни Miogram (Python & Каталог)", "Плагины Miogram (Python & Каталог)", "Miogram Plugins (Python & Catalog)"), R.drawable.msg_plugins, true);
                     } else if (position == updaterRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Перевірити оновлення Miogram", "Проверить обновления Miogram", "Check for Updates"), R.drawable.msg_retry, false);
                     }

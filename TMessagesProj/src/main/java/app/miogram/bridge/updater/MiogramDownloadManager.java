@@ -1,11 +1,7 @@
 package app.miogram.bridge.updater;
 
-import android.app.DownloadManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -18,22 +14,24 @@ import androidx.core.content.FileProvider;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLog;
-import org.telegram.ui.ActionBar.BaseFragment;
-import org.telegram.ui.LaunchActivity;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
 import app.miogram.bridge.MiogramLocale;
-import app.miogram.bridge.ui.MiogramUpdateBottomSheet;
 
 /**
- * Centralized Update Download Controller for Miogram:
- * - Prevents duplicate downloads
+ * Resumable Update Download Controller for Miogram:
+ * - Direct HTTP download supporting 'Range: bytes=...' for resuming interrupted downloads
+ * - Writes to .part file and renames to .apk upon completion
+ * - Checks if completed APK is already cached in disk and offers instant install without re-downloading
  * - Coordinates global in-app floating update progress bar
- * - Auto-polls download status
- * - Automatically triggers APK package installer on finish
+ * - Auto-triggers APK package installer on finish
  */
 public class MiogramDownloadManager {
 
@@ -45,8 +43,10 @@ public class MiogramDownloadManager {
         void onError(String error);
     }
 
-    private boolean isDownloading = false;
-    private long downloadId = -1;
+    private volatile boolean isDownloading = false;
+    private volatile boolean isCancelled = false;
+    private Thread downloadThread = null;
+
     private int currentPercent = 0;
     private long bytesDownloaded = 0;
     private long bytesTotal = 0;
@@ -55,10 +55,7 @@ public class MiogramDownloadManager {
     private String currentDownloadUrl = "";
     private File currentApkFile = null;
 
-    private BroadcastReceiver receiver;
-    private Handler pollHandler;
-    private Runnable pollRunnable;
-
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final List<DownloadListener> listeners = new ArrayList<>();
 
     public static MiogramDownloadManager getInstance() {
@@ -113,15 +110,43 @@ public class MiogramDownloadManager {
         return currentDownloadUrl;
     }
 
+    public static File getCachedApk(Context ctx, String version) {
+        if (ctx == null) ctx = ApplicationLoader.applicationContext;
+        File dir = ctx.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        if (dir == null) dir = ctx.getFilesDir();
+        File apkFile = new File(dir, "miogram_update_v" + version + ".apk");
+        if (apkFile.exists() && apkFile.length() > 20 * 1024 * 1024) {
+            return apkFile;
+        }
+        return null;
+    }
+
+    public static boolean isApkCached(Context ctx, String version) {
+        return getCachedApk(ctx, version) != null;
+    }
+
     public synchronized boolean startDownload(Context context, String apkUrl, String version, String changelog) {
+        final Context ctx = context != null ? context.getApplicationContext() : ApplicationLoader.applicationContext;
+
+        // Check if APK already fully downloaded in cache
+        File cached = getCachedApk(ctx, version);
+        if (cached != null) {
+            this.currentApkFile = cached;
+            this.currentVersion = version;
+            this.currentPercent = 100;
+            notifyComplete(cached);
+            promptInstall(ctx, cached);
+            return true;
+        }
+
         if (isDownloading) {
-            Toast.makeText(context, MiogramLocale.get("Оновлення вже завантажується...", "Обновление уже загружается...", "Update is already downloading..."), Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, MiogramLocale.get("Оновлення вже завантажується...", "Обновление уже загружается...", "Update is already downloading..."), Toast.LENGTH_SHORT).show();
             MiogramUpdateBar.showGlobalBar();
             return true;
         }
 
         if (apkUrl == null || apkUrl.isEmpty()) {
-            Toast.makeText(context, MiogramLocale.get("Посилання на оновлення відсутнє", "Ссылка на обновление отсутствует", "Update URL is missing"), Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, MiogramLocale.get("Посилання на оновлення відсутнє", "Ссылка на обновление отсутствует", "Update URL is missing"), Toast.LENGTH_SHORT).show();
             return false;
         }
 
@@ -129,116 +154,177 @@ public class MiogramDownloadManager {
         this.currentVersion = version;
         this.currentChangelog = changelog;
         this.isDownloading = true;
+        this.isCancelled = false;
         this.currentPercent = 0;
         this.bytesDownloaded = 0;
         this.bytesTotal = 0;
 
-        Context ctx = context != null ? context.getApplicationContext() : ApplicationLoader.applicationContext;
+        File dir = ctx.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        if (dir == null) dir = ctx.getFilesDir();
+        if (!dir.exists()) dir.mkdirs();
+
+        final File apkFile = new File(dir, "miogram_update_v" + version + ".apk");
+        final File partFile = new File(dir, "miogram_update_v" + version + ".apk.part");
+        this.currentApkFile = apkFile;
+
+        MiogramUpdateBar.showGlobalBar();
+
+        downloadThread = new Thread(() -> executeDownload(ctx, apkUrl, apkFile, partFile), "MiogramUpdaterThread");
+        downloadThread.start();
+        return true;
+    }
+
+    private void executeDownload(Context ctx, String initialUrl, File targetApk, File partFile) {
+        InputStream in = null;
+        FileOutputStream out = null;
+        HttpURLConnection conn = null;
+
         try {
-            DownloadManager dm = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
-            if (dm == null) {
-                isDownloading = false;
-                return false;
+            long existingBytes = 0;
+            if (partFile.exists()) {
+                existingBytes = partFile.length();
             }
 
-            File dir = ctx.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
-            if (dir == null) dir = ctx.getFilesDir();
-            File apkFile = new File(dir, "miogram_update_v" + version + ".apk");
-            if (apkFile.exists()) apkFile.delete();
-            this.currentApkFile = apkFile;
+            String targetUrl = initialUrl;
+            int redirects = 0;
+            while (redirects < 6) {
+                URL url = new URL(targetUrl);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setInstanceFollowRedirects(true);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(30000);
+                conn.setRequestProperty("User-Agent", "Miogram/" + currentVersion);
 
-            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(apkUrl));
-            request.setTitle("Miogram v" + version);
-            request.setDescription(MiogramLocale.get("Завантаження оновлення Miogram...", "Загрузка обновления Miogram...", "Downloading Miogram update..."));
-            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            request.setDestinationUri(Uri.fromFile(apkFile));
+                if (existingBytes > 0) {
+                    conn.setRequestProperty("Range", "bytes=" + existingBytes + "-");
+                }
 
-            receiver = new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context c, Intent intent) {
-                    long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-                    if (id == downloadId) {
-                        stopPolling();
-                        try {
-                            ctx.unregisterReceiver(this);
-                            receiver = null;
-                        } catch (Exception ignored) {}
-                        isDownloading = false;
-                        currentPercent = 100;
-                        notifyComplete(currentApkFile);
-                        promptInstall(ctx, currentApkFile);
+                conn.connect();
+                int code = conn.getResponseCode();
+                if (code == HttpURLConnection.HTTP_MOVED_PERM || code == HttpURLConnection.HTTP_MOVED_TEMP || code == 307 || code == 308) {
+                    String newLoc = conn.getHeaderField("Location");
+                    if (newLoc != null) {
+                        conn.disconnect();
+                        targetUrl = newLoc;
+                        redirects++;
+                        continue;
                     }
                 }
-            };
-
-            if (Build.VERSION.SDK_INT >= 33) {
-                ctx.registerReceiver(receiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), Context.RECEIVER_EXPORTED);
-            } else {
-                ctx.registerReceiver(receiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+                break;
             }
 
-            downloadId = dm.enqueue(request);
-            startPolling(dm, downloadId);
-            MiogramUpdateBar.showGlobalBar();
-            return true;
+            if (conn == null) throw new Exception("Failed to establish connection");
+
+            int responseCode = conn.getResponseCode();
+            boolean isResume = (responseCode == HttpURLConnection.HTTP_PARTIAL);
+
+            if (responseCode != HttpURLConnection.HTTP_OK && responseCode != HttpURLConnection.HTTP_PARTIAL) {
+                if (existingBytes > 0 && responseCode == 416) {
+                    partFile.delete();
+                    existingBytes = 0;
+                    conn.disconnect();
+                    URL url = new URL(targetUrl);
+                    conn = (HttpURLConnection) url.openConnection();
+                    conn.setConnectTimeout(15000);
+                    conn.setReadTimeout(30000);
+                    conn.setRequestProperty("User-Agent", "Miogram/" + currentVersion);
+                    conn.connect();
+                    responseCode = conn.getResponseCode();
+                    isResume = false;
+                } else {
+                    throw new Exception("HTTP server error " + responseCode);
+                }
+            }
+
+            long contentLength = conn.getContentLengthLong();
+            if (isResume) {
+                bytesTotal = existingBytes + contentLength;
+                bytesDownloaded = existingBytes;
+                out = new FileOutputStream(partFile, true);
+            } else {
+                bytesTotal = contentLength > 0 ? contentLength : 0;
+                bytesDownloaded = 0;
+                out = new FileOutputStream(partFile, false);
+            }
+
+            in = conn.getInputStream();
+            byte[] buffer = new byte[64 * 1024];
+            int read;
+            long lastNotifyTime = 0;
+
+            while ((read = in.read(buffer)) != -1) {
+                if (isCancelled) {
+                    break;
+                }
+                out.write(buffer, 0, read);
+                bytesDownloaded += read;
+
+                if (bytesTotal > 0) {
+                    currentPercent = (int) ((bytesDownloaded * 100L) / bytesTotal);
+                }
+
+                long now = System.currentTimeMillis();
+                if (now - lastNotifyTime > 150) {
+                    lastNotifyTime = now;
+                    postProgress(currentPercent, bytesDownloaded, bytesTotal);
+                }
+            }
+
+            out.flush();
+
+            if (isCancelled) {
+                isDownloading = false;
+                return;
+            }
+
+            if (bytesTotal > 0 && partFile.length() < bytesTotal) {
+                throw new Exception("Incomplete download (" + partFile.length() + "/" + bytesTotal + " bytes)");
+            }
+
+            if (targetApk.exists()) targetApk.delete();
+            if (!partFile.renameTo(targetApk)) {
+                AndroidUtilities.copyFile(partFile, targetApk);
+                partFile.delete();
+            }
+
+            isDownloading = false;
+            currentPercent = 100;
+            currentApkFile = targetApk;
+
+            mainHandler.post(() -> {
+                notifyComplete(targetApk);
+                promptInstall(ctx, targetApk);
+            });
+
         } catch (Exception e) {
             FileLog.e(e);
-            isDownloading = false;
-            Toast.makeText(ctx, "Download error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            notifyError(e.getMessage());
-            return false;
-        }
-    }
-
-    private void startPolling(DownloadManager dm, long id) {
-        pollHandler = new Handler(Looper.getMainLooper());
-        pollRunnable = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    DownloadManager.Query q = new DownloadManager.Query();
-                    q.setFilterById(id);
-                    Cursor cursor = dm.query(q);
-                    if (cursor != null && cursor.moveToFirst()) {
-                        bytesDownloaded = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
-                        bytesTotal = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
-                        if (bytesTotal > 0) {
-                            currentPercent = (int) ((bytesDownloaded * 100L) / bytesTotal);
-                            notifyProgress(currentPercent, bytesDownloaded, bytesTotal);
-                        }
-                        cursor.close();
-                    }
-                } catch (Exception ignored) {}
-                if (pollHandler != null) {
-                    pollHandler.postDelayed(this, 400);
-                }
+            if (!isCancelled) {
+                isDownloading = false;
+                final String err = e.getMessage() != null ? e.getMessage() : "Download error";
+                mainHandler.post(() -> {
+                    Toast.makeText(ctx, "Download error: " + err, Toast.LENGTH_SHORT).show();
+                    notifyError(err);
+                });
             }
-        };
-        pollHandler.post(pollRunnable);
+        } finally {
+            try { if (in != null) in.close(); } catch (Exception ignored) {}
+            try { if (out != null) out.close(); } catch (Exception ignored) {}
+            try { if (conn != null) conn.disconnect(); } catch (Exception ignored) {}
+        }
     }
 
-    private void stopPolling() {
-        if (pollHandler != null && pollRunnable != null) {
-            pollHandler.removeCallbacks(pollRunnable);
-            pollHandler = null;
-        }
+    private void postProgress(int percent, long downloaded, long total) {
+        mainHandler.post(() -> notifyProgress(percent, downloaded, total));
     }
 
     public synchronized void cancelDownload() {
         if (!isDownloading) return;
+        isCancelled = true;
         isDownloading = false;
-        stopPolling();
-        try {
-            Context ctx = ApplicationLoader.applicationContext;
-            if (receiver != null) {
-                ctx.unregisterReceiver(receiver);
-                receiver = null;
-            }
-            if (downloadId != -1) {
-                DownloadManager dm = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
-                if (dm != null) dm.remove(downloadId);
-            }
-        } catch (Exception ignored) {}
+        if (downloadThread != null) {
+            downloadThread.interrupt();
+            downloadThread = null;
+        }
         MiogramUpdateBar.hideGlobalBar();
     }
 

@@ -91,13 +91,19 @@ public class MiogramUpdateBottomSheet extends BottomSheet implements MiogramDown
         root.addView(title, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 4, 0, 4));
 
         // 2. Version Pill Badge
+        boolean isCached = hasUpdate && MiogramDownloadManager.isApkCached(ctx, versionName);
         TextView versionBadge = new TextView(ctx);
-        versionBadge.setText(hasUpdate
-                ? MiogramLocale.format("Доступна версія: v%s", "Доступная версия: v%s", "Available version: v%s", versionName)
-                : MiogramLocale.format("Версія: v%s (Актуальна)", "Версия: v%s (Актуальная)", "Version: v%s (Up to date)", versionName));
+        if (isCached) {
+            versionBadge.setText(MiogramLocale.format("Доступна версія: v%s • Готово до встановлення", "Доступная версия: v%s • Готово к установке", "Available version: v%s • Ready to install", versionName));
+            versionBadge.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGreenText));
+        } else {
+            versionBadge.setText(hasUpdate
+                    ? MiogramLocale.format("Доступна версія: v%s", "Доступная версия: v%s", "Available version: v%s", versionName)
+                    : MiogramLocale.format("Версія: v%s (Актуальна)", "Версия: v%s (Актуальная)", "Version: v%s (Up to date)", versionName));
+            versionBadge.setTextColor(hasUpdate ? Theme.getColor(Theme.key_windowBackgroundWhiteBlueText) : Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+        }
         versionBadge.setTextSize(13);
         versionBadge.setTypeface(AndroidUtilities.bold());
-        versionBadge.setTextColor(hasUpdate ? Theme.getColor(Theme.key_windowBackgroundWhiteBlueText) : Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
         versionBadge.setGravity(Gravity.CENTER);
         root.addView(versionBadge, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
 
@@ -127,9 +133,9 @@ public class MiogramUpdateBottomSheet extends BottomSheet implements MiogramDown
         if (hasUpdate) {
             String noteText = (!TextUtils.isEmpty(changelog))
                     ? changelog.trim()
-                    : MiogramLocale.get("• Оновлено Miogram AI (Gemini 3.5 Flash Lite)\n• Нативна розшифровка голосових повідомлень\n• Оптимізація та прискорення роботи",
-                    "• Обновлен Miogram AI (Gemini 3.5 Flash Lite)\n• Нативная расшифровка голосовых сообщений\n• Оптимизация и ускорение работы",
-                    "• Updated Miogram AI (Gemini 3.5 Flash Lite)\n• Native voice message transcription\n• Performance optimizations");
+                    : MiogramLocale.get("• Оновлено Miogram AI (Gemini 2.5 Flash)\n• Нативна розшифровка голосових повідомлень\n• Оптимізація та прискорення роботи",
+                    "• Обновлен Miogram AI (Gemini 2.5 Flash)\n• Нативная расшифровка голосовых сообщений\n• Оптимизация и ускорение работы",
+                    "• Updated Miogram AI (Gemini 2.5 Flash)\n• Native voice message transcription\n• Performance optimizations");
             descriptionView.setText(MiogramLocale.get("Що нового:\n", "Что нового:\n", "What's new:\n") + noteText + "\n\n" + MiogramLocale.get("Бажаєте встановити оновлення?", "Желаете установить обновление?", "Would you like to install the update?"));
         } else {
             descriptionView.setText(MiogramLocale.get("У вас вже встановлено найновішу збірку Miogram. Нових оновлень поки немає.",
@@ -164,19 +170,26 @@ public class MiogramUpdateBottomSheet extends BottomSheet implements MiogramDown
 
         // 6. Action Buttons
         installButton = new TextView(ctx);
-        installButton.setText(hasUpdate
-                ? MiogramLocale.get("Оновити зараз", "Обновить сейчас", "Update Now")
-                : MiogramLocale.get("Чудово", "Отлично", "Great"));
+        if (isCached) {
+            installButton.setText(MiogramLocale.get("Встановити оновлення", "Установить обновление", "Install Update"));
+            final Context finalCtx = ctx;
+            installButton.setOnClickListener(v -> {
+                File cachedFile = MiogramDownloadManager.getCachedApk(finalCtx, versionName);
+                MiogramDownloadManager.promptInstall(finalCtx, cachedFile);
+                dismiss();
+            });
+        } else if (hasUpdate) {
+            installButton.setText(MiogramLocale.get("Оновити зараз", "Обновить сейчас", "Update Now"));
+            installButton.setOnClickListener(v -> startDownload(fragment));
+        } else {
+            installButton.setText(MiogramLocale.get("Чудово", "Отлично", "Great"));
+            installButton.setOnClickListener(v -> dismiss());
+        }
         installButton.setTextSize(15);
         installButton.setTypeface(AndroidUtilities.bold());
         installButton.setGravity(Gravity.CENTER);
         installButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(12), Theme.getColor(Theme.key_featuredStickers_addButton), Theme.getColor(Theme.key_featuredStickers_addButton)));
         installButton.setTextColor(0xFFFFFFFF);
-        if (hasUpdate) {
-            installButton.setOnClickListener(v -> startDownload(fragment));
-        } else {
-            installButton.setOnClickListener(v -> dismiss());
-        }
         root.addView(installButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 46, Gravity.TOP, 0, 0, 0, hasUpdate ? 8 : 0));
 
         if (hasUpdate) {
