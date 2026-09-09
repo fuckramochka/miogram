@@ -257,15 +257,15 @@ public class MiogramSubfolderBar extends FrameLayout {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(MiogramSubfolderEngine.getChildName(pill.dialogFilter.name));
 
-        CharSequence[] items = new CharSequence[]{"Редагувати підпапку", "Видалити підпапку"};
+        CharSequence[] items = new CharSequence[]{app.miogram.bridge.MiogramLocale.get("Редагувати підпапку", "Редактировать подпапку", "Edit subfolder"), app.miogram.bridge.MiogramLocale.get("Видалити підпапку", "Удалить подпапку", "Delete subfolder")};
         builder.setItems(items, (dialog, which) -> {
             if (which == 0) {
                 dialogsActivity.presentFragment(new FilterCreateActivity(pill.dialogFilter));
             } else if (which == 1) {
                 AlertDialog.Builder delBuilder = new AlertDialog.Builder(context);
-                delBuilder.setTitle("Видалити підпапку?");
-                delBuilder.setMessage("Ця дія видалить підпапку '" + MiogramSubfolderEngine.getChildName(pill.dialogFilter.name) + "' з хмари Telegram. Чати залишаться недоторканими.");
-                delBuilder.setPositiveButton("Видалити", (d, w) -> {
+                delBuilder.setTitle(app.miogram.bridge.MiogramLocale.get("Видалити підпапку?", "Удалить подпапку?", "Delete subfolder?"));
+                delBuilder.setMessage(app.miogram.bridge.MiogramLocale.get("Ця дія видалить підпапку '", "Это удалит подпапку '", "This will delete the subfolder '") + MiogramSubfolderEngine.getChildName(pill.dialogFilter.name) + app.miogram.bridge.MiogramLocale.get("' з хмари Telegram. Чати залишаться недоторканими.", "' из облака Telegram. Чаты не пострадают.", "' from the Telegram cloud. Chats stay untouched."));
+                delBuilder.setPositiveButton(app.miogram.bridge.MiogramLocale.get("Видалити", "Удалить", "Delete"), (d, w) -> {
                     int currentAccount = dialogsActivity.getCurrentAccount();
                     MiogramSubfolderEngine.deleteSubfolder(dialogsActivity, currentAccount, pill.dialogFilter, () -> {
                         if (MiogramSubfolderEngine.getActiveChildFilterId(currentAccount) == pill.dialogFilter.id) {

@@ -34,6 +34,7 @@ import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.LayoutHelper;
 
 import app.miogram.bridge.MiogramLocale;
+import app.miogram.bridge.customui.MiogramHaptic;
 
 /**
  * Apple Music style player sheet:
@@ -168,9 +169,12 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         titleBox.addView(textGroup, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
 
         heartBtn = new HeartVectorButton(ctx);
+        heartBtn.setBackground(Theme.createSelectorDrawable(0x22FFFFFF, Theme.RIPPLE_MASK_CIRCLE_20DP));
+        heartBtn.setContentDescription(MiogramLocale.get("В обране", "В избранное", "Add to favorites"));
         heartBtn.setOnClickListener(v -> {
             isFavorite = !isFavorite;
             heartBtn.setFavorite(isFavorite);
+            MiogramHaptic.tap(v);
         });
         titleBox.addView(heartBtn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL, 8, 0, 0, 0));
 
@@ -232,20 +236,31 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         shuffleBtn = new ImageView(ctx);
         shuffleBtn.setImageResource(R.drawable.player_new_shuffle);
         shuffleBtn.setColorFilter(SharedConfig.shuffleMusic ? 0xFFFF4081 : 0x88FFFFFF);
+        shuffleBtn.setBackground(Theme.createSelectorDrawable(0x22FFFFFF, Theme.RIPPLE_MASK_CIRCLE_20DP));
+        shuffleBtn.setContentDescription(MiogramLocale.get("Випадковий порядок", "Случайный порядок", "Shuffle"));
         shuffleBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
             MediaController.getInstance().setPlaybackOrderType(SharedConfig.shuffleMusic ? 0 : 2);
             shuffleBtn.setColorFilter(SharedConfig.shuffleMusic ? 0xFFFF4081 : 0x88FFFFFF);
         });
         controls.addView(shuffleBtn, LayoutHelper.createLinear(38, 38, Gravity.CENTER_VERTICAL, 0, 0, 14, 0));
 
         SkipVectorButton prevBtn = new SkipVectorButton(ctx, true);
-        prevBtn.setOnClickListener(v -> MediaController.getInstance().playPreviousMessage());
+        prevBtn.setBackground(Theme.createSelectorDrawable(0x22FFFFFF, Theme.RIPPLE_MASK_CIRCLE_20DP));
+        prevBtn.setContentDescription(MiogramLocale.get("Попередній трек", "Предыдущий трек", "Previous track"));
+        prevBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            MediaController.getInstance().playPreviousMessage();
+        });
         controls.addView(prevBtn, LayoutHelper.createLinear(48, 48, Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
 
         playPauseBtn = new PlayPauseVectorButton(ctx);
+        playPauseBtn.setBackground(Theme.createSelectorDrawable(0x22FFFFFF, Theme.RIPPLE_MASK_CIRCLE_20DP));
+        playPauseBtn.setContentDescription(MiogramLocale.get("Відтворити / Пауза", "Играть / Пауза", "Play / Pause"));
         playPauseBtn.setOnClickListener(v -> {
             MessageObject current = MediaController.getInstance().getPlayingMessageObject();
             if (current != null) {
+                MiogramHaptic.tap(v);
                 if (MediaController.getInstance().isMessagePaused()) {
                     MediaController.getInstance().playMessage(current);
                     startProgressTicker();
@@ -259,13 +274,21 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         controls.addView(playPauseBtn, LayoutHelper.createLinear(68, 68, Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
 
         SkipVectorButton nextBtn = new SkipVectorButton(ctx, false);
-        nextBtn.setOnClickListener(v -> MediaController.getInstance().playNextMessage());
+        nextBtn.setBackground(Theme.createSelectorDrawable(0x22FFFFFF, Theme.RIPPLE_MASK_CIRCLE_20DP));
+        nextBtn.setContentDescription(MiogramLocale.get("Наступний трек", "Следующий трек", "Next track"));
+        nextBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            MediaController.getInstance().playNextMessage();
+        });
         controls.addView(nextBtn, LayoutHelper.createLinear(48, 48, Gravity.CENTER_VERTICAL, 0, 0, 14, 0));
 
         repeatBtn = new ImageView(ctx);
         repeatBtn.setImageResource(R.drawable.player_new_repeatall);
         repeatBtn.setColorFilter(SharedConfig.repeatMode > 0 ? 0xFFFF4081 : 0x88FFFFFF);
+        repeatBtn.setBackground(Theme.createSelectorDrawable(0x22FFFFFF, Theme.RIPPLE_MASK_CIRCLE_20DP));
+        repeatBtn.setContentDescription(MiogramLocale.get("Повтор", "Повтор", "Repeat"));
         repeatBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
             SharedConfig.setRepeatMode((SharedConfig.repeatMode + 1) % 3);
             repeatBtn.setColorFilter(SharedConfig.repeatMode > 0 ? 0xFFFF4081 : 0x88FFFFFF);
         });
@@ -297,11 +320,12 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
             artistView.setText("");
             return;
         }
+        app.miogram.bridge.hooks.MioHook.dispatchAudio(playing, !MediaController.getInstance().isMessagePaused());
 
         String title = playing.getMusicTitle();
         String artist = playing.getMusicAuthor();
 
-        titleView.setText(title != null && !title.isEmpty() ? title : "Audio Track");
+        titleView.setText(title != null && !title.isEmpty() ? title : MiogramLocale.get("Аудіотрек", "Аудиотрек", "Audio Track"));
         artistView.setText(artist != null && !artist.isEmpty() ? artist : "Miogram Music");
 
         AudioInfo audioInfo = MediaController.getInstance().getAudioInfo();

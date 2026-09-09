@@ -26,6 +26,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import app.miogram.bridge.MiogramLocale;
+
 /**
  * Cloud Bridge connecting Miogram clients to the Supabase community badge database.
  * Supports:
@@ -139,6 +141,19 @@ public class MiogramSupabaseBridge {
         return getPrefs(context).getBoolean(KEY_SYNC_ENABLED + userId, false);
     }
 
+    /** Fallback title/reason shown in UI when cloud has no record yet — always trilingual. */
+    public static String fallbackTitle(boolean founder) {
+        return founder
+                ? MiogramLocale.get("Засновник & Архітектор Miogram ໒꒱", "Основатель & Архитектор Miogram ໒꒱", "Miogram Founder & Architect ໒꒱")
+                : MiogramLocale.get("Учасник спільноти Miogram", "Участник сообщества Miogram", "Miogram community member");
+    }
+
+    public static String fallbackReason(boolean founder) {
+        return founder
+                ? MiogramLocale.get("Особиста відзнака засновника Miogram", "Личная награда основателя Miogram", "Personal founder badge of Miogram")
+                : MiogramLocale.get("Отримано через хмарну синхронізацію спільноти", "Получено через облачную синхронизацию сообщества", "Granted via community cloud sync");
+    }
+
     public static void setSyncEnabledForAccount(Context context, long userId, boolean enabled) {
         getPrefs(context).edit()
                 .putBoolean(KEY_OPTIN_COMPLETED, true)
@@ -149,7 +164,7 @@ public class MiogramSupabaseBridge {
             if (enabled) {
                 MiogramBadgeType selected = getSelectedBadgeForAccount(context, userId);
                 synchronized (badgeCache) {
-                    badgeCache.put(userId, new BadgeRecord(userId, selected, "Учасник спільноти Miogram", "Отримано через хмарну синхронізацію спільноти", "2026", true));
+                    badgeCache.put(userId, new BadgeRecord(userId, selected, fallbackTitle(false), fallbackReason(false), "2026", true));
                 }
                 syncUserBadgeToCloud(userId, selected.getId(), true, null);
             } else {
@@ -172,12 +187,9 @@ public class MiogramSupabaseBridge {
                 .apply();
 
         if (userId != 0) {
-            String title = (userId == MiogramBadgeManager.FOUNDER_USER_ID)
-                    ? "Засновник & Архітектор Miogram ໒꒱"
-                    : "Учасник спільноти Miogram";
-            String reason = (userId == MiogramBadgeManager.FOUNDER_USER_ID)
-                    ? "Особиста відзнака засновника Miogram"
-                    : "Отримано через хмарну синхронізацію спільноти";
+            boolean founder = userId == MiogramBadgeManager.FOUNDER_USER_ID;
+            String title = fallbackTitle(founder);
+            String reason = fallbackReason(founder);
             String date = "2026";
             synchronized (badgeCache) {
                 BadgeRecord existing = badgeCache.get(userId);
@@ -282,8 +294,8 @@ public class MiogramSupabaseBridge {
         synchronized (badgeCache) {
             record = badgeCache.get(userId);
         }
-        final String fTitle = record != null && record.title != null ? record.title : "Учасник спільноти Miogram";
-        final String fReason = record != null && record.obtainedReason != null ? record.obtainedReason : "Отримано через хмарну синхронізацію спільноти";
+        final String fTitle = record != null && record.title != null ? record.title : fallbackTitle(false);
+        final String fReason = record != null && record.obtainedReason != null ? record.obtainedReason : fallbackReason(false);
         final String fDate = record != null && record.obtainedAt != null ? record.obtainedAt : "2026";
 
         Utilities.globalQueue.postRunnable(() -> {

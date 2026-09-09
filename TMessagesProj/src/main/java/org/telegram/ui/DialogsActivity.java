@@ -11353,6 +11353,21 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (app.miogram.bridge.folders.MiogramSubfolderEngine.isSubfoldersEnabled() && !frozen) {
                 list = app.miogram.bridge.folders.MiogramSubfolderEngine.applySubfolderFiltering(currentAccount, list);
             }
+            // MioHook visibility filters (zero-cost when no hooks registered).
+            if (list != null && !list.isEmpty()) {
+                ArrayList<TLRPC.Dialog> hooked = null;
+                for (int i = 0; i < list.size(); i++) {
+                    TLRPC.Dialog d = list.get(i);
+                    if (d != null && !app.miogram.bridge.hooks.MioHook.isDialogVisible(d.id)) {
+                        if (hooked == null) {
+                            hooked = new ArrayList<>(list.subList(0, i));
+                        }
+                    } else if (hooked != null && d != null) {
+                        hooked.add(d);
+                    }
+                }
+                if (hooked != null) list = hooked;
+            }
             return list;
         } else if (dialogsType == DIALOGS_TYPE_WIDGET || dialogsType == DIALOGS_TYPE_IMPORT_HISTORY) {
             ArrayList<TLRPC.Dialog> list = messagesController.dialogsServerOnly;

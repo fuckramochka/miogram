@@ -37,6 +37,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import app.miogram.bridge.MiogramLocale;
+import app.miogram.bridge.customui.MiogramHaptic;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -690,7 +691,7 @@ public class MiogramCloudVaultActivity extends BaseFragment {
             startActivityForResult(intent, REQUEST_PICK_FILE);
         } catch (Exception e) {
             FileLog.e(e);
-            Toast.makeText(getParentActivity(), "Error opening file picker", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Не вдалося відкрити вибір файлів", "Не удалось открыть выбор файлов", "Failed to open file picker"), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -756,6 +757,11 @@ public class MiogramCloudVaultActivity extends BaseFragment {
                     progressDialog.setMessage(MiogramLocale.get("Відправка в Telegram Cloud...", "Отправка в Telegram Cloud...", "Uploading to Telegram Cloud..."));
 
                     long vaultChatId = MiogramCloudVaultEngine.getVaultChatId(currentAccount);
+                    if (vaultChatId == 0) {
+                        progressDialog.dismiss();
+                        showVaultRequiredDialog();
+                        return;
+                    }
                     long targetDialogId = -vaultChatId;
 
                     MessageObject replyToTopMsg = null;
@@ -795,13 +801,17 @@ public class MiogramCloudVaultActivity extends BaseFragment {
                     progressDialog.dismiss();
                     Toast.makeText(context, MiogramLocale.get("Файл зашифровано та завантажено!", "Файл зашифрован и загружен!", "File encrypted & uploaded!"), Toast.LENGTH_SHORT).show();
                     filterAndReloadFiles();
+                    // Pick up the freshly sent chunk messages so the file is
+                    // viewable immediately instead of after the next manual sync.
+                    AndroidUtilities.runOnUIThread(() -> syncFromCloud(), 2500);
+                    filterAndReloadFiles();
                 });
 
             } catch (Exception e) {
                 FileLog.e(e);
                 AndroidUtilities.runOnUIThread(() -> {
                     progressDialog.dismiss();
-                    Toast.makeText(context, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(context, MiogramLocale.get("Помилка", "Ошибка", "Error") + (e.getMessage() != null ? ": " + e.getMessage() : ""), Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -877,7 +887,7 @@ public class MiogramCloudVaultActivity extends BaseFragment {
                     file.isDownloading = false;
                     progressDialog.dismiss();
                     if (filesAdapter != null) filesAdapter.notifyDataSetChanged();
-                    Toast.makeText(context, "Download failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(context, MiogramLocale.get("Не вдалося завантажити", "Не удалось скачать", "Download failed") + (e.getMessage() != null ? ": " + e.getMessage() : ""), Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -941,7 +951,7 @@ public class MiogramCloudVaultActivity extends BaseFragment {
                 getParentActivity().startActivity(Intent.createChooser(intent, MiogramLocale.get("Поділитися файлом", "Поделиться файлом", "Share File")));
             } catch (Exception e) {
                 FileLog.e(e);
-                Toast.makeText(getParentActivity(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getParentActivity(), MiogramLocale.get("Помилка", "Ошибка", "Error") + (e.getMessage() != null ? ": " + e.getMessage() : ""), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -978,6 +988,18 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
     // --- Vault Management & Dialogs ---
 
+    /** Shown when the user tries to upload before creating/linking a vault chat. */
+    private void showVaultRequiredDialog() {
+        if (getParentActivity() == null) return;
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(MiogramLocale.get("Сховище не підключено", "Хранилище не подключено", "Vault not linked"));
+        builder.setMessage(MiogramLocale.get("Створіть нове сховище або прив'яжіть існуючу супергрупу, інакше файлу нікуди завантажуватись.", "Создайте новое хранилище или привяжите существующую супергруппу, иначе файлу некуда загружаться.", "Create a new vault or link an existing supergroup first — otherwise there is nowhere to upload."));
+        builder.setPositiveButton(MiogramLocale.get("Створити сховище", "Создать хранилище", "Create vault"), (d, w) -> createVaultAutomatically());
+        builder.setNeutralButton(MiogramLocale.get("Прив'язати", "Привязать", "Link existing"), (d, w) -> showLinkExistingDialog());
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(builder.create());
+    }
+
     private void createVaultAutomatically() {
         if (getParentActivity() == null) return;
         final AlertDialog progressDialog = new AlertDialog(getParentActivity(), 3);
@@ -999,7 +1021,7 @@ public class MiogramCloudVaultActivity extends BaseFragment {
             @Override
             public void onError(String message) {
                 progressDialog.dismiss();
-                Toast.makeText(getParentActivity(), "Error: " + message, Toast.LENGTH_LONG).show();
+                Toast.makeText(getParentActivity(), MiogramLocale.get("Помилка", "Ошибка", "Error") + (message != null ? ": " + message : ""), Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -1026,7 +1048,7 @@ public class MiogramCloudVaultActivity extends BaseFragment {
                 loadTopicsFromTelegram();
                 syncFromCloud();
             } catch (Exception e) {
-                Toast.makeText(getParentActivity(), "Invalid ID", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getParentActivity(), MiogramLocale.get("Невірний ID", "Неверный ID", "Invalid ID"), Toast.LENGTH_SHORT).show();
             }
         });
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
@@ -1072,7 +1094,7 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         if (getParentActivity() == null) return;
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
         builder.setTitle(MiogramLocale.get("Введіть ключ шифрування", "Введите ключ шифрования", "Enter Encryption Key"));
-        builder.setMessage("Введіть 64-символьний Hex-ключ (256 біт):");
+        builder.setMessage(MiogramLocale.get("Введіть 64-символьний Hex-ключ (256 біт):", "Введите 64-символьный Hex-ключ (256 бит):", "Enter a 64-char hex key (256-bit):"));
 
         final EditText input = new EditText(getParentActivity());
         input.setSingleLine(true);
@@ -1083,12 +1105,12 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
         builder.setPositiveButton(LocaleController.getString(R.string.Save), (d, w) -> {
             String hex = input.getText().toString().trim();
-            if (hex.length() == 64) {
+            if (hex.matches("(?i)[0-9a-f]{64}")) {
                 MiogramCloudVaultEngine.setMasterKeyHex(hex);
                 Toast.makeText(getParentActivity(), MiogramLocale.get("Ключ оновлено!", "Ключ обновлен!", "Key updated!"), Toast.LENGTH_SHORT).show();
                 syncFromCloud();
             } else {
-                Toast.makeText(getParentActivity(), "Ключ повинен бути рівно 64 символи hex!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getParentActivity(), MiogramLocale.get("Ключ — рівно 64 hex-символи (0-9, a-f)!", "Ключ — ровно 64 hex-символа (0-9, a-f)!", "Key must be exactly 64 hex chars (0-9, a-f)!"), Toast.LENGTH_SHORT).show();
             }
         });
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
@@ -1419,7 +1441,7 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
         public VaultFileCell(Context context) {
             super(context);
-            setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+            setBackground(Theme.getSelectorDrawable(false));
             setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(72)));
 
             // Left icon container
@@ -1460,6 +1482,8 @@ public class MiogramCloudVaultActivity extends BaseFragment {
             actionButton = new ImageView(context);
             actionButton.setScaleType(ImageView.ScaleType.CENTER);
             actionButton.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton));
+            actionButton.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), Theme.RIPPLE_MASK_CIRCLE_20DP));
+            actionButton.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4));
             addView(actionButton, LayoutHelper.createFrame(40, 40, Gravity.CENTER_VERTICAL | Gravity.END, 0, 0, 10, 0));
 
             progressBar = new ProgressBar(context);
@@ -1468,12 +1492,14 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
             setOnClickListener(v -> {
                 if (currentFile != null) {
+                    MiogramHaptic.tap(v);
                     downloadOrOpenFile(currentFile);
                 }
             });
 
             setOnLongClickListener(v -> {
                 if (currentFile != null) {
+                    MiogramHaptic.tap(v);
                     showFileOptions(currentFile);
                     return true;
                 }
@@ -1482,6 +1508,7 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
             actionButton.setOnClickListener(v -> {
                 if (currentFile != null) {
+                    MiogramHaptic.tap(v);
                     showFileOptions(currentFile);
                 }
             });
@@ -1490,23 +1517,35 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         public void bind(MiogramCloudVaultFile file) {
             this.currentFile = file;
             nameView.setText(file.name);
+            setContentDescription(file.name);
 
             String chunksInfo = file.chunksCount > 1 ? (" • " + file.chunksCount + " " + MiogramLocale.get("частин", "частей", "parts")) : "";
             String topicInfo = !TextUtils.isEmpty(file.topicName) ? (" • " + file.topicName) : "";
-            infoView.setText(file.getFormattedSize() + chunksInfo + topicInfo + " • " + file.getFormattedDate());
+            String cloudState;
+            if (!TextUtils.isEmpty(file.localPath) && new File(file.localPath).exists()) {
+                cloudState = " • " + MiogramLocale.get("на пристрої", "на устройстве", "on device");
+            } else if (!file.chunkDocuments.isEmpty()) {
+                cloudState = " • " + MiogramLocale.get("в хмарі", "в облаке", "in cloud");
+            } else {
+                cloudState = " • " + MiogramLocale.get("очікує синхронізації", "ожидает синхронизации", "pending sync");
+            }
+            infoView.setText(file.getFormattedSize() + chunksInfo + topicInfo + cloudState + " • " + file.getFormattedDate());
 
             iconView.setImageResource(file.getIconRes());
 
             if (file.isDownloading) {
                 progressBar.setVisibility(View.VISIBLE);
                 actionButton.setVisibility(View.GONE);
+                actionButton.setContentDescription(null);
             } else {
                 progressBar.setVisibility(View.GONE);
                 actionButton.setVisibility(View.VISIBLE);
                 if (!TextUtils.isEmpty(file.localPath) && new File(file.localPath).exists()) {
                     actionButton.setImageResource(R.drawable.baseline_check_24);
+                    actionButton.setContentDescription(MiogramLocale.get("Файл збережено, відкрити опції", "Файл сохранён, открыть опции", "File saved, open options"));
                 } else {
                     actionButton.setImageResource(R.drawable.baseline_cloud_download_24);
+                    actionButton.setContentDescription(MiogramLocale.get("Завантажити з хмари", "Скачать из облака", "Download from cloud"));
                 }
             }
         }

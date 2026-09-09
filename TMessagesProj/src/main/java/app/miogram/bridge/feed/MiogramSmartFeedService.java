@@ -21,9 +21,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import app.miogram.bridge.MiogramLocale;
 import app.miogram.bridge.ai.MiogramAiService;
 
 public class MiogramSmartFeedService {
+
+    /** Machine-readable error codes (Activity maps them to localized UI). */
+    public static final String ERR_NO_API_KEY = "ERR_NO_API_KEY";
+    public static final String ERR_NO_CHANNELS = "ERR_NO_CHANNELS";
+
+    /** Prompt budget: keeps requests inside model token limits. */
+    private static final int MAX_POSTS_PER_CHANNEL = 25;
+    private static final int MAX_PROMPT_CHARS = 12000;
 
     private static final String PREFS_NAME = "miogram_smart_feed_prefs";
     private static final String KEY_CHANNELS = "tracked_channels";
@@ -133,17 +142,17 @@ public class MiogramSmartFeedService {
      */
     public static void generateWeeklyDigest(int currentAccount, FeedCallback callback) {
         if (!MiogramAiService.hasApiKey()) {
-            callback.onError("Будь ласка, вкажіть API-ключ Gemini у Налаштуваннях Miogram -> Miogram AI для генерації розумної стрічки ໒꒱");
+            callback.onError(ERR_NO_API_KEY);
             return;
         }
 
         Set<Long> channelIds = getTrackedChannels();
         if (channelIds.isEmpty()) {
-            callback.onError("Не обрано жодного каналу для розумної стрічки. Будь ласка, додайте канали у налаштуваннях.");
+            callback.onError(ERR_NO_CHANNELS);
             return;
         }
 
-        callback.onProgress("Зчитуємо повідомлення за 7 днів з " + channelIds.size() + " каналів...");
+        callback.onProgress(MiogramLocale.get("Зчитуємо повідомлення за 7 днів з ", "Считываем сообщения за 7 дней из ", "Reading 7 days of messages from ") + channelIds.size() + MiogramLocale.get(" каналів...", " каналов...", " channels..."));
 
         final long sevenDaysAgo = (System.currentTimeMillis() / 1000L) - (7L * 24L * 3600L);
         final List<FeedItem> aggregatedItems = new ArrayList<>();
@@ -155,17 +164,30 @@ public class MiogramSmartFeedService {
 
     private static void processNextChannel(int currentAccount, List<Long> channels, int index, long minDate, List<FeedItem> resultAccumulator, FeedCallback callback) {
         if (index >= channels.size()) {
-            // All channels processed! Save and return
-            saveCachedFeed(resultAccumulator);
-            AndroidUtilities.runOnUIThread(() -> callback.onComplete(resultAccumulator));
+            // All channels processed! Newest first; keep the old cache if AI
+            // returned nothing (better stale data than a wiped feed).
+            java.util.Collections.sort(resultAccumulator, (a, b) -> Long.compare(b.timestamp, a.timestamp));
+            if (!resultAccumulator.isEmpty()) {
+                saveCachedFeed(resultAccumulator);
+            } else {
+                List<FeedItem> cached = getCachedFeed();
+                if (!cached.isEmpty()) {
+                    resultAccumulator.addAll(cached);
+                }
+            }
+            final List<FeedItem> done = new ArrayList<>(resultAccumulator);
+            AndroidUtilities.runOnUIThread(() -> callback.onComplete(done));
             return;
         }
 
         long dialogId = channels.get(index);
         TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
-        String channelName = chat != null && chat.title != null ? chat.title : "Канал #" + Math.abs(dialogId);
+        String channelName = chat != null && chat.title != null ? chat.title : MiogramLocale.get("Канал #", "Канал #", "Channel #") + Math.abs(dialogId);
 
-        AndroidUtilities.runOnUIThread(() -> callback.onProgress("ШІ аналізує '" + channelName + "' (" + (index + 1) + "/" + channels.size() + ")..."));
+        final String cName = channelName;
+        final int cIdx = index;
+        final int cTotal = channels.size();
+        AndroidUtilities.runOnUIThread(() -> callback.onProgress(MiogramLocale.get("ШІ аналізує '", "ИИ анализирует '", "AI is analyzing '") + cName + "' (" + (cIdx + 1) + "/" + cTotal + ")..."));
 
         TLRPC.TL_messages_getHistory req = new TLRPC.TL_messages_getHistory();
         req.peer = MessagesController.getInstance(currentAccount).getInputPeer(dialogId);
@@ -185,9 +207,12 @@ public class MiogramSmartFeedService {
 
                 for (TLRPC.Message msg : res.messages) {
                     if (msg.date >= minDate && !TextUtils.isEmpty(msg.message)) {
+                        if (recentMessages.size() >= MAX_POSTS_PER_CHANNEL) break;
+                        String text = msg.message.trim();
+                        if (promptPosts.length() + text.length() > MAX_PROMPT_CHARS) break;
                         recentMessages.add(msg);
                         promptPosts.append("--- ПОСТ ID: ").append(msg.id).append(" ---\n");
-                        promptPosts.append(msg.message.trim()).append("\n\n");
+                        promptPosts.append(text).append("\n\n");
                     }
                 }
 
@@ -202,8 +227,10 @@ public class MiogramSmartFeedService {
                         + "Проаналізуй повідомлення з каналу '" + channelName + "' за тиждень.\n"
                         + "Правила:\n"
                         + "1. ПОВНІСТЮ ВИДАЛИ або познач is_ad: true будь-яку рекламу, промо, крипто-скам, казино, рефералки, спонсорські інтеграції та заклики підписатись на сторонні ресурси.\n"
-                        + "2. Справжні авторські новини, апдейти, дослідження стисни в якісну вижимку (3-4 ключові речення), зберігаючи контекст, факти, початковий тон автора.\n"
-                        + "3. Поверни суворий JSON-масив без markdown форматування, наприклад: [{\"message_id\": 10, \"title\": \"Заголовок\", \"summary\": \"Вижимка...\", \"category\": \"Новини\", \"is_ad\": false}]\n\n"
+                        + "2. Дописи-розіграші, опитування без новинної цінності та повтори однієї новини теж відсій (залиш один найповніший).\n"
+                        + "3. Справжні авторські новини, апдейти, дослідження стисни в якісну вижимку (2-3 ключові речення), зберігаючи факти, цифри, імена та початковий тон автора. Без води і без емодзі.\n"
+                        + "4. title — короткий заголовок суттю (до 80 символів), category — одна з: Новини, Техно, Крипто, Спорт, Культура, Наука, Інше.\n"
+                        + "5. Поверни суворий JSON-масив без markdown форматування, наприклад: [{\"message_id\": 10, \"title\": \"Заголовок\", \"summary\": \"Вижимка...\", \"category\": \"Новини\", \"is_ad\": false}]\n\n"
                         + promptPosts.toString();
 
                 MiogramAiService.processFeedWithAi(aiPrompt, aiResult -> {
@@ -226,6 +253,8 @@ public class MiogramSmartFeedService {
                             if (rawItems != null) {
                                 for (RawAiFeedItem raw : rawItems) {
                                     if (raw.is_ad) continue; // Skip ads!
+                                    if (TextUtils.isEmpty(raw.title) && TextUtils.isEmpty(raw.summary)) continue;
+                                    if (!app.miogram.bridge.hooks.MioHook.dispatchFeedItem(dialogId, raw.message_id, raw.title, raw.summary, raw.category)) continue;
                                     TLRPC.Message matchedMsg = null;
                                     for (TLRPC.Message m : recentMessages) {
                                         if (m.id == raw.message_id) {

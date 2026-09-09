@@ -31,15 +31,27 @@ public class MiogramDivineEngine {
     private static final String PREFS_NAME = "miogram_divine_prefs";
     private static final String KEY_CURRENT_PRESET = "current_divine_preset";
 
+    /**
+     * Hot-path cache: read on every {@code Theme.getColor} (via Discord/iOS
+     * checks) and on every dialog row bind. Single writer is
+     * {@link #applyPreset}, which updates the cache directly.
+     */
+    private static volatile Preset cachedPreset = null;
+
     public static Preset getCurrentPreset(Context context) {
+        Preset c = cachedPreset;
+        if (c != null) return c;
         if (context == null) context = ApplicationLoader.applicationContext;
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String name = prefs.getString(KEY_CURRENT_PRESET, Preset.CLASSIC_TG.name());
+        Preset parsed;
         try {
-            return Preset.valueOf(name);
+            parsed = Preset.valueOf(name);
         } catch (Throwable t) {
-            return Preset.CLASSIC_TG;
+            parsed = Preset.CLASSIC_TG;
         }
+        cachedPreset = parsed;
+        return parsed;
     }
 
     public static boolean isWindowsXpPresetActive(Context context) {
@@ -66,6 +78,8 @@ public class MiogramDivineEngine {
         if (context == null) context = ApplicationLoader.applicationContext;
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         prefs.edit().putString(KEY_CURRENT_PRESET, preset.name()).apply();
+        cachedPreset = preset;
+        MiogramDiscordLayout.invalidateUiModeCache();
 
         switch (preset) {
             case DISCORD_ULTRA:
@@ -132,6 +146,7 @@ public class MiogramDivineEngine {
                 act.rebuildAllFragments(false);
             }
         });
+        app.miogram.bridge.hooks.MioHook.dispatchPreset(preset.name());
         NotificationCenter.getInstance(UserConfig.selectedAccount).postNotificationName(NotificationCenter.dialogsNeedReload);
         NotificationCenter.getInstance(UserConfig.selectedAccount).postNotificationName(NotificationCenter.mainUserInfoChanged);
     }

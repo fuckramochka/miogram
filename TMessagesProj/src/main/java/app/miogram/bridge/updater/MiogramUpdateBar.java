@@ -37,6 +37,7 @@ import app.miogram.bridge.ui.MiogramUpdateBottomSheet;
 public class MiogramUpdateBar extends FrameLayout implements MiogramDownloadManager.DownloadListener {
 
     private static MiogramUpdateBar currentBarInstance;
+    private static final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private TextView titleView;
     private TextView subtitleView;
@@ -70,7 +71,7 @@ public class MiogramUpdateBar extends FrameLayout implements MiogramDownloadMana
         textContainer.setOrientation(LinearLayout.VERTICAL);
 
         titleView = new TextView(context);
-        titleView.setText("Miogram Update");
+        titleView.setText(MiogramLocale.get("Оновлення Miogram", "Обновление Miogram", "Miogram Update"));
         titleView.setTextSize(13);
         titleView.setTypeface(AndroidUtilities.bold());
         titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -94,6 +95,8 @@ public class MiogramUpdateBar extends FrameLayout implements MiogramDownloadMana
         closeView.setImageResource(R.drawable.msg_close);
         closeView.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
         closeView.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6));
+        closeView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), Theme.RIPPLE_MASK_CIRCLE_20DP));
+        closeView.setContentDescription(MiogramLocale.get("Скасувати завантаження", "Отменить загрузку", "Cancel download"));
         closeView.setOnClickListener(v -> {
             MiogramDownloadManager.getInstance().cancelDownload();
             hideGlobalBar();
@@ -126,6 +129,12 @@ public class MiogramUpdateBar extends FrameLayout implements MiogramDownloadMana
                     case android.view.MotionEvent.ACTION_UP:
                     case android.view.MotionEvent.ACTION_CANCEL:
                         if (isDragging) {
+                            isDragging = false;
+                            if (getTranslationY() < -AndroidUtilities.dp(40)) {
+                                hideGlobalBar();
+                            } else {
+                                animate().translationY(0).alpha(1f).setDuration(200).start();
+                            }
                             return true;
                         }
                         break;
@@ -150,7 +159,7 @@ public class MiogramUpdateBar extends FrameLayout implements MiogramDownloadMana
     }
 
     public static void showGlobalBar() {
-        new Handler(Looper.getMainLooper()).post(() -> {
+        mainHandler.post(() -> {
             LaunchActivity act = LaunchActivity.instance;
             if (act == null || act.isFinishing()) return;
 
@@ -177,7 +186,7 @@ public class MiogramUpdateBar extends FrameLayout implements MiogramDownloadMana
     }
 
     public static void hideGlobalBar() {
-        new Handler(Looper.getMainLooper()).post(() -> {
+        mainHandler.post(() -> {
             if (currentBarInstance != null) {
                 final MiogramUpdateBar bar = currentBarInstance;
                 currentBarInstance = null;
@@ -194,7 +203,7 @@ public class MiogramUpdateBar extends FrameLayout implements MiogramDownloadMana
 
     @Override
     public void onProgress(int percent, long downloadedBytes, long totalBytes) {
-        new Handler(Looper.getMainLooper()).post(() -> {
+        mainHandler.post(() -> {
             if (progressBar != null) progressBar.setProgress(percent);
             if (titleView != null) {
                 String ver = MiogramDownloadManager.getInstance().getCurrentVersion();

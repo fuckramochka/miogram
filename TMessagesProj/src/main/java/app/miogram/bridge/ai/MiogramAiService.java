@@ -44,6 +44,10 @@ public class MiogramAiService {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private static final String AI_PREFS = "miogram_ai_prefs";
     private static final String KEY_API_KEYS = "gemini_api_keys";
+    /** Must stay in sync with the model list in MiogramAiSettingsActivity. */
+    public static final String DEFAULT_MODEL = "gemini-3.5-flash-lite";
+    /** Stable tier guaranteed by every fallback chain below. */
+    public static final String FALLBACK_MODEL = "gemini-2.5-flash";
     private static final AtomicInteger apiKeyCursor = new AtomicInteger();
     // Base64 expands data; stay well below Gemini's 20 MB inline audio limit.
     private static final long MAX_INLINE_AUDIO_BYTES = 14L * 1024L * 1024L;
@@ -165,7 +169,7 @@ public class MiogramAiService {
             String model = LlmConfig.getEffectiveModelName(PresetRegistry.GOOGLE_AI_STUDIO);
             if (!TextUtils.isEmpty(model)) return model;
         } catch (Throwable ignored) {}
-        return "gemini-3.5-flash-lite";
+        return DEFAULT_MODEL;
     }
 
     public static void setModel(String model) {
@@ -191,23 +195,87 @@ public class MiogramAiService {
         String prompt = "Зроби короткий, структурований і чіткий стислий зміст (3-4 головні тези з маркерами •) цього тексту українською мовою:\n\n" + text;
         generateContent(prompt, getModel(), (res, err) -> {
             if (res != null) {
-                AndroidUtilities.runOnUIThread(() -> callback.run(res));
+                deliverProse("summary", callback, res);
             } else if (err != null && (err.contains("404") || err.contains("400") || err.contains("503"))) {
-                // Hierarchical fallback: 3.5-flash-lite -> 3.1-flash-lite -> 2.5-flash
+                // Hierarchical fallback: default -> stable tier (no phantom middle models).
                 String curModel = getModel();
-                String fb = "gemini-3.1-flash-lite".equals(curModel) ? "gemini-2.5-flash" : "gemini-3.1-flash-lite";
+                String fb = FALLBACK_MODEL.equals(curModel) ? DEFAULT_MODEL : FALLBACK_MODEL;
                 generateContent(prompt, fb, (fallbackRes, fallbackErr) -> {
                     if (fallbackRes != null) {
-                        AndroidUtilities.runOnUIThread(() -> callback.run(fallbackRes));
+                        deliverProse("summary", callback, fallbackRes);
                     } else {
-                        generateContent(prompt, "gemini-2.5-flash", (fb2Res, fb2Err) -> {
-                            AndroidUtilities.runOnUIThread(() -> callback.run(fb2Res));
+                        generateContent(prompt, FALLBACK_MODEL, (fb2Res, fb2Err) -> {
+                            deliverProse("summary", callback, fb2Res);
                         });
                     }
                 });
             } else {
                 AndroidUtilities.runOnUIThread(() -> callback.run(null));
             }
+        });
+    }
+
+    /** Delivers prose AI results through MioHook filters (no-op when no hooks). */
+    private static void deliverProse(String kind, Utilities.Callback<String> cb, String res) {
+        AndroidUtilities.runOnUIThread(() -> cb.run(res != null ? app.miogram.bridge.hooks.MioHook.dispatchAiText(kind, res) : null));
+    }
+
+    /** Callback2 variant of {@link #deliverProse}. */
+    private static void deliverProse2(String kind, Utilities.Callback2<String, String> cb, String res, String err) {
+        AndroidUtilities.runOnUIThread(() -> {
+            if (res != null) cb.run(app.miogram.bridge.hooks.MioHook.dispatchAiText(kind, res), null);
+            else cb.run(null, err);
+        });
+    }
+
+    /**
+     * Translate any text into the target language, preserving tone and formatting.
+     */
+    public static void translateText(String text, String targetLang, Utilities.Callback2<String, String> callback) {
+        if (TextUtils.isEmpty(text)) {
+            callback.run(null, "Empty text");
+            return;
+        }
+        String lang = TextUtils.isEmpty(targetLang) ? "українською" : targetLang;
+        String prompt = "Переклади наступний текст " + lang + " мовою. Збережи форматування, емодзі та тон оригіналу. "
+                + "Поверни ТІЛЬКИ переклад без пояснень і лапок:\n\n" + text;
+        generateContentInternal(prompt, getModel(), 0.3, false, (res, err) -> {
+            if (res != null) deliverProse2("translate", callback, res, null);
+            else if (err != null && err.contains("404") && !FALLBACK_MODEL.equals(getModel())) {
+                generateContentInternal(prompt, FALLBACK_MODEL, 0.3, false, (fbRes, fbErr) ->
+                        deliverProse2("translate", callback, fbRes, fbErr));
+            } else {
+                AndroidUtilities.runOnUIThread(() -> callback.run(null, err));
+            }
+        });
+    }
+
+    /**
+     * Key points: 3 punchy bullets for long posts. Used by feed cards and chat actions.
+     */
+    public static void keyPoints(String text, Utilities.Callback<String> callback) {
+        String prompt = "Виділи 3 найважливіші тези цього тексту. Кожна — до 15 слів, мовою оригіналу, маркер • на початку рядка. "
+                + "Без вступу і висновків, тільки 3 рядки:\n\n" + text;
+        generateContentInternal(prompt, getModel(), 0.4, false, (res, err) -> {
+            if (res != null) deliverProse("keypoints", callback, res);
+            else AndroidUtilities.runOnUIThread(() -> callback.run(null));
+        });
+    }
+
+    /**
+     * Free-form question over pasted chat context (recent messages joined as one transcript).
+     */
+    public static void askAboutChat(String transcript, String question, Utilities.Callback2<String, String> callback) {
+        if (TextUtils.isEmpty(transcript) || TextUtils.isEmpty(question)) {
+            callback.run(null, "Empty context or question");
+            return;
+        }
+        String prompt = "Нижче — фрагмент листування. Відповідай на питання ТІЛЬКИ на основі цього контексту, "
+                + "мовою питання. Якщо відповіді в контексті нема — так і скажи.\n\n"
+                + "--- КОНТЕКСТ ---\n" + transcript + "\n--- ПИТАННЯ ---\n" + question;
+        generateContentInternal(prompt, getModel(), 0.5, false, (res, err) -> {
+            if (res != null) deliverProse2("chat_qa", callback, res, null);
+            else AndroidUtilities.runOnUIThread(() -> callback.run(null, err));
         });
     }
 
@@ -218,10 +286,10 @@ public class MiogramAiService {
         String prompt = "Перепиши та покращ цей текст українською мовою у стилі '" + tone + "'. Виправ граматичні помилки та збережи суть:\n\n" + text;
         generateContent(prompt, getModel(), (res, err) -> {
             if (res != null) {
-                AndroidUtilities.runOnUIThread(() -> callback.run(res));
-            } else if (err != null && err.contains("404") && !"gemini-2.5-flash".equals(getModel())) {
-                generateContent(prompt, "gemini-2.5-flash", (fallbackRes, fallbackErr) -> {
-                    AndroidUtilities.runOnUIThread(() -> callback.run(fallbackRes));
+                deliverProse("rephrase", callback, res);
+            } else if (err != null && err.contains("404") && !FALLBACK_MODEL.equals(getModel())) {
+                generateContent(prompt, FALLBACK_MODEL, (fallbackRes, fallbackErr) -> {
+                    deliverProse("rephrase", callback, fallbackRes);
                 });
             } else {
                 AndroidUtilities.runOnUIThread(() -> callback.run(null));
@@ -230,6 +298,15 @@ public class MiogramAiService {
     }
 
     private static void generateContent(String prompt, String model, Utilities.Callback2<String, String> callback) {
+        generateContentInternal(prompt, model, null, false, callback);
+    }
+
+    /**
+     * Core request runner.
+     * @param temperature null = API default; low (~0.2) for strict JSON, higher (~0.9) for creative rewrite.
+     * @param jsonMode when true, requests application/json so models return parseable payloads.
+     */
+    private static void generateContentInternal(String prompt, String model, Double temperature, boolean jsonMode, Utilities.Callback2<String, String> callback) {
         List<String> apiKeys = getApiKeys();
         if (apiKeys.isEmpty()) {
             callback.run(null, "No API key configured");
@@ -248,6 +325,12 @@ public class MiogramAiService {
                 content.add("parts", parts);
                 contents.add(content);
                 root.add("contents", contents);
+                if (temperature != null || jsonMode) {
+                    JsonObject genConfig = new JsonObject();
+                    if (temperature != null) genConfig.addProperty("temperature", temperature);
+                    if (jsonMode) genConfig.addProperty("responseMimeType", "application/json");
+                    root.add("generationConfig", genConfig);
+                }
 
                 String json = gson.toJson(root);
                 RequestBody body = RequestBody.create(json, JSON);
@@ -428,17 +511,18 @@ public class MiogramAiService {
      * maintaining the hierarchical fallback chain without overriding user instructions.
      */
     public static void processFeedWithAi(String customPrompt, Utilities.Callback<String> callback) {
-        generateContent(customPrompt, getModel(), (res, err) -> {
+        // Low temperature + JSON mode: feed parsing must be deterministic.
+        generateContentInternal(customPrompt, getModel(), 0.2, true, (res, err) -> {
             if (res != null) {
                 AndroidUtilities.runOnUIThread(() -> callback.run(res));
             } else if (err != null && (err.contains("404") || err.contains("400") || err.contains("503"))) {
                 String curModel = getModel();
-                String fb = "gemini-3.1-flash-lite".equals(curModel) ? "gemini-2.5-flash" : "gemini-3.1-flash-lite";
+                String fb = FALLBACK_MODEL.equals(curModel) ? DEFAULT_MODEL : FALLBACK_MODEL;
                 generateContent(customPrompt, fb, (fb1Res, fb1Err) -> {
                     if (fb1Res != null) {
                         AndroidUtilities.runOnUIThread(() -> callback.run(fb1Res));
                     } else {
-                        generateContent(customPrompt, "gemini-2.5-flash", (fb2Res, fb2Err) -> {
+                        generateContent(customPrompt, FALLBACK_MODEL, (fb2Res, fb2Err) -> {
                             AndroidUtilities.runOnUIThread(() -> callback.run(fb2Res));
                         });
                     }
@@ -455,17 +539,17 @@ public class MiogramAiService {
     public static void generateText(String prompt, Utilities.Callback2<String, String> callback) {
         generateContent(prompt, getModel(), (res, err) -> {
             if (res != null) {
-                callback.run(res, null);
+                deliverProse2("text", callback, res, null);
             } else if (err != null && (err.contains("404") || err.contains("400") || err.contains("503"))) {
                 String curModel = getModel();
-                String fb = "gemini-3.1-flash-lite".equals(curModel) ? "gemini-2.5-flash" : "gemini-3.1-flash-lite";
+                String fb = FALLBACK_MODEL.equals(curModel) ? DEFAULT_MODEL : FALLBACK_MODEL;
                 generateContent(prompt, fb, (fb1Res, fb1Err) -> {
                     if (fb1Res != null) {
-                        callback.run(fb1Res, null);
+                        deliverProse2("text", callback, fb1Res, null);
                     } else {
-                        generateContent(prompt, "gemini-2.5-flash", (fb2Res, fb2Err) -> {
+                        generateContent(prompt, FALLBACK_MODEL, (fb2Res, fb2Err) -> {
                             if (fb2Res != null) {
-                                callback.run(fb2Res, null);
+                                deliverProse2("text", callback, fb2Res, null);
                             } else {
                                 callback.run(null, fb2Err != null ? fb2Err : err);
                             }

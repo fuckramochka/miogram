@@ -1,6 +1,7 @@
 package app.miogram.bridge.feed;
 
 import app.miogram.bridge.MiogramLocale;
+import app.miogram.bridge.customui.MiogramHaptic;
 import android.animation.LayoutTransition;
 import android.content.Context;
 import android.content.Intent;
@@ -79,7 +80,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle("Розумна стрічка ໒꒱");
+        actionBar.setTitle(MiogramLocale.get("Розумна стрічка ໒꒱", "Умная лента ໒꒱", "Smart Feed ໒꒱"));
         actionBar.setSubtitle("AI Digest • Без спаму");
 
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
@@ -145,7 +146,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
         emptyView.addView(emptyIcon);
 
         TextView emptyTitle = new TextView(context);
-        emptyTitle.setText("Розумний ШІ-дайджест");
+        emptyTitle.setText(MiogramLocale.get("Розумний ШІ-дайджест", "Умный ИИ-дайджест", "Smart AI Digest"));
         emptyTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         emptyTitle.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
         emptyTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -154,7 +155,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
         emptyView.addView(emptyTitle);
 
         TextView emptyDesc = new TextView(context);
-        emptyDesc.setText("Оберіть канали, з яких хочете отримувати щотижневу вижимку. ШІ очистить потік від реклами та підготує змістовні картки з фотографіями.");
+        emptyDesc.setText(MiogramLocale.get("Оберіть канали, з яких хочете отримувати щотижневу вижимку. ШІ очистить потік від реклами та підготує змістовні картки з фотографіями.", "Выберите каналы для еженедельной выжимки. ИИ очистит ленту от рекламы и подготовит содержательные карточки с фотографиями.", "Pick channels for a weekly digest. AI will strip ads and build rich cards with photos."));
         emptyDesc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         emptyDesc.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
         emptyDesc.setGravity(Gravity.CENTER);
@@ -162,7 +163,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
         emptyView.addView(emptyDesc);
 
         TextView setupBtn = new TextView(context);
-        setupBtn.setText("Обрати канали ໒꒱");
+        setupBtn.setText(MiogramLocale.get("Обрати канали ໒꒱", "Выбрать каналы ໒꒱", "Choose channels ໒꒱"));
         setupBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
         setupBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         setupBtn.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
@@ -204,7 +205,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
 
     private void refreshFeed() {
         progressContainer.setVisibility(View.VISIBLE);
-        progressText.setText("ШІ готує щотижневу вижимку...");
+        progressText.setText(MiogramLocale.get("ШІ готує щотижневу вижимку...", "ИИ готовит еженедельную выжимку...", "AI is preparing the weekly digest..."));
 
         MiogramSmartFeedService.generateWeeklyDigest(currentAccount, new MiogramSmartFeedService.FeedCallback() {
             @Override
@@ -225,7 +226,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
                     adapter.notifyDataSetChanged();
                 }
                 if (getParentActivity() != null) {
-                    Toast.makeText(getParentActivity(), "Оновлено! Додано " + newItems.size() + " важливих новин без спаму ໒꒱", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getParentActivity(), MiogramLocale.get("Оновлено! Додано " + newItems.size() + " важливих новин без спаму ໒꒱", "Обновлено! Добавлено " + newItems.size() + " важных новостей без спама ໒꒱", "Updated! Added " + newItems.size() + " important stories, no spam ໒꒱"), Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -234,19 +235,21 @@ public class MiogramSmartFeedActivity extends BaseFragment {
                 if (progressContainer != null) {
                     progressContainer.setVisibility(View.GONE);
                 }
-                if (getParentActivity() != null) {
-                    if (error != null && error.contains("API-ключ")) {
-                        AlertDialog.Builder b = new AlertDialog.Builder(getParentActivity());
-                        b.setTitle("Miogram AI ໒꒱");
-                        b.setMessage(error);
-                        b.setPositiveButton("Налаштувати AI", (d, w) -> {
-                            presentFragment(new app.miogram.bridge.ui.MiogramAiSettingsActivity());
-                        });
-                        b.setNegativeButton("Пізніше", null);
-                        showDialog(b.create());
-                    } else {
-                        Toast.makeText(getParentActivity(), error, Toast.LENGTH_LONG).show();
-                    }
+                if (getParentActivity() == null) return;
+                if (MiogramSmartFeedService.ERR_NO_API_KEY.equals(error) || (error != null && error.contains("API-ключ"))) {
+                    AlertDialog.Builder b = new AlertDialog.Builder(getParentActivity());
+                    b.setTitle(MiogramLocale.get("Miogram AI ໒꒱", "Miogram AI ໒꒱", "Miogram AI ໒꒱"));
+                    b.setMessage(MiogramLocale.get("Вкажіть API-ключ Gemini у Miogram AI, щоб генерувати розумну стрічку ໒꒱", "Укажите API-ключ Gemini в Miogram AI для генерации умной ленты ໒꒱", "Add your Gemini API key in Miogram AI to generate the smart feed ໒꒱"));
+                    b.setPositiveButton(MiogramLocale.get("Налаштувати AI", "Настроить AI", "Configure AI"), (d, w) -> {
+                        presentFragment(new app.miogram.bridge.ui.MiogramAiSettingsActivity());
+                    });
+                    b.setNegativeButton(MiogramLocale.get("Пізніше", "Позже", "Later"), null);
+                    showDialog(b.create());
+                } else if (MiogramSmartFeedService.ERR_NO_CHANNELS.equals(error)) {
+                    Toast.makeText(getParentActivity(), MiogramLocale.get("Оберіть канали для стрічки, щоб почати.", "Выберите каналы для ленты, чтобы начать.", "Pick channels for the feed to get started."), Toast.LENGTH_LONG).show();
+                    showChannelPicker();
+                } else {
+                    Toast.makeText(getParentActivity(), error, Toast.LENGTH_LONG).show();
                 }
             }
         });
@@ -268,7 +271,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
         }
 
         if (availableChats.isEmpty()) {
-            Toast.makeText(context, "Не знайдено підписаних каналів.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, MiogramLocale.get("Не знайдено підписаних каналів.", "Не найдено подписанных каналов.", "No subscribed channels found."), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -425,30 +428,37 @@ public class MiogramSmartFeedActivity extends BaseFragment {
                 actLp.topMargin = AndroidUtilities.dp(14);
 
                 toKanbanBtn = new TextView(ctx);
-                toKanbanBtn.setText("В Канбан 📌");
+                toKanbanBtn.setText(MiogramLocale.get("В Канбан 📌", "В Канбан 📌", "To Kanban 📌"));
                 toKanbanBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-                toKanbanBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton));
+                toKanbanBtn.setTextColor(0xFFFFFFFF);
                 toKanbanBtn.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
-                toKanbanBtn.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(6), AndroidUtilities.dp(10), AndroidUtilities.dp(6));
+                toKanbanBtn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(16), Theme.getColor(Theme.key_featuredStickers_addButton), Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
+                toKanbanBtn.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(7), AndroidUtilities.dp(14), AndroidUtilities.dp(7));
+                toKanbanBtn.setContentDescription(MiogramLocale.get("Додати в Канбан", "Добавить в Канбан", "Add to Kanban"));
                 actionsRow.addView(toKanbanBtn);
 
                 openChatBtn = new TextView(ctx);
-                openChatBtn.setText("Читати в каналі →");
+                openChatBtn.setText(MiogramLocale.get("Читати в каналі →", "Читать в канале →", "Read in channel →"));
                 openChatBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
                 openChatBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton));
                 openChatBtn.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
-                openChatBtn.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(6), AndroidUtilities.dp(10), AndroidUtilities.dp(6));
+                openChatBtn.setBackground(Theme.getSelectorDrawable(false));
+                openChatBtn.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(7), AndroidUtilities.dp(10), AndroidUtilities.dp(7));
+                openChatBtn.setContentDescription(MiogramLocale.get("Відкрити пост у каналі", "Открыть пост в канале", "Open post in channel"));
                 actionsRow.addView(openChatBtn);
 
                 cardView.addView(actionsRow, actLp);
             }
 
             void bind(MiogramSmartFeedService.FeedItem item) {
-                channelTitle.setText(item.channelTitle != null ? item.channelTitle : "Канал");
+                channelTitle.setText(item.channelTitle != null ? item.channelTitle : MiogramLocale.get("Канал", "Канал", "Channel"));
                 dateText.setText(dateFormat.format(new Date(item.timestamp > 0 ? item.timestamp : System.currentTimeMillis())));
 
                 if (!TextUtils.isEmpty(item.category)) {
                     categoryBadge.setText(item.category);
+                    int catColor = categoryColor(item.category);
+                    categoryBadge.setTextColor(catColor);
+                    categoryBadge.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(6), catColor & 0x22FFFFFF));
                     categoryBadge.setVisibility(View.VISIBLE);
                 } else {
                     categoryBadge.setVisibility(View.GONE);
@@ -459,7 +469,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
 
                 if (item.hasPhoto && item.originalMessage != null && item.originalMessage.media instanceof TLRPC.TL_messageMediaPhoto) {
                     TLRPC.TL_messageMediaPhoto photoMedia = (TLRPC.TL_messageMediaPhoto) item.originalMessage.media;
-                    if (photoMedia.photo != null) {
+                    if (photoMedia.photo != null && photoMedia.photo.sizes != null && !photoMedia.photo.sizes.isEmpty()) {
                         photoView.setVisibility(View.VISIBLE);
                         photoView.setImage(ImageLocation.getForPhoto(photoMedia.photo.sizes.get(photoMedia.photo.sizes.size() - 1), photoMedia.photo), "160_160", null, null, currentAccount);
                     } else {
@@ -470,6 +480,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
                 }
 
                 openChatBtn.setOnClickListener(v -> {
+                    MiogramHaptic.tap(v);
                     Bundle args = new Bundle();
                     args.putLong("chat_id", -item.dialogId);
                     args.putInt("message_id", item.messageId);
@@ -477,9 +488,22 @@ public class MiogramSmartFeedActivity extends BaseFragment {
                 });
 
                 toKanbanBtn.setOnClickListener(v -> {
+                    MiogramHaptic.success(v);
                     MiogramKanbanStorage.addItem(item.title, item.summary, 0, item.dialogId, item.messageId);
-                    Toast.makeText(itemView.getContext(), "Додано в канбан дошку!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(itemView.getContext(), MiogramLocale.get("Додано в канбан дошку!", "Добавлено на канбан-доску!", "Added to the Kanban board!"), Toast.LENGTH_SHORT).show();
                 });
+            }
+
+            /** Stable tint per category so the feed scans faster. */
+            private int categoryColor(String category) {
+                if (category == null) return Theme.getColor(Theme.key_featuredStickers_addButton);
+                String c = category.trim().toLowerCase(Locale.US);
+                if (c.contains("крипто") || c.contains("crypto")) return 0xFFF0B90B;
+                if (c.contains("техно") || c.contains("tech") || c.contains("техно")) return 0xFF00A8FC;
+                if (c.contains("спорт") || c.contains("sport")) return 0xFF23A55A;
+                if (c.contains("культур") || c.contains("cultur") || c.contains("культур")) return 0xFF9D4EDD;
+                if (c.contains("наук") || c.contains("scien")) return 0xFF00C2A8;
+                return Theme.getColor(Theme.key_featuredStickers_addButton);
             }
         }
     }

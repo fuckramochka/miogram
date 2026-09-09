@@ -2458,8 +2458,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             if (nameString instanceof String) {
                 nameString = ((String) nameString).replace('\n', ' ');
             }
-            if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled() && currentDialogId < 0 && nameString != null && !nameString.toString().startsWith("#")) {
-                nameString = "# " + nameString;
+            if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled() && currentDialogId < 0 && nameString != null) {
+                nameString = app.miogram.bridge.ui.discord.MiogramDiscordLayout.formatChannelName(nameString, currentDialogId);
             }
             CharSequence nameStringFinal = nameString;
             if (nameLayoutEllipsizeByGradient) {

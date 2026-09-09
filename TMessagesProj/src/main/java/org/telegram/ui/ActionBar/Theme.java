@@ -9251,6 +9251,16 @@ public class Theme {
         if (key == Theme.key_chat_messageTextOut) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_PRIMARY;
         if (key == Theme.key_chat_inTimeText || key == Theme.key_chat_outTimeText) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
         if (key == Theme.key_chat_messageLinkIn || key == Theme.key_chat_messageLinkOut) return 0xFF00A8FC;
+        // Channel list rows: Discord has no separators, red mention badges, muted date/pinned icons.
+        if (key == Theme.key_chats_nameArchived) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
+        if (key == Theme.key_chats_unreadCounter) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_BADGE_RED;
+        if (key == Theme.key_chats_unreadCounterMuted) return 0xFF4E5058;
+        if (key == Theme.key_chats_unreadCounterText) return 0xFFFFFFFF;
+        if (key == Theme.key_chats_date) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_TEXT_MUTED;
+        if (key == Theme.key_chats_pinnedOverlay) return 0x14000000;
+        if (key == Theme.key_chats_tabletSelectedOverlay) return app.miogram.bridge.ui.discord.MiogramDiscordLayout.COLOR_CHANNEL_ACTIVE;
+        if (key == Theme.key_divider) return 0x00000000;
+        if (key == Theme.key_windowBackgroundWhiteBlueText || key == Theme.key_windowBackgroundWhiteBlueText2) return 0xFF00A8FC;
         return 0;
     }
 

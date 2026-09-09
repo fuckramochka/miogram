@@ -102,6 +102,9 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     public MainTabsLayout(Context context, Theme.ResourcesProvider resourcesProvider) {
         super(context);
         this.resourcesProvider = resourcesProvider;
+        // Living MioHook site: plugins observe/inject bottom navigation here
+        // instead of hacking fragment view trees (no more zombie UI).
+        app.miogram.bridge.hooks.MioHook.dispatchUiContainer("main_tabs", this);
     }
 
     private static final float[] PASS_TEXT_SIZES_DP = {12f, 12f, 10f};

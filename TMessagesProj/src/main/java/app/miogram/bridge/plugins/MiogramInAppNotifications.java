@@ -90,6 +90,14 @@ public class MiogramInAppNotifications implements NotificationCenter.Notificatio
 
             if (scheduled || messageObjects == null || messageObjects.isEmpty()) return;
 
+            // Living MioHook site: every incoming message passes here on all accounts.
+            for (int i = 0; i < messageObjects.size(); i++) {
+                try {
+                    MessageObject m = messageObjects.get(i);
+                    if (m != null) app.miogram.bridge.hooks.MioHook.dispatchMessage(account, m);
+                } catch (Throwable ignored) {}
+            }
+
             LaunchActivity act = LaunchActivity.instance;
             if (act == null || act.isFinishing()) return;
 
@@ -109,12 +117,12 @@ public class MiogramInAppNotifications implements NotificationCenter.Notificatio
 
             CharSequence messageText = msg.messageText;
             if (TextUtils.isEmpty(messageText)) {
-                if (msg.isVideo()) messageText = "📹 Відеоповідомлення";
-                else if (msg.isVoice()) messageText = "🎙️ Голосове повідомлення";
-                else if (msg.isRoundVideo()) messageText = "⭕ Відеоповідомлення (кружечок)";
-                else if (msg.isPhoto()) messageText = "🖼️ Фотографія";
-                else if (msg.isSticker()) messageText = "✨ Стікер";
-                else messageText = "Повідомлення";
+                if (msg.isVideo()) messageText = app.miogram.bridge.MiogramLocale.get("📹 Відеоповідомлення", "📹 Видеосообщение", "📹 Video message");
+                else if (msg.isVoice()) messageText = app.miogram.bridge.MiogramLocale.get("🎙️ Голосове повідомлення", "🎙️ Голосовое сообщение", "🎙️ Voice message");
+                else if (msg.isRoundVideo()) messageText = app.miogram.bridge.MiogramLocale.get("⭕ Відеоповідомлення (кружечок)", "⭕ Видеосообщение (кружок)", "⭕ Round video message");
+                else if (msg.isPhoto()) messageText = app.miogram.bridge.MiogramLocale.get("🖼️ Фотографія", "🖼️ Фотография", "🖼️ Photo");
+                else if (msg.isSticker()) messageText = app.miogram.bridge.MiogramLocale.get("✨ Стікер", "✨ Стикер", "✨ Sticker");
+                else messageText = app.miogram.bridge.MiogramLocale.get("Повідомлення", "Сообщение", "Message");
             }
 
             String title = "";
@@ -122,17 +130,17 @@ public class MiogramInAppNotifications implements NotificationCenter.Notificatio
             if (dialogId > 0) {
                 TLRPC.User user = mc.getUser(dialogId);
                 if (user != null) {
-                    title = user.first_name != null ? user.first_name : "Користувач";
+                    title = user.first_name != null ? user.first_name : app.miogram.bridge.MiogramLocale.get("Користувач", "Пользователь", "User");
                 }
             } else {
                 TLRPC.Chat chat = mc.getChat(-dialogId);
                 if (chat != null) {
-                    title = chat.title != null ? chat.title : "Група";
+                    title = chat.title != null ? chat.title : app.miogram.bridge.MiogramLocale.get("Група", "Группа", "Group");
                 }
             }
 
             if (TextUtils.isEmpty(title)) {
-                title = "Нове повідомлення";
+                title = app.miogram.bridge.MiogramLocale.get("Нове повідомлення", "Новое сообщение", "New message");
             }
 
             final String finalTitle = title;
@@ -150,7 +158,7 @@ public class MiogramInAppNotifications implements NotificationCenter.Notificatio
                     Bulletin bulletin = BulletinFactory.of(currentFrag).createSimpleBulletin(
                             R.drawable.msg_notifications,
                             finalTitle + ": " + finalBody,
-                            "Відкрити",
+                            app.miogram.bridge.MiogramLocale.get("Відкрити", "Открыть", "Open"),
                             () -> {
                                 Bundle b = new Bundle();
                                 if (finalDialogId > 0) {

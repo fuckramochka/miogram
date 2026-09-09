@@ -302,7 +302,7 @@ public class MiogramDownloadManager {
                 isDownloading = false;
                 final String err = e.getMessage() != null ? e.getMessage() : "Download error";
                 mainHandler.post(() -> {
-                    Toast.makeText(ctx, "Download error: " + err, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, MiogramLocale.get("Помилка завантаження", "Ошибка загрузки", "Download error") + ": " + err, Toast.LENGTH_SHORT).show();
                     notifyError(err);
                 });
             }
@@ -375,7 +375,7 @@ public class MiogramDownloadManager {
             ctx.startActivity(intent);
         } catch (Exception e) {
             FileLog.e(e);
-            Toast.makeText(ctx, "Install error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(ctx, MiogramLocale.get("Помилка встановлення", "Ошибка установки", "Install error") + (e.getMessage() != null ? ": " + e.getMessage() : ""), Toast.LENGTH_LONG).show();
         }
     }
 }

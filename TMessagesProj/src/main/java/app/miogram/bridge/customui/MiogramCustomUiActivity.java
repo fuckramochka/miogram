@@ -993,7 +993,7 @@ public class MiogramCustomUiActivity extends BaseFragment {
                 MiogramCustomUiPrefs.setBubbleRadius(val);
                 try {
                     org.telegram.messenger.SharedConfig.bubbleRadius = val;
-                    org.telegram.messenger.MessagesController.getGlobalMainSettings().edit().putInt("bubbleRadius", val).commit();
+                    org.telegram.messenger.MessagesController.getGlobalMainSettings().edit().putInt("bubbleRadius", val).apply();
                 } catch (Throwable ignored) {}
                 preview.invalidate();
                 refreshThemeAfterBubbleChange();

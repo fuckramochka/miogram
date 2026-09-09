@@ -32,6 +32,8 @@ import org.telegram.ui.FilterCreateActivity;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
+import app.miogram.bridge.MiogramLocale;
+
 /**
  * Miogram Subfolder & Smart Category Engine.
  * Provides hierarchical folder grouping (e.g. "Work / Dev"),
@@ -279,7 +281,7 @@ public class MiogramSubfolderEngine {
         Context context = fragment.getParentActivity();
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle("Нова підпапка");
+        builder.setTitle(MiogramLocale.get("Нова підпапка", "Новая подпапка", "New subfolder"));
 
         LinearLayout layout = new LinearLayout(context);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -289,14 +291,14 @@ public class MiogramSubfolderEngine {
 
         if (!TextUtils.isEmpty(parentName)) {
             TextView parentDesc = new TextView(context);
-            parentDesc.setText("У папці: " + parentName);
+            parentDesc.setText(MiogramLocale.get("У папці: ", "В папке: ", "In folder: ") + parentName);
             parentDesc.setTextSize(13);
             parentDesc.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
             layout.addView(parentDesc);
         }
 
         EditTextBoldCursor editText = new EditTextBoldCursor(context);
-        editText.setHint("Назва підпапки");
+        editText.setHint(MiogramLocale.get("Назва підпапки", "Название подпапки", "Subfolder name"));
         editText.setTextSize(16);
         editText.setSingleLine(true);
         editText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -307,37 +309,37 @@ public class MiogramSubfolderEngine {
         layout.addView(editText, etLp);
 
         TextView filterTypesDesc = new TextView(context);
-        filterTypesDesc.setText("Включити типи чатів:");
+        filterTypesDesc.setText(MiogramLocale.get("Включити типи чатів:", "Включить типы чатов:", "Include chat types:"));
         filterTypesDesc.setTextSize(12);
         filterTypesDesc.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
         layout.addView(filterTypesDesc);
 
         CheckBoxCell cbContacts = new CheckBoxCell(context, 1);
-        cbContacts.setText("Контакти", "", true, false);
+        cbContacts.setText(MiogramLocale.get("Контакти", "Контакты", "Contacts"), "", true, false);
         layout.addView(cbContacts);
 
         CheckBoxCell cbNonContacts = new CheckBoxCell(context, 1);
-        cbNonContacts.setText("Неконтакти", "", true, false);
+        cbNonContacts.setText(MiogramLocale.get("Неконтакти", "Неконтакты", "Non-contacts"), "", true, false);
         layout.addView(cbNonContacts);
 
         CheckBoxCell cbGroups = new CheckBoxCell(context, 1);
-        cbGroups.setText("Групи", "", true, false);
+        cbGroups.setText(MiogramLocale.get("Групи", "Группы", "Groups"), "", true, false);
         layout.addView(cbGroups);
 
         CheckBoxCell cbChannels = new CheckBoxCell(context, 1);
-        cbChannels.setText("Канали", "", true, false);
+        cbChannels.setText(MiogramLocale.get("Канали", "Каналы", "Channels"), "", true, false);
         layout.addView(cbChannels);
 
         CheckBoxCell cbBots = new CheckBoxCell(context, 1);
-        cbBots.setText("Боти", "", true, false);
+        cbBots.setText(MiogramLocale.get("Боти", "Боты", "Bots"), "", true, false);
         layout.addView(cbBots);
 
         builder.setView(layout);
 
-        builder.setPositiveButton("Створити", (dialog, which) -> {
+        builder.setPositiveButton(MiogramLocale.get("Створити", "Создать", "Create"), (dialog, which) -> {
             String name = editText.getText().toString().trim();
             if (TextUtils.isEmpty(name)) {
-                Toast.makeText(context, "Введіть назву підпапки", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, MiogramLocale.get("Введіть назву підпапки", "Введите название подпапки", "Enter a subfolder name"), Toast.LENGTH_SHORT).show();
                 return;
             }
 

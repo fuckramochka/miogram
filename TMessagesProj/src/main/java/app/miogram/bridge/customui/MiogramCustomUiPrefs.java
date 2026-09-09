@@ -207,6 +207,42 @@ public class MiogramCustomUiPrefs {
         if (local != null) {
             local.edit().putBoolean(key, val).apply();
         }
+        invalidateHotBool(key);
+    }
+
+    // --- Hot-path cache ---
+    // isBubbleColorEnabled() runs on EVERY Theme.getColor resolve (twice), and
+    // isUiDialogCards()/isBubbleGlowEnabled() run per dialog/chat row draw.
+    // getBool() costs 2x getSharedPreferences + synchronized getClientUserId +
+    // string concat + several map lookups — measurable fling jank. Cache the
+    // three flags keyed on (account, userId); all writes go through setBool().
+    private static volatile int hotSlot = -1;
+    private static volatile long hotUid = -1;
+    private static volatile Boolean hotBubbleColor = null;
+    private static volatile Boolean hotBubbleGlow = null;
+    private static volatile Boolean hotDialogCards = null;
+
+    private static boolean hotTagOk() {
+        int slot = UserConfig.selectedAccount;
+        long uid;
+        try {
+            uid = UserConfig.getInstance(slot).clientUserId;
+        } catch (Throwable ignore) {
+            uid = -1;
+        }
+        if (slot == hotSlot && uid == hotUid) return true;
+        hotSlot = slot;
+        hotUid = uid;
+        hotBubbleColor = null;
+        hotBubbleGlow = null;
+        hotDialogCards = null;
+        return false;
+    }
+
+    private static void invalidateHotBool(String key) {
+        if (KEY_BUBBLE_COLOR_ENABLED.equals(key)) hotBubbleColor = null;
+        else if (KEY_BUBBLE_GLOW_ENABLED.equals(key)) hotBubbleGlow = null;
+        else if (KEY_UI_DIALOG_CARDS.equals(key)) hotDialogCards = null;
     }
 
     public static int getInt(String key, int def) {
@@ -306,7 +342,13 @@ public class MiogramCustomUiPrefs {
     // 1. MESSAGE BUBBLES
     // =========================================================================
     public static boolean isBubbleColorEnabled() {
-        return getBool(KEY_BUBBLE_COLOR_ENABLED, false);
+        if (hotTagOk()) {
+            Boolean c = hotBubbleColor;
+            if (c != null) return c;
+        }
+        boolean v = getBool(KEY_BUBBLE_COLOR_ENABLED, false);
+        hotBubbleColor = v;
+        return v;
     }
     public static void setBubbleColorEnabled(boolean enabled) {
         setBool(KEY_BUBBLE_COLOR_ENABLED, enabled);
@@ -354,7 +396,13 @@ public class MiogramCustomUiPrefs {
         setInt(KEY_BUBBLE_RADIUS, radius);
     }
     public static boolean isBubbleGlowEnabled() {
-        return getBool(KEY_BUBBLE_GLOW_ENABLED, false);
+        if (hotTagOk()) {
+            Boolean c = hotBubbleGlow;
+            if (c != null) return c;
+        }
+        boolean v = getBool(KEY_BUBBLE_GLOW_ENABLED, false);
+        hotBubbleGlow = v;
+        return v;
     }
     public static void setBubbleGlowEnabled(boolean enabled) {
         setBool(KEY_BUBBLE_GLOW_ENABLED, enabled);
@@ -871,7 +919,13 @@ public class MiogramCustomUiPrefs {
     }
 
     public static boolean isDialogCardsEnabled() {
-        return getBool(KEY_UI_DIALOG_CARDS, false);
+        if (hotTagOk()) {
+            Boolean c = hotDialogCards;
+            if (c != null) return c;
+        }
+        boolean v = getBool(KEY_UI_DIALOG_CARDS, false);
+        hotDialogCards = v;
+        return v;
     }
     public static void setDialogCardsEnabled(boolean enabled) {
         setBool(KEY_UI_DIALOG_CARDS, enabled);

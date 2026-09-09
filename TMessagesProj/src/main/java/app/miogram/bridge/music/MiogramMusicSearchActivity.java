@@ -352,15 +352,15 @@ public class MiogramMusicSearchActivity extends BaseFragment {
             activePlayer.setOnErrorListener((mp, what, extra) -> {
                 stopActivePlayer();
                 if (adapter != null) adapter.notifyDataSetChanged();
-                Toast.makeText(ctx, "Помилка відтворення потоку", Toast.LENGTH_SHORT).show();
+                Toast.makeText(ctx, MiogramLocale.get("Помилка відтворення потоку", "Ошибка воспроизведения потока", "Stream playback error"), Toast.LENGTH_SHORT).show();
                 return true;
             });
             activePlayer.prepareAsync();
-            Toast.makeText(ctx, "▶ " + track.getDisplayTitle(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, "▶ " + (track.getDisplayTitle() != null ? track.getDisplayTitle() : ""), Toast.LENGTH_SHORT).show();
         } catch (Throwable t) {
             stopActivePlayer();
             if (adapter != null) adapter.notifyDataSetChanged();
-            Toast.makeText(ctx, "Помилка відтворення: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, MiogramLocale.get("Помилка відтворення", "Ошибка воспроизведения", "Playback error") + (t.getMessage() != null ? ": " + t.getMessage() : ""), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -474,7 +474,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
                 if (loadingBar != null) loadingBar.setVisibility(View.GONE);
                 if (sendButton != null) sendButton.setVisibility(View.VISIBLE);
                 Toast.makeText(getParentActivity() != null ? getParentActivity() : getContext(),
-                        "Помилка завантаження: " + error,
+                        MiogramLocale.get("Помилка завантаження", "Ошибка загрузки", "Download error") + (error != null ? ": " + error : ""),
                         Toast.LENGTH_SHORT).show();
             }
         });
@@ -611,7 +611,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
                         public void onError(String error) {
                             targetTrack.isDownloading = false;
                             if (adapter != null) adapter.notifyDataSetChanged();
-                            Toast.makeText(context, "Помилка завантаження: " + error, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(context, MiogramLocale.get("Помилка завантаження", "Ошибка загрузки", "Download error") + (error != null ? ": " + error : ""), Toast.LENGTH_SHORT).show();
                         }
                     });
                 }

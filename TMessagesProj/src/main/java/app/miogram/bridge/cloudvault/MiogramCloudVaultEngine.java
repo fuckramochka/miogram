@@ -53,7 +53,13 @@ public class MiogramCloudVaultEngine {
 
     public static final String MANIFEST_PREFIX = "#MVLT:";
     public static final String PART_PREFIX = "#MVLT_PART:";
-    public static final long DEFAULT_CHUNK_SIZE = 1000 * 1000 * 1000L; // ~953 MB safe chunk size
+    /**
+     * 100 MB chunks: safely below every Telegram upload limit, keeps single
+     * part captions under the 100-message sync window and bounds memory.
+     * Old files carry their own chunkSize in the manifest, so this only
+     * affects new uploads. (Was ~953 MB — large files silently failed.)
+     */
+    public static final long DEFAULT_CHUNK_SIZE = 100L * 1024L * 1024L;
     public static final byte[] MAGIC_HEADER = new byte[]{(byte) 0x4D, (byte) 0x56, (byte) 0x4C, (byte) 0x54}; // "MVLT"
 
     private static final SecureRandom secureRandom = new SecureRandom();
@@ -508,6 +514,7 @@ public class MiogramCloudVaultEngine {
     public static void registerFile(MiogramCloudVaultFile file) {
         if (file != null && file.fileId != null) {
             memoryFiles.put(file.fileId, file);
+            app.miogram.bridge.hooks.MioHook.dispatchVault("uploaded", file.fileId, file.name);
         }
     }
 
@@ -606,55 +613,139 @@ public class MiogramCloudVaultEngine {
 
     private static void processSyncMessages(int currentAccount, ArrayList<TLRPC.Message> messages) {
         if (messages == null) return;
+        java.util.HashSet<String> touched = new java.util.HashSet<>();
+        // Pass 1: manifests first — parts that arrive before their manifest
+        // (search returns newest-first) must not be dropped.
         for (TLRPC.Message msg : messages) {
-            if (msg.message == null) continue;
-            if (msg.message.startsWith(MANIFEST_PREFIX)) {
-                MiogramCloudVaultFile parsed = parseManifestCaption(msg.message);
-                if (parsed != null && parsed.fileId != null) {
-                    MiogramCloudVaultFile existing = memoryFiles.get(parsed.fileId);
-                    if (existing == null) {
-                        memoryFiles.put(parsed.fileId, parsed);
-                        existing = parsed;
-                    } else {
-                        if (existing.totalSize == 0 && parsed.totalSize > 0) existing.totalSize = parsed.totalSize;
-                        if (TextUtils.isEmpty(existing.name) && !TextUtils.isEmpty(parsed.name)) existing.name = parsed.name;
-                    }
-                    if (msg.media != null && msg.media.document != null) {
-                        if (!existing.chunkMsgIds.contains(msg.id)) {
-                            existing.chunkMsgIds.add(msg.id);
-                        }
-                        if (!existing.chunkMessages.contains(msg)) {
-                            existing.chunkMessages.add(0, msg);
-                            existing.chunkDocuments.add(0, msg.media.document);
-                        }
-                    }
-                }
-            } else if (msg.message.startsWith(PART_PREFIX)) {
-                try {
-                    String partInfo = msg.message.substring(PART_PREFIX.length());
-                    String[] tokens = partInfo.split(":");
-                    if (tokens.length >= 2) {
-                        String fId = tokens[0];
-                        MiogramCloudVaultFile existing = memoryFiles.get(fId);
-                        if (existing != null) {
-                            if (!existing.chunkMsgIds.contains(msg.id)) {
-                                existing.chunkMsgIds.add(msg.id);
-                            }
-                            if (msg.media != null && msg.media.document != null && !existing.chunkMessages.contains(msg)) {
-                                existing.chunkMessages.add(msg);
-                                existing.chunkDocuments.add(msg.media.document);
-                            }
-                        }
-                    }
-                } catch (Exception ignore) {}
+            if (msg == null || msg.message == null) continue;
+            if (!msg.message.startsWith(MANIFEST_PREFIX)) continue;
+            MiogramCloudVaultFile parsed = parseManifestCaption(msg.message);
+            if (parsed == null || parsed.fileId == null) continue;
+            MiogramCloudVaultFile existing = memoryFiles.get(parsed.fileId);
+            if (existing == null) {
+                memoryFiles.put(parsed.fileId, parsed);
+                existing = parsed;
+            } else {
+                if (existing.totalSize == 0 && parsed.totalSize > 0) existing.totalSize = parsed.totalSize;
+                if (TextUtils.isEmpty(existing.name) && !TextUtils.isEmpty(parsed.name)) existing.name = parsed.name;
+                if (existing.chunksCount <= 0 && parsed.chunksCount > 0) existing.chunksCount = parsed.chunksCount;
+            }
+            attachChunkDoc(existing, msg, 0);
+            touched.add(parsed.fileId);
+            flushPendingParts(existing);
+        }
+        // Pass 2: parts (orphans buffered until their manifest shows up).
+        for (TLRPC.Message msg : messages) {
+            if (msg == null || msg.message == null) continue;
+            if (!msg.message.startsWith(PART_PREFIX)) continue;
+            String fId = partFileIdOf(msg.message);
+            if (fId == null) continue;
+            MiogramCloudVaultFile existing = memoryFiles.get(fId);
+            if (existing != null) {
+                attachChunkDoc(existing, msg, partIndexOf(msg.message));
+                touched.add(fId);
+            } else {
+                bufferPendingPart(fId, msg);
             }
         }
+        // Pass 3: restore canonical chunk order (manifest + parts by index).
+        for (String fId : touched) {
+            MiogramCloudVaultFile f = memoryFiles.get(fId);
+            if (f != null) reorderChunks(f);
+        }
+    }
+
+    private static String partFileIdOf(String caption) {
+        try {
+            String[] tokens = caption.substring(PART_PREFIX.length()).split(":");
+            if (tokens.length >= 2 && tokens[0] != null && !tokens[0].isEmpty()) return tokens[0];
+        } catch (Throwable ignore) {}
+        return null;
+    }
+
+    private static int partIndexOf(String caption) {
+        if (caption == null) return Integer.MAX_VALUE;
+        if (caption.startsWith(MANIFEST_PREFIX)) return 0;
+        if (caption.startsWith(PART_PREFIX)) {
+            try {
+                String[] tokens = caption.substring(PART_PREFIX.length()).split(":");
+                if (tokens.length >= 2) return Integer.parseInt(tokens[1]);
+            } catch (Throwable ignore) {}
+        }
+        return Integer.MAX_VALUE;
+    }
+
+    /** Parts seen before their manifest — flushed once the manifest lands. */
+    private static final ConcurrentHashMap<String, ArrayList<TLRPC.Message>> pendingParts = new ConcurrentHashMap<>();
+
+    private static void bufferPendingPart(String fileId, TLRPC.Message msg) {
+        ArrayList<TLRPC.Message> list = pendingParts.get(fileId);
+        if (list == null) {
+            list = new ArrayList<>();
+            pendingParts.put(fileId, list);
+        }
+        synchronized (list) {
+            for (TLRPC.Message m : list) {
+                if (m.id == msg.id) return;
+            }
+            list.add(msg);
+        }
+    }
+
+    private static void flushPendingParts(MiogramCloudVaultFile file) {
+        ArrayList<TLRPC.Message> list = pendingParts.remove(file.fileId);
+        if (list == null) return;
+        synchronized (list) {
+            for (TLRPC.Message m : list) {
+                attachChunkDoc(file, m, partIndexOf(m.message));
+            }
+        }
+        reorderChunks(file);
+    }
+
+    /** Adds a chunk message+document, de-duplicated by message id (TLRPC.Message has no equals()). */
+    private static void attachChunkDoc(MiogramCloudVaultFile file, TLRPC.Message msg, int orderHint) {
+        if (file == null || msg == null) return;
+        if (file.chunkMsgIds.contains(msg.id)) return;
+        file.chunkMsgIds.add(msg.id);
+        if (msg.media != null && msg.media.document != null) {
+            file.chunkMessages.add(msg);
+            file.chunkDocuments.add(msg.media.document);
+            if (file.chunkDocIds != null && !file.chunkDocIds.contains(msg.media.document.id)) {
+                file.chunkDocIds.add(msg.media.document.id);
+            }
+        }
+    }
+
+    /** Sorts chunkMessages/chunkDocuments: manifest first, then parts by index. */
+    private static void reorderChunks(MiogramCloudVaultFile file) {
+        int n = file.chunkMessages.size();
+        if (n <= 1) return;
+        ArrayList<Integer> order = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) order.add(i);
+        final ArrayList<TLRPC.Message> msgs = file.chunkMessages;
+        java.util.Collections.sort(order, (a, b) -> {
+            int ia = partIndexOf(msgs.get(a).message);
+            int ib = partIndexOf(msgs.get(b).message);
+            if (ia != ib) return Integer.compare(ia, ib);
+            return Integer.compare(msgs.get(a).id, msgs.get(b).id);
+        });
+        ArrayList<TLRPC.Message> sortedMsgs = new ArrayList<>(n);
+        ArrayList<TLRPC.Document> sortedDocs = new ArrayList<>(file.chunkDocuments.size());
+        for (int idx : order) {
+            TLRPC.Message m = msgs.get(idx);
+            sortedMsgs.add(m);
+            if (m.media != null && m.media.document != null) sortedDocs.add(m.media.document);
+        }
+        file.chunkMessages = sortedMsgs;
+        file.chunkDocuments = sortedDocs;
     }
 
     public static void deleteVaultFile(int currentAccount, long vaultChatId, MiogramCloudVaultFile file, boolean deleteServerMessages) {
         if (file == null) return;
         memoryFiles.remove(file.fileId);
         saveCache(currentAccount);
+        app.miogram.bridge.hooks.MioHook.dispatchVault("deleted", file.fileId, file.name);
 
         if (deleteServerMessages && vaultChatId != 0 && !file.chunkMsgIds.isEmpty()) {
             MessagesController.getInstance(currentAccount).deleteMessages(file.chunkMsgIds, null, null, -vaultChatId, 0, true, 0);

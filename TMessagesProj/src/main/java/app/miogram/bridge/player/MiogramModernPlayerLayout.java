@@ -262,6 +262,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             MiogramHaptic.tap(v);
             if (alert != null) alert.setFullScreen(true, true);
         });
+        compactCoverWrapper.setContentDescription(MiogramLocale.get("Обкладинка, відкрити плеєр", "Обложка, открыть плеер", "Cover art, open player"));  
         compactInfoContainer.addView(compactCoverWrapper, LayoutHelper.createLinear(115, 115, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 10));
 
         compactTitleView = new TextView(context);
@@ -353,6 +354,20 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         heroBg.setColor(accentColor);
         heroBg.setShape(GradientDrawable.OVAL);
         heroPlayButton.setBackground(heroBg);
+        heroPlayButton.setContentDescription(MiogramLocale.get("Відтворити / Пауза", "Играть / Пауза", "Play / Pause"));
+        if (Build.VERSION.SDK_INT >= 23) {
+            heroPlayButton.setForeground(Theme.createSelectorDrawable(0x33FFFFFF, Theme.RIPPLE_MASK_CIRCLE_20DP));
+        }
+        // Tactile press squash: 0.92 scale while held, spring back on release.
+        heroPlayButton.setOnTouchListener((v, e) -> {
+            int action = e.getActionMasked();
+            if (action == android.view.MotionEvent.ACTION_DOWN) {
+                v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(90).start();
+            } else if (action == android.view.MotionEvent.ACTION_UP || action == android.view.MotionEvent.ACTION_CANCEL) {
+                v.animate().scaleX(1f).scaleY(1f).setDuration(160).start();
+            }
+            return false;
+        });
         if (Build.VERSION.SDK_INT >= 21) {
             heroPlayButton.setElevation(AndroidUtilities.dp(4));
         }
@@ -487,6 +502,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             FrameLayout slot0 = new FrameLayout(getContext());
             if (repeat != null) {
                 if (repeat.getParent() instanceof ViewGroup) ((ViewGroup) repeat.getParent()).removeView(repeat);
+                repeat.setContentDescription(MiogramLocale.get("Повтор", "Повтор", "Repeat"));
                 repeat.setOnClickListener(v -> {
                     MiogramHaptic.tap(v);
                     if (alert != null) {
@@ -505,6 +521,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             FrameLayout slot1 = new FrameLayout(getContext());
             if (prev != null) {
                 if (prev.getParent() instanceof ViewGroup) ((ViewGroup) prev.getParent()).removeView(prev);
+                prev.setContentDescription(MiogramLocale.get("Попередній трек", "Предыдущий трек", "Previous track"));
                 prev.setOnClickListener(v -> {
                     MiogramHaptic.tap(v);
                     MediaController.getInstance().playPreviousMessage();
@@ -517,6 +534,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             FrameLayout slot2 = new FrameLayout(getContext());
             if (play != null) {
                 if (play.getParent() instanceof ViewGroup) ((ViewGroup) play.getParent()).removeView(play);
+                play.setContentDescription(MiogramLocale.get("Відтворити / Пауза", "Играть / Пауза", "Play / Pause"));
                 play.setOnClickListener(v -> {
                     MiogramHaptic.tap(v);
                     if (MediaController.getInstance().isDownloadingCurrentMessage()) return;
@@ -536,6 +554,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             FrameLayout slot3 = new FrameLayout(getContext());
             if (next != null) {
                 if (next.getParent() instanceof ViewGroup) ((ViewGroup) next.getParent()).removeView(next);
+                next.setContentDescription(MiogramLocale.get("Наступний трек", "Следующий трек", "Next track"));
                 next.setOnClickListener(v -> {
                     MiogramHaptic.tap(v);
                     MediaController.getInstance().playNextMessage();
