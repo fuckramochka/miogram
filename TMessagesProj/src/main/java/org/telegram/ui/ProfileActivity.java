@@ -5699,6 +5699,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         communityItem = new ImageView(context);
         communityItem.setScaleType(ImageView.ScaleType.CENTER);
+        communityItem.setVisibility(View.GONE);
         communityItem.setAlpha(0f);
         communityItem.setImageDrawable(communityArrowDrawable = new CommunityArrowDrawable().withCircle());
         frameLayout.addView(communityItem, LayoutHelper.createFrame(16, 16, Gravity.TOP | Gravity.LEFT));
@@ -10286,8 +10287,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
 
         final boolean fromChat = previousTransitionFragment instanceof ChatActivity && ((ChatActivity) previousTransitionFragment).getCurrentChat() != null;
+        updateCommunityArrowItem();
         if (previousTransitionFragment != null) {
-            updateCommunityArrowItem();
             updateTimeItem();
             updateStar();
         }
