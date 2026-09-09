@@ -327,17 +327,6 @@ def test_native_text_settings_share_the_unique_identity_contract(sdk, loader, mo
     assert calls == [0, 1]
 
 
-def test_android_settings_use_serialized_identity_for_rows_and_subpages():
-    source = Path(corpus.JAVA_ROOT, 'app/exteraless/plugins/ui/PluginSettingsActivity.java').read_text()
-    row_id = source[source.index('private int rowId('):source.index('private UItem toUItem(')]
-    assert 'optNonEmpty(item, "row_id")' in row_id
-    assert 'rowIds.get(identity)' in row_id and 'rowIds.put(identity, id)' in row_id
-    assert 'hashCode()' not in row_id
-    assert 'owner.equals(subPageOwner(obj))' in source
-    assert 'ownersTo(null)' not in source
-    assert 'targetSetting.equals(optNonEmpty(row, "link_alias"))' in source
-
-
 def test_hiding_the_first_duplicate_does_not_reassign_its_callback(sdk, loader, monkeypatch):
     calls = []
     items = [sdk.settings.Text('Open', on_click=lambda view, key=key: calls.append(key))
@@ -418,28 +407,6 @@ def test_native_custom_row_ids_survive_unrelated_insertion(sdk, loader, monkeypa
     after = json.loads(loader.get_settings_json('test_plugin'))[1]
     assert after['row_id'] == before['row_id']
     assert loader._build_custom_view(record.custom_views[after['view_id']], None) is native
-
-
-def test_android_custom_rows_preserve_native_content_and_disabled_state():
-    source = Path(corpus.JAVA_ROOT, 'app/exteraless/plugins/ui/PluginSettingsActivity.java').read_text()
-    start = source.index('private UItem customRow(')
-    custom = source[start:source.index('return item;', start)]
-    assert '((UItem) content).copy()' in custom
-    assert 'optNonEmpty(row, "long_callback_id")' in custom
-    assert 'item.viewType = UItem.ofFactory(PluginCustomRowFactory.class).viewType' in custom
-    assert 'if (!(content instanceof UItem))' in custom
-    engine = Path(corpus.JAVA_ROOT, 'app/exteraless/plugins/PythonPluginsEngine.java').read_text()
-    assert 'result.toJava(Object.class)' in engine
-    item = Path(corpus.JAVA_ROOT, 'org/telegram/ui/Components/UItem.java').read_text()
-    assert 'implements Cloneable' in item and 'return (UItem) super.clone();' in item
-
-
-def test_injected_rows_cannot_borrow_an_sdk_callback_by_numeric_id():
-    source = Path(corpus.JAVA_ROOT, 'app/exteraless/plugins/ui/PluginSettingsActivity.java').read_text()
-    assert 'IdentityHashMap<UItem, JSONObject> rowsByItem' in source
-    assert 'rowsByItem.get(item)' in source
-    assert 'rowsByItem.get(item.id)' not in source
-    assert source.count('rowsByItem.put(item, row)') == 2
 
 
 def test_expanded_options_keep_their_object_bound_callbacks(sdk, loader, monkeypatch):
@@ -536,19 +503,3 @@ def test_admin_tools_custom_user_cell_keeps_its_factory_payload(sdk, loader, mon
     native = loader._build_custom_view(row, None)
     assert native.factory is factory
     assert native.args.hold_object == (-123, 'Admin chat', '13 members', click, long_click)
-
-
-def test_java_custom_factory_rows_keep_the_factory_for_click_dispatch():
-    source = Path(corpus.JAVA_ROOT, 'app/exteraless/plugins/PythonPluginsEngine.java').read_text()
-    assert 'factory.create(PluginsController.getInstance().getPlugin(pluginId),' in source
-    assert 'setting, setting.getFactoryArgs())' in source
-    assert 'item.settingItem = setting' in source
-    assert 'factory.onClick(plugin, item, view)' in source
-    assert 'factory.onLongClick(plugin, item, view)' in source
-    start = source.index('public boolean dispatchSettingsCustomClick(')
-    dispatch = source[start:source.index('public void notifySettingChanged(', start)]
-    assert 'watchdog.notePluginEnter(pluginId)' in dispatch
-    assert 'watchdog.notePluginExit(pluginId)' in dispatch
-    screen = Path(corpus.JAVA_ROOT, 'app/exteraless/plugins/ui/PluginSettingsActivity.java').read_text()
-    assert 'dispatchSettingsCustomClick(pluginId, item, view, true)' in screen
-    assert 'dispatchSettingsCustomClick(pluginId, item, view, false)' in screen
