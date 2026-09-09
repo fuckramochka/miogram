@@ -2429,12 +2429,22 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         }
 
         private int unreadCount = 0;
+        private int pluginUnreadBadgeDepth;
+
+        public void beginPluginUnreadBadge() {
+            pluginUnreadBadgeDepth++;
+        }
+
+        public void endPluginUnreadBadge() {
+            pluginUnreadBadgeDepth = Math.max(0, pluginUnreadBadgeDepth - 1);
+        }
+
         private RectF rect = new RectF();
 
         @Override
         public void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            if (countLayout == null || unreadCount == 0)
+            if (countLayout == null || unreadCount == 0 || pluginUnreadBadgeDepth > 0)
                 return;
 
             Paint paint = Theme.dialogs_countPaint;

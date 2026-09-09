@@ -50,6 +50,20 @@ import me.vkryl.android.animator.FactorAnimator;
 
 @SuppressLint("ViewConstructor")
 public class FragmentSearchField extends FrameLayout implements FactorAnimator.Target, Theme.Colorable {
+    private app.exteraless.pillstack.PillStackController pillStackController;
+    private app.exteraless.pillstack.PillStackView pillStackView;
+
+    public void setPillStackController(app.exteraless.pillstack.PillStackController controller) {
+        pillStackController = controller;
+    }
+
+    public void updatePillStack(boolean animated) {
+        if (pillStackController != null) {
+            pillStackController.rebuildContents();
+            pillStackView = pillStackController.getStackView();
+        }
+    }
+
     private static final int ANIMATOR_ID_CLOSE_BUTTON_VISIBLE = 0;
     private static final int ANIMATOR_ID_SEARCH_ICON_VISIBLE = 1;
     private static final int ANIMATOR_ID_SEARCH_FILTERS_WIDTH = 2;

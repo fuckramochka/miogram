@@ -98,6 +98,11 @@ def _own_roots(plugin_id: str):
     if roots is not None:
         return roots
     roots = []
+    if plugin_id and os.path.basename(plugin_id) == plugin_id and plugin_id not in (".", ".."):
+        try:
+            roots.append(_real(str(_context().getDir(plugin_id, 0).getAbsolutePath())))
+        except Exception:
+            pass
     try:
         plugins_dir = get_plugins_dir()
     except Exception:

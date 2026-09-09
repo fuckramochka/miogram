@@ -44,6 +44,9 @@ public class PillStackController implements PillStackEvents.Listener {
     private PillStackController(FrameLayout container, EditText editText) {
         this.container = container;
         this.editText = editText;
+        if (container instanceof org.telegram.ui.Components.FragmentSearchField) {
+            ((org.telegram.ui.Components.FragmentSearchField) container).setPillStackController(this);
+        }
 
         container.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override
@@ -89,6 +92,22 @@ public class PillStackController implements PillStackEvents.Listener {
 
     /** Пересобирает полосу по текущей раскладке. */
     public void rebuild() {
+        if (container instanceof org.telegram.ui.Components.FragmentSearchField) {
+            ((org.telegram.ui.Components.FragmentSearchField) container).updatePillStack(false);
+        } else {
+            rebuildContents();
+        }
+    }
+
+    public PillStackView getStackView() {
+        return stackView;
+    }
+
+    public void rebuildContents() {
+        if (stackView != null && stackView.getParent() != container) {
+            stackView.clearPills();
+            stackView = null;
+        }
         List<Integer> active = new ArrayList<>(PillStackConfig.getActivePills());
         if (active.isEmpty()) {
             if (stackView != null) {
