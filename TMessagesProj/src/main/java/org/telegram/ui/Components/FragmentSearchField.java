@@ -51,7 +51,6 @@ import me.vkryl.android.animator.FactorAnimator;
 @SuppressLint("ViewConstructor")
 public class FragmentSearchField extends FrameLayout implements FactorAnimator.Target, Theme.Colorable {
     private app.exteraless.pillstack.PillStackController pillStackController;
-    private app.exteraless.pillstack.PillStackView pillStackView;
 
     public void setPillStackController(app.exteraless.pillstack.PillStackController controller) {
         pillStackController = controller;
@@ -60,7 +59,6 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
     public void updatePillStack(boolean animated) {
         if (pillStackController != null) {
             pillStackController.rebuildContents();
-            pillStackView = pillStackController.getStackView();
         }
     }
 
