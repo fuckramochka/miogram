@@ -11925,6 +11925,29 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         rightIconIsPremium = false;
                         nameTextView[a].setRightDrawable(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 20));
                         nameTextViewRightDrawableContentDescription = app.miogram.bridge.badge.MiogramBadgeManager.getBadgeTitle(user.id);
+                        // Companion slot: keep premium / emoji-status visible next to
+                        // the arrow instead of replacing it (slot 2 is free here only
+                        // when scam/verified/mute did not claim it above).
+                        boolean slot2free = !user.scam && !user.fake && !user.verified
+                                && !getMessagesController().isDialogMuted(dialogId != 0 ? dialogId : userId, topicId);
+                        if (slot2free) {
+                            android.graphics.drawable.Drawable companion = null;
+                            if (!MessagesController.isSupportUser(user) && (DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0 || (user.self && selfEmojiDocId != null && selfEmojiDocId != 0))) {
+                                if (user.self && (selfEmojiDocId != null && selfEmojiDocId != 0) && DialogObject.getEmojiStatusDocumentId(user.emoji_status) == 0) {
+                                    TLRPC.TL_emojiStatus status = new TLRPC.TL_emojiStatus();
+                                    status.document_id = selfEmojiDocId;
+                                    companion = getEmojiStatusDrawable(status, false, false, a);
+                                } else {
+                                    companion = getEmojiStatusDrawable(user.emoji_status, false, false, a);
+                                }
+                            } else if (getMessagesController().isPremiumUser(user)) {
+                                companion = getEmojiStatusDrawable(null, false, false, a);
+                            }
+                            if (companion != null) {
+                                nameTextView[a].setRightDrawable2(companion);
+                                nameTextViewRightDrawable2ContentDescription = LocaleController.getString(R.string.AccDescrPremium);
+                            }
+                        }
                     } else if (user != null/* && !getMessagesController().premiumFeaturesBlocked()*/ && !MessagesController.isSupportUser(user) && (DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0 || (user.self && selfEmojiDocId != null && selfEmojiDocId != 0))) {
                         rightIconIsStatus = true;
                         rightIconIsPremium = false;
@@ -11959,6 +11982,26 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         rightIconIsPremium = false;
                         nameTextView[a].setRightDrawable(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 20));
                         nameTextViewRightDrawableContentDescription = app.miogram.bridge.badge.MiogramBadgeManager.getBadgeTitle(user.id);
+                        // Companion slot: keep premium / emoji-status visible next to
+                        // the arrow (slot 2 is free here unless scam/verified claimed it).
+                        if (!user.scam && !user.fake && !user.verified) {
+                            android.graphics.drawable.Drawable companion = null;
+                            if (!MessagesController.isSupportUser(user) && (DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0 || (user.self && selfEmojiDocId2 != null && selfEmojiDocId2 != 0))) {
+                                if (user.self && (selfEmojiDocId2 != null && selfEmojiDocId2 != 0) && DialogObject.getEmojiStatusDocumentId(user.emoji_status) == 0) {
+                                    TLRPC.TL_emojiStatus status = new TLRPC.TL_emojiStatus();
+                                    status.document_id = selfEmojiDocId2;
+                                    companion = getEmojiStatusDrawable(status, true, true, a);
+                                } else {
+                                    companion = getEmojiStatusDrawable(user.emoji_status, true, true, a);
+                                }
+                            } else if (getMessagesController().isPremiumUser(user)) {
+                                companion = getEmojiStatusDrawable(null, true, true, a);
+                            }
+                            if (companion != null) {
+                                nameTextView[a].setRightDrawable2(companion);
+                                nameTextViewRightDrawable2ContentDescription = LocaleController.getString(R.string.AccDescrPremium);
+                            }
+                        }
                     } else if (/*!getMessagesController().premiumFeaturesBlocked() && */user != null && !MessagesController.isSupportUser(user) && (DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0 || (user.self && selfEmojiDocId2 != null && selfEmojiDocId2 != 0))) {
                         rightIconIsStatus = true;
                         rightIconIsPremium = false;

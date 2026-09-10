@@ -1819,7 +1819,12 @@ public class NotificationsController extends BaseController implements Notificat
 
     public String getShortStringForMessage(MessageObject messageObject, String[] userName, boolean[] preview) {
         if (shouldHideNotificationContentForPasscode()) {
-            return LocaleController.getString(R.string.NotificationHiddenMessage);
+            // Locked Miogram: still notify (sound/vibration intact) but reveal
+            // nothing — a cute generic nudge instead of a dry system string.
+            return app.miogram.bridge.MiogramLocale.get(
+                    "Вам прийшло сповіщення, ня! ໒꒱",
+                    "Вам пришло уведомление, ня! ໒꒱",
+                    "You got a notification, nya! ໒꒱");
         }
         long dialogId = messageObject.messageOwner.dialog_id;
         long chat_id = messageObject.messageOwner.peer_id.chat_id != 0 ? messageObject.messageOwner.peer_id.chat_id : messageObject.messageOwner.peer_id.channel_id;

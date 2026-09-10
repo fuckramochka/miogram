@@ -194,7 +194,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     } else if (position == visualsRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Зовнішній вигляд та стиль", "Внешний вид и стиль", "Appearance & Style"), R.drawable.msg_theme, true);
                     } else if (position == navigationRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Навігація та Меню", "Навигация и Меню", "Navigation & Menu"), R.drawable.msg_folders, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Навігація та Меню", "Навигация и Меню", "Navigation & Menu"), R.drawable.msg_home_solar, true);
                     } else if (position == subfoldersRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Підпапки та Розумні фільтри", "Подпапки и Умные фильтры", "Subfolders & Smart Filters"), R.drawable.msg_folders, true);
                     } else if (position == iconPacksRow) {

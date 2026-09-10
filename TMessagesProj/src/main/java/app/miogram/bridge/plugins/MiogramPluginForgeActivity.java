@@ -47,6 +47,7 @@ public class MiogramPluginForgeActivity extends BaseFragment {
     private TextView modelNote;
     private TextView generateBtn;
     private ProgressBar progress;
+    private ProgressBar buildProgress;
     private TextView statusView;
     private TextView codeView;
     private LinearLayout resultRow;
@@ -141,9 +142,7 @@ public class MiogramPluginForgeActivity extends BaseFragment {
 
         progress = new ProgressBar(context);
         progress.setVisibility(View.GONE);
-        content.addView(progress, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 8));
-
-        statusView = new TextView(context);
+        content.addView(progress, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 8));        statusView = new TextView(context);
         statusView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         statusView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
         content.addView(statusView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
@@ -191,6 +190,10 @@ public class MiogramPluginForgeActivity extends BaseFragment {
         resultRow.addView(buildBtn, LayoutHelper.createLinear(0, 46, 1.0f, 6, 0, 0, 0));
 
         content.addView(resultRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        buildProgress = new ProgressBar(context);
+        buildProgress.setVisibility(View.GONE);
+        content.addView(buildProgress, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 8, 0, 0, 0));
         return fragmentView;
     }
 
@@ -308,13 +311,17 @@ public class MiogramPluginForgeActivity extends BaseFragment {
     }
 
     private void onSave() {
+        saveProject(null);
+    }
+
+    /** Saves the scaffold; runs onDone on the UI thread afterwards (null = toast only). */
+    private void saveProject(Runnable onDone) {
         if (lastResult == null) return;
         Utilities.globalQueue.postRunnable(() -> {
             try {
                 Context ctx = ApplicationLoader.applicationContext;
                 File dir = new File(new File(ctx.getFilesDir(), "forge"), lastResult.id);
                 if (!dir.exists()) dir.mkdirs();
-                writeFile(new File(dir, "src_lib.rs.tmp"), lastResult.code);
                 if ("go".equals(lastResult.language)) {
                     writeFile(new File(dir, "main.go"), lastResult.code);
                     writeFile(new File(dir, "go.mod"), MioForgeScaffold.goMod(lastResult.id));
@@ -322,7 +329,6 @@ public class MiogramPluginForgeActivity extends BaseFragment {
                     File srcDir = new File(dir, "src");
                     if (!srcDir.exists()) srcDir.mkdirs();
                     writeFile(new File(srcDir, "lib.rs"), lastResult.code);
-                    new File(dir, "src_lib.rs.tmp").delete();
                     writeFile(new File(dir, "Cargo.toml"), MioForgeScaffold.cargoToml(lastResult.id));
                 }
                 writeFile(new File(dir, "manifest.json"),
@@ -331,6 +337,7 @@ public class MiogramPluginForgeActivity extends BaseFragment {
                 AndroidUtilities.runOnUIThread(() -> {
                     statusView.setText(MiogramLocale.get("Збережено: ", "Сохранено: ", "Saved: ") + dir.getAbsolutePath());
                     Toast.makeText(getParentActivity(), MiogramLocale.get("Проєкт збережено", "Проект сохранен", "Project saved"), Toast.LENGTH_SHORT).show();
+                    if (onDone != null) onDone.run();
                 });
             } catch (Exception e) {
                 AndroidUtilities.runOnUIThread(() ->
@@ -358,17 +365,46 @@ public class MiogramPluginForgeActivity extends BaseFragment {
     }
 
     private void onBuild() {
-        if (lastProjectDir == null) {
-            statusView.setText(MiogramLocale.get("Спочатку збережіть проєкт.", "Сначала сохраните проект.", "Save the project first."));
+        if (lastResult == null) {
+            statusView.setText(MiogramLocale.get("Спочатку згенеруйте код.", "Сначала сгенерируйте код.", "Generate code first."));
             return;
         }
-        statusView.setText(MiogramLocale.get("Шукаю тулчейн і збираю…", "Ищу тулчейн и собираю…", "Probing toolchain and building…"));
+        if (lastProjectDir == null) {
+            // Autosave, then build — one tap does the whole pipeline.
+            statusView.setText(MiogramLocale.get("Зберігаю проєкт…", "Сохраняю проект…", "Saving project…"));
+            saveProject(this::startBuild);
+            return;
+        }
+        startBuild();
+    }
+
+    private void startBuild() {
         final File dir = lastProjectDir;
+        if (dir == null) return;
         final String lang = lastResult != null ? lastResult.language : "rust";
-        MioForgeBuilder.probeAndBuild(dir, lang, (success, log) -> AndroidUtilities.runOnUIThread(() -> {
-            statusView.setText((success ? "BUILD OK\n" : "") + log);
-            if (success) MiogramHaptic.success(statusView);
-        }));
+        buildBtn.setAlpha(0.5f);
+        buildBtn.setClickable(false);
+        buildProgress.setVisibility(View.VISIBLE);
+        statusView.setText(MiogramLocale.get("Шукаю тулчейн і збираю…", "Ищу тулчейн и собираю…", "Probing toolchain and building…"));
+        MioForgeBuilder.probeAndBuild(dir, lang,
+                (MioForgeBuilder.BuildLogListener) live ->
+                        AndroidUtilities.runOnUIThread(() -> statusView.setText(live)),
+                (success, log) -> AndroidUtilities.runOnUIThread(() -> {
+                    buildProgress.setVisibility(View.GONE);
+                    buildBtn.setAlpha(1f);
+                    buildBtn.setClickable(true);
+                    statusView.setText((success ? "BUILD OK\n" : "") + log);
+                    if (success) {
+                        MiogramHaptic.success(statusView);
+                        Toast.makeText(getParentActivity(),
+                                MiogramLocale.get("Плагін зібрано: plugin.wasm", "Плагин собран: plugin.wasm", "Plugin built: plugin.wasm"),
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(getParentActivity(),
+                                MiogramLocale.get("Збірка не вдалася — деталі вище", "Сборка не удалась — детали выше", "Build failed — details above"),
+                                Toast.LENGTH_LONG).show();
+                    }
+                }));
     }
 
     @Override

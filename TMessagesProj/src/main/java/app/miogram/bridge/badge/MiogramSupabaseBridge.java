@@ -46,12 +46,18 @@ public class MiogramSupabaseBridge {
         public final boolean isActive;
         /** Server-staff verification. Self-claimed rows are always false. */
         public final boolean verified;
+        /** user_id of the granter (founder grants carry FOUNDER_USER_ID). 0 = self-selected style. */
+        public final long grantorId;
 
         public BadgeRecord(long userId, MiogramBadgeType badgeType, String title, String obtainedReason, String obtainedAt, boolean isActive) {
-            this(userId, badgeType, title, obtainedReason, obtainedAt, isActive, userId == MiogramBadgeManager.FOUNDER_USER_ID);
+            this(userId, badgeType, title, obtainedReason, obtainedAt, isActive, userId == MiogramBadgeManager.FOUNDER_USER_ID, 0);
         }
 
         public BadgeRecord(long userId, MiogramBadgeType badgeType, String title, String obtainedReason, String obtainedAt, boolean isActive, boolean verified) {
+            this(userId, badgeType, title, obtainedReason, obtainedAt, isActive, verified, 0);
+        }
+
+        public BadgeRecord(long userId, MiogramBadgeType badgeType, String title, String obtainedReason, String obtainedAt, boolean isActive, boolean verified, long grantorId) {
             this.userId = userId;
             this.badgeType = badgeType != null ? badgeType : MiogramBadgeType.ORIGINAL;
             this.title = title != null ? title : "Miogram Community ໒꒱";
@@ -59,6 +65,7 @@ public class MiogramSupabaseBridge {
             this.obtainedAt = obtainedAt != null ? obtainedAt : "01.09.2026";
             this.isActive = isActive;
             this.verified = verified;
+            this.grantorId = grantorId;
         }
     }
 
@@ -226,7 +233,7 @@ public class MiogramSupabaseBridge {
         Utilities.globalQueue.postRunnable(() -> {
             HttpURLConnection connection = null;
             try {
-                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?select=user_id,badge_id,title,obtained_reason,obtained_at,is_active,verified&is_active=eq.true";
+                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?select=user_id,badge_id,title,obtained_reason,obtained_at,is_active,verified,grantor_id&is_active=eq.true";
                 URL url = new URL(endpoint);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
@@ -285,6 +292,7 @@ public class MiogramSupabaseBridge {
                     String reason = obj.optString("obtained_reason", "Верифікований учасник спільноти Miogram");
                     String date = obj.optString("obtained_at", "01.09.2026");
                     boolean verified = obj.optBoolean("verified", uid == MiogramBadgeManager.FOUNDER_USER_ID);
+                    long grantorId = obj.optLong("grantor_id", 0);
 
                     if (uid != 0 && active) {
                         // Anti-abuse: unverified founder claims render as plain member rows.
@@ -292,7 +300,7 @@ public class MiogramSupabaseBridge {
                             title = fallbackTitle(false);
                             reason = fallbackReason(false);
                         }
-                        badgeCache.put(uid, new BadgeRecord(uid, MiogramBadgeType.fromId(badgeId), title, reason, date, true, verified));
+                        badgeCache.put(uid, new BadgeRecord(uid, MiogramBadgeType.fromId(badgeId), title, reason, date, true, verified, grantorId));
                     }
                 }
             }
@@ -432,8 +440,76 @@ public class MiogramSupabaseBridge {
         });
     }
 
-    /** Public community counters for the website/app (via SECURITY DEFINER RPC, no table scan). */
-    public static void getCommunityStats(Utilities.Callback2<Long, Long> callback) {
+    /**
+     * Founder grant: writes ANOTHER user's row with an explicit badge, title
+     * and reason. The row carries grantor_id so clients can render
+     * "Granted by Founder". Note: with the anon key this is a trust signal,
+     * not proof — real proof is the staff-only {@code verified} flag
+     * (service_role / dashboard). Until Supabase Auth with Telegram login
+     * lands, treat unverified founder lore as cosmetic.
+     */
+    public static void grantBadgeToUser(long targetUserId, String badgeId, String title, String reason, Runnable onComplete) {
+        if (targetUserId <= 0) return;
+        final String fBadge = badgeId != null ? badgeId : "original";
+        final String fTitle = title != null ? title : fallbackTitle(false);
+        final String fReason = reason != null ? reason : fallbackReason(false);
+        long granter = 0;
+        try {
+            granter = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+        } catch (Throwable ignored) {}
+        final long fGranter = granter;
+        Utilities.globalQueue.postRunnable(() -> {
+            HttpURLConnection connection = null;
+            try {
+                URL url = new URL(DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?on_conflict=user_id");
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+                connection.setConnectTimeout(8000);
+                connection.setReadTimeout(8000);
+                connection.setRequestProperty("apikey", DEFAULT_ANON_KEY);
+                connection.setRequestProperty("Authorization", "Bearer " + DEFAULT_ANON_KEY);
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setRequestProperty("Prefer", "resolution=merge-duplicates");
+
+                JSONObject body = new JSONObject();
+                body.put("user_id", targetUserId);
+                body.put("badge_id", fBadge);
+                body.put("is_active", true);
+                body.put("title", fTitle);
+                body.put("obtained_reason", fReason);
+                body.put("obtained_at", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date()));
+                body.put("grantor_id", fGranter);
+                body.put("client_version", "Miogram " + BuildVars.BUILD_VERSION_STRING);
+
+                byte[] outBytes = body.toString().getBytes(StandardCharsets.UTF_8);
+                connection.setFixedLengthStreamingMode(outBytes.length);
+                OutputStream os = connection.getOutputStream();
+                os.write(outBytes);
+                os.flush();
+                os.close();
+
+                int code = connection.getResponseCode();
+                FileLog.d("MiogramSupabaseBridge grant badge status: " + code);
+                if (code >= 200 && code < 300) {
+                    synchronized (badgeCache) {
+                        badgeCache.put(targetUserId, new BadgeRecord(targetUserId,
+                                MiogramBadgeType.fromId(fBadge), fTitle, fReason,
+                                new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date()), true, false, fGranter));
+                    }
+                }
+            } catch (Exception e) {
+                FileLog.e(e);
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+            if (onComplete != null) {
+                AndroidUtilities.runOnUIThread(onComplete);
+            }
+        });
+    }
+
+    /** Public community counters for the website/app (via SECURITY DEFINER RPC, no table scan). */    public static void getCommunityStats(Utilities.Callback2<Long, Long> callback) {
         Utilities.globalQueue.postRunnable(() -> {
             HttpURLConnection connection = null;
             long users = -1;

@@ -39,7 +39,8 @@ public final class MiogramMusorDrop {
     public static boolean isTrigger(String url) {
         if (url == null) return false;
         String u = url.trim().toLowerCase(java.util.Locale.US);
-        return u.equals(TRIGGER_URL) || u.equals(TRIGGER_URL + "/");
+        if (u.endsWith("/")) u = u.substring(0, u.length() - 1);
+        return u.equals(TRIGGER_URL) || u.equals("tg:musor_drop");
     }
 
     /** @return true when the egg was shown (caller must skip normal handling). */
@@ -55,12 +56,43 @@ public final class MiogramMusorDrop {
         File video = locate("musordrop.mp4");
         File audio = video != null ? null : locate("musordrop.mp3");
         File media = video != null ? video : audio;
-        if (media == null || !media.isFile()) return false;
 
         final Activity act = activity;
+        if (media == null || !media.isFile()) {
+            // Trigger works, media missing: blackout with a hint instead of silence.
+            AndroidUtilities.runOnUIThread(() -> showMissingOverlay(act));
+            return true;
+        }
         final boolean isVideo = video != null;
         AndroidUtilities.runOnUIThread(() -> showOverlay(act, media, isVideo));
         return true;
+    }
+
+    private static void showMissingOverlay(Activity activity) {
+        try {
+            final Dialog dialog = new Dialog(activity, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+            dialog.setCancelable(true);
+            dialog.setCanceledOnTouchOutside(true);
+            FrameLayout root = new FrameLayout(activity);
+            root.setBackgroundColor(Color.BLACK);
+            android.widget.TextView hint = new android.widget.TextView(activity);
+            hint.setText("MUSOR NOT FOUND\nkin' musordrop.mp3 v assets/Downloads");
+            hint.setTextColor(Color.WHITE);
+            hint.setTextSize(16);
+            hint.setGravity(Gravity.CENTER);
+            root.addView(hint, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER));
+            root.setOnClickListener(v -> safeDismiss(dialog));
+            dialog.setContentView(root);
+            android.view.Window w = dialog.getWindow();
+            if (w != null) {
+                w.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
+            }
+            dialog.show();
+            root.postDelayed(() -> safeDismiss(dialog), 2200);
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
     }
 
     private static File locate(String name) {

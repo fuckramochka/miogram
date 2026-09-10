@@ -196,3 +196,6 @@ $$;
 grant execute on function public.miogram_community_stats() to anon, authenticated;
 grant execute on function public.miogram_founder_id() to anon, authenticated;
 
+-- 8. Grantor tracking (founder grants from the app client)
+alter table public.miogram_badges add column if not exists grantor_id bigint not null default 0;
+

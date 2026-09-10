@@ -60,6 +60,7 @@ public class MiogramChatAiSheet extends BottomSheet {
     private TextView actionBtn;
     private ProgressBar progress;
     private TextView statusView;
+    private LinearLayout resultCard;
     private TextView resultView;
     private LinearLayout resultActions;
     private TextView copyBtn;
@@ -92,15 +93,26 @@ public class MiogramChatAiSheet extends BottomSheet {
         content.addView(handle, LayoutHelper.createLinear(36, 4, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 12));
 
         TextView title = new TextView(ctx);
-        title.setText(MiogramLocale.get("Miogram AI в чаті", "Miogram AI в чате", "Miogram AI in chat"));
-        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+        title.setText(MiogramLocale.get("✦ Miogram AI в чаті", "✦ Miogram AI в чате", "✦ Miogram AI in chat"));
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         title.setTypeface(AndroidUtilities.bold());
         title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         title.setGravity(Gravity.CENTER);
-        content.addView(title, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
+        content.addView(title, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 4));
+
+        TextView subtitle = new TextView(ctx);
+        subtitle.setText(MiogramLocale.get("Чернетки повідомлень і пошук по чату",
+                "Черновики сообщений и поиск по чату",
+                "Message drafts and in-chat search"));
+        subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        subtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+        subtitle.setGravity(Gravity.CENTER);
+        content.addView(subtitle, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
 
         LinearLayout tabs = new LinearLayout(ctx);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
+        tabs.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), 0x14000000));
+        tabs.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4));
         tabs.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), 0x14000000));
         tabs.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4));
         writeTab = makeTab(ctx, MiogramLocale.get("Написати", "Написать", "Write"));
@@ -159,15 +171,22 @@ public class MiogramChatAiSheet extends BottomSheet {
         LinearLayout scrollInner = new LinearLayout(ctx);
         scrollInner.setOrientation(LinearLayout.VERTICAL);
 
+        LinearLayout resultCard = new LinearLayout(ctx);
+        resultCard.setOrientation(LinearLayout.VERTICAL);
+        resultCard.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), Theme.getColor(Theme.key_windowBackgroundGray)));
+        resultCard.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
+        resultCard.setVisibility(View.GONE);
+        this.resultCard = resultCard;
+        resultCard.setVisibility(View.GONE);
+
         resultView = new TextView(ctx);
-        resultView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        resultView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f);
+        resultView.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
         resultView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        resultView.setVisibility(View.GONE);
-        scrollInner.addView(resultView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
+        resultCard.addView(resultView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
 
         resultActions = new LinearLayout(ctx);
         resultActions.setOrientation(LinearLayout.HORIZONTAL);
-        resultActions.setVisibility(View.GONE);
         copyBtn = makeSmallButton(ctx, MiogramLocale.get("Копіювати", "Копировать", "Copy"));
         copyBtn.setOnClickListener(v -> {
             MiogramHaptic.tap(v);
@@ -180,7 +199,8 @@ public class MiogramChatAiSheet extends BottomSheet {
             insertDraft();
         });
         resultActions.addView(insertBtn, LayoutHelper.createLinear(0, 42, 1.0f, 6, 0, 0, 0));
-        scrollInner.addView(resultActions);
+        resultCard.addView(resultActions);
+        scrollInner.addView(resultCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
 
         hitsList = new LinearLayout(ctx);
         hitsList.setOrientation(LinearLayout.VERTICAL);
@@ -237,6 +257,7 @@ public class MiogramChatAiSheet extends BottomSheet {
         refreshTabs();
         refreshAction();
         statusView.setText("");
+        resultCard.setVisibility(View.GONE);
         resultView.setVisibility(View.GONE);
         resultActions.setVisibility(View.GONE);
         hitsList.removeAllViews();
@@ -276,6 +297,7 @@ public class MiogramChatAiSheet extends BottomSheet {
                 resultView.setText(lastDraft);
                 resultView.setVisibility(View.VISIBLE);
                 resultActions.setVisibility(View.VISIBLE);
+                resultCard.setVisibility(View.VISIBLE);
                 insertBtn.setVisibility(onInsert != null ? View.VISIBLE : View.GONE);
                 hitsList.removeAllViews();
             } else {
@@ -308,6 +330,7 @@ public class MiogramChatAiSheet extends BottomSheet {
     private void onSearch(String query) {
         setBusy(true);
         statusView.setText("");
+        resultCard.setVisibility(View.GONE);
         resultView.setVisibility(View.GONE);
         resultActions.setVisibility(View.GONE);
         hitsList.removeAllViews();

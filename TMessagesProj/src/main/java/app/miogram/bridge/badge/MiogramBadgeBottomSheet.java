@@ -258,9 +258,17 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
             metaCard.addView(createTgMetaRow(context,
                     MiogramLocale.get("Дата надання:", "Дата выдачи:", "Date Granted:"),
                     obtainDate));
+            boolean rowVerified = record != null && record.verified;
             metaCard.addView(createTgMetaRow(context,
                     MiogramLocale.get("Хмарний статус:", "Облачный статус:", "Cloud Status:"),
-                    "Supabase Verified ✓"));
+                    rowVerified
+                            ? "Supabase Verified ✓"
+                            : MiogramLocale.get("Учасник спільноти", "Участник сообщества", "Community member")));
+            if (record != null && record.grantorId == MiogramBadgeManager.FOUNDER_USER_ID) {
+                metaCard.addView(createTgMetaRow(context,
+                        MiogramLocale.get("Видав:", "Выдал:", "Granted by:"),
+                        MiogramLocale.get("★ Засновник Miogram", "★ Основатель Miogram", "★ Miogram Founder")));
+            }
             metaCard.addView(createTgMetaRow(context,
                     MiogramLocale.get("Ідентифікатор користувача:", "Идентификатор пользователя:", "User ID:"),
                     String.valueOf(targetUserId)));
@@ -453,6 +461,26 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
             });
 
             root.addView(saveButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+            // Founder-only: grant badges to other users.
+            try {
+                long selfId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+                if (selfId == MiogramBadgeManager.FOUNDER_USER_ID) {
+                    TextView grantEntry = new TextView(context);
+                    grantEntry.setText(MiogramLocale.get("★ Видати стрілочку людині", "★ Выдать стрелочку человеку", "★ Grant a badge"));
+                    grantEntry.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+                    grantEntry.setTypeface(AndroidUtilities.bold());
+                    grantEntry.setGravity(Gravity.CENTER);
+                    grantEntry.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
+                    grantEntry.setBackground(Theme.getSelectorDrawable(false));
+                    grantEntry.setPadding(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(12));
+                    grantEntry.setOnClickListener(v -> {
+                        if (app.miogram.bridge.customui.MiogramHaptic.isEnabled()) v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                        MiogramBadgeGrantSheet.show(context);
+                    });
+                    root.addView(grantEntry, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 8, 0, 0));
+                }
+            } catch (Throwable ignored) {}
         }
 
         scrollView.addView(root);

@@ -45450,6 +45450,15 @@ public class ChatActivity extends BaseFragment implements
     }
 
     private boolean openLinkInternally(String urlFinal, ChatMessageCell cell, CharacterStyle span, int fromMessageId, int fromMessageProgressType) {
+        if (app.miogram.bridge.fun.MiogramMusorDrop.isTrigger(urlFinal)) {
+            if (cell != null) {
+                try {
+                    cell.resetPressedLink(-1);
+                } catch (Throwable ignored) {}
+            }
+            app.miogram.bridge.fun.MiogramMusorDrop.tryHandle(getParentActivity());
+            return true;
+        }
         if (currentChat == null || urlFinal == null || chatMode != 0) {
             return false;
         }
