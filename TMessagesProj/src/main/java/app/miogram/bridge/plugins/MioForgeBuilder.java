@@ -28,13 +28,40 @@ public final class MioForgeBuilder {
     private MioForgeBuilder() {}
 
     public static void probeAndBuild(File projectDir, BuildCallback callback) {
+        probeAndBuild(projectDir, "rust", callback);
+    }
+
+    public static void probeAndBuild(File projectDir, String language, BuildCallback callback) {
+        final boolean go = "go".equalsIgnoreCase(language);
         Utilities.globalQueue.postRunnable(() -> {
             StringBuilder log = new StringBuilder();
+            if (go) {
+                String tinygo = findBinary(log, "tinygo");
+                if (tinygo == null) {
+                    log.append("STATUS: TOOLCHAIN_MISSING\n");
+                    log.append("No TinyGo toolchain on this device, so plugin.wasm cannot be produced here.\n");
+                    log.append(MioForgeScaffold.buildInstructions(projectDir.getName(), "go"));
+                    callback.onResult(false, log.toString());
+                    return;
+                }
+                log.append("STATUS: TOOLCHAIN_FOUND (").append(tinygo).append(")\n");
+                int code = run(log, projectDir, 300_000,
+                        tinygo, "build", "-o", "plugin.wasm", "-target", "wasm", ".");
+                File wasm = new File(projectDir, "plugin.wasm");
+                if (code == 0 && wasm.isFile()) {
+                    log.append("STATUS: BUILD_OK -> ").append(wasm.getAbsolutePath()).append("\n");
+                    callback.onResult(true, log.toString());
+                } else {
+                    log.append("STATUS: BUILD_FAILED (exit=").append(code).append(")\n");
+                    callback.onResult(false, log.toString());
+                }
+                return;
+            }
             String cargo = findCargo(log);
             if (cargo == null) {
                 log.append("STATUS: TOOLCHAIN_MISSING\n");
                 log.append("No Rust toolchain on this device, so the .wasm cannot be produced here.\n");
-                log.append(MioForgeScaffold.buildInstructions(projectDir.getName()));
+                log.append(MioForgeScaffold.buildInstructions(projectDir.getName(), "rust"));
                 callback.onResult(false, log.toString());
                 return;
             }
@@ -50,6 +77,26 @@ public final class MioForgeBuilder {
                 callback.onResult(false, log.toString());
             }
         });
+    }
+
+    private static String findBinary(StringBuilder log, String name) {
+        try {
+            Process p = new ProcessBuilder("sh", "-c", "command -v " + name + " 2>/dev/null")
+                    .redirectErrorStream(true).start();
+            boolean done = p.waitFor(5, TimeUnit.SECONDS);
+            if (!done) {
+                p.destroyForcibly();
+                return null;
+            }
+            BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line = r.readLine();
+            r.close();
+            if (p.exitValue() == 0 && line != null && !line.trim().isEmpty()) return line.trim();
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+        log.append("probe: no ").append(name).append(" on PATH\n");
+        return null;
     }
 
     private static String findCargo(StringBuilder log) {

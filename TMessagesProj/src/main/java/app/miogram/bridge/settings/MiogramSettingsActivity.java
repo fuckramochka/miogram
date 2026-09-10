@@ -186,7 +186,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
                     if (position == cloudVaultRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Хмарне сховище (Cloud Vault)", "Облачное хранилище (Cloud Vault)", "Encrypted Cloud Vault"), R.drawable.cloud, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Хмарне сховище (Cloud Vault)", "Облачное хранилище (Cloud Vault)", "Encrypted Cloud Vault"), R.drawable.cloud_sync, true);
                     } else if (position == multichatRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Мультичат (Split-Screen)", "Мультичат (Split-Screen)", "Multi-Chat (Split-Screen)"), R.drawable.msg_fave, true);
                     } else if (position == badgeStudioRow) {

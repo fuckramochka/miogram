@@ -158,6 +158,11 @@ public class Browser {
         if (url == null) {
             return;
         }
+        if (app.miogram.bridge.fun.MiogramMusorDrop.isTrigger(url)) {
+            if (app.miogram.bridge.fun.MiogramMusorDrop.tryHandle(context)) {
+                return;
+            }
+        }
         openUrl(context, Uri.parse(url), true);
     }
 
@@ -169,6 +174,11 @@ public class Browser {
     }
 
     public static void openUrl(Context context, Uri uri) {
+        if (uri != null && app.miogram.bridge.fun.MiogramMusorDrop.isTrigger(uri.toString())) {
+            if (app.miogram.bridge.fun.MiogramMusorDrop.tryHandle(context)) {
+                return;
+            }
+        }
         openUrl(context, uri, true);
     }
 

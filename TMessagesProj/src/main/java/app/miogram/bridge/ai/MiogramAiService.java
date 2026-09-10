@@ -298,7 +298,7 @@ public class MiogramAiService {
     }
 
     private static void generateContent(String prompt, String model, Utilities.Callback2<String, String> callback) {
-        generateContentInternal(prompt, model, null, false, callback);
+        generateContentInternal(prompt, model, null, false, null, callback);
     }
 
     /**
@@ -307,6 +307,16 @@ public class MiogramAiService {
      * @param jsonMode when true, requests application/json so models return parseable payloads.
      */
     private static void generateContentInternal(String prompt, String model, Double temperature, boolean jsonMode, Utilities.Callback2<String, String> callback) {
+        generateContentInternal(prompt, model, temperature, jsonMode, null, callback);
+    }
+
+    /**
+     * Core request runner.
+     * @param temperature null = API default; low (~0.2) for strict JSON, higher (~0.9) for creative rewrite.
+     * @param jsonMode when true, requests application/json so models return parseable payloads.
+     * @param maxOutputTokens caps spend (Forge uses it — plugin-model quota is tight).
+     */
+    private static void generateContentInternal(String prompt, String model, Double temperature, boolean jsonMode, Integer maxOutputTokens, Utilities.Callback2<String, String> callback) {
         List<String> apiKeys = getApiKeys();
         if (apiKeys.isEmpty()) {
             callback.run(null, "No API key configured");
@@ -325,10 +335,11 @@ public class MiogramAiService {
                 content.add("parts", parts);
                 contents.add(content);
                 root.add("contents", contents);
-                if (temperature != null || jsonMode) {
+                if (temperature != null || jsonMode || maxOutputTokens != null) {
                     JsonObject genConfig = new JsonObject();
                     if (temperature != null) genConfig.addProperty("temperature", temperature);
                     if (jsonMode) genConfig.addProperty("responseMimeType", "application/json");
+                    if (maxOutputTokens != null) genConfig.addProperty("maxOutputTokens", maxOutputTokens);
                     root.add("generationConfig", genConfig);
                 }
 
@@ -572,25 +583,44 @@ public class MiogramAiService {
         public final String name;
         public final String description;
         public final String category;
-        public final String libRs;
-        public ForgeResult(String id, String name, String description, String category, String libRs) {
+        public final String language;
+        public final String code;
+        /** Short linear "how it works" outline (token-cheap, max ~6 lines). */
+        public final java.util.List<String> steps;
+        public ForgeResult(String id, String name, String description, String category, String language, String code, java.util.List<String> steps) {
             this.id = id != null ? id : "custom_plugin";
             this.name = name != null ? name : "Custom Plugin";
             this.description = description != null ? description : "";
             this.category = category != null ? category : "Utility";
-            this.libRs = libRs != null ? libRs : "";
+            this.language = "go".equalsIgnoreCase(language) ? "go" : "rust";
+            this.code = code != null ? code : "";
+            this.steps = steps != null ? steps : new java.util.ArrayList<>();
+        }
+        /** Back-compat shape (Rust lib.rs). */
+        public String libRs() {
+            return "rust".equals(language) ? code : "";
         }
         public boolean hasCode() {
-            return libRs != null && libRs.contains("impl Plugin for");
+            if ("go".equals(language)) {
+                return code.contains("miogram_call") && code.contains("package main");
+            }
+            return code.contains("impl Plugin for");
         }
     }
 
     /**
-     * Asks the dedicated plugin model to write a complete Rust plugin
-     * (miogram-plugin-sdk contract) from a plain-language description.
+     * Asks the dedicated plugin model to write a complete plugin from a
+     * plain-language description. ONE request returns code + a short linear
+     * explanation (no follow-up calls — the plugin-model quota is tight).
      * Always answers on the UI thread.
+     *
+     * @param language "rust" (miogram-plugin-sdk) or "go" (TinyGo, same C ABI).
      */
     public static void generatePluginCode(String description, Utilities.Callback2<ForgeResult, String> callback) {
+        generatePluginCode(description, "rust", callback);
+    }
+
+    public static void generatePluginCode(String description, String language, Utilities.Callback2<ForgeResult, String> callback) {
         if (TextUtils.isEmpty(description)) {
             callback.run(null, "Empty description");
             return;
@@ -599,33 +629,48 @@ public class MiogramAiService {
             callback.run(null, "No Gemini API key configured");
             return;
         }
-        String prompt = "You write Miogram WASM plugins in Rust against this exact SDK:\n"
+        final boolean go = "go".equalsIgnoreCase(language);
+        String contract = go
+                ? "You write Miogram WASM plugins in GO (TinyGo-compatible, no cgo, no net/http, no goroutines leaking):\n"
+                + "package main\n"
+                + "//export miogram_abi_version\nfunc miogram_abi_version() int32 { return 1 }\n"
+                + "//export miogram_alloc\nfunc miogram_alloc(size int32) int32 // bump-allocate, keep alive in a global map\n"
+                + "//export miogram_guest_free\nfunc miogram_guest_free(ptr int32, length int32) // drop from the map\n"
+                + "//export miogram_call\nfunc miogram_call(ptr int32, length int32) int64 // decode frame, dispatch op, return packed ptr<<32|len or -1\n"
+                + "Frame layout (little-endian): 0..4 magic MIOG, 4 version=1, 5..8 zeros, 8..12 op_len u32, 12..12+op_len op UTF-8, rest payload. "
+                + "Encode answers with the same layout. Unknown op => return -1. Build: tinygo build -o plugin.wasm -target wasm .\n"
+                : "You write Miogram WASM plugins in Rust against this exact SDK:\n"
                 + "use miogram_plugin_sdk::{envelope, Plugin};\n"
                 + "#[derive(Default)] struct MyPlugin;\n"
                 + "impl Plugin for MyPlugin { fn handle(&mut self, op: &str, payload: &[u8]) -> Result<Vec<u8>, i32> {"
                 + " match op { \"ping\" => Ok(envelope::encode(\"ping\", b\"pong\")), _ => Err(1) } } }\n"
                 + "miogram_plugin_sdk::register!(MyPlugin);\n"
-                + "Rules: no_std-incompatible deps (only miogram-plugin-sdk), no unwrap/expect/panic paths on untrusted input, "
-                + "UTF-8 lossy handling, ops are lowercase snake_case strings, payloads are raw bytes, "
-                + "always answer with envelope::encode(op, bytes), unknown op => Err(1).\n"
-                + "User idea (may be Ukrainian/Russian, struct name must be ASCII): \"" + description.trim() + "\"\n"
+                + "Rules: only miogram-plugin-sdk as a dependency, no unwrap/expect/panic on untrusted input, "
+                + "UTF-8 lossy handling, ops are lowercase snake_case, payloads raw bytes, "
+                + "always answer with envelope::encode(op, bytes), unknown op => Err(1).\n";
+        String trimmed = description.trim();
+        if (trimmed.length() > 600) trimmed = trimmed.substring(0, 600);
+        String prompt = contract
+                + "User idea (may be Ukrainian/Russian, identifiers must be ASCII): \"" + trimmed + "\"\n"
                 + "Return ONLY strict JSON, no markdown: "
                 + "{\"id\":\"snake_case_id\",\"name\":\"Human Name\",\"description\":\"one line\","
                 + "\"category\":\"Utility|Formatting|Privacy|Automation|Fun\","
-                + "\"lib_rs\":\"complete src/lib.rs source with \\n escapes\"}";
-        generateContentInternal(prompt, PLUGIN_MODEL, 0.4, true, (res, err) -> {
+                + (go ? "\"main_go\":\"complete main.go source with \\n escapes\"," : "\"lib_rs\":\"complete src/lib.rs source with \\n escapes\",")
+                + "\"steps\":[\"<=6 very short lines explaining linearly how the code works\"]}";
+        final String wantLang = go ? "go" : "rust";
+        generateContentInternal(prompt, PLUGIN_MODEL, 0.4, true, 2048, (res, err) -> {
             if (res == null) {
                 // Plugin model unavailable -> retry once on the stable tier.
-                generateContentInternal(prompt, FALLBACK_MODEL, 0.4, true, (fbRes, fbErr) ->
-                        AndroidUtilities.runOnUIThread(() -> callback.run(parseForgeResult(fbRes), fbErr)));
+                generateContentInternal(prompt, FALLBACK_MODEL, 0.4, true, 2048, (fbRes, fbErr) ->
+                        AndroidUtilities.runOnUIThread(() -> callback.run(parseForgeResult(fbRes, wantLang), fbErr)));
                 return;
             }
-            final ForgeResult parsed = parseForgeResult(res);
+            final ForgeResult parsed = parseForgeResult(res, wantLang);
             AndroidUtilities.runOnUIThread(() -> callback.run(parsed, parsed != null ? null : "Model returned no code"));
         });
     }
 
-    private static ForgeResult parseForgeResult(String json) {
+    private static ForgeResult parseForgeResult(String json, String language) {
         if (TextUtils.isEmpty(json)) return null;
         try {
             String cleaned = json.trim();
@@ -636,13 +681,27 @@ public class MiogramAiService {
                 cleaned = cleaned.trim();
             }
             com.google.gson.JsonObject obj = gson.fromJson(cleaned, com.google.gson.JsonObject.class);
-            if (obj == null || !obj.has("lib_rs")) return null;
+            if (obj == null) return null;
+            String codeKey = "go".equals(language) ? "main_go" : "lib_rs";
+            if (!obj.has(codeKey)) return null;
+            java.util.List<String> steps = new java.util.ArrayList<>();
+            if (obj.has("steps") && obj.get("steps").isJsonArray()) {
+                com.google.gson.JsonArray arr = obj.getAsJsonArray("steps");
+                for (int i = 0; i < arr.size() && i < 8; i++) {
+                    try {
+                        String s = arr.get(i).getAsString();
+                        if (s != null && !s.trim().isEmpty()) steps.add(s.trim());
+                    } catch (Throwable ignored) {}
+                }
+            }
             ForgeResult r = new ForgeResult(
                     obj.has("id") ? obj.get("id").getAsString() : null,
                     obj.has("name") ? obj.get("name").getAsString() : null,
                     obj.has("description") ? obj.get("description").getAsString() : null,
                     obj.has("category") ? obj.get("category").getAsString() : null,
-                    obj.get("lib_rs").getAsString());
+                    language,
+                    obj.get(codeKey).getAsString(),
+                    steps);
             return r.hasCode() ? r : null;
         } catch (Throwable t) {
             FileLog.e(t);

@@ -56,6 +56,10 @@ public class MiogramPluginForgeActivity extends BaseFragment {
 
     private MiogramAiService.ForgeResult lastResult;
     private File lastProjectDir;
+    private String forgeLanguage = "rust";
+    private TextView langRustBtn;
+    private TextView langGoBtn;
+    private TextView stepsView;
 
     @Override
     public View createView(Context context) {
@@ -107,7 +111,26 @@ public class MiogramPluginForgeActivity extends BaseFragment {
         modelNote.setText(MiogramLocale.get("Модель: ", "Модель: ", "Model: ") + MiogramAiService.PLUGIN_MODEL);
         modelNote.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         modelNote.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-        content.addView(modelNote, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
+        content.addView(modelNote, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
+
+        LinearLayout langRow = new LinearLayout(context);
+        langRow.setOrientation(LinearLayout.HORIZONTAL);
+        langRustBtn = makeLangButton(context, "Rust");
+        langRustBtn.setOnClickListener(v -> {
+            MiogramHaptic.select(v);
+            forgeLanguage = "rust";
+            refreshLangButtons();
+        });
+        langRow.addView(langRustBtn, LayoutHelper.createLinear(0, 40, 1.0f, 0, 0, 6, 0));
+        langGoBtn = makeLangButton(context, "Go + TinyGo");
+        langGoBtn.setOnClickListener(v -> {
+            MiogramHaptic.select(v);
+            forgeLanguage = "go";
+            refreshLangButtons();
+        });
+        langRow.addView(langGoBtn, LayoutHelper.createLinear(0, 40, 1.0f, 6, 0, 0, 0));
+        content.addView(langRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
+        refreshLangButtons();
 
         generateBtn = makeButton(context, MiogramLocale.get("Згенерувати плагін", "Сгенерировать плагин", "Generate plugin"), true);
         generateBtn.setOnClickListener(v -> {
@@ -133,6 +156,14 @@ public class MiogramPluginForgeActivity extends BaseFragment {
         codeView.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
         codeView.setVisibility(View.GONE);
         content.addView(codeView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
+
+        stepsView = new TextView(context);
+        stepsView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        stepsView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+        stepsView.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(12), Theme.getColor(Theme.key_windowBackgroundWhite)));
+        stepsView.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(10));
+        stepsView.setVisibility(View.GONE);
+        content.addView(stepsView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
 
         resultRow = new LinearLayout(context);
         resultRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -189,6 +220,46 @@ public class MiogramPluginForgeActivity extends BaseFragment {
         generateBtn.setClickable(!busy);
     }
 
+    private TextView makeLangButton(Context context, String text) {
+        TextView b = new TextView(context);
+        b.setText(text);
+        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        b.setTypeface(AndroidUtilities.bold());
+        b.setGravity(Gravity.CENTER);
+        b.setSingleLine(true);
+        b.setClickable(true);
+        b.setFocusable(true);
+        return b;
+    }
+
+    private void refreshLangButtons() {
+        paintLangButton(langRustBtn, "rust".equals(forgeLanguage));
+        paintLangButton(langGoBtn, "go".equals(forgeLanguage));
+    }
+
+    private void paintLangButton(TextView b, boolean selected) {
+        if (b == null) return;
+        b.setTextColor(selected ? 0xFFFFFFFF : Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+        b.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(10),
+                selected ? Theme.getColor(Theme.key_featuredStickers_addButton)
+                        : Theme.getColor(Theme.key_windowBackgroundWhite)));
+        b.setContentDescription(b.getText());
+    }
+
+    private void renderSteps() {
+        if (lastResult == null || lastResult.steps == null || lastResult.steps.isEmpty()) {
+            stepsView.setVisibility(View.GONE);
+            return;
+        }
+        StringBuilder sb = new StringBuilder(MiogramLocale.get("Як це працює:\n", "Как это работает:\n", "How it works:\n"));
+        int n = 1;
+        for (String s : lastResult.steps) {
+            sb.append(n++).append(". ").append(s).append('\n');
+        }
+        stepsView.setText(sb.toString().trim());
+        stepsView.setVisibility(View.VISIBLE);
+    }
+
     private void onGenerate() {
         String desc = input.getText().toString().trim();
         if (desc.isEmpty()) {
@@ -204,28 +275,32 @@ public class MiogramPluginForgeActivity extends BaseFragment {
         }
         setBusy(true);
         statusView.setText(MiogramLocale.get("Модель думає…", "Модель думает…", "Model is thinking…"));
-        MiogramAiService.generatePluginCode(desc, (res, err) -> {
+        final String lang = forgeLanguage;
+        MiogramAiService.generatePluginCode(desc, lang, (res, err) -> {
             setBusy(false);
             if (res != null && res.hasCode()) {
                 lastResult = res;
                 lastProjectDir = null;
-                codeView.setText(res.libRs);
+                codeView.setText(res.code);
                 codeView.setVisibility(View.VISIBLE);
                 resultRow.setVisibility(View.VISIBLE);
-                statusView.setText(MiogramLocale.get("Готово: ", "Готово: ", "Done: ") + res.name + " (" + res.id + ")");
+                renderSteps();
+                statusView.setText(MiogramLocale.get("Готово: ", "Готово: ", "Done: ") + res.name + " (" + res.id + ", " + res.language + ")");
                 MiogramHaptic.success(codeView);
             } else {
                 // Offline fallback: valid echo scaffold from the local template.
                 String id = MioForgeScaffold.sanitizeId(desc.length() > 24 ? desc.substring(0, 24) : desc);
+                String code = "go".equals(lang) ? MioForgeScaffold.goMain(id) : MioForgeScaffold.libRs(id);
                 lastResult = new MiogramAiService.ForgeResult(id, id,
                         MiogramLocale.get("Офлайн-заготовка (echo). Опишіть ще раз з інтернетом для повного коду.",
                                 "Офлайн-заготовка (echo). Опишите еще раз с интернетом для полного кода.",
                                 "Offline echo scaffold. Describe again online for full code."),
-                        "Utility", MioForgeScaffold.libRs(id));
+                        "Utility", lang, code, null);
                 lastProjectDir = null;
-                codeView.setText(lastResult.libRs);
+                codeView.setText(lastResult.code);
                 codeView.setVisibility(View.VISIBLE);
                 resultRow.setVisibility(View.VISIBLE);
+                renderSteps();
                 statusView.setText(err != null ? err : MiogramLocale.get("Модель мовчить — підставлено заготовку.",
                         "Модель молчит — подставлена заготовка.", "Model is silent — scaffold used instead."));
             }
@@ -239,14 +314,19 @@ public class MiogramPluginForgeActivity extends BaseFragment {
                 Context ctx = ApplicationLoader.applicationContext;
                 File dir = new File(new File(ctx.getFilesDir(), "forge"), lastResult.id);
                 if (!dir.exists()) dir.mkdirs();
-                writeFile(new File(dir, "src_lib.rs.tmp"), lastResult.libRs);
-                File srcDir = new File(dir, "src");
-                if (!srcDir.exists()) srcDir.mkdirs();
-                writeFile(new File(srcDir, "lib.rs"), lastResult.libRs);
-                new File(dir, "src_lib.rs.tmp").delete();
-                writeFile(new File(dir, "Cargo.toml"), MioForgeScaffold.cargoToml(lastResult.id));
+                writeFile(new File(dir, "src_lib.rs.tmp"), lastResult.code);
+                if ("go".equals(lastResult.language)) {
+                    writeFile(new File(dir, "main.go"), lastResult.code);
+                    writeFile(new File(dir, "go.mod"), MioForgeScaffold.goMod(lastResult.id));
+                } else {
+                    File srcDir = new File(dir, "src");
+                    if (!srcDir.exists()) srcDir.mkdirs();
+                    writeFile(new File(srcDir, "lib.rs"), lastResult.code);
+                    new File(dir, "src_lib.rs.tmp").delete();
+                    writeFile(new File(dir, "Cargo.toml"), MioForgeScaffold.cargoToml(lastResult.id));
+                }
                 writeFile(new File(dir, "manifest.json"),
-                        MioForgeScaffold.manifestJson(lastResult.id, lastResult.name, lastResult.description, lastResult.category));
+                        MioForgeScaffold.manifestJson(lastResult.id, lastResult.name, lastResult.description, lastResult.category, lastResult.language));
                 lastProjectDir = dir;
                 AndroidUtilities.runOnUIThread(() -> {
                     statusView.setText(MiogramLocale.get("Збережено: ", "Сохранено: ", "Saved: ") + dir.getAbsolutePath());
@@ -267,11 +347,11 @@ public class MiogramPluginForgeActivity extends BaseFragment {
     }
 
     private void onCopy() {
-        if (lastResult == null || lastResult.libRs == null) return;
+        if (lastResult == null || lastResult.code == null) return;
         try {
             ClipboardManager cm = (ClipboardManager) ApplicationLoader.applicationContext.getSystemService(Context.CLIPBOARD_SERVICE);
             if (cm != null) {
-                cm.setPrimaryClip(ClipData.newPlainText("Forge " + lastResult.id, lastResult.libRs));
+                cm.setPrimaryClip(ClipData.newPlainText("Forge " + lastResult.id, lastResult.code));
                 Toast.makeText(getParentActivity(), MiogramLocale.get("Код скопійовано", "Код скопирован", "Code copied"), Toast.LENGTH_SHORT).show();
             }
         } catch (Throwable ignored) {}
@@ -284,7 +364,8 @@ public class MiogramPluginForgeActivity extends BaseFragment {
         }
         statusView.setText(MiogramLocale.get("Шукаю тулчейн і збираю…", "Ищу тулчейн и собираю…", "Probing toolchain and building…"));
         final File dir = lastProjectDir;
-        MioForgeBuilder.probeAndBuild(dir, (success, log) -> AndroidUtilities.runOnUIThread(() -> {
+        final String lang = lastResult != null ? lastResult.language : "rust";
+        MioForgeBuilder.probeAndBuild(dir, lang, (success, log) -> AndroidUtilities.runOnUIThread(() -> {
             statusView.setText((success ? "BUILD OK\n" : "") + log);
             if (success) MiogramHaptic.success(statusView);
         }));

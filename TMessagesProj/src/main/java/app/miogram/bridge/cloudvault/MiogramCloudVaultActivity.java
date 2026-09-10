@@ -61,6 +61,7 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.DialogsActivity;
+import org.telegram.ui.TopicsFragment;
 import org.telegram.messenger.MessagesStorage;
 import androidx.core.content.FileProvider;
 import org.telegram.ui.Components.LayoutHelper;
@@ -729,6 +730,15 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         final String finalMimeType = mimeType != null ? mimeType : "application/octet-stream";
         final String fileId = UUID.randomUUID().toString();
 
+        MiogramCloudVaultFile dup = findDuplicateFile(finalFileName, finalFileSize);
+        if (dup != null) {
+            showDuplicateUploadDialog(context, uri, finalFileName, finalFileSize, finalMimeType, fileId);
+            return;
+        }
+        uploadFileInternal(context, uri, finalFileName, finalFileSize, finalMimeType, fileId);
+    }
+
+    private void uploadFileInternal(Context context, Uri uri, String finalFileName, long finalFileSize, String finalMimeType, String fileId) {
         final AlertDialog progressDialog = new AlertDialog(context, 3);
         progressDialog.setMessage(MiogramLocale.get("Шифрування файлу (AES-256-GCM)...", "Шифрование файла (AES-256-GCM)...", "Encrypting file (AES-256-GCM)..."));
         progressDialog.setCanceledOnTouchOutside(false);
@@ -804,7 +814,6 @@ public class MiogramCloudVaultActivity extends BaseFragment {
                     // Pick up the freshly sent chunk messages so the file is
                     // viewable immediately instead of after the next manual sync.
                     AndroidUtilities.runOnUIThread(() -> syncFromCloud(), 2500);
-                    filterAndReloadFiles();
                 });
 
             } catch (Exception e) {
@@ -990,9 +999,33 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
     // --- Vault Management & Dialogs ---
 
-    /** Shown when the user tries to upload before creating/linking a vault chat. */
-    private void showVaultRequiredDialog() {
+    /** Finds an already-vaulted file with the same name and size (re-upload guard). */
+    private MiogramCloudVaultFile findDuplicateFile(String name, long size) {
+        if (name == null) return null;
+        try {
+            for (MiogramCloudVaultFile f : MiogramCloudVaultEngine.getFilesForTopic(currentSelectedTopicId)) {
+                if (f != null && name.equals(f.name) && f.totalSize == size) return f;
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    private void showDuplicateUploadDialog(Context context, Uri uri, String name, long size, String mimeType, String fileId) {
         if (getParentActivity() == null) return;
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(MiogramLocale.get("Такий файл уже є", "Такой файл уже есть", "File already exists"));
+        builder.setMessage(MiogramLocale.get("У сховищі вже лежить '", "В хранилище уже лежит '", "The vault already holds '")
+                + name + MiogramLocale.get("' такого ж розміру. Завантажити ще раз?",
+                "' такого же размера. Загрузить еще раз?",
+                "' of the same size. Upload again?"));
+        builder.setPositiveButton(MiogramLocale.get("Завантажити", "Загрузить", "Upload"), (d, w) ->
+                uploadFileInternal(context, uri, name, size, mimeType, fileId));
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(builder.create());
+    }
+
+    /** Shown when the user tries to upload before creating/linking a vault chat. */
+    private void showVaultRequiredDialog() {        if (getParentActivity() == null) return;
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
         builder.setTitle(MiogramLocale.get("Сховище не підключено", "Хранилище не подключено", "Vault not linked"));
         builder.setMessage(MiogramLocale.get("Створіть нове сховище або прив'яжіть існуючу супергрупу, інакше файлу нікуди завантажуватись.", "Создайте новое хранилище или привяжите существующую супергруппу, иначе файлу некуда загружаться.", "Create a new vault or link an existing supergroup first — otherwise there is nowhere to upload."));
@@ -1143,6 +1176,7 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
         CharSequence[] items = new CharSequence[]{
                 MiogramLocale.get("Переглянути / Відкрити", "Просмотреть / Открыть", "Preview / Open"),
+                MiogramLocale.get("Показати в чаті сховища", "Показать в чате хранилища", "Show in vault chat"),
                 MiogramLocale.get("Поділитися в чат Telegram", "Поделиться в чат Telegram", "Share to Telegram Chat"),
                 MiogramLocale.get("Поділитися через інші додатки", "Поделиться через другие приложения", "Share via Other Apps"),
                 MiogramLocale.get("Перемістити в папку (топік)", "Переместить в папку (топик)", "Move to Folder (Topic)"),
@@ -1154,18 +1188,20 @@ public class MiogramCloudVaultActivity extends BaseFragment {
             if (which == 0) {
                 downloadOrOpenFile(file);
             } else if (which == 1) {
-                shareToTelegramChat(file);
+                openFileInVaultChat(file);
             } else if (which == 2) {
-                shareFileExternal(file);
+                shareToTelegramChat(file);
             } else if (which == 3) {
-                showMoveFileToTopicDialog(file);
+                shareFileExternal(file);
             } else if (which == 4) {
+                showMoveFileToTopicDialog(file);
+            } else if (which == 5) {
                 ClipboardManager cm = (ClipboardManager) ApplicationLoader.applicationContext.getSystemService(Context.CLIPBOARD_SERVICE);
                 if (cm != null) {
                     cm.setPrimaryClip(ClipData.newPlainText("Filename", file.name));
                     Toast.makeText(getParentActivity(), MiogramLocale.get("Назву скопійовано", "Название скопировано", "Name copied"), Toast.LENGTH_SHORT).show();
                 }
-            } else if (which == 5) {
+            } else if (which == 6) {
                 long vaultChatId = MiogramCloudVaultEngine.getVaultChatId(currentAccount);
                 MiogramCloudVaultEngine.deleteVaultFile(currentAccount, vaultChatId, file, true);
                 filterAndReloadFiles();
@@ -1173,6 +1209,34 @@ public class MiogramCloudVaultActivity extends BaseFragment {
             }
         });
         showDialog(builder.create());
+    }
+
+    /** Jumps straight to the file's chunk messages inside the vault supergroup. */
+    private void openFileInVaultChat(MiogramCloudVaultFile file) {
+        long vaultChatId = MiogramCloudVaultEngine.getVaultChatId(currentAccount);
+        if (vaultChatId == 0) {
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Сховище не підключено", "Хранилище не подключено", "Vault not linked"), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (file.chunkMsgIds.isEmpty()) {
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Спочатку синхронізуйте — чанки ще не знайдено", "Сначала синхронизируйтесь — чанки еще не найдены", "Sync first — chunks not located yet"), Toast.LENGTH_SHORT).show();
+            syncFromCloud();
+            return;
+        }
+        try {
+            Bundle args = new Bundle();
+            args.putLong("chat_id", vaultChatId);
+            if (file.topicId > 0) {
+                // Forum chats can't deep-jump into a topic message from outside —
+                // open the topic list; the file's folder shows its chunks.
+                presentFragment(new TopicsFragment(args));
+            } else {
+                args.putInt("message_id", file.chunkMsgIds.get(0));
+                presentFragment(new ChatActivity(args));
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
     }
 
     // --- RecyclerView Adapter ---

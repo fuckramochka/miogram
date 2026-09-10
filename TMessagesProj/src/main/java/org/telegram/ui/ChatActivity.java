@@ -1838,6 +1838,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int miogram_open_kanban = 4401;
     private final static int miogram_split_screen = 4402;
     private final static int miogram_add_to_kanban = 4403;
+    private final static int miogram_chat_ai = 4404;
 
     private ActionBarMenuItem actionModeOtherItem; // NekoX
 
@@ -4440,6 +4441,17 @@ public class ChatActivity extends BaseFragment implements
                     if (!getMessagesController().getTranslateController().toggleTranslatingDialog(getDialogId(), true)) {
                         updateTopPanel(true);
                     }
+                } else if (id == miogram_chat_ai) {
+                    long did = getDialogId();
+                    if (did != 0) {
+                        app.miogram.bridge.ai.MiogramChatAiSheet sheet =
+                                new app.miogram.bridge.ai.MiogramChatAiSheet(ChatActivity.this, did, draft -> {
+                                    if (chatActivityEnterView != null) {
+                                        chatActivityEnterView.setFieldText(draft, false);
+                                    }
+                                });
+                        sheet.show();
+                    }
                 } else if (id == call || id == video_call) {
                     if (currentUser != null && getParentActivity() != null) {
                         VoIPHelper.startCall(currentUser, id == video_call, userInfo != null && userInfo.video_calls_available, getParentActivity(), getMessagesController().getUserFull(currentUser.id), getAccountInstance());
@@ -5017,6 +5029,7 @@ public class ChatActivity extends BaseFragment implements
             }
             translateItem = headerItem.lazilyAddSubItem(translate, LlmConfig.llmIsDefaultProvider() ? R.drawable.magic_stick_solar : R.drawable.msg_translate, LocaleController.getString(R.string.TranslateMessage));
             updateTranslateItemVisibility();
+            headerItem.lazilyAddSubItem(miogram_chat_ai, R.drawable.baseline_stars_24, app.miogram.bridge.MiogramLocale.get("Miogram AI", "Miogram AI", "Miogram AI"));
             /*if (currentChat != null && !currentChat.creator && !ChatObject.hasAdminRights(currentChat)) {
                 headerItem.lazilyAddSubItem(report, R.drawable.msg_report, LocaleController.getString(R.string.ReportChat));
             }*/
