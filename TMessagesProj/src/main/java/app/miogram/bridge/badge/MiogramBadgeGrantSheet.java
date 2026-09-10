@@ -165,12 +165,11 @@ public class MiogramBadgeGrantSheet extends BottomSheet {
         int checked = picked.ordinal();
         org.telegram.ui.ActionBar.AlertDialog.Builder b = new org.telegram.ui.ActionBar.AlertDialog.Builder(ctx);
         b.setTitle(MiogramLocale.get("Яку стрілочку видати?", "Какую стрелочку выдать?", "Which badge to grant?"));
-        b.setSingleChoiceItems(items, checked, (d, which) -> {
+        b.setItems(items, (d, which) -> {
             if (which >= 0 && which < all.length) {
                 picked = all[which];
                 refreshStyleBtn();
             }
-            d.dismiss();
         });
         b.setNegativeButton(MiogramLocale.get("Скасувати", "Отмена", "Cancel"), null);
         b.create().show();
