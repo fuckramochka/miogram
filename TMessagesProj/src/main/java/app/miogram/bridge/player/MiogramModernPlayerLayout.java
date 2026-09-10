@@ -110,6 +110,8 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     private final FrameLayout profileButtonContainer;
     private View saveToProfileButton;
     private View unsaveFromProfileButton;
+    private boolean isFavoriteState = false;
+    private TextView speedPill;
 
     private MessageObject currentMessageObject;
     private boolean isPlaying = false;
@@ -163,10 +165,15 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         topControlsRow.addView(collapseBtn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL));
 
         // Center Switcher: [ Lyrics | Cover | Queue ] (Visible only in FullScreen)
+        // Segmented control: frosted track + accent pill on the active segment.
         pageSwitcher = new LinearLayout(context);
         pageSwitcher.setOrientation(LinearLayout.HORIZONTAL);
         pageSwitcher.setGravity(Gravity.CENTER);
-        pageSwitcher.setPadding(0, 0, 0, 0);
+        GradientDrawable switcherTrack = new GradientDrawable();
+        switcherTrack.setColor(0x1EFFFFFF);
+        switcherTrack.setCornerRadius(AndroidUtilities.dp(18));
+        pageSwitcher.setBackground(switcherTrack);
+        pageSwitcher.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4));
         pageSwitcher.setVisibility(View.GONE);
 
         lyricsModeButton = createModeButton(MiogramLocale.get("Текст", "Текст", "Lyrics"));
@@ -186,10 +193,10 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             showQueue(true, true);
         });
 
-        pageSwitcher.addView(lyricsModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
-        pageSwitcher.addView(coverModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
-        pageSwitcher.addView(queueModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(32), 1f));
-        topControlsRow.addView(pageSwitcher, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(36), 1f));
+        pageSwitcher.addView(lyricsModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(30), 1f));
+        pageSwitcher.addView(coverModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(30), 1f));
+        pageSwitcher.addView(queueModeButton, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(30), 1f));
+        topControlsRow.addView(pageSwitcher, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(38), 1f));
 
         // Search music button
         ImageView searchBtn = new ImageView(context);
@@ -239,21 +246,26 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         compactCoverWrapper = new FrameLayout(context);
         int surfaceColor = getThemedColor(Theme.key_player_background);
         if (surfaceColor == 0) surfaceColor = getThemedColor(Theme.key_windowBackgroundWhite);
-        int placeholderBg = ColorUtils.blendARGB(surfaceColor, accentColor, 0.20f);
-        compactCoverWrapper.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(16), placeholderBg));
+        // Layered placeholder: accent-tinted fill + hairline accent stroke so the
+        // empty state looks designed, not like a missing image.
+        GradientDrawable placeholderBg = new GradientDrawable();
+        placeholderBg.setColor(ColorUtils.blendARGB(surfaceColor, accentColor, 0.28f));
+        placeholderBg.setCornerRadius(AndroidUtilities.dp(20));
+        placeholderBg.setStroke(AndroidUtilities.dp(1), ColorUtils.setAlphaComponent(accentColor, 90));
+        compactCoverWrapper.setBackground(placeholderBg);
 
         ImageView coverPlaceholder = new ImageView(context);
         coverPlaceholder.setImageResource(R.drawable.player_new_order);
         coverPlaceholder.setScaleType(ImageView.ScaleType.CENTER);
-        coverPlaceholder.setColorFilter(new PorterDuffColorFilter(ColorUtils.setAlphaComponent(accentColor, 120), PorterDuff.Mode.SRC_IN));
-        compactCoverWrapper.addView(coverPlaceholder, LayoutHelper.createFrame(40, 40, Gravity.CENTER));
+        coverPlaceholder.setColorFilter(new PorterDuffColorFilter(ColorUtils.setAlphaComponent(accentColor, 160), PorterDuff.Mode.SRC_IN));
+        compactCoverWrapper.addView(coverPlaceholder, LayoutHelper.createFrame(48, 48, Gravity.CENTER));
 
         if (Build.VERSION.SDK_INT >= 21) {
             compactCoverWrapper.setElevation(AndroidUtilities.dp(8));
             compactCoverWrapper.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), AndroidUtilities.dp(16));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), AndroidUtilities.dp(20));
                 }
             });
             compactCoverWrapper.setClipToOutline(true);
@@ -350,8 +362,9 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         mainControlsRow.setWeightSum(5);
 
         heroPlayButton = new FrameLayout(context);
-        GradientDrawable heroBg = new GradientDrawable();
-        heroBg.setColor(accentColor);
+        GradientDrawable heroBg = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{ColorUtils.blendARGB(accentColor, 0xFFFFFFFF, 0.12f), ColorUtils.blendARGB(accentColor, 0xFF000000, 0.22f)});
         heroBg.setShape(GradientDrawable.OVAL);
         heroPlayButton.setBackground(heroBg);
         heroPlayButton.setContentDescription(MiogramLocale.get("Відтворити / Пауза", "Играть / Пауза", "Play / Pause"));
@@ -369,7 +382,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             return false;
         });
         if (Build.VERSION.SDK_INT >= 21) {
-            heroPlayButton.setElevation(AndroidUtilities.dp(4));
+            heroPlayButton.setElevation(AndroidUtilities.dp(6));
         }
 
         bottomSection.addView(mainControlsRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 56, 0, 2, 0, 2));
@@ -385,7 +398,42 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         profileButtonContainer = new FrameLayout(context);
         bottomSection.addView(profileButtonContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
 
+        // Speed pill (bottom-right): mirrors the classic player's speed toggle,
+        // which is otherwise unreachable in the modern layout.
+        speedPill = new TextView(context);
+        speedPill.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+        speedPill.setTypeface(AndroidUtilities.bold());
+        speedPill.setGravity(Gravity.CENTER);
+        speedPill.setSingleLine(true);
+        speedPill.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        speedPill.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(14),
+                ColorUtils.setAlphaComponent(accentColor, 30), ColorUtils.setAlphaComponent(accentColor, 60)));
+        speedPill.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(5), AndroidUtilities.dp(12), AndroidUtilities.dp(5));
+        speedPill.setContentDescription(MiogramLocale.get("Швидкість відтворення", "Скорость воспроизведения", "Playback speed"));
+        try {
+            speedPill.setText(String.format(java.util.Locale.US, "%.1fx", org.telegram.messenger.MediaController.getInstance().getPlaybackSpeed(true)));
+        } catch (Throwable ignore) {
+            speedPill.setText("1.0x");
+        }
+        speedPill.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            if (alert != null) alert.cyclePlaybackSpeed();
+        });
         addView(bottomSection, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
+        // Dock the speed pill above the bottom controls whatever their height
+        // is (profile row may be present or not) instead of a magic margin.
+        bottomSection.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            int h = v.getHeight();
+            if (h > 0 && speedPill != null && speedPill.getLayoutParams() instanceof LayoutParams) {
+                LayoutParams lp = (LayoutParams) speedPill.getLayoutParams();
+                int want = h + AndroidUtilities.dp(10);
+                if (lp.bottomMargin != want) {
+                    lp.bottomMargin = want;
+                    speedPill.setLayoutParams(lp);
+                }
+            }
+        });
+        addView(speedPill, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM | Gravity.RIGHT, 0, 0, 14, 160));
         updateModeButtons();
     }
 
@@ -438,10 +486,19 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             }
             int size = AndroidUtilities.dp(115);
             compactCoverWrapper.addView(coverView, LayoutHelper.createFrame(size, size, Gravity.CENTER));
-        } else if (playerMode == PlayerMode.COVER) {
+            coverView.setVisibility(View.VISIBLE);
+        } else {
+            // Fullscreen: keep the cover attached (and updating) even when the
+            // Lyrics/Queue page is on top — otherwise art updates are lost and
+            // the detached view leaks its bitmap. Hidden when not the COVER page.
             fullCoverWrapper.removeAllViews();
-            int size = Math.min(AndroidUtilities.dp(250), AndroidUtilities.displaySize.x - AndroidUtilities.dp(64));
+            // Adaptive art: fills small phones, caps on tablets/foldables, never
+            // taller than ~38% of the screen so title + controls always fit.
+            int maxByWidth = AndroidUtilities.displaySize.x - AndroidUtilities.dp(72);
+            int maxByHeight = (int) (AndroidUtilities.displaySize.y * 0.38f);
+            int size = Math.max(AndroidUtilities.dp(180), Math.min(AndroidUtilities.dp(300), Math.min(maxByWidth, maxByHeight)));
             fullCoverWrapper.addView(coverView, LayoutHelper.createFrame(size, size, Gravity.CENTER));
+            coverView.setVisibility(playerMode == PlayerMode.COVER ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -601,6 +658,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
                 if (unsaveBtn.getParent() instanceof ViewGroup) ((ViewGroup) unsaveBtn.getParent()).removeView(unsaveBtn);
                 profileButtonContainer.addView(unsaveBtn, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 42, Gravity.CENTER));
             }
+            applyFavoriteState();
         }
     }
 
@@ -770,18 +828,16 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         setPlayerMode(PlayerMode.COVER, animated);
     }
 
+    /** Generation guard: only the latest transition may hide pages on animation end. */
+    private int pageTransitionGen = 0;
+
     private void setPlayerMode(PlayerMode mode, boolean animated) {
         if (playerMode == mode) return;
         PlayerMode previousMode = playerMode;
         playerMode = mode;
 
-        if (mode == PlayerMode.COVER) {
-            updateCoverAttachment();
-        }
-
         View target = mode == PlayerMode.QUEUE ? queueContainer : mode == PlayerMode.COVER ? fullCoverWrapper : lyricsView;
         View previous = previousMode == PlayerMode.QUEUE ? queueContainer : previousMode == PlayerMode.COVER ? fullCoverWrapper : lyricsView;
-        if (target == null) return;
 
         if (queueButton != null) {
             int color = mode == PlayerMode.QUEUE ? getThemeAccentColor() : getThemedColor(Theme.key_player_button);
@@ -789,8 +845,22 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         }
         updateModeButtons();
 
+        // Target view not attached yet (e.g. lyrics arrive later via setLyricsView,
+        // which applies visibility from playerMode) — mode is already stored.
+        if (target == null) {
+            if (previous != null) setPageVisible(previous, false);
+            return;
+        }
+
+        if (mode == PlayerMode.COVER) {
+            updateCoverAttachment();
+        }
+
         cancelPageAnimation(target);
         if (previous != null) cancelPageAnimation(previous);
+        // Hide the third page immediately so rapid A->B->C taps can't stack
+        // two visible pages when an end-listener fires late.
+        hideInactivePages(target, previous);
         target.setVisibility(View.VISIBLE);
 
         if (!animated || previous == null || previous == target) {
@@ -799,6 +869,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             return;
         }
 
+        final int gen = ++pageTransitionGen;
         target.setAlpha(0f);
         target.setScaleX(0.985f);
         target.setScaleY(0.985f);
@@ -807,9 +878,22 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         previous.animate().alpha(0f).scaleX(0.985f).scaleY(0.985f).setDuration(180).setListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-                if (playerMode == expectedMode) setPageVisible(previous, false);
+                if (gen == pageTransitionGen && playerMode == expectedMode) setPageVisible(previous, false);
             }
         }).start();
+    }
+
+    private void hideInactivePages(View... keep) {
+        View[] pages = new View[]{queueContainer, fullCoverWrapper, lyricsView};
+        outer:
+        for (View p : pages) {
+            if (p == null) continue;
+            for (View k : keep) {
+                if (p == k) continue outer;
+            }
+            cancelPageAnimation(p);
+            setPageVisible(p, false);
+        }
     }
 
     private void cancelPageAnimation(View page) {
@@ -833,10 +917,13 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     private void updateModeButton(TextView button, boolean selected) {
         if (button == null) return;
         int accent = getThemeAccentColor();
-        button.setTextColor(selected ? 0xFFFFFFFF : 0x88FFFFFF);
-        button.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), selected ? ColorUtils.setAlphaComponent(accent, 175) : 0x00000000));
-        button.setScaleX(selected ? 1f : 0.96f);
-        button.setScaleY(selected ? 1f : 0.96f);
+        button.setTextColor(selected ? 0xFFFFFFFF : 0x99FFFFFF);
+        // Crisp pill swap (no scale — scaling text blurs it on low-dpi screens).
+        button.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), selected ? ColorUtils.setAlphaComponent(accent, 200) : 0x00000000));
+        if (button.getScaleX() != 1f || button.getScaleY() != 1f) {
+            button.setScaleX(1f);
+            button.setScaleY(1f);
+        }
     }
 
     public void setPlaying(boolean playing) {
@@ -874,11 +961,23 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     }
 
     public void setSpeedText(String speed) {
-        // Handled in audio player state
+        if (speedPill != null && speed != null) {
+            speedPill.setText(speed);
+        }
     }
 
     public void setFavorite(boolean fav) {
-        // Handled in audio player state
+        isFavoriteState = fav;
+        applyFavoriteState();
+    }
+
+    private void applyFavoriteState() {
+        if (saveToProfileButton != null) {
+            saveToProfileButton.setVisibility(isFavoriteState ? View.GONE : View.VISIBLE);
+        }
+        if (unsaveFromProfileButton != null) {
+            unsaveFromProfileButton.setVisibility(isFavoriteState ? View.VISIBLE : View.GONE);
+        }
     }
 
     private int getThemedColor(int key) {

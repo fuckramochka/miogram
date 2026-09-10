@@ -850,10 +850,12 @@ public class MiogramCloudVaultActivity extends BaseFragment {
                     File attachFile = FileLoader.getInstance(currentAccount).getPathToAttach(doc, true);
                     if (attachFile == null || !attachFile.exists()) {
                         FileLoader.getInstance(currentAccount).loadFile(doc, null, 0, 0);
-                        int timeout = 0;
-                        while ((attachFile == null || !attachFile.exists()) && timeout < 300) {
+                        // Bounded wait: 60s per chunk. The shared globalQueue must
+                        // never be parked for minutes by one slow download.
+                        int waitedMs = 0;
+                        while ((attachFile == null || !attachFile.exists()) && waitedMs < 60000) {
                             Thread.sleep(500);
-                            timeout++;
+                            waitedMs += 500;
                             attachFile = FileLoader.getInstance(currentAccount).getPathToAttach(doc, true);
                         }
                     }
@@ -1266,8 +1268,8 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
             iconView = new ImageView(context);
             iconView.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton));
-            iconBox.addView(iconView, LayoutHelper.createFrame(26, 26, Gravity.CENTER));
-            addView(iconBox, LayoutHelper.createFrame(52, 52, Gravity.CENTER));
+            iconBox.addView(iconView, LayoutHelper.createFrame(22, 22, Gravity.CENTER));
+            addView(iconBox, LayoutHelper.createFrame(44, 44, Gravity.CENTER));
 
             // 3. File extension badge (top-left for non-media)
             extBadge = new TextView(context);

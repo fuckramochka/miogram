@@ -554,6 +554,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
             playBtn.setImageResource(R.drawable.ic_play);
             playBtn.setColorFilter(Theme.getColor(Theme.key_chats_actionBackground));
             playBtn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1));
+            playBtn.setContentDescription(MiogramLocale.get("Слухати", "Слушать", "Preview"));
             playBtn.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6));
             playBtn.setOnClickListener(v -> {
                 MiogramHaptic.tap(v);
@@ -576,6 +577,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
             downloadBtn.setImageResource(R.drawable.msg_download);
             downloadBtn.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
             downloadBtn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1));
+            downloadBtn.setContentDescription(MiogramLocale.get("Завантажити трек", "Скачать трек", "Download track"));
             downloadBtn.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6));
 
             progressBar = new ProgressBar(context);
@@ -627,6 +629,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
                 sendBtn.setImageResource(R.drawable.attach_send);
                 sendBtn.setColorFilter(Theme.getColor(Theme.key_chats_actionBackground));
                 sendBtn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1));
+                sendBtn.setContentDescription(MiogramLocale.get("Надіслати в чат", "Отправить в чат", "Send to chat"));
                 sendBtn.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6));
 
                 sendProgressBar = new ProgressBar(context);
@@ -662,6 +665,9 @@ public class MiogramMusicSearchActivity extends BaseFragment {
 
             boolean isPlaying = (currentlyPlayingTrack == track && activePlayer != null && activePlayer.isPlaying());
             playBtn.setImageResource(isPlaying ? R.drawable.ic_pause : R.drawable.ic_play);
+            playBtn.setContentDescription(isPlaying
+                    ? MiogramLocale.get("Пауза", "Пауза", "Pause")
+                    : MiogramLocale.get("Слухати", "Слушать", "Preview"));
 
             if (track.source != null) {
                 badgeView.setText(track.source.label);

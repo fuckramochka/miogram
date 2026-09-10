@@ -181,27 +181,27 @@ public class MiogramSubfolderBar extends FrameLayout {
 
         // 3. Smart categories (if enabled)
         if (showSmart) {
-            PillView pPersonal = new PillView(getContext(), 0, MiogramSubfolderEngine.TYPE_PERSONAL, "Особисті", R.drawable.msg_contact);
+            PillView pPersonal = new PillView(getContext(), 0, MiogramSubfolderEngine.TYPE_PERSONAL, app.miogram.bridge.MiogramLocale.get("Особисті", "Личные", "Personal"), R.drawable.msg_contact);
             pPersonal.setSelectedState(activeChildId == 0 && activeType == MiogramSubfolderEngine.TYPE_PERSONAL);
             pillViews.add(pPersonal);
             pillsContainer.addView(pPersonal);
 
-            PillView pGroups = new PillView(getContext(), 0, MiogramSubfolderEngine.TYPE_GROUPS, "Групи", R.drawable.msg_groups);
+            PillView pGroups = new PillView(getContext(), 0, MiogramSubfolderEngine.TYPE_GROUPS, app.miogram.bridge.MiogramLocale.get("Групи", "Группы", "Groups"), R.drawable.msg_groups);
             pGroups.setSelectedState(activeChildId == 0 && activeType == MiogramSubfolderEngine.TYPE_GROUPS);
             pillViews.add(pGroups);
             pillsContainer.addView(pGroups);
 
-            PillView pChannels = new PillView(getContext(), 0, MiogramSubfolderEngine.TYPE_CHANNELS, "Канали", R.drawable.msg_channel);
+            PillView pChannels = new PillView(getContext(), 0, MiogramSubfolderEngine.TYPE_CHANNELS, app.miogram.bridge.MiogramLocale.get("Канали", "Каналы", "Channels"), R.drawable.msg_channel);
             pChannels.setSelectedState(activeChildId == 0 && activeType == MiogramSubfolderEngine.TYPE_CHANNELS);
             pillViews.add(pChannels);
             pillsContainer.addView(pChannels);
 
-            PillView pBots = new PillView(getContext(), 0, MiogramSubfolderEngine.TYPE_BOTS, "Боти", R.drawable.msg_bot);
+            PillView pBots = new PillView(getContext(), 0, MiogramSubfolderEngine.TYPE_BOTS, app.miogram.bridge.MiogramLocale.get("Боти", "Боты", "Bots"), R.drawable.msg_bot);
             pBots.setSelectedState(activeChildId == 0 && activeType == MiogramSubfolderEngine.TYPE_BOTS);
             pillViews.add(pBots);
             pillsContainer.addView(pBots);
 
-            PillView pUnread = new PillView(getContext(), 0, MiogramSubfolderEngine.TYPE_UNREAD, "Непрочитані", R.drawable.msg_markunread);
+            PillView pUnread = new PillView(getContext(), 0, MiogramSubfolderEngine.TYPE_UNREAD, app.miogram.bridge.MiogramLocale.get("Непрочитані", "Непрочитанные", "Unread"), R.drawable.msg_markunread);
             pUnread.setSelectedState(activeChildId == 0 && activeType == MiogramSubfolderEngine.TYPE_UNREAD);
             pillViews.add(pUnread);
             pillsContainer.addView(pUnread);
@@ -309,6 +309,12 @@ public class MiogramSubfolderBar extends FrameLayout {
             setOrientation(HORIZONTAL);
             setGravity(Gravity.CENTER_VERTICAL);
             setPadding(AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10), 0);
+            setClickable(true);
+            setFocusable(true);
+            // Foreground ripple survives the background swaps in setSelectedState.
+            if (Build.VERSION.SDK_INT >= 23) {
+                setForeground(Theme.createSelectorDrawable(0x22000000, Theme.RIPPLE_MASK_ALL));
+            }
 
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, AndroidUtilities.dp(30));
             lp.rightMargin = AndroidUtilities.dp(6);
@@ -332,6 +338,7 @@ public class MiogramSubfolderBar extends FrameLayout {
             titleView.setSingleLine(true);
             titleView.setEllipsize(TextUtils.TruncateAt.END);
             addView(titleView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
+            setContentDescription(title);
 
             badgeView = new TextView(context);
             badgeView.setTextSize(10);

@@ -150,6 +150,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         public int getItemViewType(int position) {
             if (position == headerMiogramFeaturesRow || position == headerCategoriesRow || position == headerAdvancedRow) {
                 return TYPE_HEADER;
+            } else if (position == telemetryRow) {
+                return TYPE_CHECK;
             } else if (position == miogramFeaturesInfoRow || position == categoriesInfoRow || position == advancedInfoRow) {
                 return TYPE_INFO_PRIVACY;
             }

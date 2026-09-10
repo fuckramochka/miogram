@@ -67,6 +67,7 @@ public class PluginsActivity extends BaseFragment {
 
     private static final int MENU_SEARCH = 0;
     private static final int MENU_INFO = 1;
+    private static final int MENU_FORGE = 2;
 
     private static final int ID_ENGINE_TOGGLE = -1;
 
@@ -94,6 +95,8 @@ public class PluginsActivity extends BaseFragment {
                     finishFragment();
                 } else if (id == MENU_INFO) {
                     presentFragment(new PluginsInfoActivity());
+                } else if (id == MENU_FORGE) {
+                    presentFragment(new app.miogram.bridge.plugins.MiogramPluginForgeActivity());
                 }
             }
         });
@@ -116,6 +119,7 @@ public class PluginsActivity extends BaseFragment {
                                     }
                                 });
         search.setSearchFieldHint(getString(R.string.Search));
+        actionBar.createMenu().addItem(MENU_FORGE, R.drawable.baseline_stars_24);
         actionBar.createMenu().addItem(MENU_INFO, R.drawable.msg_info);
 
         LinearLayout contentView = new LinearLayout(context);

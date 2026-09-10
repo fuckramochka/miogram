@@ -108,13 +108,28 @@ public class MiogramKanbanActivity extends BaseFragment {
             title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, getResourceProvider()));
             colHeader.addView(title, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
 
+            TextView countBadge = new TextView(context);
+            countBadge.setText(String.valueOf(countInColPlaceholder(colIndex, allItems)));
+            countBadge.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+            countBadge.setTypeface(AndroidUtilities.bold());
+            countBadge.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, getResourceProvider()));
+            countBadge.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(8),
+                    Theme.getColor(Theme.key_windowBackgroundGray, getResourceProvider())));
+            countBadge.setPadding(AndroidUtilities.dp(7), AndroidUtilities.dp(2), AndroidUtilities.dp(7), AndroidUtilities.dp(2));
+            colHeader.addView(countBadge, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 6, 0));
+
             TextView addBtn = new TextView(context);
             addBtn.setText("+");
             addBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
             addBtn.setTypeface(AndroidUtilities.bold());
             addBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton, getResourceProvider()));
-            addBtn.setPadding(AndroidUtilities.dp(6), 0, AndroidUtilities.dp(6), 0);
-            addBtn.setOnClickListener(v -> showCreateCardDialogForColumn(colIndex));
+            addBtn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector, getResourceProvider()), Theme.RIPPLE_MASK_CIRCLE_20DP));
+            addBtn.setContentDescription(MiogramLocale.get("Додати завдання", "Добавить задачу", "Add task"));
+            addBtn.setPadding(AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8), 0);
+            addBtn.setOnClickListener(v -> {
+                haptic(v);
+                showCreateCardDialogForColumn(colIndex);
+            });
             colHeader.addView(addBtn);
 
             colWrapper.addView(colHeader, LayoutHelper.createLinear(AndroidUtilities.dp(240), LayoutHelper.WRAP_CONTENT));
@@ -154,6 +169,22 @@ public class MiogramKanbanActivity extends BaseFragment {
         }
     }
 
+    private static int countInColPlaceholder(int colIndex, List<MiogramKanbanStorage.KanbanItem> allItems) {
+        int n = 0;
+        if (allItems != null) {
+            for (MiogramKanbanStorage.KanbanItem it : allItems) {
+                if (it != null && it.column == colIndex) n++;
+            }
+        }
+        return n;
+    }
+
+    private static void haptic(View v) {
+        try {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+        } catch (Throwable ignored) {}
+    }
+
     private View createCardView(Context context, MiogramKanbanStorage.KanbanItem item) {
         LinearLayout card = new LinearLayout(context);
         card.setOrientation(LinearLayout.VERTICAL);
@@ -191,8 +222,11 @@ public class MiogramKanbanActivity extends BaseFragment {
             openChat.setText("💬 " + MiogramLocale.get("Чат", "Чат", "Chat"));
             openChat.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
             openChat.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton, getResourceProvider()));
-            openChat.setPadding(0, 0, AndroidUtilities.dp(8), 0);
+            openChat.setBackground(Theme.getSelectorDrawable(false));
+            openChat.setContentDescription(MiogramLocale.get("Відкрити чат", "Открыть чат", "Open chat"));
+            openChat.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(3), AndroidUtilities.dp(8), AndroidUtilities.dp(3));
             openChat.setOnClickListener(v -> {
+                haptic(v);
                 Bundle args = new Bundle();
                 if (item.dialogId > 0) {
                     args.putLong("user_id", item.dialogId);
@@ -208,18 +242,25 @@ public class MiogramKanbanActivity extends BaseFragment {
         moveBtn.setText("➡️ " + MiogramLocale.get("Перенести", "Перенести", "Move"));
         moveBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
         moveBtn.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, getResourceProvider()));
-        moveBtn.setPadding(0, 0, AndroidUtilities.dp(8), 0);
-        moveBtn.setOnClickListener(v -> showMoveDialog(item));
+        moveBtn.setBackground(Theme.getSelectorDrawable(false));
+        moveBtn.setContentDescription(MiogramLocale.get("Перенести в іншу колонку", "Перенести в другую колонку", "Move to another column"));
+        moveBtn.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(3), AndroidUtilities.dp(8), AndroidUtilities.dp(3));
+        moveBtn.setOnClickListener(v -> {
+            haptic(v);
+            showMoveDialog(item);
+        });
         actions.addView(moveBtn);
 
         TextView delBtn = new TextView(context);
         delBtn.setText("✕");
         delBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
         delBtn.setTextColor(Color.parseColor("#FF2A93"));
-        delBtn.setPadding(AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4), 0);
+        delBtn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector, getResourceProvider()), Theme.RIPPLE_MASK_CIRCLE_20DP));
+        delBtn.setContentDescription(MiogramLocale.get("Видалити завдання", "Удалить задачу", "Delete task"));
+        delBtn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(3), AndroidUtilities.dp(8), AndroidUtilities.dp(3));
         delBtn.setOnClickListener(v -> {
-            MiogramKanbanStorage.deleteItem(item.id);
-            rebuildColumns(context);
+            haptic(v);
+            confirmDeleteCard(context, item);
         });
         actions.addView(delBtn);
 
@@ -233,8 +274,19 @@ public class MiogramKanbanActivity extends BaseFragment {
         return card;
     }
 
-    private void showMoveDialog(MiogramKanbanStorage.KanbanItem item) {
-        Context context = getParentActivity();
+    private void confirmDeleteCard(Context context, MiogramKanbanStorage.KanbanItem item) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(MiogramLocale.get("Видалити завдання?", "Удалить задачу?", "Delete task?"));
+        builder.setMessage(item.title != null ? item.title : "");
+        builder.setPositiveButton(MiogramLocale.get("Видалити", "Удалить", "Delete"), (d, w) -> {
+            MiogramKanbanStorage.deleteItem(item.id);
+            rebuildColumns(context);
+        });
+        builder.setNegativeButton(MiogramLocale.get("Скасувати", "Отмена", "Cancel"), null);
+        showDialog(builder.create());
+    }
+
+    private void showMoveDialog(MiogramKanbanStorage.KanbanItem item) {        Context context = getParentActivity();
         if (context == null) return;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);

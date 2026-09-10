@@ -13546,12 +13546,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     if (filterTabsView != null) {
                         filterTabsView.selectTabWithId(0, 1.0f);
                     }
+                    app.miogram.bridge.ui.discord.MiogramDiscordLayout.updateChannelHeaderTitle(channelHeader,
+                            app.miogram.bridge.ui.discord.MiogramDiscordLayout.channelPaneTitle(getContext()));
                 } else if (selectedId > 0) {
                     if (filterTabsView != null) {
                         filterTabsView.selectTabWithId(selectedId, 1.0f);
                     }
+                    app.miogram.bridge.ui.discord.MiogramDiscordLayout.updateChannelHeaderTitle(channelHeader,
+                            app.miogram.bridge.ui.discord.MiogramDiscordLayout.channelPaneTitle(getContext()));
                 } else {
-                    long did = (long) selectedId;
+                    // Group rail ids are hashes — resolve back to the real 64-bit dialog id.
+                    long did = app.miogram.bridge.ui.discord.MiogramDiscordLayout.resolveDialogId(selectedId);
                     Bundle args = new Bundle();
                     args.putLong("chat_id", -did);
                     TLRPC.Chat chat = getMessagesController().getChat(-did);
@@ -13606,10 +13611,67 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (userFooter != null) {
                 ((ContentView) fragmentView).addView(userFooter, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 52, Gravity.BOTTOM | Gravity.LEFT, 72, 0, 0, 0));
             }
+        } else if (app.miogram.bridge.ui.minimal.MiogramMinimalRail.isActive(getContext())) {
+            // Minimalist preset: slim theme-adaptive left rail (Chats / Saved /
+            // Profile / Settings) since the bottom navigation is hidden.
+            View minimalRail = app.miogram.bridge.ui.minimal.MiogramMinimalRail.createMinimalRail(getContext());
+            if (minimalRail != null) {
+                ((ContentView) fragmentView).addView(minimalRail, LayoutHelper.createFrame(
+                        app.miogram.bridge.ui.minimal.MiogramMinimalRail.RAIL_WIDTH_DP, LayoutHelper.MATCH_PARENT, Gravity.LEFT));
+            }
+            int railMargin = dp(app.miogram.bridge.ui.minimal.MiogramMinimalRail.RAIL_WIDTH_DP);
+            if (viewPages != null) {
+                for (int a = 0; a < viewPages.length; a++) {
+                    if (viewPages[a] != null) {
+                        FrameLayout.LayoutParams vpLp = (FrameLayout.LayoutParams) viewPages[a].getLayoutParams();
+                        if (vpLp != null && vpLp.leftMargin != railMargin) {
+                            vpLp.leftMargin = railMargin;
+                            vpLp.topMargin = 0;
+                            vpLp.bottomMargin = 0;
+                            viewPages[a].setLayoutParams(vpLp);
+                        }
+                    }
+                }
+            }
+            if (searchViewPager != null) {
+                FrameLayout.LayoutParams svpLp = (FrameLayout.LayoutParams) searchViewPager.getLayoutParams();
+                if (svpLp != null && svpLp.leftMargin != railMargin) {
+                    svpLp.leftMargin = railMargin;
+                    svpLp.topMargin = 0;
+                    svpLp.bottomMargin = 0;
+                    searchViewPager.setLayoutParams(svpLp);
+                }
+            }
+            if (actionBar != null) {
+                FrameLayout.LayoutParams abLp = (FrameLayout.LayoutParams) actionBar.getLayoutParams();
+                if (abLp != null && abLp.leftMargin != railMargin) {
+                    abLp.leftMargin = railMargin;
+                    actionBar.setLayoutParams(abLp);
+                }
+                if (actionBar.getVisibility() != View.VISIBLE) {
+                    actionBar.setVisibility(View.VISIBLE);
+                }
+            }
+            if (fragmentSearchField != null) {
+                FrameLayout.LayoutParams sfpLp = (FrameLayout.LayoutParams) fragmentSearchField.getLayoutParams();
+                if (sfpLp != null) {
+                    sfpLp.leftMargin = railMargin + dp(7);
+                    sfpLp.rightMargin = dp(7);
+                    fragmentSearchField.setLayoutParams(sfpLp);
+                }
+            }
         } else {
             final boolean isIosLayout = app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext());
             if (actionBar != null && !isIosLayout && actionBar.getVisibility() != View.VISIBLE) {
                 actionBar.setVisibility(View.VISIBLE);
+            }
+            if (actionBar != null && !isIosLayout) {
+                // Discord/Minimalist rails shift the bar right — restore on classic.
+                FrameLayout.LayoutParams abLp = (FrameLayout.LayoutParams) actionBar.getLayoutParams();
+                if (abLp != null && abLp.leftMargin != 0) {
+                    abLp.leftMargin = 0;
+                    actionBar.setLayoutParams(abLp);
+                }
             }
             if (isIosLayout) {
                 if (dialogStoriesCell != null) {

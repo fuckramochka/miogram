@@ -42,7 +42,18 @@ public class MiogramDoubleBottomManager {
     }
 
     public static boolean isConfigured() {
-        return getRealPasscode().length() > 0 && getDuressPasscode().length() > 0;
+        return hasRealPasscode() && hasDuressPasscode();
+    }
+
+    /** Non-revealing existence checks — raw PINs are never readable (salted-hash storage). */
+    public static boolean hasRealPasscode() {
+        String stored = getPrefs().getString(KEY_REAL_PIN, "");
+        return stored != null && !stored.isEmpty();
+    }
+
+    public static boolean hasDuressPasscode() {
+        String stored = getPrefs().getString(KEY_DURESS_PIN, "");
+        return stored != null && !stored.isEmpty();
     }
 
     public static boolean isDuressActive() {
@@ -53,23 +64,33 @@ public class MiogramDoubleBottomManager {
         isDuressActive = active;
     }
 
+    /**
+     * @deprecated Returns "••••" when a PIN is set, "" otherwise. Raw PINs are
+     * never readable anymore (salted-hash storage). Kept for API compat.
+     */
+    @Deprecated
     public static String getRealPasscode() {
-        return getPrefs().getString(KEY_REAL_PIN, "");
+        return hasRealPasscode() ? "••••" : "";
     }
 
     public static void setRealPasscode(String pin) {
-        getPrefs().edit().putString(KEY_REAL_PIN, pin != null ? pin.trim() : "").apply();
-        if (pin != null && pin.trim().length() > 0) {
-            syncToTelegramPasscode(pin.trim());
+        String trimmed = pin != null ? pin.trim() : "";
+        storePin(KEY_REAL_PIN, trimmed);
+        if (!trimmed.isEmpty()) {
+            syncToTelegramPasscode(trimmed);
         }
     }
 
+    /**
+     * @deprecated See {@link #getRealPasscode()}.
+     */
+    @Deprecated
     public static String getDuressPasscode() {
-        return getPrefs().getString(KEY_DURESS_PIN, "");
+        return hasDuressPasscode() ? "••••" : "";
     }
 
     public static void setDuressPasscode(String pin) {
-        getPrefs().edit().putString(KEY_DURESS_PIN, pin != null ? pin.trim() : "").apply();
+        storePin(KEY_DURESS_PIN, pin);
     }
 
     public static int getDecoyAccount() {
@@ -142,16 +163,65 @@ public class MiogramDoubleBottomManager {
         if (pin == null || pin.isEmpty()) {
             return VERDICT_NONE;
         }
-        String real = getRealPasscode();
-        String duress = getDuressPasscode();
-
-        if (real.length() > 0 && real.equals(pin)) {
+        if (verifyPin(KEY_REAL_PIN, pin)) {
             return VERDICT_REAL;
         }
-        if (duress.length() > 0 && duress.equals(pin)) {
+        if (verifyPin(KEY_DURESS_PIN, pin)) {
             return VERDICT_DURESS;
         }
         return VERDICT_NONE;
+    }
+
+    private static final String HASH_PREFIX = "v1$";
+
+    private static void storePin(String key, String pin) {
+        String trimmed = pin != null ? pin.trim() : "";
+        if (trimmed.isEmpty()) {
+            getPrefs().edit().remove(key).apply();
+            return;
+        }
+        byte[] salt = new byte[16];
+        Utilities.random.nextBytes(salt);
+        String saltHex = Utilities.bytesToHex(salt);
+        byte[] both = (saltHex + "\n" + trimmed).getBytes(StandardCharsets.UTF_8);
+        String hashHex = Utilities.bytesToHex(Utilities.computeSHA256(both, 0, both.length));
+        getPrefs().edit().putString(key, HASH_PREFIX + saltHex + "$" + hashHex).apply();
+    }
+
+    private static boolean verifyPin(String key, String pin) {
+        String stored = getPrefs().getString(key, "");
+        if (stored == null || stored.isEmpty() || pin == null) return false;
+        if (stored.startsWith(HASH_PREFIX)) {
+            try {
+                String[] parts = stored.split("\\$");
+                if (parts.length != 3) return false;
+                String saltHex = parts[1];
+                String expectHex = parts[2];
+                byte[] both = (saltHex + "\n" + pin).getBytes(StandardCharsets.UTF_8);
+                String actualHex = Utilities.bytesToHex(Utilities.computeSHA256(both, 0, both.length));
+                return constantTimeEquals(expectHex, actualHex);
+            } catch (Throwable t) {
+                return false;
+            }
+        }
+        // Legacy plaintext entry: verify, then transparently migrate to hash.
+        boolean ok = constantTimeEquals(stored, pin);
+        if (ok) {
+            try {
+                storePin(key, pin);
+            } catch (Throwable ignored) {}
+        }
+        return ok;
+    }
+
+    private static boolean constantTimeEquals(String a, String b) {
+        if (a == null || b == null) return false;
+        byte[] ab = a.getBytes(StandardCharsets.UTF_8);
+        byte[] bb = b.getBytes(StandardCharsets.UTF_8);
+        if (ab.length != bb.length) return false;
+        int diff = 0;
+        for (int i = 0; i < ab.length; i++) diff |= ab[i] ^ bb[i];
+        return diff == 0;
     }
 
     public static void clearAll() {

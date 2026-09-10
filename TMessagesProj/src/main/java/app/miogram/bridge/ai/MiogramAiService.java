@@ -48,6 +48,8 @@ public class MiogramAiService {
     public static final String DEFAULT_MODEL = "gemini-3.5-flash-lite";
     /** Stable tier guaranteed by every fallback chain below. */
     public static final String FALLBACK_MODEL = "gemini-2.5-flash";
+    /** Dedicated model for plugin code generation (Miogram Plugin Forge). */
+    public static final String PLUGIN_MODEL = "gemini-3.8-flash";
     private static final AtomicInteger apiKeyCursor = new AtomicInteger();
     // Base64 expands data; stay well below Gemini's 20 MB inline audio limit.
     private static final long MAX_INLINE_AUDIO_BYTES = 14L * 1024L * 1024L;
@@ -218,9 +220,7 @@ public class MiogramAiService {
     /** Delivers prose AI results through MioHook filters (no-op when no hooks). */
     private static void deliverProse(String kind, Utilities.Callback<String> cb, String res) {
         AndroidUtilities.runOnUIThread(() -> cb.run(res != null ? app.miogram.bridge.hooks.MioHook.dispatchAiText(kind, res) : null));
-    }
-
-    /** Callback2 variant of {@link #deliverProse}. */
+    }    /** Callback2 variant of {@link #deliverProse}. */
     private static void deliverProse2(String kind, Utilities.Callback2<String, String> cb, String res, String err) {
         AndroidUtilities.runOnUIThread(() -> {
             if (res != null) cb.run(app.miogram.bridge.hooks.MioHook.dispatchAiText(kind, res), null);
@@ -560,6 +560,94 @@ public class MiogramAiService {
                 callback.run(null, err);
             }
         });
+    }
+
+    // ==================================================================
+    // Plugin Forge: description -> Rust WASM plugin source (dedicated model)
+    // ==================================================================
+
+    /** Result of {@link #generatePluginCode}: ready-to-save scaffold files. */
+    public static class ForgeResult {
+        public final String id;
+        public final String name;
+        public final String description;
+        public final String category;
+        public final String libRs;
+        public ForgeResult(String id, String name, String description, String category, String libRs) {
+            this.id = id != null ? id : "custom_plugin";
+            this.name = name != null ? name : "Custom Plugin";
+            this.description = description != null ? description : "";
+            this.category = category != null ? category : "Utility";
+            this.libRs = libRs != null ? libRs : "";
+        }
+        public boolean hasCode() {
+            return libRs != null && libRs.contains("impl Plugin for");
+        }
+    }
+
+    /**
+     * Asks the dedicated plugin model to write a complete Rust plugin
+     * (miogram-plugin-sdk contract) from a plain-language description.
+     * Always answers on the UI thread.
+     */
+    public static void generatePluginCode(String description, Utilities.Callback2<ForgeResult, String> callback) {
+        if (TextUtils.isEmpty(description)) {
+            callback.run(null, "Empty description");
+            return;
+        }
+        if (getApiKeys().isEmpty()) {
+            callback.run(null, "No Gemini API key configured");
+            return;
+        }
+        String prompt = "You write Miogram WASM plugins in Rust against this exact SDK:\n"
+                + "use miogram_plugin_sdk::{envelope, Plugin};\n"
+                + "#[derive(Default)] struct MyPlugin;\n"
+                + "impl Plugin for MyPlugin { fn handle(&mut self, op: &str, payload: &[u8]) -> Result<Vec<u8>, i32> {"
+                + " match op { \"ping\" => Ok(envelope::encode(\"ping\", b\"pong\")), _ => Err(1) } } }\n"
+                + "miogram_plugin_sdk::register!(MyPlugin);\n"
+                + "Rules: no_std-incompatible deps (only miogram-plugin-sdk), no unwrap/expect/panic paths on untrusted input, "
+                + "UTF-8 lossy handling, ops are lowercase snake_case strings, payloads are raw bytes, "
+                + "always answer with envelope::encode(op, bytes), unknown op => Err(1).\n"
+                + "User idea (may be Ukrainian/Russian, struct name must be ASCII): \"" + description.trim() + "\"\n"
+                + "Return ONLY strict JSON, no markdown: "
+                + "{\"id\":\"snake_case_id\",\"name\":\"Human Name\",\"description\":\"one line\","
+                + "\"category\":\"Utility|Formatting|Privacy|Automation|Fun\","
+                + "\"lib_rs\":\"complete src/lib.rs source with \\n escapes\"}";
+        generateContentInternal(prompt, PLUGIN_MODEL, 0.4, true, (res, err) -> {
+            if (res == null) {
+                // Plugin model unavailable -> retry once on the stable tier.
+                generateContentInternal(prompt, FALLBACK_MODEL, 0.4, true, (fbRes, fbErr) ->
+                        AndroidUtilities.runOnUIThread(() -> callback.run(parseForgeResult(fbRes), fbErr)));
+                return;
+            }
+            final ForgeResult parsed = parseForgeResult(res);
+            AndroidUtilities.runOnUIThread(() -> callback.run(parsed, parsed != null ? null : "Model returned no code"));
+        });
+    }
+
+    private static ForgeResult parseForgeResult(String json) {
+        if (TextUtils.isEmpty(json)) return null;
+        try {
+            String cleaned = json.trim();
+            if (cleaned.startsWith("```")) {
+                int nl = cleaned.indexOf('\n');
+                cleaned = nl >= 0 ? cleaned.substring(nl + 1) : cleaned.substring(3);
+                if (cleaned.endsWith("```")) cleaned = cleaned.substring(0, cleaned.length() - 3);
+                cleaned = cleaned.trim();
+            }
+            com.google.gson.JsonObject obj = gson.fromJson(cleaned, com.google.gson.JsonObject.class);
+            if (obj == null || !obj.has("lib_rs")) return null;
+            ForgeResult r = new ForgeResult(
+                    obj.has("id") ? obj.get("id").getAsString() : null,
+                    obj.has("name") ? obj.get("name").getAsString() : null,
+                    obj.has("description") ? obj.get("description").getAsString() : null,
+                    obj.has("category") ? obj.get("category").getAsString() : null,
+                    obj.get("lib_rs").getAsString());
+            return r.hasCode() ? r : null;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return null;
+        }
     }
 
 }

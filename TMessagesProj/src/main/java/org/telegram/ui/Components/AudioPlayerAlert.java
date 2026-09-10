@@ -768,26 +768,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         playbackSpeedButton.setAdditionalYOffset(-dp(400));
         playbackSpeedButton.setShowedFromBottom(true);
         playerLayout.addView(playbackSpeedButton, LayoutHelper.createFrame(36, 36, Gravity.TOP | Gravity.RIGHT, 0, 86, 20, 0));
-        playbackSpeedButton.setOnClickListener(v -> {
-            float currentPlaybackSpeed = MediaController.getInstance().getPlaybackSpeed(true);
-            int index = -1;
-            for (int i = 0; i < toggleSpeeds.length; ++i) {
-                if (currentPlaybackSpeed - 0.1F <= toggleSpeeds[i]) {
-                    index = i;
-                    break;
-                }
-            }
-            index++;
-            if (index >= toggleSpeeds.length) {
-                index = 0;
-            }
-            MediaController.getInstance().setPlaybackSpeed(true, toggleSpeeds[index]);
-
-            checkSpeedHint();
-            if (modernPlayerLayout != null) {
-                modernPlayerLayout.setSpeedText(String.format(java.util.Locale.US, "%.1fx", toggleSpeeds[index]));
-            }
-        });
+        playbackSpeedButton.setOnClickListener(v -> cyclePlaybackSpeed());
         playbackSpeedButton.setOnLongClickListener(view -> {
             final float speed = MediaController.getInstance().getPlaybackSpeed(true);
             speedSlider.setSpeed(speed, false);
@@ -2331,8 +2312,31 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         }
     }
 
-    public void toggleFavorite() {
-        final MessageObject messageObject1 = MediaController.getInstance().getPlayingMessageObject();
+    /** Shared by the classic speed button and the modern player speed pill. */
+    public void cyclePlaybackSpeed() {
+        final float[] toggleSpeeds = new float[]{1.0F, 1.5F, 2F};
+        float currentPlaybackSpeed = MediaController.getInstance().getPlaybackSpeed(true);
+        int index = -1;
+        for (int i = 0; i < toggleSpeeds.length; ++i) {
+            if (currentPlaybackSpeed - 0.1F <= toggleSpeeds[i]) {
+                index = i;
+                break;
+            }
+        }
+        index++;
+        if (index >= toggleSpeeds.length) {
+            index = 0;
+        }
+        MediaController.getInstance().setPlaybackSpeed(true, toggleSpeeds[index]);
+
+        checkSpeedHint();
+        updatePlaybackButton(false);
+        if (modernPlayerLayout != null) {
+            modernPlayerLayout.setSpeedText(String.format(java.util.Locale.US, "%.1fx", toggleSpeeds[index]));
+        }
+    }
+
+    public void toggleFavorite() {        final MessageObject messageObject1 = MediaController.getInstance().getPlayingMessageObject();
         if (messageObject1 == null || parentActivity == null) {
             return;
         }

@@ -75,13 +75,15 @@ public class MiogramSmartFeedActivity extends BaseFragment {
     private ProgressBar progressBar;
 
     private List<MiogramSmartFeedService.FeedItem> items = new ArrayList<>();
+    /** Generation counter: bumping it orphans late callbacks (cancel / refresh race). */
+    private int feedGen = 0;
 
     @Override
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
         actionBar.setTitle(MiogramLocale.get("Розумна стрічка ໒꒱", "Умная лента ໒꒱", "Smart Feed ໒꒱"));
-        actionBar.setSubtitle("AI Digest • Без спаму");
+        actionBar.setSubtitle(MiogramLocale.get("AI Digest • Без спаму", "AI Digest • Без спама", "AI Digest • No spam"));
 
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
@@ -120,7 +122,18 @@ public class MiogramSmartFeedActivity extends BaseFragment {
         progressText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         progressText.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
         progressText.setPadding(AndroidUtilities.dp(12), 0, 0, 0);
-        progressContainer.addView(progressText);
+        progressContainer.addView(progressText, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+
+        TextView cancelGen = new TextView(context);
+        cancelGen.setText(MiogramLocale.get("Скасувати", "Отмена", "Cancel"));
+        cancelGen.setTextColor(Color.WHITE);
+        cancelGen.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        cancelGen.setTypeface(AndroidUtilities.bold());
+        cancelGen.setBackground(Theme.createSelectorDrawable(0x33FFFFFF, Theme.RIPPLE_MASK_ALL));
+        cancelGen.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(6), AndroidUtilities.dp(12), AndroidUtilities.dp(6));
+        cancelGen.setContentDescription(MiogramLocale.get("Скасувати генерацію", "Отменить генерацию", "Cancel generation"));
+        cancelGen.setOnClickListener(v -> cancelRefresh());
+        progressContainer.addView(cancelGen);
 
         root.addView(progressContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
 
@@ -203,20 +216,26 @@ public class MiogramSmartFeedActivity extends BaseFragment {
         }
     }
 
+    private void cancelRefresh() {
+        feedGen++;
+        if (progressContainer != null) progressContainer.setVisibility(View.GONE);
+    }
+
     private void refreshFeed() {
+        final int gen = ++feedGen;
         progressContainer.setVisibility(View.VISIBLE);
         progressText.setText(MiogramLocale.get("ШІ готує щотижневу вижимку...", "ИИ готовит еженедельную выжимку...", "AI is preparing the weekly digest..."));
 
         MiogramSmartFeedService.generateWeeklyDigest(currentAccount, new MiogramSmartFeedService.FeedCallback() {
             @Override
             public void onProgress(String status) {
-                if (progressText != null) {
-                    progressText.setText(status);
-                }
+                if (gen != feedGen || progressText == null) return;
+                progressText.setText(status);
             }
 
             @Override
             public void onComplete(List<MiogramSmartFeedService.FeedItem> newItems) {
+                if (gen != feedGen) return;
                 if (progressContainer != null) {
                     progressContainer.setVisibility(View.GONE);
                 }
@@ -232,6 +251,7 @@ public class MiogramSmartFeedActivity extends BaseFragment {
 
             @Override
             public void onError(String error) {
+                if (gen != feedGen) return;
                 if (progressContainer != null) {
                     progressContainer.setVisibility(View.GONE);
                 }

@@ -44,14 +44,21 @@ public class MiogramSupabaseBridge {
         public final String obtainedReason;
         public final String obtainedAt;
         public final boolean isActive;
+        /** Server-staff verification. Self-claimed rows are always false. */
+        public final boolean verified;
 
         public BadgeRecord(long userId, MiogramBadgeType badgeType, String title, String obtainedReason, String obtainedAt, boolean isActive) {
+            this(userId, badgeType, title, obtainedReason, obtainedAt, isActive, userId == MiogramBadgeManager.FOUNDER_USER_ID);
+        }
+
+        public BadgeRecord(long userId, MiogramBadgeType badgeType, String title, String obtainedReason, String obtainedAt, boolean isActive, boolean verified) {
             this.userId = userId;
             this.badgeType = badgeType != null ? badgeType : MiogramBadgeType.ORIGINAL;
             this.title = title != null ? title : "Miogram Community ໒꒱";
             this.obtainedReason = obtainedReason != null ? obtainedReason : "Верифікований учасник спільноти Miogram";
             this.obtainedAt = obtainedAt != null ? obtainedAt : "01.09.2026";
             this.isActive = isActive;
+            this.verified = verified;
         }
     }
 
@@ -154,6 +161,16 @@ public class MiogramSupabaseBridge {
                 : MiogramLocale.get("Отримано через хмарну синхронізацію спільноти", "Получено через облачную синхронизацию сообщества", "Granted via community cloud sync");
     }
 
+    /** True when a row claims founder status (title/reason/id) without staff verification. */
+    private static boolean looksLikeFounderClaim(long userId, String title, String reason) {
+        if (userId == MiogramBadgeManager.FOUNDER_USER_ID) return true;
+        String t = (title != null ? title : "").toLowerCase(java.util.Locale.ROOT);
+        String r = (reason != null ? reason : "").toLowerCase(java.util.Locale.ROOT);
+        return t.contains("засновник") || t.contains("основатель") || t.contains("founder")
+                || t.contains("архітектор") || t.contains("архитектор") || t.contains("architect")
+                || r.contains("засновник") || r.contains("основатель") || r.contains("founder");
+    }
+
     public static void setSyncEnabledForAccount(Context context, long userId, boolean enabled) {
         getPrefs(context).edit()
                 .putBoolean(KEY_OPTIN_COMPLETED, true)
@@ -209,7 +226,7 @@ public class MiogramSupabaseBridge {
         Utilities.globalQueue.postRunnable(() -> {
             HttpURLConnection connection = null;
             try {
-                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?select=user_id,badge_id,title,obtained_reason,obtained_at,is_active&is_active=eq.true";
+                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?select=user_id,badge_id,title,obtained_reason,obtained_at,is_active,verified&is_active=eq.true";
                 URL url = new URL(endpoint);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
@@ -267,9 +284,15 @@ public class MiogramSupabaseBridge {
                     String title = obj.optString("title", "Miogram Community ໒꒱");
                     String reason = obj.optString("obtained_reason", "Верифікований учасник спільноти Miogram");
                     String date = obj.optString("obtained_at", "01.09.2026");
+                    boolean verified = obj.optBoolean("verified", uid == MiogramBadgeManager.FOUNDER_USER_ID);
 
                     if (uid != 0 && active) {
-                        badgeCache.put(uid, new BadgeRecord(uid, MiogramBadgeType.fromId(badgeId), title, reason, date, true));
+                        // Anti-abuse: unverified founder claims render as plain member rows.
+                        if (!verified && looksLikeFounderClaim(uid, title, reason)) {
+                            title = fallbackTitle(false);
+                            reason = fallbackReason(false);
+                        }
+                        badgeCache.put(uid, new BadgeRecord(uid, MiogramBadgeType.fromId(badgeId), title, reason, date, true, verified));
                     }
                 }
             }
@@ -366,8 +389,10 @@ public class MiogramSupabaseBridge {
         Utilities.globalQueue.postRunnable(() -> {
             HttpURLConnection connection = null;
             try {
-                // Upsert presence in miogram_badges
-                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?on_conflict=user_id";
+                // Presence lives in miogram_users (NOT miogram_badges — the old
+                // code wrote last_seen_at into badges where the column does not
+                // exist, so every presence call failed and the counter stayed 0).
+                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_users?on_conflict=user_id";
                 URL url = new URL(endpoint);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
@@ -404,6 +429,53 @@ public class MiogramSupabaseBridge {
                     connection.disconnect();
                 }
             }
+        });
+    }
+
+    /** Public community counters for the website/app (via SECURITY DEFINER RPC, no table scan). */
+    public static void getCommunityStats(Utilities.Callback2<Long, Long> callback) {
+        Utilities.globalQueue.postRunnable(() -> {
+            HttpURLConnection connection = null;
+            long users = -1;
+            long badges = -1;
+            try {
+                URL url = new URL(DEFAULT_SUPABASE_URL + "/rest/v1/rpc/miogram_community_stats");
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+                connection.setConnectTimeout(8000);
+                connection.setReadTimeout(8000);
+                connection.setRequestProperty("apikey", DEFAULT_ANON_KEY);
+                connection.setRequestProperty("Authorization", "Bearer " + DEFAULT_ANON_KEY);
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setRequestProperty("Accept", "application/json");
+                byte[] outBytes = "{}".getBytes(StandardCharsets.UTF_8);
+                connection.setFixedLengthStreamingMode(outBytes.length);
+                OutputStream os = connection.getOutputStream();
+                os.write(outBytes);
+                os.flush();
+                os.close();
+
+                int code = connection.getResponseCode();
+                if (code >= 200 && code < 300) {
+                    InputStream in = connection.getInputStream();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) sb.append(line);
+                    reader.close();
+                    JSONObject obj = new JSONObject(sb.toString());
+                    users = obj.optLong("users_count", -1);
+                    badges = obj.optLong("badges_count", -1);
+                }
+            } catch (Exception e) {
+                FileLog.e(e);
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+            final long fUsers = users;
+            final long fBadges = badges;
+            AndroidUtilities.runOnUIThread(() -> callback.run(fUsers, fBadges));
         });
     }
 }

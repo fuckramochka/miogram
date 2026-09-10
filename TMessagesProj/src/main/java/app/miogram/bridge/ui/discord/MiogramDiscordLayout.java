@@ -610,6 +610,21 @@ public class MiogramDiscordLayout {
                 }
             }
             Long did = railToDialog.get(selected);
+            if (did == null) {
+                // Header is built before the rail on first creation — resolve
+                // group titles by scanning dialogs instead of the empty map.
+                try {
+                    ArrayList<TLRPC.Dialog> dialogs = MessagesController.getInstance(UserConfig.selectedAccount).getDialogs(0);
+                    if (dialogs != null) {
+                        for (TLRPC.Dialog d : dialogs) {
+                            if (d != null && d.id < 0 && railIdForDialog(d.id) == selected) {
+                                did = d.id;
+                                break;
+                            }
+                        }
+                    }
+                } catch (Throwable ignored) {}
+            }
             if (did != null) {
                 try {
                     TLRPC.Chat chat = MessagesController.getInstance(UserConfig.selectedAccount).getChat(-did);
@@ -619,6 +634,19 @@ public class MiogramDiscordLayout {
         }
         return MiogramLocale.get("Повідомлення", "Сообщения", "Messages");
     }
+
+    /** Updates the server title of a header built by {@link #createDiscordChannelHeader}. */
+    public static void updateChannelHeaderTitle(View header, String title) {
+        if (header instanceof ViewGroup) {
+            View titleView = ((ViewGroup) header).findViewWithTag(TAG_HEADER_TITLE);
+            if (titleView instanceof TextView) {
+                ((TextView) titleView).setText(title != null && !title.isEmpty()
+                        ? title : MiogramLocale.get("Повідомлення", "Сообщения", "Messages"));
+            }
+        }
+    }
+
+    private static final String TAG_HEADER_TITLE = "discord_server_title";
 
     public static View createDiscordChannelHeader(Context context, String title, Runnable onSearchClick) {
         LinearLayout wrapper = new LinearLayout(context);
@@ -636,6 +664,7 @@ public class MiogramDiscordLayout {
         header.addView(hash, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 8, 0));
 
         TextView titleView = new TextView(context);
+        titleView.setTag(TAG_HEADER_TITLE);
         titleView.setText(title != null && !title.isEmpty() ? title : MiogramLocale.get("Повідомлення", "Сообщения", "Messages"));
         titleView.setTextColor(COLOR_TEXT_PRIMARY);
         titleView.setTextSize(15);
@@ -708,7 +737,8 @@ public class MiogramDiscordLayout {
         // main source of GC churn in the old version.
         private android.graphics.drawable.Drawable letterBgIdle;
         private android.graphics.drawable.Drawable letterBgActive;
-        private android.graphics.drawable.Drawable homeBg;
+        private android.graphics.drawable.Drawable homeBgIdle;
+        private android.graphics.drawable.Drawable homeBgActive;
         private android.graphics.drawable.Drawable addBg;
 
         private float selectionT = 0f; // 0 idle .. 1 selected
@@ -736,7 +766,8 @@ public class MiogramDiscordLayout {
 
             letterBgIdle = Theme.createRoundRectDrawable(AndroidUtilities.dp(RADIUS_IDLE_DP), COLOR_CHANNELS_BG);
             letterBgActive = Theme.createRoundRectDrawable(AndroidUtilities.dp(RADIUS_ACTIVE_DP), COLOR_BLURPLE);
-            homeBg = Theme.createRoundRectDrawable(AndroidUtilities.dp(RADIUS_IDLE_DP), COLOR_BLURPLE);
+            homeBgIdle = Theme.createRoundRectDrawable(AndroidUtilities.dp(RADIUS_IDLE_DP), COLOR_BLURPLE);
+            homeBgActive = Theme.createRoundRectDrawable(AndroidUtilities.dp(RADIUS_ACTIVE_DP), COLOR_BLURPLE);
             addBg = Theme.createRoundRectDrawable(AndroidUtilities.dp(RADIUS_IDLE_DP), COLOR_ADD_BG);
 
             letterBadge = new TextView(context);
@@ -748,7 +779,7 @@ public class MiogramDiscordLayout {
             iconBox.addView(letterBadge, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
             homeGlyph = new HomeGlyphView(context);
-            homeGlyph.setBackground(homeBg);
+            homeGlyph.setBackground(homeBgIdle);
             homeGlyph.setPadding(AndroidUtilities.dp(13), AndroidUtilities.dp(13), AndroidUtilities.dp(13), AndroidUtilities.dp(13));
             iconBox.addView(homeGlyph, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
@@ -814,7 +845,10 @@ public class MiogramDiscordLayout {
             String[] parts = n.split("\\s+");
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < Math.min(2, parts.length); i++) {
-                if (!parts[i].isEmpty()) sb.append(Character.toUpperCase(parts[i].codePointAt(0)));
+                if (!parts[i].isEmpty()) {
+                    // appendCodePoint, NOT append(int): the latter prints "68" instead of "D".
+                    sb.appendCodePoint(Character.toUpperCase(parts[i].codePointAt(0)));
+                }
             }
             if (sb.length() == 0) sb.append("G");
             letterBadge.setText(sb.toString());
@@ -899,13 +933,7 @@ public class MiogramDiscordLayout {
                 letterBadge.setTextColor(selected ? 0xFFFFFFFF : COLOR_TEXT_PRIMARY);
             }
             if (homeGlyph.getVisibility() == VISIBLE) {
-                // Recreate only when crossing the threshold, not per animation frame.
-                if (selected && homeGlyph.getBackground() != homeBg) {
-                    homeBg = Theme.createRoundRectDrawable(radius, COLOR_BLURPLE);
-                    homeGlyph.setBackground(homeBg);
-                } else if (!selected && lastPillH == AndroidUtilities.dp(8)) {
-                    // keep steady home bg while idle
-                }
+                homeGlyph.setBackground(selected ? homeBgActive : homeBgIdle);
             }
         }
     }

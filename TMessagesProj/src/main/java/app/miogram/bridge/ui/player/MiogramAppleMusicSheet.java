@@ -2,14 +2,18 @@ package app.miogram.bridge.ui.player;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewOutlineProvider;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -78,9 +82,11 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
                 }
                 // Keep the visualizer alive even while the user scrubs.
                 bassVisualizer.updateAmplitudes(syntheticAmplitudes());
-            }
-            if (!MediaController.getInstance().isMessagePaused()) {
-                progressHandler.postDelayed(this, 16);
+                // Reschedule only while there is something to track — otherwise
+                // this becomes a silent 60fps busy loop after the playlist ends.
+                if (!MediaController.getInstance().isMessagePaused()) {
+                    progressHandler.postDelayed(this, 16);
+                }
             }
         }
     };
@@ -119,14 +125,16 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         FrameLayout root = new FrameLayout(ctx);
         root.setBackgroundColor(0xFF141318);
 
-        // Cover-art backdrop, zoomed and dimmed.
+        // Cover-art backdrop, zoomed and dimmed under a vertical gradient
+        // scrim (content stays legible on bright artwork, art glows through).
         backdropView = new BackupImageView(ctx);
         backdropView.setScaleX(1.35f);
         backdropView.setScaleY(1.35f);
         root.addView(backdropView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
 
         View scrim = new View(ctx);
-        scrim.setBackgroundColor(0xE6141318);
+        scrim.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{0xB3141318, 0xE6141318, 0xF5141318}));
         root.addView(scrim, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
         LinearLayout content = new LinearLayout(ctx);
@@ -139,11 +147,22 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         handle.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(3), 0x44FFFFFF));
         content.addView(handle, LayoutHelper.createLinear(40, 5, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 16));
 
-        // 1. Giant Rounded Album Art
+        // 1. Giant Rounded Album Art (adaptive: fits small phones, caps on tablets).
+        // Rounded outline doubles as the shadow shape — no more square shadow
+        // behind round art.
         albumArtView = new BackupImageView(ctx);
-        albumArtView.setRoundRadius(AndroidUtilities.dp(22));
+        albumArtView.setRoundRadius(AndroidUtilities.dp(24));
         albumArtView.setElevation(AndroidUtilities.dp(18));
-        content.addView(albumArtView, LayoutHelper.createLinear(270, 270, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 20));
+        albumArtView.setOutlineProvider(new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), AndroidUtilities.dp(24));
+            }
+        });
+        albumArtView.setClipToOutline(true);
+        int artSize = Math.max(AndroidUtilities.dp(200),
+                Math.min(AndroidUtilities.dp(300), AndroidUtilities.displaySize.x - AndroidUtilities.dp(96)));
+        content.addView(albumArtView, LayoutHelper.createLinear(artSize, artSize, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 20));
 
         // 2. Track Title & Artist
         LinearLayout titleBox = new LinearLayout(ctx);
@@ -158,12 +177,17 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         titleView.setTypeface(AndroidUtilities.bold());
         titleView.setTextColor(0xFFFFFFFF);
         titleView.setSingleLine(true);
+        titleView.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+        titleView.setMarqueeRepeatLimit(-1);
+        titleView.setSelected(true);
+        titleView.setHorizontallyScrolling(true);
         textGroup.addView(titleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         artistView = new TextView(ctx);
         artistView.setTextSize(15.5f);
-        artistView.setTextColor(0xAAFFFFFF);
+        artistView.setTextColor(0xB3FFFFFF);
         artistView.setSingleLine(true);
+        artistView.setEllipsize(TextUtils.TruncateAt.END);
         textGroup.addView(artistView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
 
         titleBox.addView(textGroup, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
@@ -209,6 +233,7 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
             }
         });
         content.addView(progressBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(28), 0, 0, 0, 0));
+        progressBar.setContentDescription(MiogramLocale.get("Позиція відтворення, потягніть щоб перемотати", "Позиция воспроизведения, потяните чтобы перемотать", "Playback position, drag to seek"));
 
         LinearLayout timeBox = new LinearLayout(ctx);
         timeBox.setOrientation(LinearLayout.HORIZONTAL);
@@ -216,13 +241,13 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         timeElapsedView = new TextView(ctx);
         timeElapsedView.setText("0:00");
         timeElapsedView.setTextSize(12);
-        timeElapsedView.setTextColor(0x77FFFFFF);
+        timeElapsedView.setTextColor(0x99FFFFFF);
         timeBox.addView(timeElapsedView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
 
         timeRemainingView = new TextView(ctx);
         timeRemainingView.setText("-0:00");
         timeRemainingView.setTextSize(12);
-        timeRemainingView.setTextColor(0x77FFFFFF);
+        timeRemainingView.setTextColor(0x99FFFFFF);
         timeRemainingView.setGravity(Gravity.RIGHT);
         timeBox.addView(timeRemainingView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
 
@@ -381,12 +406,30 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
 
     @Override
     public void dismiss() {
-        stopProgressTicker();
-        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidStart);
-        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
-        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
-        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidReset);
+        releasePlayerResources();
         super.dismiss();
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        // Rebuilds/finishes can detach the sheet without dismiss() — never
+        // leak the 60fps ticker or the 4 NotificationCenter observers.
+        releasePlayerResources();
+        super.onDetachedFromWindow();
+    }
+
+    private boolean playerResourcesReleased = false;
+
+    private void releasePlayerResources() {
+        if (playerResourcesReleased) return;
+        playerResourcesReleased = true;
+        stopProgressTicker();
+        try {
+            NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidStart);
+            NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+            NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
+            NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidReset);
+        } catch (Throwable ignored) {}
     }
 
     /**
@@ -411,6 +454,8 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         private final Paint trackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint activePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint knobPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF trackRect = new RectF();
+        private final RectF activeRect = new RectF();
 
         public AppleSeekBar(Context context) {
             super(context);
@@ -437,13 +482,16 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             float cy = getHeight() / 2f;
-            float radius = AndroidUtilities.dp(2);
-            canvas.drawRoundRect(new RectF(0, cy - radius, getWidth(), cy + radius), radius, radius, trackPaint);
+            float radius = AndroidUtilities.dp(2.5f);
+            trackRect.set(0, cy - radius, getWidth(), cy + radius);
+            canvas.drawRoundRect(trackRect, radius, radius, trackPaint);
 
             float knobX = Math.max(AndroidUtilities.dp(6), Math.min(getWidth() - AndroidUtilities.dp(6), getWidth() * fraction));
-            canvas.drawRoundRect(new RectF(0, cy - radius, knobX, cy + radius), radius, radius, activePaint);
+            activeRect.set(0, cy - radius, knobX, cy + radius);
+            canvas.drawRoundRect(activeRect, radius, radius, activePaint);
 
-            float kr = AndroidUtilities.dp(6) * knobScale;
+            float kr = AndroidUtilities.dp(6.5f) * knobScale;
+            // Soft halo under the knob for depth.
             knobPaint.setAlpha(dragging ? 255 : 235);
             canvas.drawCircle(knobX, cy, kr, knobPaint);
         }

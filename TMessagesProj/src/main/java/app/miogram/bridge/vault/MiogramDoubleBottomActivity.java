@@ -163,16 +163,20 @@ public class MiogramDoubleBottomActivity extends BaseNekoSettingsActivity {
         editText.setTransformationMethod(PasswordTransformationMethod.getInstance());
         editText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         editText.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        String current = isReal ? MiogramDoubleBottomManager.getRealPasscode() : MiogramDoubleBottomManager.getDuressPasscode();
-        if (!TextUtils.isEmpty(current)) {
-            editText.setText(current);
-            editText.setSelection(current.length());
+        // Raw PINs are not readable (hashed storage) — never pre-fill; an empty
+        // field keeps the existing PIN, typing replaces it.
+        boolean hasPin = isReal ? MiogramDoubleBottomManager.hasRealPasscode() : MiogramDoubleBottomManager.hasDuressPasscode();
+        if (hasPin) {
+            editText.setHint(MiogramLocale.get("PIN встановлено — введіть новий щоб змінити", "PIN установлен — введите новый чтобы изменить", "PIN is set — type a new one to change it"));
         }
         layout.addView(editText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 16, 0, 8));
 
         builder.setView(layout);
         builder.setPositiveButton(MiogramLocale.get("Зберегти", "Сохранить", "Save"), (dialog, which) -> {
             String pin = editText.getText().toString().trim();
+            if (pin.isEmpty()) {
+                return; // keep existing PIN
+            }
             if (pin.length() < 4) {
                 return;
             }
@@ -186,7 +190,7 @@ public class MiogramDoubleBottomActivity extends BaseNekoSettingsActivity {
         });
         builder.setNegativeButton(MiogramLocale.get("Скасувати", "Отмена", "Cancel"), null);
 
-        if (!TextUtils.isEmpty(current)) {
+        if (hasPin) {
             builder.setNeutralButton(MiogramLocale.get("Видалити", "Удалить", "Delete"), (dialog, which) -> {
                 if (isReal) {
                     MiogramDoubleBottomManager.setRealPasscode("");
@@ -291,8 +295,8 @@ public class MiogramDoubleBottomActivity extends BaseNekoSettingsActivity {
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position, boolean partial) {
             int targetAccount = MiogramDoubleBottomManager.getDecoyAccount() >= 0 ? MiogramDoubleBottomManager.getDecoyAccount() : currentAccount;
             int allowedCount = MiogramDoubleBottomManager.getAllowedDialogIds(targetAccount).size();
-            boolean hasReal = !TextUtils.isEmpty(MiogramDoubleBottomManager.getRealPasscode());
-            boolean hasDuress = !TextUtils.isEmpty(MiogramDoubleBottomManager.getDuressPasscode());
+            boolean hasReal = MiogramDoubleBottomManager.hasRealPasscode();
+            boolean hasDuress = MiogramDoubleBottomManager.hasDuressPasscode();
 
             switch (holder.getItemViewType()) {
                 case TYPE_HEADER: {

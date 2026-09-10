@@ -370,7 +370,14 @@ public class MiogramLyricsView extends FrameLayout {
         this.onCloseClickListener = listener;
     }
 
-    public void setOnActiveLineChangeListener(OnActiveLineChangeListener listener) {
+    @Override
+    protected void onDetachedFromWindow() {
+        if (hideToastRunnable != null) {
+            removeCallbacks(hideToastRunnable);
+            hideToastRunnable = null;
+        }
+        super.onDetachedFromWindow();
+    }    public void setOnActiveLineChangeListener(OnActiveLineChangeListener listener) {
         this.onActiveLineChangeListener = listener;
     }
 

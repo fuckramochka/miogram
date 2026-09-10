@@ -58,6 +58,10 @@ public class MiogramDivineEngine {
         return getCurrentPreset(context) == Preset.WINDOWS_XP;
     }
 
+    public static boolean isMinimalistActive(Context context) {
+        return getCurrentPreset(context) == Preset.MINIMALIST;
+    }
+
     public static String getPresetTitle(Preset preset) {
         switch (preset) {
             case DISCORD_ULTRA:

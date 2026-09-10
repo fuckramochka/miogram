@@ -62,15 +62,16 @@ public class MiogramKanbanStorage {
 
     public static void addItem(String title, String desc, int column, long dialogId, int messageId) {
         List<KanbanItem> items = loadItems();
-        String id = String.valueOf(System.currentTimeMillis());
+        String id = java.util.UUID.randomUUID().toString();
         items.add(0, new KanbanItem(id, title, desc, column, dialogId, messageId));
         saveItems(items);
     }
 
     public static void moveItem(String itemId, int targetColumn) {
+        if (itemId == null) return;
         List<KanbanItem> items = loadItems();
         for (KanbanItem item : items) {
-            if (item.id.equals(itemId)) {
+            if (item != null && itemId.equals(item.id)) {
                 item.column = targetColumn;
                 break;
             }
@@ -79,8 +80,9 @@ public class MiogramKanbanStorage {
     }
 
     public static void deleteItem(String itemId) {
+        if (itemId == null) return;
         List<KanbanItem> items = loadItems();
-        items.removeIf(it -> it.id.equals(itemId));
+        items.removeIf(it -> it == null || itemId.equals(it.id));
         saveItems(items);
     }
 }
