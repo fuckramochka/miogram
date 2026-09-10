@@ -474,9 +474,10 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
                     grantEntry.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
                     grantEntry.setBackground(Theme.getSelectorDrawable(false));
                     grantEntry.setPadding(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(12));
+                    final Context grantCtx = context;
                     grantEntry.setOnClickListener(v -> {
                         if (app.miogram.bridge.customui.MiogramHaptic.isEnabled()) v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                        MiogramBadgeGrantSheet.show(context);
+                        MiogramBadgeGrantSheet.show(grantCtx);
                     });
                     root.addView(grantEntry, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 8, 0, 0));
                 }
