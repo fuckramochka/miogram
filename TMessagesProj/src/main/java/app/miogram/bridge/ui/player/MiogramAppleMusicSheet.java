@@ -119,20 +119,6 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingDidReset);
         updateTrackInfo();
         startProgressTicker();
-        // Rebuilds can detach the sheet content without dismiss() — release
-        // the 60fps ticker and observers then, never leak them.
-        // (An onDetachedFromWindow() override is impossible here: the
-        // NotificationCenterDelegate interface already declares that name.)
-        root.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-            @Override
-            public void onViewAttachedToWindow(View v) {
-            }
-
-            @Override
-            public void onViewDetachedFromWindow(View v) {
-                releasePlayerResources();
-            }
-        });
     }
 
     private void initUi(Context ctx) {
@@ -341,6 +327,20 @@ public class MiogramAppleMusicSheet extends BottomSheet implements NotificationC
 
         root.addView(content);
         setCustomView(root);
+        // Rebuilds can detach the sheet content without dismiss() — release
+        // the 60fps ticker and observers then, never leak them.
+        // (An onDetachedFromWindow() override is impossible here: the
+        // NotificationCenterDelegate interface already declares that name.)
+        root.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View v) {
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View v) {
+                releasePlayerResources();
+            }
+        });
     }
 
     private void startProgressTicker() {
