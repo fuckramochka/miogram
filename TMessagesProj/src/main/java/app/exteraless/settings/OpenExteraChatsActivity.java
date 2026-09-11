@@ -970,17 +970,6 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
         NekoConfig.unlimitedFavedStickers.setConfigBool(value);
     }
 
-    private void toggleUnlimitedRecentStickers(View view) {
-        boolean value = !isUnlimitedRecentStickers();
-        setUnlimitedRecentStickers(value);
-        if (view instanceof CheckBoxCell) {
-            ((CheckBoxCell) view).setChecked(value, true);
-        }
-        if (listAdapter != null) {
-            listAdapter.notifyItemChanged(unlimitedGroupRow);
-        }
-    }
-
     /**
      * «Быстрые действия администратора» из exteraGram — один тумблер поверх пяти пунктов меню чата
      * NagramX ({@code NaConfig.shortcuts*}) и пункта «Права администратора» в меню сообщения
@@ -1108,9 +1097,6 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
         } else if (position == alwaysSendHdRow) {
             toggleHighQualityPhoto(view);
             return;
-        } else if (position == unlimitedStickersRow) {
-            toggleUnlimitedRecentStickers(view);
-            return;
         } else if (position == adminShortcutsRow) {
             toggleQuickAdminShortcuts(view);
             return;
@@ -1232,6 +1218,7 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
     }
 
     private boolean isRowChecked(int position) {
+        if (position == unlimitedStickersRow) return isUnlimitedRecentStickers();
         if (position == quickTransitionChannelsRow) return quickTransitionForChannels();
         if (position == quickTransitionTopicsRow) return quickTransitionForTopics();
         if (position == seamlessSwitchingRow) return isSeamlessSwitchingEnabled();
@@ -1240,6 +1227,10 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
     }
 
     private void setRowChecked(int position, boolean value) {
+        if (position == unlimitedStickersRow) {
+            setUnlimitedRecentStickers(value);
+            return;
+        }
         if (position == quickTransitionChannelsRow) {
             NekoConfig.disableSwipeToNext.setConfigBool(!value);
             return;
