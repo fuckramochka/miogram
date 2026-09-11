@@ -137,6 +137,11 @@ class SimpleSettingFactory:
                     pass
         return view
 
+    @classmethod
+    def getInstance(cls):
+        from java import jclass
+        return jclass("app.exteraless.plugins.models.PluginItemFactory").getInstance()
+
     @property
     def instance(self):
         """The bridged Java peer of this factory."""

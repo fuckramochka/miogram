@@ -503,3 +503,15 @@ def test_admin_tools_custom_user_cell_keeps_its_factory_payload(sdk, loader, mon
     native = loader._build_custom_view(row, None)
     assert native.factory is factory
     assert native.args.hold_object == (-123, 'Admin chat', '13 members', click, long_click)
+
+def test_substituted_factory_class_exposes_the_java_singleton(sdk, monkeypatch):
+    aliases = load_module(monkeypatch, 'extera_utils.class_aliases')
+    factory_class = aliases.substitute('com.exteragram.messenger.plugins.models.PluginItemFactory')
+    assert factory_class is sdk.settings.SimpleSettingFactory
+    singleton, asked = object(), []
+    peer = types.SimpleNamespace(getInstance=lambda: singleton)
+    monkeypatch.setitem(sys.modules, 'java', types.SimpleNamespace(
+        jclass=lambda name: (asked.append(name), peer)[1]))
+    assert factory_class.getInstance() is singleton
+    assert asked == ['app.exteraless.plugins.models.PluginItemFactory']
+    assert sdk.settings.SimpleSettingFactory().java is singleton
