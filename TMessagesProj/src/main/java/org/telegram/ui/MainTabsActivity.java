@@ -523,7 +523,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                         ? app.miogram.bridge.MiogramLocale.get("ШІ Супутник", "ИИ Спутник", "AI Companion")
                         : LocaleController.getString(R.string.MainTabsContacts));
             }
-            dropBaseFragmentAt(getPositionContacts());
+            dropFragmentAtPosition(getPositionContacts());
             if (fragmentView != null) {
                 checkUi_contactsOrFeedTabVisible(true);
             }

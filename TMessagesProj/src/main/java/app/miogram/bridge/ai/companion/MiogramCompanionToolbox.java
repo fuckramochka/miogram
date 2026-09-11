@@ -175,7 +175,7 @@ public class MiogramCompanionToolbox {
                 case "create_chat": {
                     String title = p.optString("title", "Miogram New Chat");
                     boolean isChannel = p.optBoolean("is_channel", false);
-                    MessagesController.getInstance(account).createChat(title, new ArrayList<>(), null, isChannel ? 2 : 0, false, null, null, null, false);
+                    MessagesController.getInstance(account).createChat(title, new ArrayList<>(), null, isChannel ? 2 : 0, false, null, null, -1, null);
                     callback.run("Новий " + (isChannel ? "канал" : "чат") + " «" + title + "» створюється.");
                     break;
                 }
@@ -247,7 +247,7 @@ public class MiogramCompanionToolbox {
                 case "toggle_plugin": {
                     String pid = p.optString("plugin_id", "");
                     boolean enable = p.optBoolean("enable", true);
-                    PluginsController.getInstance().enablePlugin(pid, enable);
+                    PluginsController.getInstance().setPluginEnabled(pid, enable);
                     callback.run("Плагін " + pid + (enable ? " увімкнено." : " вимкнено."));
                     break;
                 }

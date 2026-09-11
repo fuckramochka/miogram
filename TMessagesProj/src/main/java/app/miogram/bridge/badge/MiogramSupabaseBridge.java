@@ -13,6 +13,7 @@ import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
 
@@ -449,7 +450,7 @@ public class MiogramSupabaseBridge {
                 sb.append("I am reporting an issue encountered in Miogram:\n\n");
                 sb.append("[Miogram Bug Report]\n");
                 sb.append("Issue: ").append(issueType != null && !issueType.isEmpty() ? issueType : "Runtime Issue").append("\n");
-                sb.append("App Version: Miogram ").append(BuildVars.BUILD_VERSION_STRING).append(" (").append(BuildVars.BUILD_VERSION).append(")\n");
+                sb.append("App Version: Miogram ").append(BuildVars.BUILD_VERSION_STRING).append("\n");
                 sb.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
                 sb.append("OS: Android ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append(")\n");
                 try {
@@ -481,21 +482,26 @@ public class MiogramSupabaseBridge {
 
                 try {
                     Toast.makeText(ctx, MiogramLocale.get(
-                            "Звіт та лог скопійовано. Відкриваємо чат із @dkramochka...",
-                            "Отчет и лог скопированы. Открываем чат с @dkramochka...",
-                            "Bug report copied to clipboard. Opening chat with @dkramochka..."
+                            "Звіт та лог надіслано до @dkramochka",
+                            "Отчет и лог отправлены к @dkramochka",
+                            "Bug report sent to @dkramochka"
                     ), Toast.LENGTH_SHORT).show();
                 } catch (Throwable ignore) {}
 
-                // 2. Resolve @dkramochka, save draft into dialog, and open chat natively
+                // 2. Resolve @dkramochka, send message into chat, and open chat natively
                 BaseFragment lastFragment = LaunchActivity.getLastFragment();
                 MessagesController mc = MessagesController.getInstance(account);
                 mc.getUserNameResolver().resolve("dkramochka", (peerId) -> {
                     if (peerId != null && peerId > 0) {
                         try {
-                            MediaDataController.getInstance(account).saveDraft(peerId, 0, fullReport, null, null, true, 0);
+                            SendMessagesHelper.getInstance(account).sendMessage(
+                                    SendMessagesHelper.SendMessageParams.of(fullReport, peerId, null, null, null, true, null, null, null, true, 0, 0, null, false)
+                            );
                         } catch (Throwable t) {
                             FileLog.e(t);
+                            try {
+                                MediaDataController.getInstance(account).saveDraft(peerId, 0, fullReport, null, null, true, 0);
+                            } catch (Throwable ignore) {}
                         }
                     }
                     AndroidUtilities.runOnUIThread(() -> {
@@ -567,8 +573,6 @@ public class MiogramSupabaseBridge {
                         "Критическая ошибка синхронизации. Чтобы избежать проблем, отправьте ошибку создателю",
                         "Critical synchronization error. To avoid issues, please send this error to the creator."
                 ));
-                builder.setCancelable(false);
-
                 final Context finalCtx = ctx;
                 final String finalError = (errorDetails != null && !errorDetails.trim().isEmpty())
                         ? errorDetails.trim()
@@ -584,6 +588,7 @@ public class MiogramSupabaseBridge {
 
                 AlertDialog dialog = builder.create();
                 dialog.setCanceledOnTouchOutside(false);
+                dialog.setCancelable(false);
                 dialog.show();
             } catch (Throwable t) {
                 FileLog.e(t);
