@@ -241,15 +241,16 @@ public class TextSettingsCell extends FrameLayout {
     }
 
     public void setTextAndValue(CharSequence text, CharSequence value, boolean animated, boolean divider, boolean isNekoCell) {
+        final boolean wrapTitle = isNekoCell && value == null;
         textView.setText(text);
-        if (isNekoCell) {
+        if (wrapTitle) {
             textView.setLines(0);
             textView.setMaxLines(0);
             textView.setSingleLine(false);
         } else {
             setTitleSingleLine();
         }
-        wrapText = isNekoCell;
+        wrapText = wrapTitle;
         valueImageView.setVisibility(INVISIBLE);
         if (value != null) {
             valueTextView.setText(value, animated);
