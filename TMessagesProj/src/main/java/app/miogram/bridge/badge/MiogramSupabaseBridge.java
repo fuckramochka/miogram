@@ -254,6 +254,7 @@ public class MiogramSupabaseBridge {
     public static void fetchBadgesFromCloud(Runnable onComplete) {
         Utilities.globalQueue.postRunnable(() -> {
             HttpURLConnection connection = null;
+            try {
                 String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?select=*&is_active=eq.true";
                 URL url = new URL(endpoint);
                 connection = (HttpURLConnection) url.openConnection();
