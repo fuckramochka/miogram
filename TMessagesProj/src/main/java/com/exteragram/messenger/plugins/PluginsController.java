@@ -14,6 +14,18 @@ public abstract class PluginsController {
         return app.exteraless.plugins.PluginsController.getInstance();
     }
 
+    public static java.util.Map<String, ? extends PythonPluginsEngine> getEngines() {
+        return app.exteraless.plugins.PluginsController.getEngines();
+    }
+
+    public static void openPluginSettings(String pluginId) {
+        app.exteraless.plugins.PluginsController.openPluginSettings(pluginId);
+    }
+
+    public static void openPluginSettings(String pluginId, String targetSetting) {
+        app.exteraless.plugins.PluginsController.openPluginSettings(pluginId, targetSetting);
+    }
+
     public static boolean isPlugin(org.telegram.messenger.MessageObject message) {
         return app.exteraless.plugins.PluginsController.isPlugin(message);
     }
