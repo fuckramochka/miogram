@@ -276,7 +276,22 @@ public class MiogramDiscordLayout {
             selectRailItem(selectedRailItem, homeItem);
             if (listener != null) listener.onServerSelected(RAIL_HOME);
         });
-        root.addView(homeItem, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(60), 0, 4, 0, 2));
+        root.addView(homeItem, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(56), 0, 4, 0, 2));
+
+        // AI Companion Server Icon (Ame / K-Angel)
+        RailItemView aiItem = new RailItemView(context, false);
+        aiItem.setAiAction();
+        aiItem.setOnClickListener(v -> {
+            haptic(v);
+            LaunchActivity act = LaunchActivity.instance;
+            if (act != null && !act.isFinishing()) {
+                BaseFragment frag = act.getSafeLastFragment();
+                if (frag != null) {
+                    frag.presentFragment(new app.miogram.bridge.ai.companion.MiogramCompanionActivity());
+                }
+            }
+        });
+        root.addView(aiItem, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(56), 0, 2, 0, 2));
 
         View sep = new View(context);
         sep.setBackgroundColor(COLOR_SEPARATOR);
@@ -342,41 +357,6 @@ public class MiogramDiscordLayout {
                     if (listener != null) listener.onServerSelected(filterId);
                 });
                 serverList.addView(item, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(56), 0, 0, 0, 4));
-            }
-        }
-
-        // Group chats without a folder also appear as servers.
-        if (allDialogs != null) {
-            int added = 0;
-            for (int i = 0; i < allDialogs.size() && added < 40; i++) {
-                TLRPC.Dialog dialog = allDialogs.get(i);
-                if (dialog == null || dialog.id >= 0) continue;
-                TLRPC.Chat chat = null;
-                try {
-                    chat = MessagesController.getInstance(currentAccount).getChat(-dialog.id);
-                } catch (Throwable ignored) {}
-                if (chat == null) continue;
-                final long dialogId = dialog.id;
-                final int railId = railIdForDialog(dialogId);
-                if (railToDialog.containsKey(railId)) continue;
-                railToDialog.put(railId, dialogId);
-
-                RailItemView item = new RailItemView(context, false);
-                item.setAvatar(currentAccount, chat);
-                item.setBadge(dialog.unread_count);
-                item.setHasUnread(dialog.unread_count > 0);
-                item.setSelectedVisual(selectedId == railId);
-                String title = chat.title != null ? chat.title : "Group";
-                item.setContentDescription(title + (dialog.unread_count > 0 ? ", " + dialog.unread_count + " unread" : ""));
-                if (selectedId == railId) selectedRailItem[0] = item;
-                item.setOnClickListener(v -> {
-                    haptic(v);
-                    setSelectedRailId(railId);
-                    selectRailItem(selectedRailItem, item);
-                    if (listener != null) listener.onServerSelected(railId);
-                });
-                serverList.addView(item, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(56), 0, 0, 0, 4));
-                added++;
             }
         }
 
@@ -682,6 +662,24 @@ public class MiogramDiscordLayout {
         });
         header.addView(search, LayoutHelper.createLinear(34, 34, Gravity.CENTER_VERTICAL, 0, 0, 0, 0));
 
+        android.widget.ImageView aiBtn = new android.widget.ImageView(context);
+        aiBtn.setImageResource(org.telegram.messenger.R.drawable.baseline_stars_24);
+        aiBtn.setColorFilter(0xFFFF2A85);
+        aiBtn.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+        aiBtn.setBackground(Theme.createSelectorDrawable(0x22FFFFFF, Theme.RIPPLE_MASK_CIRCLE_20DP));
+        aiBtn.setContentDescription(MiogramLocale.get("ШІ Супутник (Ame / KAngel)", "ИИ Спутник (Ame / KAngel)", "AI Companion (Ame / KAngel)"));
+        aiBtn.setOnClickListener(v -> {
+            haptic(v);
+            LaunchActivity act = LaunchActivity.instance;
+            if (act != null && !act.isFinishing()) {
+                BaseFragment frag = act.getSafeLastFragment();
+                if (frag != null) {
+                    frag.presentFragment(new app.miogram.bridge.ai.companion.MiogramCompanionActivity());
+                }
+            }
+        });
+        header.addView(aiBtn, LayoutHelper.createLinear(34, 34, Gravity.CENTER_VERTICAL, 4, 0, 0, 0));
+
         View divider = new View(context);
         divider.setBackgroundColor(0xFF1E1F22);
         wrapper.addView(divider, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 1));
@@ -818,6 +816,20 @@ public class MiogramDiscordLayout {
         public void setAddAction() {
             addGlyph.setVisibility(VISIBLE);
             setContentDescription(MiogramLocale.get("Створити папку", "Создать папку", "Create a folder"));
+        }
+
+        public void setAiAction() {
+            avatarView.setVisibility(GONE);
+            letterBadge.setVisibility(VISIBLE);
+            homeGlyph.setVisibility(GONE);
+            addGlyph.setVisibility(GONE);
+            letterBadge.setText("★AI");
+            letterBadge.setTextSize(13);
+            letterBadge.setTextColor(0xFFFFFFFF);
+            letterBgIdle = Theme.createRoundRectDrawable(AndroidUtilities.dp(RADIUS_IDLE_DP), 0xFFFF2A85);
+            letterBgActive = Theme.createRoundRectDrawable(AndroidUtilities.dp(RADIUS_ACTIVE_DP), 0xFFFF2A85);
+            letterBadge.setBackground(letterBgIdle);
+            setContentDescription(MiogramLocale.get("ШІ Супутник (Ame / KAngel)", "ИИ Спутник (Ame / KAngel)", "AI Companion (Ame / KAngel)"));
         }
 
         public void setAvatar(int account, TLRPC.Chat chat) {

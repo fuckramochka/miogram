@@ -7,6 +7,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.SendMessagesHelper;
@@ -422,6 +423,159 @@ public class MiogramCompanionToolbox {
                     sb.append("Уточни, будь ласка, за @юзернеймом, про кого саме мова?");
                     callback.run(sb.toString());
                     break;
+                }
+                case "search_groups": {
+                    String query = p.optString("query", "");
+                    if (query.isEmpty()) query = p.optString("chat_query", "");
+                    MessagesController mc = MessagesController.getInstance(account);
+                    ArrayList<TLRPC.Dialog> all = mc.getAllDialogs();
+                    if (all == null || all.isEmpty()) all = mc.getDialogs(0);
+                    if (all == null || all.isEmpty()) all = mc.dialogsServerOnly;
+
+                    StringBuilder sb = new StringBuilder();
+                    int count = 0;
+                    if (all != null) {
+                        for (int i = 0; i < all.size(); i++) {
+                            TLRPC.Dialog d = all.get(i);
+                            if (d == null || d.id >= 0) continue;
+                            TLRPC.Chat c = mc.getChat(-d.id);
+                            if (c == null) continue;
+                            boolean isChannel = ChatObject.isChannelAndNotMegaGroup(c);
+                            if (isChannel) continue;
+                            String title = c.title != null ? c.title : "Група";
+                            String uname = c.username != null ? c.username : "";
+                            if (!query.isEmpty()) {
+                                int score = calculateMatchScore(query, title, uname, null, null);
+                                if (score < 50) continue;
+                            }
+                            count++;
+                            sb.append(count).append(". «").append(title).append("»");
+                            if (!uname.isEmpty()) {
+                                sb.append(" (@").append(uname).append(")");
+                            }
+                            if (c.participants_count > 0) {
+                                sb.append(" — ").append(c.participants_count).append(" учасників");
+                            }
+                            if (d.unread_count > 0) {
+                                sb.append(" [").append(d.unread_count).append(" непрочитаних]");
+                            }
+                            sb.append("\n");
+                            if (count >= 15) break;
+                        }
+                    }
+                    if (count == 0) {
+                        callback.run(!query.isEmpty()
+                                ? "Не знайшла жодної групи за запитом «" + query + "»."
+                                : "У тебе немає активних груп у списку діалогів.");
+                    } else {
+                        String header = !query.isEmpty()
+                                ? "Ось знайдені групи за запитом «" + query + "»:\n"
+                                : "Ось список твоїх груп:\n";
+                        callback.run(header + sb.toString());
+                    }
+                    break;
+                }
+                case "search_messages": {
+                    String query = p.optString("query", "");
+                    if (query.isEmpty()) query = p.optString("text", "");
+                    if (query.isEmpty()) query = p.optString("q", "");
+                    if (query.isEmpty()) {
+                        callback.run("Вкажи текст для пошуку повідомлень.");
+                        return;
+                    }
+                    String chatQuery = p.optString("chat_query", "");
+                    if (chatQuery.isEmpty()) chatQuery = p.optString("chat_name", "");
+                    long specificChatId = p.optLong("chat_id", 0);
+
+                    final String fQuery = query;
+                    MessagesController mc = MessagesController.getInstance(account);
+
+                    if (specificChatId != 0 || !chatQuery.isEmpty()) {
+                        ChatResolution res = resolveChatTarget(account, p);
+                        if (res.errorMessage != null) {
+                            callback.run(res.errorMessage);
+                            return;
+                        }
+                        long targetId = res.dialogId;
+                        TLRPC.TL_messages_search req = new TLRPC.TL_messages_search();
+                        req.peer = mc.getInputPeer(targetId);
+                        req.q = fQuery;
+                        req.filter = new TLRPC.TL_inputMessagesFilterEmpty();
+                        req.limit = 10;
+                        final String chatName = res.foundChat != null ? res.foundChat.getReference() : "чаті";
+                        ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                            if (response instanceof TLRPC.messages_Messages) {
+                                TLRPC.messages_Messages msgs = (TLRPC.messages_Messages) response;
+                                mc.putUsers(msgs.users, false);
+                                mc.putChats(msgs.chats, false);
+                                if (msgs.messages.isEmpty()) {
+                                    callback.run("У чаті " + chatName + " нічого не знайдено за запитом «" + fQuery + "».");
+                                } else {
+                                    StringBuilder sb = new StringBuilder("Результати пошуку в " + chatName + " за запитом «" + fQuery + "»:\n");
+                                    for (TLRPC.Message m : msgs.messages) {
+                                        if (m == null || m.message == null || m.message.trim().isEmpty()) continue;
+                                        String senderName = "Користувач";
+                                        long fromId = MessageObject.getFromChatId(m);
+                                        if (fromId > 0) {
+                                            TLRPC.User u = mc.getUser(fromId);
+                                            if (u != null) senderName = UserObject.getUserName(u);
+                                        } else if (fromId < 0) {
+                                            TLRPC.Chat c = mc.getChat(-fromId);
+                                            if (c != null && c.title != null) senderName = c.title;
+                                        }
+                                        sb.append("• [").append(senderName).append("]: ").append(m.message.replace("\n", " ")).append("\n");
+                                    }
+                                    callback.run(sb.toString());
+                                }
+                            } else {
+                                callback.run("Помилка пошуку в чаті: " + (error != null ? error.text : "невідома помилка"));
+                            }
+                        }));
+                        return;
+                    }
+
+                    // Global search across all groups & chats
+                    TLRPC.TL_messages_searchGlobal req = new TLRPC.TL_messages_searchGlobal();
+                    req.q = fQuery;
+                    req.filter = new TLRPC.TL_inputMessagesFilterEmpty();
+                    req.limit = 12;
+                    req.offset_peer = new TLRPC.TL_inputPeerEmpty();
+                    ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                        if (response instanceof TLRPC.messages_Messages) {
+                            TLRPC.messages_Messages msgs = (TLRPC.messages_Messages) response;
+                            mc.putUsers(msgs.users, false);
+                            mc.putChats(msgs.chats, false);
+                            if (msgs.messages.isEmpty()) {
+                                callback.run("Нічого не знайдено по групах та чатах за запитом «" + fQuery + "».");
+                            } else {
+                                StringBuilder sb = new StringBuilder("Ось що знайшла в групах та чатах за запитом «" + fQuery + "»:\n");
+                                for (TLRPC.Message m : msgs.messages) {
+                                    if (m == null || m.message == null || m.message.trim().isEmpty()) continue;
+                                    String chatTitle = "Чат";
+                                    long peerId = MessageObject.getDialogId(m);
+                                    if (peerId < 0) {
+                                        TLRPC.Chat c = mc.getChat(-peerId);
+                                        if (c != null && c.title != null) chatTitle = c.title;
+                                    } else if (peerId > 0) {
+                                        TLRPC.User u = mc.getUser(peerId);
+                                        if (u != null) chatTitle = UserObject.getUserName(u);
+                                    }
+                                    String senderName = "";
+                                    long fromId = MessageObject.getFromChatId(m);
+                                    if (fromId > 0) {
+                                        TLRPC.User u = mc.getUser(fromId);
+                                        if (u != null) senderName = " (" + UserObject.getUserName(u) + ")";
+                                    }
+                                    sb.append("• [«").append(chatTitle).append("»").append(senderName).append("]: ")
+                                      .append(m.message.replace("\n", " ")).append("\n");
+                                }
+                                callback.run(sb.toString());
+                            }
+                        } else {
+                            callback.run("Помилка глобального пошуку: " + (error != null ? error.text : "невідома помилка"));
+                        }
+                    }));
+                    return;
                 }
                 case "clear_chat": {
                     ChatResolution res = resolveChatTarget(account, p);

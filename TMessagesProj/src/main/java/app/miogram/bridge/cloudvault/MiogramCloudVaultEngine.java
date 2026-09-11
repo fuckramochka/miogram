@@ -111,14 +111,30 @@ public class MiogramCloudVaultEngine {
     // --- Vault Supergroup Association ---
 
     public static long getVaultChatId(int currentAccount) {
-        return getPrefs().getLong(KEY_VAULT_CHAT_ID + currentAccount, 0);
+        return getPrefs(currentAccount).getLong(KEY_VAULT_CHAT_ID, 0);
     }
 
     public static void setVaultChatId(int currentAccount, long chatId) {
-        getPrefs().edit().putLong(KEY_VAULT_CHAT_ID + currentAccount, chatId).apply();
+        getPrefs(currentAccount).edit().putLong(KEY_VAULT_CHAT_ID, chatId).apply();
     }
 
-    public static boolean hasVault(int currentAccount) {
+    public static long getVaultDialogId(int currentAccount, long vaultChatId) {
+        long clientUserId = UserConfig.getInstance(currentAccount).getClientUserId();
+        if (vaultChatId == clientUserId) {
+            return clientUserId;
+        }
+        if (vaultChatId < 0) {
+            return vaultChatId;
+        }
+        return -vaultChatId;
+    }
+
+    public static boolean isSavedMessagesVault(int currentAccount, long vaultChatId) {
+        long clientUserId = UserConfig.getInstance(currentAccount).getClientUserId();
+        return vaultChatId != 0 && vaultChatId == clientUserId;
+    }
+
+    public static boolean isVaultLinked(int currentAccount) {
         return getVaultChatId(currentAccount) != 0;
     }
 
@@ -337,7 +353,7 @@ public class MiogramCloudVaultEngine {
                     vaultFile.topicName = "📁 Документи";
                 }
 
-                long targetDialogId = -vaultChatId;
+                long targetDialogId = getVaultDialogId(currentAccount, vaultChatId);
                 for (int i = 0; i < chunkFiles.size(); i++) {
                     File chunk = chunkFiles.get(i);
                     String caption;
@@ -582,8 +598,9 @@ public class MiogramCloudVaultEngine {
             return;
         }
 
+        long dialogId = getVaultDialogId(currentAccount, vaultChatId);
         TLRPC.TL_messages_getHistory reqHistory = new TLRPC.TL_messages_getHistory();
-        reqHistory.peer = MessagesController.getInstance(currentAccount).getInputPeer(-vaultChatId);
+        reqHistory.peer = MessagesController.getInstance(currentAccount).getInputPeer(dialogId);
         reqHistory.limit = 100;
 
         ConnectionsManager.getInstance(currentAccount).sendRequest(reqHistory, (respHistory, errHistory) -> {
@@ -747,9 +764,18 @@ public class MiogramCloudVaultEngine {
         }
 
         if (file.chunkMsgIds != null && !file.chunkMsgIds.isEmpty()) {
-            TLRPC.TL_channels_getMessages req = new TLRPC.TL_channels_getMessages();
-            req.channel = MessagesController.getInstance(currentAccount).getInputChannel(vaultChatId);
-            req.id = new ArrayList<>(file.chunkMsgIds);
+            long dialogId = getVaultDialogId(currentAccount, vaultChatId);
+            org.telegram.tgnet.TLObject req;
+            if (dialogId < 0) {
+                TLRPC.TL_channels_getMessages cReq = new TLRPC.TL_channels_getMessages();
+                cReq.channel = MessagesController.getInstance(currentAccount).getInputChannel(-dialogId);
+                cReq.id = new ArrayList<>(file.chunkMsgIds);
+                req = cReq;
+            } else {
+                TLRPC.TL_messages_getMessages mReq = new TLRPC.TL_messages_getMessages();
+                mReq.id = new ArrayList<>(file.chunkMsgIds);
+                req = mReq;
+            }
             ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {
                 if (error == null && response instanceof TLRPC.messages_Messages) {
                     ArrayList<TLRPC.Message> msgs = ((TLRPC.messages_Messages) response).messages;
@@ -808,7 +834,8 @@ public class MiogramCloudVaultEngine {
         app.miogram.bridge.hooks.MioHook.dispatchVault("deleted", file.fileId, file.name);
 
         if (deleteServerMessages && vaultChatId != 0 && !file.chunkMsgIds.isEmpty()) {
-            MessagesController.getInstance(currentAccount).deleteMessages(file.chunkMsgIds, null, null, -vaultChatId, 0, true, 0);
+            long dialogId = getVaultDialogId(currentAccount, vaultChatId);
+            MessagesController.getInstance(currentAccount).deleteMessages(file.chunkMsgIds, null, null, dialogId, 0, true, 0);
         }
     }
 

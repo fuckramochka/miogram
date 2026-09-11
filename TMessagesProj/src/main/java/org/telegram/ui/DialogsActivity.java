@@ -3409,6 +3409,14 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             downloadsItem.setContentDescription(getString(R.string.DownloadsTabs));
             downloadsItem.setVisibility(View.GONE);
 
+            ActionBarMenuItem companionItem = menu.addItem(1337, R.drawable.baseline_stars_24);
+            companionItem.setContentDescription(app.miogram.bridge.MiogramLocale.get("ШІ Супутник (Ame / KAngel)", "ИИ Спутник (Ame / KAngel)", "AI Companion (Ame / KAngel)"));
+            companionItem.setIconColor(0xFFFF2A85);
+            companionItem.setOnClickListener(v -> {
+                app.miogram.bridge.customui.MiogramHaptic.tap(v);
+                presentFragment(new app.miogram.bridge.ai.companion.MiogramCompanionActivity());
+            });
+
             updateProxyButton(false, false);
         }
 

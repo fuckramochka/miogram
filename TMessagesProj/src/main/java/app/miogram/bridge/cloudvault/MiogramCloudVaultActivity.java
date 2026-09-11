@@ -624,6 +624,12 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         long vaultChatId = MiogramCloudVaultEngine.getVaultChatId(currentAccount);
         if (vaultChatId == 0) return;
 
+        if (MiogramCloudVaultEngine.isSavedMessagesVault(currentAccount, vaultChatId)) {
+            cachedTopics.clear();
+            refreshTopicPills();
+            return;
+        }
+
         TopicsController tc = getMessagesController().getTopicsController();
         tc.loadTopics(vaultChatId);
         ArrayList<TLRPC.TL_forumTopic> topics = tc.getTopics(vaultChatId);
@@ -798,10 +804,10 @@ public class MiogramCloudVaultActivity extends BaseFragment {
                         showVaultRequiredDialog();
                         return;
                     }
-                    long targetDialogId = -vaultChatId;
+                    long targetDialogId = MiogramCloudVaultEngine.getVaultDialogId(currentAccount, vaultChatId);
 
                     MessageObject replyToTopMsg = null;
-                    if (vaultFile.topicId > 0) {
+                    if (vaultFile.topicId > 0 && !MiogramCloudVaultEngine.isSavedMessagesVault(currentAccount, vaultChatId)) {
                         TLRPC.TL_message dummyMsg = new TLRPC.TL_message();
                         dummyMsg.id = (int) vaultFile.topicId;
                         dummyMsg.dialog_id = targetDialogId;
@@ -1063,12 +1069,25 @@ public class MiogramCloudVaultActivity extends BaseFragment {
     }
 
     /** Shown when the user tries to upload before creating/linking a vault chat. */
-    private void showVaultRequiredDialog() {        if (getParentActivity() == null) return;
+    private void showVaultRequiredDialog() {
+        if (getParentActivity() == null) return;
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-        builder.setTitle(MiogramLocale.get("Сховище не підключено", "Хранилище не подключено", "Vault not linked"));
-        builder.setMessage(MiogramLocale.get("Створіть нове сховище або прив'яжіть існуючу супергрупу, інакше файлу нікуди завантажуватись.", "Создайте новое хранилище или привяжите существующую супергруппу, иначе файлу некуда загружаться.", "Create a new vault or link an existing supergroup first — otherwise there is nowhere to upload."));
-        builder.setPositiveButton(MiogramLocale.get("Створити сховище", "Создать хранилище", "Create vault"), (d, w) -> createVaultAutomatically());
-        builder.setNeutralButton(MiogramLocale.get("Прив'язати", "Привязать", "Link existing"), (d, w) -> showLinkExistingDialog());
+        builder.setTitle(MiogramLocale.get("Підключення Miogram Cloud Vault", "Подключение Miogram Cloud Vault", "Connect Miogram Cloud Vault"));
+        builder.setMessage(MiogramLocale.get(
+                "Оберіть спосіб хмарного сховища:\n\n• «Збережене» (Saved Messages) — працює миттєво, без обмежень прав та лімітів Telegram.\n• Форум-супергрупа — окрема приватна група з темами-папками.",
+                "Выберите способ облачного хранилища:\n\n• «Избранное» (Saved Messages) — работает мгновенно, без ограничений прав и лимитов Telegram.\n• Форум-супергруппа — отдельная приватная группа с темами-папками.",
+                "Choose your vault storage method:\n\n• Saved Messages — works instantly, 100% private, without channel creation limits.\n• Forum Supergroup — separate private group with folder topics."
+        ));
+        builder.setPositiveButton(MiogramLocale.get("⚡ «Збережене»", "⚡ «Избранное»", "⚡ Saved Messages"), (d, w) -> {
+            long clientUserId = UserConfig.getInstance(currentAccount).getClientUserId();
+            MiogramCloudVaultEngine.setVaultChatId(currentAccount, clientUserId);
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Сховище підключено до «Збереженого»!", "Хранилище подключено к «Избранному»!", "Vault connected to Saved Messages!"), Toast.LENGTH_SHORT).show();
+            updateVaultVisibility();
+            loadTopicsFromTelegram();
+            filterAndReloadFiles();
+            syncFromCloud();
+        });
+        builder.setNeutralButton(MiogramLocale.get("📁 Форум", "📁 Форум", "📁 Forum"), (d, w) -> createVaultAutomatically());
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         showDialog(builder.create());
     }
@@ -1094,7 +1113,14 @@ public class MiogramCloudVaultActivity extends BaseFragment {
             @Override
             public void onError(String message) {
                 progressDialog.dismiss();
-                Toast.makeText(getParentActivity(), MiogramLocale.get("Помилка", "Ошибка", "Error") + (message != null ? ": " + message : ""), Toast.LENGTH_LONG).show();
+                // Telegram account limits or restrictions prevent channel creation -> fallback to Saved Messages seamlessly
+                long clientUserId = UserConfig.getInstance(currentAccount).getClientUserId();
+                MiogramCloudVaultEngine.setVaultChatId(currentAccount, clientUserId);
+                Toast.makeText(getParentActivity(), MiogramLocale.get("Ліміт створення каналів. Хмару автоматично підключено до «Збереженого»!", "Лимит создания каналов. Хранилище подключено к «Избранному»!", "Telegram channel limit reached. Connected to Saved Messages!"), Toast.LENGTH_LONG).show();
+                updateVaultVisibility();
+                loadTopicsFromTelegram();
+                filterAndReloadFiles();
+                syncFromCloud();
             }
         });
     }

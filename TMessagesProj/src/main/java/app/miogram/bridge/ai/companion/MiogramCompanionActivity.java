@@ -517,6 +517,18 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             AndroidUtilities.showKeyboard(inputField);
         });
 
+        addChip(context, chipsRow, "👥 " + MiogramLocale.get("Пошук по групах", "Поиск по группам", "Search groups"), () -> {
+            inputField.setText(MiogramLocale.get("Пі-тян, пошукай по групах що пишуть про ", "Пи-тян, поищи по группам что пишут про ", "P-chan, search groups for "));
+            inputField.setSelection(inputField.getText().length());
+            inputField.requestFocus();
+            AndroidUtilities.showKeyboard(inputField);
+        });
+
+        addChip(context, chipsRow, "💊 " + MiogramLocale.get("Магічна пігулка", "Магическая пилюля", "Magic Pill"), () -> {
+            inputField.setText(MiogramLocale.get("Тримай магічну пігулку Дюск, заспокойся і не нервуй ♡", "Держи магическую пилюлю Дюск, успокойся и не нервничай ♡", "Take a magic pill Dysk, calm down and don't stress ♡"));
+            onSendMessage();
+        });
+
         if (scopedDialogId != 0) {
             addChip(context, chipsRow, "💬 " + MiogramLocale.get("Що тут пишуть?", "Что тут пишут?", "What are they writing?"), () -> {
                 inputField.setText(MiogramLocale.get("П-тян, прочитай останні повідомлення цього чату", "П-тян, прочитай последние сообщения этого чата", "Read the latest messages in this chat"));
