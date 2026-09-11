@@ -8017,6 +8017,14 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     private void checkAttachButton(boolean use, int duration) {
+        if (suggestButton != null) {
+            if (use) {
+                suggestButton.setVisibility(GONE);
+            } else if (suggestButton.getVisibility() == GONE
+                    && messageEditText != null && TextUtils.isEmpty(messageEditText.getText())) {
+                suggestButton.setVisibility(VISIBLE);
+            }
+        }
         if (use && app.exteraless.chats.ChatsConfig.keepAttachButton.Bool()) {
             use = false;
         }
@@ -8038,10 +8046,6 @@ public class ChatActivityEnterView extends FrameLayout implements
             } else if (checkBotButton()) {
                 updateBotButton(true);
             }
-        }
-
-        if (use && suggestButton != null) {
-            suggestButton.setVisibility(GONE);
         }
 
         if (use) {
@@ -8076,12 +8080,6 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
         if (this.paidMessagesPrice > 0 && attachLayout != null) {
             attachLayout.setTranslationX(-dp(24));
-        }
-        if (suggestButton != null && suggestButton.getVisibility() == GONE) {
-            final boolean show = messageEditText != null && TextUtils.isEmpty(messageEditText.getText());
-            if (show) {
-                suggestButton.setVisibility(VISIBLE);
-            }
         }
     }
 
