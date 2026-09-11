@@ -94,6 +94,7 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
 
     /** Строки экрана в исходном виде — как их отдал Python-SDK. */
     private final ArrayList<JSONObject> rows = new ArrayList<>();
+    private String lastJson;
     private final IdentityHashMap<UItem, JSONObject> rowsByItem = new IdentityHashMap<>();
     private final HashMap<String, Integer> rowIds = new HashMap<>();
 
@@ -234,6 +235,9 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
         super.onResume();
         // Возврат с подстраницы: там могли переключить то, от чего зависит состав
         // строк на этом экране.
+        if (lastJson != null && lastJson.equals(fetchJson())) {
+            return;
+        }
         rebuildFromEngine();
     }
 
@@ -384,16 +388,8 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
         ArrayList<JSONObject> previous = new ArrayList<>(rows);
         rows.clear();
         rowsByItem.clear();
-        String json;
-        if (subPageIndex != null) {
-            String resolved = resolveSubPageJson();
-            if (resolved != null) {
-                subPageJson = resolved;
-            }
-            json = subPageJson;
-        } else {
-            json = PluginsController.getInstance().getPluginSettingsJson(pluginId);
-        }
+        String json = fetchJson();
+        lastJson = json;
         if (json != null && !"null".equals(json)) {
             try {
                 JSONArray array = new JSONArray(json);
@@ -415,6 +411,17 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
                     + ", keeping " + previous.size() + " previous rows");
             rows.addAll(previous);
         }
+    }
+
+    private String fetchJson() {
+        if (subPageIndex != null) {
+            String resolved = resolveSubPageJson();
+            if (resolved != null) {
+                subPageJson = resolved;
+            }
+            return subPageJson;
+        }
+        return PluginsController.getInstance().getPluginSettingsJson(pluginId);
     }
 
     private String resolveSubPageJson() {
