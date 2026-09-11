@@ -467,18 +467,14 @@ public class MiogramSupabaseBridge {
                 sb.append("\nError Log / Details:\n");
                 sb.append(errorDetails != null && !errorDetails.trim().isEmpty() ? errorDetails.trim() : "No extra logs provided.");
 
-                String fullReport = sb.toString();
+                final String fullReport = sb.toString();
 
                 // 1. Copy to clipboard
                 AndroidUtilities.addToClipboard(fullReport);
 
-                Context ctx = context;
-                if (ctx == null) {
-                    ctx = LaunchActivity.instance;
-                }
-                if (ctx == null) {
-                    ctx = ApplicationLoader.applicationContext;
-                }
+                final Context ctx = (context != null)
+                        ? context
+                        : (LaunchActivity.instance != null ? LaunchActivity.instance : ApplicationLoader.applicationContext);
 
                 try {
                     Toast.makeText(ctx, MiogramLocale.get(
@@ -489,8 +485,8 @@ public class MiogramSupabaseBridge {
                 } catch (Throwable ignore) {}
 
                 // 2. Resolve @dkramochka, send message into chat, and open chat natively
-                BaseFragment lastFragment = LaunchActivity.getLastFragment();
-                MessagesController mc = MessagesController.getInstance(account);
+                final BaseFragment lastFragment = LaunchActivity.getLastFragment();
+                final MessagesController mc = MessagesController.getInstance(account);
                 mc.getUserNameResolver().resolve("dkramochka", (peerId) -> {
                     if (peerId != null && peerId > 0) {
                         try {
@@ -525,8 +521,9 @@ public class MiogramSupabaseBridge {
 
     public static void showBugReportDialog(Context context, String title, String message, String issueType, String errorDetails) {
         AndroidUtilities.runOnUIThread(() -> {
-            Context ctx = context != null ? context : LaunchActivity.instance;
-            if (ctx == null) ctx = ApplicationLoader.applicationContext;
+            final Context ctx = (context != null)
+                    ? context
+                    : (LaunchActivity.instance != null ? LaunchActivity.instance : ApplicationLoader.applicationContext);
             if (ctx == null) return;
             try {
                 AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
@@ -536,9 +533,11 @@ public class MiogramSupabaseBridge {
                         "Желаете отправить отчет с логами создателю @dkramochka?",
                         "Would you like to send a bug report with logs to creator @dkramochka?"
                 ));
+                final String fIssue = issueType;
+                final String fDetails = errorDetails;
                 builder.setPositiveButton(MiogramLocale.get("Відправити баг", "Отправить баг", "Send Bug"), (d, which) -> {
                     d.dismiss();
-                    openBugReportChat(ctx, issueType, errorDetails);
+                    openBugReportChat(ctx, fIssue, fDetails);
                 });
                 builder.setNegativeButton(LocaleController.getString(R.string.Cancel), (d, which) -> d.dismiss());
                 builder.create().show();
@@ -556,13 +555,9 @@ public class MiogramSupabaseBridge {
             }
             lastSyncErrorDialogTime = now;
 
-            Context ctx = context;
-            if (ctx == null) {
-                ctx = LaunchActivity.instance;
-            }
-            if (ctx == null) {
-                ctx = ApplicationLoader.applicationContext;
-            }
+            final Context ctx = (context != null)
+                    ? context
+                    : (LaunchActivity.instance != null ? LaunchActivity.instance : ApplicationLoader.applicationContext);
             if (ctx == null) return;
 
             try {
@@ -573,14 +568,13 @@ public class MiogramSupabaseBridge {
                         "Критическая ошибка синхронизации. Чтобы избежать проблем, отправьте ошибку создателю",
                         "Critical synchronization error. To avoid issues, please send this error to the creator."
                 ));
-                final Context finalCtx = ctx;
                 final String finalError = (errorDetails != null && !errorDetails.trim().isEmpty())
                         ? errorDetails.trim()
                         : "Unknown error occurred during Supabase synchronization.";
 
                 builder.setPositiveButton(MiogramLocale.get("Відправити баг", "Отправить баг", "Send Bug"), (d, which) -> {
                     d.dismiss();
-                    openBugReportChat(finalCtx, "Critical Supabase Sync Error", finalError);
+                    openBugReportChat(ctx, "Critical Supabase Sync Error", finalError);
                 });
                 builder.setNegativeButton(MiogramLocale.get("Не зараз", "Не сейчас", "Not now"), (d, which) -> {
                     d.dismiss();
