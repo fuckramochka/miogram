@@ -3490,28 +3490,32 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     long dialogBotVerificationIcon = 0;
                     if (user != null) {
                         user = MessagesController.getInstance(currentAccount).getUser(user.id);
-                        if (user != null && DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0) {
+                        if (user != null && app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(user.id)) {
+                            nameLayoutEllipsizeByGradient = true;
+                            emojiStatus.set(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 19), animated);
+                            emojiStatus.setParticles(false, animated);
+                        } else if (user != null && DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0) {
                             nameLayoutEllipsizeByGradient = true;
                             emojiStatus.set(DialogObject.getEmojiStatusDocumentId(user.emoji_status), animated);
                             emojiStatus.setParticles(DialogObject.isEmojiStatusCollectible(user.emoji_status), animated);
-                        } else {
+                        } else if (user != null && MessagesController.getInstance(currentAccount).isPremiumUser(user) && UserConfig.getInstance(currentAccount).clientUserId != user.id && user.id != 0) {
                             nameLayoutEllipsizeByGradient = true;
                             emojiStatus.set(PremiumGradient.getInstance().premiumStarDrawableMini, animated);
                             emojiStatus.setParticles(false, animated);
+                        } else {
+                            emojiStatus.set((Drawable) null, animated);
                         }
                         dialogBotVerificationIcon = DialogObject.getBotVerificationIcon(user);
                         invalidate = true;
                     }
                     if (chat != null) {
                         chat = MessagesController.getInstance(currentAccount).getChat(chat.id);
-                        if (chat != null && DialogObject.getEmojiStatusDocumentId(chat.emoji_status) != 0)  {
+                        if (chat != null && DialogObject.getEmojiStatusDocumentId(chat.emoji_status) != 0) {
                             nameLayoutEllipsizeByGradient = true;
                             emojiStatus.set(DialogObject.getEmojiStatusDocumentId(chat.emoji_status), animated);
                             emojiStatus.setParticles(DialogObject.isEmojiStatusCollectible(chat.emoji_status), animated);
                         } else {
-                            nameLayoutEllipsizeByGradient = true;
-                            emojiStatus.set(PremiumGradient.getInstance().premiumStarDrawableMini, animated);
-                            emojiStatus.setParticles(false, animated);
+                            emojiStatus.set((Drawable) null, animated);
                         }
                         dialogBotVerificationIcon = DialogObject.getBotVerificationIcon(chat);
                         invalidate = true;

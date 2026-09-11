@@ -866,6 +866,12 @@
             </intent-filter>
         </receiver>
 
+        <receiver android:name="app.miogram.bridge.updater.MiogramInstallReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="${applicationId}.INSTALL_STATUS" />
+            </intent-filter>
+        </receiver>
+
         <uses-library android:name="com.sec.android.app.multiwindow" android:required="false" />
         <meta-data android:name="com.sec.android.support.multiwindow" android:value="true" />
         <meta-data android:name="com.sec.android.multiwindow.DEFAULT_SIZE_W" android:value="632dp" />

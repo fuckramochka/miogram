@@ -2904,6 +2904,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     app.miogram.bridge.customui.MiogramCustomUiActivity.ProfileEditMenu.showForHeader(ProfileActivity.this, otherItem);
                 } else if (id == 13303812) {
                     app.miogram.bridge.customui.MiogramCustomUiActivity.ExtraFeaturesSheet.show(getParentActivity() != null ? getParentActivity() : getContext());
+                } else if (id == 13303815) {
+                    app.miogram.bridge.badge.MiogramBadgeGrantSheet.show(getParentActivity() != null ? getParentActivity() : getContext(), userId);
                 } else if (id == edit_info) {
                     presentFragment(new UserInfoActivity());
                 } else if (id == edit_color) {
@@ -12650,6 +12652,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
                 otherItem.addSubItem(13303809, R.drawable.msg_theme, app.miogram.bridge.MiogramLocale.get("Оформити профіль", "Оформить профиль", "Customize profile"));
                 otherItem.addSubItem(13303812, R.drawable.msg_palette, app.miogram.bridge.MiogramLocale.get("Всі налаштування оформлення", "Все настройки оформления", "All appearance settings"));
+                if (app.miogram.bridge.badge.MiogramBadgeGrantSheet.canGrantBadges()) {
+                    otherItem.addSubItem(13303815, R.drawable.msg_premium_liststar, app.miogram.bridge.MiogramLocale.get("Видати бейдж", "Выдать бейдж", "Grant Badge"));
+                }
                 selfUser = true;
             } else {
                 /*if (user.bot && user.bot_can_edit) {
@@ -12749,6 +12754,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
                 if (!isBot && getContactsController().contactsDict.get(userId) != null) {
                     otherItem.addSubItem(add_shortcut, R.drawable.msg_home, LocaleController.getString(R.string.AddShortcut));
+                }
+                if (!isBot && app.miogram.bridge.badge.MiogramBadgeGrantSheet.canGrantBadges()) {
+                    otherItem.addSubItem(13303815, R.drawable.msg_premium_liststar, app.miogram.bridge.MiogramLocale.get("Видати бейдж", "Выдать бейдж", "Grant Badge"));
                 }
             }
         } else if (chatId != 0) {

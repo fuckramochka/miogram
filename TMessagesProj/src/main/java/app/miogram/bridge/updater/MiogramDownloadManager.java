@@ -1,7 +1,9 @@
 package app.miogram.bridge.updater;
 
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInstaller;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -16,8 +18,10 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLog;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -362,6 +366,13 @@ public class MiogramDownloadManager {
                 }
             }
 
+            // Variant B: Android 12+ (API 31+) Unattended Background Session
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (tryUnattendedInstall(ctx, file)) {
+                    return;
+                }
+            }
+
             Intent intent = new Intent(Intent.ACTION_VIEW);
             Uri uri;
             if (Build.VERSION.SDK_INT >= 24) {
@@ -376,6 +387,48 @@ public class MiogramDownloadManager {
         } catch (Exception e) {
             FileLog.e(e);
             Toast.makeText(ctx, MiogramLocale.get("Помилка встановлення", "Ошибка установки", "Install error") + (e.getMessage() != null ? ": " + e.getMessage() : ""), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private static boolean tryUnattendedInstall(Context ctx, File file) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return false;
+        }
+        try {
+            PackageInstaller packageInstaller = ctx.getPackageManager().getPackageInstaller();
+            PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+            params.setAppPackageName(ctx.getPackageName());
+            params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
+
+            int sessionId = packageInstaller.createSession(params);
+            PackageInstaller.Session session = packageInstaller.openSession(sessionId);
+
+            try (OutputStream out = session.openWrite("miogram_apk", 0, file.length());
+                 InputStream in = new FileInputStream(file)) {
+                byte[] buffer = new byte[65536];
+                int c;
+                while ((c = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, c);
+                }
+                session.fsync(out);
+            }
+
+            Intent intent = new Intent(ctx.getPackageName() + MiogramInstallReceiver.ACTION_INSTALL_STATUS);
+            intent.setPackage(ctx.getPackageName());
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    ctx,
+                    sessionId,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE
+            );
+            session.commit(pendingIntent.getIntentSender());
+            session.close();
+            FileLog.d("MiogramDownloadManager: committed unattended session " + sessionId);
+            Toast.makeText(ctx, MiogramLocale.get("Оновлення встановлюється у фоні...", "Обновление устанавливается в фоне...", "Update is installing in background..."), Toast.LENGTH_SHORT).show();
+            return true;
+        } catch (Throwable t) {
+            FileLog.e("MiogramDownloadManager: unattended install failed, falling back to intent", t);
+            return false;
         }
     }
 }
