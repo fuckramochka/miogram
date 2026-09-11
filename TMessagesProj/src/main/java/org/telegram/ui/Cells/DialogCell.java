@@ -4586,8 +4586,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     botVerification.draw(canvas);
                 }
             }
-            boolean drawMuted = drawUnmute || dialogMuted || isHiddenInCommunity;
-            if (dialogsType != 2 && (drawMuted || dialogMutedProgress > 0) && !drawVerified && drawScam == 0) {
+            boolean drawMuted = (drawUnmute || dialogMuted || isHiddenInCommunity) && !app.miogram.bridge.customui.MiogramCustomUiPrefs.isHideDialogMuteIcon();
+            if (dialogsType != 2 && (drawMuted || (!app.miogram.bridge.customui.MiogramCustomUiPrefs.isHideDialogMuteIcon() && dialogMutedProgress > 0)) && !drawVerified && drawScam == 0) {
                 if (drawMuted && dialogMutedProgress != 1f) {
                     dialogMutedProgress += 16 / 150f;
                     if (dialogMutedProgress > 1f) {

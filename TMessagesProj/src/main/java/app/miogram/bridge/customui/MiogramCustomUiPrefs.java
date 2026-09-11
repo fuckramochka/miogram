@@ -126,6 +126,7 @@ public class MiogramCustomUiPrefs {
     public static final String KEY_UI_BADGE_TEXT_COLOR = "ui_badge_text_color";
     public static final String KEY_UI_BADGE_GLOW = "ui_badge_glow";
     public static final String KEY_UI_HAPTIC = "ui_haptic";
+    public static final String KEY_HIDE_DIALOG_MUTE_ICON = "hide_dialog_mute_icon";
 
     private static SharedPreferences getCpbPrefs() {
         Context ctx = ApplicationLoader.applicationContext;
@@ -948,6 +949,14 @@ public class MiogramCustomUiPrefs {
     }
     public static void setUiBadgeCustom(boolean enabled) {
         setBadgeCustomEnabled(enabled);
+    }
+
+    public static boolean isHideDialogMuteIcon() {
+        return getBool(KEY_HIDE_DIALOG_MUTE_ICON, true);
+    }
+
+    public static void setHideDialogMuteIcon(boolean hide) {
+        setBool(KEY_HIDE_DIALOG_MUTE_ICON, hide);
     }
 
     public static int getBadgeColor() {

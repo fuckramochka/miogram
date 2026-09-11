@@ -41,6 +41,8 @@ public class MiogramSupabaseBridge {
     public static class BadgeRecord {
         public final long userId;
         public final MiogramBadgeType badgeType;
+        public final java.util.List<MiogramBadgeType> badgeTypes;
+        public final String badgeIdString;
         public final String title;
         public final String obtainedReason;
         public final String obtainedAt;
@@ -51,16 +53,33 @@ public class MiogramSupabaseBridge {
         public final long grantorId;
 
         public BadgeRecord(long userId, MiogramBadgeType badgeType, String title, String obtainedReason, String obtainedAt, boolean isActive) {
-            this(userId, badgeType, title, obtainedReason, obtainedAt, isActive, userId == MiogramBadgeManager.FOUNDER_USER_ID, 0);
+            this(userId, badgeType != null ? badgeType.getId() : "original", title, obtainedReason, obtainedAt, isActive, userId == MiogramBadgeManager.FOUNDER_USER_ID, 0);
         }
 
         public BadgeRecord(long userId, MiogramBadgeType badgeType, String title, String obtainedReason, String obtainedAt, boolean isActive, boolean verified) {
-            this(userId, badgeType, title, obtainedReason, obtainedAt, isActive, verified, 0);
+            this(userId, badgeType != null ? badgeType.getId() : "original", title, obtainedReason, obtainedAt, isActive, verified, 0);
         }
 
         public BadgeRecord(long userId, MiogramBadgeType badgeType, String title, String obtainedReason, String obtainedAt, boolean isActive, boolean verified, long grantorId) {
+            this(userId, badgeType != null ? badgeType.getId() : "original", title, obtainedReason, obtainedAt, isActive, verified, grantorId);
+        }
+
+        public BadgeRecord(long userId, String badgeIds, String title, String obtainedReason, String obtainedAt, boolean isActive, boolean verified, long grantorId) {
             this.userId = userId;
-            this.badgeType = badgeType != null ? badgeType : MiogramBadgeType.ORIGINAL;
+            this.badgeIdString = badgeIds != null && !badgeIds.isEmpty() ? badgeIds : "original";
+            java.util.List<MiogramBadgeType> list = new java.util.ArrayList<>();
+            String[] parts = this.badgeIdString.split(",");
+            for (String p : parts) {
+                String clean = p.trim();
+                if (!clean.isEmpty()) {
+                    list.add(MiogramBadgeType.fromId(clean));
+                }
+            }
+            if (list.isEmpty()) {
+                list.add(MiogramBadgeType.ORIGINAL);
+            }
+            this.badgeTypes = java.util.Collections.unmodifiableList(list);
+            this.badgeType = list.get(0);
             this.title = title != null ? title : "Miogram Community ໒꒱";
             this.obtainedReason = obtainedReason != null ? obtainedReason : "Верифікований учасник спільноти Miogram";
             this.obtainedAt = obtainedAt != null ? obtainedAt : "01.09.2026";
@@ -323,7 +342,7 @@ public class MiogramSupabaseBridge {
                             title = fallbackTitle(false);
                             reason = fallbackReason(false);
                         }
-                        badgeCache.put(uid, new BadgeRecord(uid, MiogramBadgeType.fromId(badgeId), title, reason, date, true, verified, grantorId));
+                        badgeCache.put(uid, new BadgeRecord(uid, badgeId, title, reason, date, true, verified, grantorId));
                     }
                 }
                 if (badgeCache.get(MiogramBadgeManager.FOUNDER_USER_ID) == null) {
@@ -388,8 +407,12 @@ public class MiogramSupabaseBridge {
 
                 int code = connection.getResponseCode();
                 FileLog.d("MiogramSupabaseBridge upsert badge status: " + code);
+                if (code < 200 || code >= 300) {
+                    showSyncErrorDialog(null, "Badge sync HTTP " + code);
+                }
             } catch (Exception e) {
                 FileLog.e(e);
+                showSyncErrorDialog(null, e.getMessage());
             } finally {
                 if (connection != null) {
                     connection.disconnect();
@@ -397,6 +420,53 @@ public class MiogramSupabaseBridge {
             }
             if (onComplete != null) {
                 AndroidUtilities.runOnUIThread(onComplete);
+            }
+        });
+    }
+
+    private static long lastSyncErrorDialogTime = 0;
+
+    public static void showSyncErrorDialog(Context context, String errorDetails) {
+        AndroidUtilities.runOnUIThread(() -> {
+            long now = System.currentTimeMillis();
+            if (now - lastSyncErrorDialogTime < 15_000L) {
+                return;
+            }
+            lastSyncErrorDialogTime = now;
+
+            Context ctx = context;
+            if (ctx == null) {
+                ctx = org.telegram.ui.LaunchActivity.instance;
+            }
+            if (ctx == null) {
+                ctx = ApplicationLoader.applicationContext;
+            }
+            if (ctx == null) return;
+
+            try {
+                org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(ctx);
+                builder.setTitle(MiogramLocale.get("Критична помилка синхронізації", "Критическая ошибка синхронизации", "Critical Sync Error"));
+                builder.setMessage(MiogramLocale.get(
+                        "Критична помилка синхронізації. Щоб уникнути проблем, надішліть помилку творцю",
+                        "Критическая ошибка синхронизации. Чтобы избежать проблем, отправьте ошибку создателю",
+                        "Critical synchronization error. To avoid issues, please send this error to the creator."
+                ));
+                builder.setCancelable(false);
+
+                final Context finalCtx = ctx;
+                builder.setPositiveButton(MiogramLocale.get("Так, надіслати", "Да, отправить", "Yes, send"), (d, which) -> {
+                    d.dismiss();
+                    org.telegram.messenger.browser.Browser.openUrl(finalCtx, "https://t.me/dkramochka");
+                });
+                builder.setNegativeButton(MiogramLocale.get("Не зараз", "Не сейчас", "Not now"), (d, which) -> {
+                    d.dismiss();
+                });
+
+                org.telegram.ui.ActionBar.AlertDialog dialog = builder.create();
+                dialog.setCanceledOnTouchOutside(false);
+                dialog.show();
+            } catch (Throwable t) {
+                FileLog.e(t);
             }
         });
     }
@@ -423,9 +493,6 @@ public class MiogramSupabaseBridge {
         Utilities.globalQueue.postRunnable(() -> {
             HttpURLConnection connection = null;
             try {
-                // Presence lives in miogram_users (NOT miogram_badges — the old
-                // code wrote last_seen_at into badges where the column does not
-                // exist, so every presence call failed and the counter stayed 0).
                 String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_users?on_conflict=user_id";
                 URL url = new URL(endpoint);
                 connection = (HttpURLConnection) url.openConnection();
@@ -454,10 +521,12 @@ public class MiogramSupabaseBridge {
 
                 int code = connection.getResponseCode();
                 FileLog.d("MiogramSupabaseBridge presence reported: " + code);
-
-
+                if (code < 200 || code >= 300) {
+                    showSyncErrorDialog(null, "Presence HTTP " + code);
+                }
             } catch (Exception e) {
                 FileLog.e(e);
+                showSyncErrorDialog(null, e.getMessage());
             } finally {
                 if (connection != null) {
                     connection.disconnect();
@@ -528,17 +597,60 @@ public class MiogramSupabaseBridge {
                 if (code >= 200 && code < 300) {
                     synchronized (badgeCache) {
                         badgeCache.put(targetUserId, new BadgeRecord(targetUserId,
-                                MiogramBadgeType.fromId(fBadge), fTitle, fReason,
+                                fBadge, fTitle, fReason,
                                 new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date()), true, true, fGranter));
                     }
+                } else {
+                    showSyncErrorDialog(null, "Grant badge HTTP " + code);
                 }
             } catch (Exception e) {
                 FileLog.e(e);
+                showSyncErrorDialog(null, e.getMessage());
             } finally {
                 if (connection != null) connection.disconnect();
             }
             if (onComplete != null) {
                 AndroidUtilities.runOnUIThread(onComplete);
+            }
+        });
+    }
+
+    public static void revokeBadge(long targetUserId, Runnable onComplete) {
+        if (targetUserId <= 0) return;
+        synchronized (badgeCache) {
+            badgeCache.remove(targetUserId);
+        }
+        AndroidUtilities.runOnUIThread(() -> {
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.updateInterfaces, MessagesController.UPDATE_MASK_NAME | MessagesController.UPDATE_MASK_AVATAR);
+        });
+
+        Utilities.globalQueue.postRunnable(() -> {
+            HttpURLConnection connection = null;
+            try {
+                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?user_id=eq." + targetUserId;
+                URL url = new URL(endpoint);
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("DELETE");
+                connection.setConnectTimeout(8000);
+                connection.setReadTimeout(8000);
+                connection.setRequestProperty("apikey", DEFAULT_ANON_KEY);
+                connection.setRequestProperty("Authorization", "Bearer " + DEFAULT_ANON_KEY);
+
+                int code = connection.getResponseCode();
+                FileLog.d("MiogramSupabaseBridge revoke badge status: " + code);
+                if (code >= 200 && code < 300) {
+                    if (onComplete != null) {
+                        AndroidUtilities.runOnUIThread(onComplete);
+                    }
+                } else {
+                    showSyncErrorDialog(null, "Revoke badge HTTP " + code);
+                }
+            } catch (Exception e) {
+                FileLog.e(e);
+                showSyncErrorDialog(null, e.getMessage());
+            } finally {
+                if (connection != null) connection.disconnect();
             }
         });
     }

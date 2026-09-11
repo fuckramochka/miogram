@@ -361,12 +361,13 @@ public class MiogramCloudVaultEngine {
                 }
 
                 registerFile(vaultFile);
-                saveCache(currentAccount);
+                cleanupTempFiles(context);
 
                 if (onComplete != null) {
                     AndroidUtilities.runOnUIThread(() -> onComplete.run(vaultFile));
                 }
             } catch (Exception e) {
+                cleanupTempFiles(ApplicationLoader.applicationContext);
                 FileLog.e(e);
                 if (onError != null) {
                     AndroidUtilities.runOnUIThread(() -> onError.run(e.getMessage()));
@@ -542,32 +543,36 @@ public class MiogramCloudVaultEngine {
     }
 
     public static void saveCache(int currentAccount) {
+        // Zero local storage: purge any legacy cached index from disk
         try {
-            JSONArray arr = new JSONArray();
-            for (MiogramCloudVaultFile f : memoryFiles.values()) {
-                arr.put(f.toJson());
-            }
-            getPrefs().edit().putString(KEY_CACHE_INDEX + currentAccount, arr.toString()).apply();
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
+            getPrefs().edit().remove(KEY_CACHE_INDEX + currentAccount).apply();
+        } catch (Throwable ignored) {}
     }
 
     public static void loadCache(int currentAccount) {
+        // Zero local storage: file manifests are resolved strictly on-the-fly from Telegram Cloud
+    }
+
+    public static void clearMemoryFiles() {
+        memoryFiles.clear();
+        pendingParts.clear();
+    }
+
+    public static void cleanupTempFiles(Context context) {
+        if (context == null) return;
         try {
-            String json = getPrefs().getString(KEY_CACHE_INDEX + currentAccount, null);
-            if (!TextUtils.isEmpty(json)) {
-                JSONArray arr = new JSONArray(json);
-                for (int i = 0; i < arr.length(); i++) {
-                    MiogramCloudVaultFile f = MiogramCloudVaultFile.fromJson(arr.getJSONObject(i));
-                    if (f != null && f.fileId != null) {
-                        memoryFiles.put(f.fileId, f);
+            File cacheDir = new File(context.getCacheDir(), "vault_temp");
+            if (cacheDir.exists() && cacheDir.isDirectory()) {
+                File[] files = cacheDir.listFiles();
+                if (files != null) {
+                    for (File f : files) {
+                        try {
+                            f.delete();
+                        } catch (Throwable ignored) {}
                     }
                 }
             }
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
+        } catch (Throwable ignored) {}
     }
 
     public static void syncVaultFiles(int currentAccount, long vaultChatId, SyncCallback callback) {

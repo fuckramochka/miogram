@@ -1905,6 +1905,9 @@ public class MiogramCustomUiActivity extends BaseFragment {
             sheet.check(MiogramLocale.get("Картки діалогів", "Карточки диалогов", "Dialog cards"), MiogramCustomUiPrefs.isUiDialogCards(), false, val -> {
                 MiogramCustomUiPrefs.setUiDialogCards(val != 0);
             });
+            sheet.check(MiogramLocale.get("Приховати значок муту в списку чатів", "Скрыть значок мута в списке чатов", "Hide mute icon in chat list"), MiogramCustomUiPrefs.isHideDialogMuteIcon(), false, val -> {
+                MiogramCustomUiPrefs.setHideDialogMuteIcon(val != 0);
+            });
 
             sheet.header(MiogramLocale.get("Бейджі лічильників", "Бейджи счётчиков", "Counter badges"));
             sheet.check(MiogramLocale.get("Кастомні бейджі", "Кастомные бейджи", "Custom badges"), MiogramCustomUiPrefs.isUiBadgeCustom(), true, val -> {

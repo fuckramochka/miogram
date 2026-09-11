@@ -235,6 +235,14 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         }
     }
 
+    @Override
+    public void onFragmentDestroy() {
+        super.onFragmentDestroy();
+        // Zero-Knowledge: wipe all in-memory manifests and temp chunks when exiting vault
+        MiogramCloudVaultEngine.clearMemoryFiles();
+        MiogramCloudVaultEngine.cleanupTempFiles(ApplicationLoader.applicationContext);
+    }
+
     private void updateSubtitle() {
         if (actionBar == null) return;
         long totalSize = MiogramCloudVaultEngine.getTotalVaultSize();
@@ -263,42 +271,45 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         ImageView iconView = new ImageView(context);
         iconView.setImageResource(R.drawable.cloud);
         iconView.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton));
-        onboardingLayout.addView(iconView, LayoutHelper.createLinear(96, 96, Gravity.CENTER, 0, 0, 0, 20));
+        onboardingLayout.addView(iconView, LayoutHelper.createLinear(88, 88, Gravity.CENTER, 0, 0, 0, 16));
 
         TextView title = new TextView(context);
-        title.setText(MiogramLocale.get("Зашифрований Miogram Vault", "Зашифрованный Miogram Vault", "Encrypted Miogram Vault"));
+        title.setText(MiogramLocale.get("Miogram Zero-Knowledge Vault ☁️", "Miogram Zero-Knowledge Vault ☁️", "Miogram Zero-Knowledge Vault ☁️"));
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
-        title.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        title.setTypeface(AndroidUtilities.bold());
         title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         title.setGravity(Gravity.CENTER);
         onboardingLayout.addView(title, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 0, 0, 12));
 
         TextView desc = new TextView(context);
         desc.setText(MiogramLocale.get(
-                "Безлімітне персональне хмарне сховище на базі форум-супергрупи Telegram.\n\n"
-                        + "• Файли будь-якого розміру (>2 ГБ автоматично ріжуться на чанки).\n"
-                        + "• Наскрізне шифрування AES-256-GCM прямо на пристрої.\n"
-                        + "• Для Telegram та інших користувачів це набір незрозумілих файлів.",
-                "Безлимитное персональное облачное хранилище на базе форум-супергруппы Telegram.\n\n"
-                        + "• Файлы любого размера (>2 ГБ автоматически нарезаются на чанки).\n"
-                        + "• Сквозное шифрование AES-256-GCM прямо на устройстве.\n"
-                        + "• Для Telegram и других пользователей это набор непонятных файлов.",
-                "Unlimited personal cloud vault powered by Telegram forum supergroup.\n\n"
-                        + "• Files of any size (>2 GB transparently sliced into chunks).\n"
-                        + "• Client-side end-to-end AES-256-GCM encryption.\n"
-                        + "• Regular clients only see raw opaque binary chunks."
+                "Безлімітне приватне хмарне сховище без локальних слідів:\n\n"
+                        + "🔒 Повний Zero-Knowledge: жоден файл чи список не зберігаються на пристрої.\n"
+                        + "🔑 Тільки ключ AES-256-GCM зберігається локально. Все інше розшифровується на льоту в RAM.\n"
+                        + "📦 Файли будь-якого розміру автоматично ріжуться на чанки в Telegram.\n"
+                        + "👁️ Звичайні клієнти Telegram бачать лише зашифровані бінарні дані.",
+                "Безлимитное приватное облачное хранилище без локальных следов:\n\n"
+                        + "🔒 Полный Zero-Knowledge: ни один файл и список не сохраняются на устройстве.\n"
+                        + "🔑 Только ключ AES-256-GCM хранится локально. Всё остальное расшифровывается на лету в RAM.\n"
+                        + "📦 Файлы любого размера автоматически нарезаются на чанки в Telegram.\n"
+                        + "👁️ Обычные клиенты Telegram видят лишь зашифрованные бинарные данные.",
+                "Unlimited zero-knowledge cloud vault with zero local storage footprint:\n\n"
+                        + "🔒 True Zero-Knowledge: no files or file lists are stored on this device.\n"
+                        + "🔑 Only your AES-256-GCM key lives locally. Everything else decrypts in RAM.\n"
+                        + "📦 Files of any size automatically chunked and stored in Telegram.\n"
+                        + "👁️ Standard Telegram clients only see raw opaque ciphertext."
         ));
         desc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         desc.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
         desc.setGravity(Gravity.CENTER);
-        desc.setLineSpacing(AndroidUtilities.dp(2), 1.1f);
-        onboardingLayout.addView(desc, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 0, 0, 32));
+        desc.setLineSpacing(AndroidUtilities.dp(3), 1.15f);
+        onboardingLayout.addView(desc, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 0, 0, 28));
 
         // Create Vault Button
         TextView createBtn = new TextView(context);
         createBtn.setText(MiogramLocale.get("Створити сховище в 1 клік", "Создать хранилище в 1 клик", "Create Vault in 1 Tap"));
         createBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        createBtn.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        createBtn.setTypeface(AndroidUtilities.bold());
         createBtn.setTextColor(Color.WHITE);
         createBtn.setGravity(Gravity.CENTER);
 
@@ -330,13 +341,13 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         mainContentLayout = new LinearLayout(context);
         mainContentLayout.setOrientation(LinearLayout.VERTICAL);
 
-        // 1. Storage Banner Card
+        // 1. Storage Banner Card with modern Zero-Knowledge styling
         FrameLayout bannerCard = new FrameLayout(context);
         GradientDrawable cardBg = new GradientDrawable();
         cardBg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        cardBg.setCornerRadius(AndroidUtilities.dp(14));
+        cardBg.setCornerRadius(AndroidUtilities.dp(16));
         bannerCard.setBackground(cardBg);
-        bannerCard.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16));
+        bannerCard.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
 
         LinearLayout bannerInner = new LinearLayout(context);
         bannerInner.setOrientation(LinearLayout.VERTICAL);
@@ -348,20 +359,25 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         ImageView cloudIco = new ImageView(context);
         cloudIco.setImageResource(R.drawable.cloud);
         cloudIco.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton));
-        titleRow.addView(cloudIco, LayoutHelper.createLinear(26, 26, Gravity.CENTER_VERTICAL, 0, 0, 10, 0));
+        titleRow.addView(cloudIco, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 0, 0, 10, 0));
 
         storageTitleText = new TextView(context);
-        storageTitleText.setText(MiogramLocale.get("Сховище Miogram Vault", "Хранилище Miogram Vault", "Miogram Cloud Vault"));
+        storageTitleText.setText(MiogramLocale.get("Miogram Cloud Vault ☁️", "Miogram Cloud Vault ☁️", "Miogram Cloud Vault ☁️"));
         storageTitleText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        storageTitleText.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        storageTitleText.setTypeface(AndroidUtilities.bold());
         storageTitleText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         titleRow.addView(storageTitleText, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, Gravity.CENTER_VERTICAL));
 
         TextView secBadge = new TextView(context);
-        secBadge.setText("● AES-256");
-        secBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        secBadge.setTextColor(0xFF4CAF50);
-        secBadge.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        secBadge.setText("🔒 Zero-Knowledge");
+        secBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        secBadge.setTypeface(AndroidUtilities.bold());
+        secBadge.setTextColor(0xFF10B981);
+        GradientDrawable badgeBg = new GradientDrawable();
+        badgeBg.setColor(0x1A10B981);
+        badgeBg.setCornerRadius(AndroidUtilities.dp(10));
+        secBadge.setBackground(badgeBg);
+        secBadge.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(3), AndroidUtilities.dp(8), AndroidUtilities.dp(3));
         titleRow.addView(secBadge, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
 
         bannerInner.addView(titleRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
@@ -369,16 +385,26 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         storageSubtitleText = new TextView(context);
         storageSubtitleText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         storageSubtitleText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-        bannerInner.addView(storageSubtitleText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
+        bannerInner.addView(storageSubtitleText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
 
         storageProgressBar = new ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal);
         storageProgressBar.setIndeterminate(false);
         storageProgressBar.setMax(100);
         storageProgressBar.setProgress(15);
-        bannerInner.addView(storageProgressBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 6));
+        bannerInner.addView(storageProgressBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 5));
+
+        TextView zeroStorageNotice = new TextView(context);
+        zeroStorageNotice.setText(MiogramLocale.get(
+                "⚡ Тільки ключ на пристрої • Файли живуть у хмарі",
+                "⚡ Только ключ на устройстве • Файлы живут в облаке",
+                "⚡ Key only on device • Files live in cloud"
+        ));
+        zeroStorageNotice.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        zeroStorageNotice.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+        bannerInner.addView(zeroStorageNotice, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 6, 0, 0));
 
         bannerCard.addView(bannerInner, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-        mainContentLayout.addView(bannerCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 12, 12, 12, 8));
+        mainContentLayout.addView(bannerCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 12, 10, 12, 6));
 
         // 2. Horizontal Topic Folder Tabs
         topicsScrollView = new HorizontalScrollView(context);
@@ -1117,12 +1143,15 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
         builder.setTitle(MiogramLocale.get("Майстер-ключ AES-256", "Мастер-ключ AES-256", "AES-256 Master Key"));
         builder.setMessage(MiogramLocale.get(
-                "Цей 256-бітний ключ використовується для клієнтського шифрування та дешифрування всіх файлів і маніфестів.\n\n"
-                        + "Збережіть його в надійному місці, щоб мати доступ до файлів з інших пристроїв:\n\n" + hex,
-                "Этот 256-битный ключ используется для клиентского шифрования и дешифрования всех файлов и манифестов.\n\n"
-                        + "Сохраните его в надежном месте для доступа к файлам с других устройств:\n\n" + hex,
-                "This 256-bit key is used for client-side encryption and decryption of all files and manifests.\n\n"
-                        + "Back it up securely to access your files from other devices:\n\n" + hex
+                "🔒 Zero-Knowledge Архітектура:\n"
+                        + "Це єдиний елемент даних, що зберігається локально на вашому пристрої. Жодні файли чи списки не записуються на диск.\n\n"
+                        + "Збережіть цей 256-бітний ключ, щоб мати доступ до файлів з інших пристроїв:\n\n" + hex,
+                "🔒 Zero-Knowledge Архитектура:\n"
+                        + "Это единственный элемент данных, хранящийся локально на вашем устройстве. Никакие файлы и списки не сохраняются на диск.\n\n"
+                        + "Сохраните этот 256-битный ключ для доступа к файлам с других устройств:\n\n" + hex,
+                "🔒 Zero-Knowledge Architecture:\n"
+                        + "This key is the only piece of data stored locally on your device. No files or lists are persisted to disk.\n\n"
+                        + "Back up this 256-bit key to access your files from other devices:\n\n" + hex
         ));
 
         builder.setPositiveButton(MiogramLocale.get("Скопіювати ключ", "Скопировать ключ", "Copy Key"), (d, w) -> {
