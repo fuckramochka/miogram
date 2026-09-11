@@ -27,6 +27,11 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import android.os.Build;
+import android.widget.Toast;
+import java.net.URLEncoder;
+import java.util.TimeZone;
+
 import app.miogram.bridge.MiogramLocale;
 
 /**
@@ -412,7 +417,8 @@ public class MiogramSupabaseBridge {
                 }
             } catch (Exception e) {
                 FileLog.e(e);
-                showSyncErrorDialog(null, e.getMessage());
+                String msg = e.getMessage();
+                showSyncErrorDialog(null, (msg != null && !msg.isEmpty()) ? (e.getClass().getSimpleName() + ": " + msg) : e.toString());
             } finally {
                 if (connection != null) {
                     connection.disconnect();
@@ -454,9 +460,57 @@ public class MiogramSupabaseBridge {
                 builder.setCancelable(false);
 
                 final Context finalCtx = ctx;
-                builder.setPositiveButton(MiogramLocale.get("Так, надіслати", "Да, отправить", "Yes, send"), (d, which) -> {
+                final String finalError = (errorDetails != null && !errorDetails.trim().isEmpty())
+                        ? errorDetails.trim()
+                        : "Unknown error occurred during Supabase synchronization.";
+
+                builder.setPositiveButton(MiogramLocale.get("Відправити баг", "Отправить баг", "Send Bug"), (d, which) -> {
                     d.dismiss();
-                    org.telegram.messenger.browser.Browser.openUrl(finalCtx, "https://t.me/dkramochka");
+
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("Hello, I encountered a critical synchronization error in Miogram.\n\n");
+                    sb.append("[Miogram Bug Report]\n");
+                    sb.append("Issue: Critical Supabase Sync Error\n");
+                    sb.append("App Version: Miogram ").append(BuildVars.BUILD_VERSION_STRING).append(" (").append(BuildVars.BUILD_VERSION).append(")\n");
+                    sb.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
+                    sb.append("OS: Android ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append(")\n");
+                    try {
+                        long userId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+                        if (userId != 0) {
+                            sb.append("User ID: ").append(userId).append("\n");
+                        }
+                    } catch (Throwable ignore) {}
+                    try {
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss 'UTC'", Locale.US);
+                        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                        sb.append("Timestamp: ").append(sdf.format(new Date())).append("\n");
+                    } catch (Throwable ignore) {}
+                    sb.append("\nError Log:\n");
+                    sb.append(finalError);
+
+                    String fullReport = sb.toString();
+
+                    AndroidUtilities.addToClipboard(fullReport);
+
+                    try {
+                        Toast.makeText(finalCtx, MiogramLocale.get(
+                                "Звіт та лог скопійовано у буфер обміну",
+                                "Отчет и лог скопированы в буфер обмена",
+                                "Bug report and log copied to clipboard"
+                        ), Toast.LENGTH_SHORT).show();
+                    } catch (Throwable ignore) {}
+
+                    try {
+                        String textForUrl = fullReport;
+                        if (textForUrl.length() > 1500) {
+                            textForUrl = textForUrl.substring(0, 1500) + "\n\n... [Full log copied to clipboard]";
+                        }
+                        String encoded = URLEncoder.encode(textForUrl, "UTF-8").replace("+", "%20");
+                        org.telegram.messenger.browser.Browser.openUrl(finalCtx, "https://t.me/dkramochka?text=" + encoded);
+                    } catch (Throwable t) {
+                        FileLog.e(t);
+                        org.telegram.messenger.browser.Browser.openUrl(finalCtx, "https://t.me/dkramochka");
+                    }
                 });
                 builder.setNegativeButton(MiogramLocale.get("Не зараз", "Не сейчас", "Not now"), (d, which) -> {
                     d.dismiss();
@@ -526,7 +580,8 @@ public class MiogramSupabaseBridge {
                 }
             } catch (Exception e) {
                 FileLog.e(e);
-                showSyncErrorDialog(null, e.getMessage());
+                String msg = e.getMessage();
+                showSyncErrorDialog(null, (msg != null && !msg.isEmpty()) ? (e.getClass().getSimpleName() + ": " + msg) : e.toString());
             } finally {
                 if (connection != null) {
                     connection.disconnect();
@@ -605,7 +660,8 @@ public class MiogramSupabaseBridge {
                 }
             } catch (Exception e) {
                 FileLog.e(e);
-                showSyncErrorDialog(null, e.getMessage());
+                String msg = e.getMessage();
+                showSyncErrorDialog(null, (msg != null && !msg.isEmpty()) ? (e.getClass().getSimpleName() + ": " + msg) : e.toString());
             } finally {
                 if (connection != null) connection.disconnect();
             }
@@ -648,7 +704,8 @@ public class MiogramSupabaseBridge {
                 }
             } catch (Exception e) {
                 FileLog.e(e);
-                showSyncErrorDialog(null, e.getMessage());
+                String msg = e.getMessage();
+                showSyncErrorDialog(null, (msg != null && !msg.isEmpty()) ? (e.getClass().getSimpleName() + ": " + msg) : e.toString());
             } finally {
                 if (connection != null) connection.disconnect();
             }
