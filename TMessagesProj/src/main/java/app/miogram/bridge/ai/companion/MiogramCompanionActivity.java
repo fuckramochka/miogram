@@ -70,15 +70,6 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
     private Utilities.Callback<String> onDraftInsertCallback;
 
     private LinearLayout heroCard;
-    private LinearLayout ameTab;
-    private LinearLayout kangelTab;
-    private ImageView ameTabAvatar;
-    private ImageView kangelTabAvatar;
-    private TextView ameTabTitle;
-    private TextView ameTabSubtitle;
-    private TextView kangelTabTitle;
-    private TextView kangelTabSubtitle;
-
     private ImageView stageAvatar;
     private TextView stageName;
     private TextView stageStatus;
@@ -176,6 +167,11 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         }
 
         updateCompanionTheme();
+
+        if (!MiogramCompanionPrefs.hasCompletedOnboarding()) {
+            showOnboardingSelection(context, root);
+        }
+
         return fragmentView;
     }
 
@@ -202,10 +198,9 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
                             "User reported issue from companion menu. Active: " + (MiogramCompanionPrefs.isAmeActive() ? "Ame" : "KAngel")
                     );
                 } else if (id == 3) {
-                    boolean nextIsAme = !MiogramCompanionPrefs.isAmeActive();
-                    MiogramCompanionPrefs.setActiveCompanion(nextIsAme ? MiogramCompanionPrefs.COMPANION_AME : MiogramCompanionPrefs.COMPANION_KANGEL);
-                    updateCompanionTheme();
-                    addSwitchAnnouncement(nextIsAme);
+                    if (fragmentView instanceof FrameLayout) {
+                        showOnboardingSelection(getParentActivity(), (FrameLayout) fragmentView);
+                    }
                 }
             }
         });
@@ -214,169 +209,289 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         ActionBarMenuItem headerItem = menu.addItem(0, R.drawable.ic_ab_other);
         headerItem.addSubItem(1, R.drawable.msg_clear, MiogramLocale.get("Очистити діалог", "Очистить диалог", "Clear dialogue"));
         headerItem.addSubItem(2, R.drawable.msg_log, MiogramLocale.get("Звіт про баг (@dkramochka)", "Отчет о баге (@dkramochka)", "Report bug (@dkramochka)"));
-        headerItem.addSubItem(3, R.drawable.msg_theme, MiogramLocale.get("Змінити супутника", "Сменить спутника", "Switch companion"));
+        headerItem.addSubItem(3, R.drawable.msg_theme, MiogramLocale.get("Переобрати супутника (Аме / Кангель)", "Перевыбрать спутника (Аме / Кангель)", "Choose companion again (Ame / KAngel)"));
     }
 
     private void buildHeroCard(Context context, LinearLayout parent) {
         heroCard = new LinearLayout(context);
         heroCard.setOrientation(LinearLayout.VERTICAL);
-        heroCard.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(10));
+        heroCard.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(10));
         LinearLayout.LayoutParams cardLp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 10, 8, 10, 4);
         parent.addView(heroCard, cardLp);
 
-        // A. Dual-Segment Companion Switcher Tabs
-        LinearLayout tabsRow = new LinearLayout(context);
-        tabsRow.setOrientation(LinearLayout.HORIZONTAL);
-        heroCard.addView(tabsRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
-
-        // Ame Tab
-        ameTab = new LinearLayout(context);
-        ameTab.setOrientation(LinearLayout.HORIZONTAL);
-        ameTab.setGravity(Gravity.CENTER_VERTICAL);
-        ameTab.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(6), AndroidUtilities.dp(8), AndroidUtilities.dp(6));
-        tabsRow.addView(ameTab, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 0, 0, 4, 0));
-
-        ameTabAvatar = new ImageView(context);
-        ameTabAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        ameTab.addView(ameTabAvatar, LayoutHelper.createLinear(34, 34, 0, 0, 8, 0));
-
-        LinearLayout ameCol = new LinearLayout(context);
-        ameCol.setOrientation(LinearLayout.VERTICAL);
-        ameTab.addView(ameCol, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
-
-        ameTabTitle = new TextView(context);
-        ameTabTitle.setText("Ame-chan ໒꒱");
-        ameTabTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        ameTabTitle.setTypeface(AndroidUtilities.bold());
-        ameCol.addView(ameTabTitle);
-
-        ameTabSubtitle = new TextView(context);
-        ameTabSubtitle.setText(MiogramLocale.get("Отаку • П-тян", "Отаку • П-тян", "Otaku • P-chan"));
-        ameTabSubtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-        ameCol.addView(ameTabSubtitle);
-
-        ameTab.setOnClickListener(v -> {
-            MiogramHaptic.tap(v);
-            if (!MiogramCompanionPrefs.isAmeActive()) {
-                MiogramCompanionPrefs.setActiveCompanion(MiogramCompanionPrefs.COMPANION_AME);
-                updateCompanionTheme();
-                addSwitchAnnouncement(true);
-            }
-        });
-
-        // KAngel Tab
-        kangelTab = new LinearLayout(context);
-        kangelTab.setOrientation(LinearLayout.HORIZONTAL);
-        kangelTab.setGravity(Gravity.CENTER_VERTICAL);
-        kangelTab.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(6), AndroidUtilities.dp(8), AndroidUtilities.dp(6));
-        tabsRow.addView(kangelTab, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 4, 0, 0, 0));
-
-        kangelTabAvatar = new ImageView(context);
-        kangelTabAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        kangelTab.addView(kangelTabAvatar, LayoutHelper.createLinear(34, 34, 0, 0, 8, 0));
-
-        LinearLayout kangelCol = new LinearLayout(context);
-        kangelCol.setOrientation(LinearLayout.VERTICAL);
-        kangelTab.addView(kangelCol, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
-
-        kangelTabTitle = new TextView(context);
-        kangelTabTitle.setText("KAngel ✧†");
-        kangelTabTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        kangelTabTitle.setTypeface(AndroidUtilities.bold());
-        kangelCol.addView(kangelTabTitle);
-
-        kangelTabSubtitle = new TextView(context);
-        kangelTabSubtitle.setText(MiogramLocale.get("Інтернет-Ангел", "Интернет-Ангел", "Internet Angel"));
-        kangelTabSubtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-        kangelCol.addView(kangelTabSubtitle);
-
-        kangelTab.setOnClickListener(v -> {
-            MiogramHaptic.tap(v);
-            if (MiogramCompanionPrefs.isAmeActive()) {
-                MiogramCompanionPrefs.setActiveCompanion(MiogramCompanionPrefs.COMPANION_KANGEL);
-                updateCompanionTheme();
-                addSwitchAnnouncement(false);
-            }
-        });
-
-        // B. Active Character Stage Row
+        // Prominent Character Stage Row (Large pixel sprite + character metadata)
         LinearLayout stageRow = new LinearLayout(context);
         stageRow.setOrientation(LinearLayout.HORIZONTAL);
         stageRow.setGravity(Gravity.CENTER_VERTICAL);
         heroCard.addView(stageRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
 
+        // Prominent Character Sprite (110x110 dp - large & expressive)
         stageAvatar = new ImageView(context);
         stageAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        stageRow.addView(stageAvatar, LayoutHelper.createLinear(56, 56, 0, 0, 10, 0));
+        stageRow.addView(stageAvatar, LayoutHelper.createLinear(110, 110, Gravity.CENTER_VERTICAL, 0, 0, 14, 0));
 
         LinearLayout stageInfo = new LinearLayout(context);
         stageInfo.setOrientation(LinearLayout.VERTICAL);
         stageRow.addView(stageInfo, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
 
         stageName = new TextView(context);
-        stageName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        stageName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
         stageName.setTypeface(AndroidUtilities.bold());
         stageInfo.addView(stageName);
 
         stageStatus = new TextView(context);
-        stageStatus.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-        stageInfo.addView(stageStatus);
+        stageStatus.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        stageInfo.addView(stageStatus, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
 
         LinearLayout badgeRow = new LinearLayout(context);
         badgeRow.setOrientation(LinearLayout.HORIZONTAL);
         badgeRow.setGravity(Gravity.CENTER_VERTICAL);
-        stageInfo.addView(badgeRow, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 3, 0, 0));
+        stageInfo.addView(badgeRow, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 6, 0, 0));
 
         stageMoodBadge = new TextView(context);
-        stageMoodBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
+        stageMoodBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
         stageMoodBadge.setTypeface(AndroidUtilities.bold());
-        stageMoodBadge.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(2), AndroidUtilities.dp(6), AndroidUtilities.dp(2));
+        stageMoodBadge.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(3), AndroidUtilities.dp(8), AndroidUtilities.dp(3));
         badgeRow.addView(stageMoodBadge, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 6, 0));
 
         modelBadge = new TextView(context);
         modelBadge.setText("⚡ 3.5 Flash Lite");
-        modelBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
+        modelBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
         modelBadge.setTypeface(AndroidUtilities.bold());
-        modelBadge.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(2), AndroidUtilities.dp(6), AndroidUtilities.dp(2));
+        modelBadge.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(3), AndroidUtilities.dp(8), AndroidUtilities.dp(3));
         badgeRow.addView(modelBadge, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
-        // C. Divider & NSO Stats
+        // Divider & NSO Stats
         View divider = new View(context);
         divider.setBackgroundColor(Theme.getColor(Theme.key_divider));
-        heroCard.addView(divider, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 1, 0, 2, 0, 6));
+        heroCard.addView(divider, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 1, 0, 4, 0, 6));
 
         LinearLayout statsBar = new LinearLayout(context);
         statsBar.setOrientation(LinearLayout.HORIZONTAL);
         statsBar.setGravity(Gravity.CENTER_VERTICAL);
         heroCard.addView(statsBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        statDay = createStatItem(context, statsBar, "DAY", "24", 0xFFFFB703);
-        statFollowers = createStatItem(context, statsBar, "FOL", "1.3M", 0xFF00B4D8);
-        statStress = createStatItem(context, statsBar, "STR", MiogramCompanionPrefs.getStress() + "%", 0xFFFF5C8A);
-        statAffection = createStatItem(context, statsBar, "LOVE", "♡ " + MiogramCompanionPrefs.getAffection() + "%", 0xFFFF70A6);
-        statDarkness = createStatItem(context, statsBar, "DARK", MiogramCompanionPrefs.getDarkness() + "%", 0xFF9D4EDD);
+        statDay = createStatChip(context, "DAY 24", 0xFF6C5CE7);
+        statsBar.addView(statDay, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 0, 0, 3, 0));
+
+        statFollowers = createStatChip(context, "FOL 1.3M", 0xFF00B4D8);
+        statsBar.addView(statFollowers, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.2f, 0, 0, 3, 0));
+
+        statStress = createStatChip(context, "STR " + MiogramCompanionPrefs.getStress() + "%", 0xFFE84393);
+        statsBar.addView(statStress, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 0, 0, 3, 0));
+
+        statAffection = createStatChip(context, "LOVE ♡ " + MiogramCompanionPrefs.getAffection() + "%", 0xFFFF70A6);
+        statsBar.addView(statAffection, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.2f, 0, 0, 3, 0));
+
+        statDarkness = createStatChip(context, "DARK " + MiogramCompanionPrefs.getDarkness() + "%", 0xFF2D3436);
+        statsBar.addView(statDarkness, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
     }
 
-    private TextView createStatItem(Context context, LinearLayout parent, String label, String value, int color) {
-        LinearLayout item = new LinearLayout(context);
-        item.setOrientation(LinearLayout.VERTICAL);
-        item.setGravity(Gravity.CENTER_HORIZONTAL);
-        parent.addView(item, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+    private void showOnboardingSelection(Context context, FrameLayout root) {
+        if (context == null || root == null) return;
 
-        TextView lbl = new TextView(context);
-        lbl.setText(label);
-        lbl.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
-        lbl.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-        item.addView(lbl);
+        FrameLayout overlay = new FrameLayout(context);
+        overlay.setBackgroundColor(0xF20D0818);
+        overlay.setElevation(AndroidUtilities.dp(20));
+        overlay.setClickable(true);
 
-        TextView val = new TextView(context);
-        val.setText(value);
-        val.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        val.setTypeface(AndroidUtilities.bold());
-        val.setTextColor(color);
-        item.addView(val);
+        LinearLayout contentCol = new LinearLayout(context);
+        contentCol.setOrientation(LinearLayout.VERTICAL);
+        contentCol.setGravity(Gravity.CENTER_HORIZONTAL);
+        overlay.addView(contentCol, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER, 14, 20, 14, 20));
 
-        return val;
+        TextView topTitle = new TextView(context);
+        topTitle.setText("NEEDY STREAMER OVERLOAD ໒꒱");
+        topTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 19);
+        topTitle.setTypeface(AndroidUtilities.bold());
+        topTitle.setTextColor(0xFFFF70A6);
+        topTitle.setGravity(Gravity.CENTER);
+        contentCol.addView(topTitle, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 6, 0, 3));
+
+        TextView topSub = new TextView(context);
+        topSub.setText(MiogramLocale.get("Обери свою ШІ Супутницю для Telegram", "Выбери свою ИИ Спутницу для Telegram", "Choose your AI Companion for Telegram"));
+        topSub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        topSub.setTextColor(0xCCFFFFFF);
+        topSub.setGravity(Gravity.CENTER);
+        contentCol.addView(topSub, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 16));
+
+        // Horizontal Split layout (Left: Ame, Right: KAngel)
+        LinearLayout splitLayout = new LinearLayout(context);
+        splitLayout.setOrientation(LinearLayout.HORIZONTAL);
+        contentCol.addView(splitLayout, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 0, 1.0f));
+
+        // --- Left Side: Ame ---
+        FrameLayout ameSide = new FrameLayout(context);
+        splitLayout.addView(ameSide, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1.0f, 0, 0, 5, 0));
+
+        GradientDrawable ameBg = new GradientDrawable();
+        ameBg.setColor(0x442B1038);
+        ameBg.setCornerRadius(AndroidUtilities.dp(16));
+        ameBg.setStroke(AndroidUtilities.dp(2), 0x88FF70A6);
+        ameSide.setBackground(ameBg);
+        ameSide.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12));
+
+        LinearLayout ameCol = new LinearLayout(context);
+        ameCol.setOrientation(LinearLayout.VERTICAL);
+        ameCol.setGravity(Gravity.CENTER_HORIZONTAL);
+        ameSide.addView(ameCol, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
+
+        TextView ameTag = new TextView(context);
+        ameTag.setText("໒꒱ AME-CHAN");
+        ameTag.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        ameTag.setTypeface(AndroidUtilities.bold());
+        ameTag.setTextColor(0xFFFF70A6);
+        ameCol.addView(ameTag, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 6));
+
+        ImageView ameImg = new ImageView(context);
+        ameImg.setImageResource(R.drawable.miogram_ai_ame_neutral);
+        ameImg.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        ameCol.addView(ameImg, LayoutHelper.createLinear(130, 130, 0, 4, 0, 10));
+
+        TextView ameSpeech = new TextView(context);
+        ameSpeech.setText("П-тян... обери мене... (´・ω・｀)");
+        ameSpeech.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        ameSpeech.setTextColor(0xEEFFFFFF);
+        ameSpeech.setGravity(Gravity.CENTER);
+        GradientDrawable bubbleAme = new GradientDrawable();
+        bubbleAme.setColor(0x66000000);
+        bubbleAme.setCornerRadius(AndroidUtilities.dp(12));
+        bubbleAme.setStroke(AndroidUtilities.dp(1), 0x55FF70A6);
+        ameSpeech.setBackground(bubbleAme);
+        ameSpeech.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(6), AndroidUtilities.dp(8), AndroidUtilities.dp(6));
+        ameCol.addView(ameSpeech, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
+
+        TextView ameDesc = new TextView(context);
+        ameDesc.setText("Нервова отаку-вайфу.\nПрив'язана, вразлива, щира ♡");
+        ameDesc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        ameDesc.setTextColor(0xAAFFFFFF);
+        ameDesc.setGravity(Gravity.CENTER);
+        ameCol.addView(ameDesc, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        // --- Right Side: KAngel ---
+        FrameLayout kangelSide = new FrameLayout(context);
+        splitLayout.addView(kangelSide, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1.0f, 5, 0, 0, 0));
+
+        GradientDrawable kangelBg = new GradientDrawable();
+        kangelBg.setColor(0x44082538);
+        kangelBg.setCornerRadius(AndroidUtilities.dp(16));
+        kangelBg.setStroke(AndroidUtilities.dp(2), 0x8800B4D8);
+        kangelSide.setBackground(kangelBg);
+        kangelSide.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12));
+
+        LinearLayout kangelCol = new LinearLayout(context);
+        kangelCol.setOrientation(LinearLayout.VERTICAL);
+        kangelCol.setGravity(Gravity.CENTER_HORIZONTAL);
+        kangelSide.addView(kangelCol, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
+
+        TextView kangelTag = new TextView(context);
+        kangelTag.setText("✧ KANGEL †");
+        kangelTag.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        kangelTag.setTypeface(AndroidUtilities.bold());
+        kangelTag.setTextColor(0xFF00B4D8);
+        kangelCol.addView(kangelTag, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 6));
+
+        ImageView kangelImg = new ImageView(context);
+        kangelImg.setImageResource(R.drawable.miogram_ai_kangel_neutral);
+        kangelImg.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        kangelCol.addView(kangelImg, LayoutHelper.createLinear(130, 130, 0, 4, 0, 10));
+
+        TextView kangelSpeech = new TextView(context);
+        kangelSpeech.setText("Полетимо у стратосферу! ✧");
+        kangelSpeech.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        kangelSpeech.setTextColor(0xEEFFFFFF);
+        kangelSpeech.setGravity(Gravity.CENTER);
+        GradientDrawable bubbleKangel = new GradientDrawable();
+        bubbleKangel.setColor(0x66000000);
+        bubbleKangel.setCornerRadius(AndroidUtilities.dp(12));
+        bubbleKangel.setStroke(AndroidUtilities.dp(1), 0x5500B4D8);
+        kangelSpeech.setBackground(bubbleKangel);
+        kangelSpeech.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(6), AndroidUtilities.dp(8), AndroidUtilities.dp(6));
+        kangelCol.addView(kangelSpeech, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
+
+        TextView kangelDesc = new TextView(context);
+        kangelDesc.setText("Інтернет-Ангел №1.\n†BLESSING†, стріми, ейфорія!");
+        kangelDesc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        kangelDesc.setTextColor(0xAAFFFFFF);
+        kangelDesc.setGravity(Gravity.CENTER);
+        kangelCol.addView(kangelDesc, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        // Click actions with 3-second scene (chosen smiles, rejected curses)
+        ameSide.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            ameSide.setEnabled(false);
+            kangelSide.setEnabled(false);
+
+            // Ame chosen -> smiles and bounces
+            ameImg.setImageResource(R.drawable.miogram_ai_ame_happy);
+            ameImg.animate().scaleX(1.22f).scaleY(1.22f).setDuration(350).setInterpolator(new OvershootInterpolator()).start();
+            ameSpeech.setText("Дякую, П-тян! ♡ (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)\nТепер я тільки твоя назавжди!");
+            bubbleAme.setColor(0xDDFF70A6);
+            ameSpeech.setTextColor(0xFFFFFFFF);
+
+            // KAngel rejected -> curses ("пішов нахуй") and shakes angrily
+            kangelImg.setImageResource(R.drawable.miogram_ai_kangel_sad);
+            ObjectAnimator shake = ObjectAnimator.ofFloat(kangelImg, "translationX", 0, -22, 22, -18, 18, -10, 10, 0);
+            shake.setDuration(500);
+            shake.setRepeatCount(3);
+            shake.start();
+            kangelSpeech.setText("Та пішов ти нахуй! ✕\nПожалкуєш ще, отаку-невдахо!");
+            bubbleKangel.setColor(0xEE4A0A18);
+            kangelSpeech.setTextColor(0xFFFF5252);
+
+            ameSide.postDelayed(() -> {
+                MiogramCompanionPrefs.setActiveCompanion(MiogramCompanionPrefs.COMPANION_AME);
+                MiogramCompanionPrefs.setOnboardingCompleted(true);
+                overlay.animate().alpha(0f).setDuration(400).withEndAction(() -> {
+                    root.removeView(overlay);
+                    updateCompanionTheme();
+                    if (history.isEmpty()) {
+                        addInitialGreeting();
+                    } else {
+                        renderFullHistory();
+                    }
+                }).start();
+            }, 3000L);
+        });
+
+        kangelSide.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            ameSide.setEnabled(false);
+            kangelSide.setEnabled(false);
+
+            // KAngel chosen -> smiles and bounces
+            kangelImg.setImageResource(R.drawable.miogram_ai_kangel_happy);
+            kangelImg.animate().scaleX(1.22f).scaleY(1.22f).setDuration(350).setInterpolator(new OvershootInterpolator()).start();
+            kangelSpeech.setText("† BLESSING † Дякую, любий отаку! ✧\nПолетимо у стратосферу разом!");
+            bubbleKangel.setColor(0xDD00B4D8);
+            kangelSpeech.setTextColor(0xFFFFFFFF);
+
+            // Ame rejected -> curses ("пішов нахуй") and shakes angrily
+            ameImg.setImageResource(R.drawable.miogram_ai_ame_sad);
+            ObjectAnimator shake = ObjectAnimator.ofFloat(ameImg, "translationX", 0, -22, 22, -18, 18, -10, 10, 0);
+            shake.setDuration(500);
+            shake.setRepeatCount(3);
+            shake.start();
+            ameSpeech.setText("Пішов нахуй... (T_T)\nЗрадник їбаний, я так і знала...");
+            bubbleAme.setColor(0xEE4A0A18);
+            ameSpeech.setTextColor(0xFFFF5252);
+
+            kangelSide.postDelayed(() -> {
+                MiogramCompanionPrefs.setActiveCompanion(MiogramCompanionPrefs.COMPANION_KANGEL);
+                MiogramCompanionPrefs.setOnboardingCompleted(true);
+                overlay.animate().alpha(0f).setDuration(400).withEndAction(() -> {
+                    root.removeView(overlay);
+                    updateCompanionTheme();
+                    if (history.isEmpty()) {
+                        addInitialGreeting();
+                    } else {
+                        renderFullHistory();
+                    }
+                }).start();
+            }, 3000L);
+        });
+
+        root.addView(overlay, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
     }
 
     private void buildComposer(Context context, LinearLayout parent) {
@@ -526,22 +641,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             heroCard.setBackground(createCardDrawable());
         }
 
-        // Update Tabs
         if (isAme) {
-            ameTabAvatar.setImageResource(R.drawable.miogram_ai_ame_happy);
-            kangelTabAvatar.setImageResource(R.drawable.miogram_ai_kangel_sad);
-
-            ameTab.setBackground(createTabDrawable(true, 0xFFFF70A6));
-            kangelTab.setBackground(createTabDrawable(false, 0xFF00B4D8));
-
-            ameTab.setAlpha(1.0f);
-            kangelTab.setAlpha(0.6f);
-
-            ameTabTitle.setTextColor(0xFFFF70A6);
-            kangelTabTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            ameTabSubtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-            kangelTabSubtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-
             if (stageAvatar != null) {
                 stageAvatar.setImageResource(R.drawable.miogram_ai_ame_neutral);
                 stageName.setText("Ame-chan (飴ちゃん) ໒꒱");
@@ -554,20 +654,6 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
                 stageMoodBadge.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(10), 0x22FF70A6));
             }
         } else {
-            ameTabAvatar.setImageResource(R.drawable.miogram_ai_ame_sad);
-            kangelTabAvatar.setImageResource(R.drawable.miogram_ai_kangel_happy);
-
-            ameTab.setBackground(createTabDrawable(false, 0xFFFF70A6));
-            kangelTab.setBackground(createTabDrawable(true, 0xFF00B4D8));
-
-            ameTab.setAlpha(0.6f);
-            kangelTab.setAlpha(1.0f);
-
-            ameTabTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            kangelTabTitle.setTextColor(0xFF00B4D8);
-            ameTabSubtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-            kangelTabSubtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-
             if (stageAvatar != null) {
                 stageAvatar.setImageResource(R.drawable.miogram_ai_kangel_neutral);
                 stageName.setText("OMGkawaiiAngel-chan ✧†");
@@ -719,7 +805,8 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         if (!msg.isUser) {
             ImageView spriteAvatar = new ImageView(ctx);
             spriteAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            int resId = resolveSpriteForMood(msg.mood);
+            // Stable companion avatar - doesn't change on every message
+            int resId = isAme ? R.drawable.miogram_ai_ame_home : R.drawable.miogram_ai_kangel_start;
             spriteAvatar.setImageResource(resId);
             bubbleRow.addView(spriteAvatar, LayoutHelper.createLinear(34, 34, Gravity.BOTTOM, 0, 0, 6, 0));
         }

@@ -4,17 +4,23 @@ import android.os.Bundle;
 
 import org.json.JSONObject;
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ChatObject;
+import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.tl.TL_account;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import app.exteraless.plugins.PluginsController;
 import app.miogram.bridge.MiogramLocale;
@@ -103,6 +109,186 @@ public class MiogramCompanionToolbox {
         return n.contains("clear") || n.contains("delete") || n.contains("send") || n.contains("profile") || n.contains("setting");
     }
 
+    public static class FoundChat {
+        public final long dialogId;
+        public final String name;
+        public final String username;
+        public final boolean isChannel;
+        public final boolean isGroup;
+
+        public FoundChat(long dialogId, String name, String username, boolean isChannel, boolean isGroup) {
+            this.dialogId = dialogId;
+            this.name = name != null ? name : "";
+            this.username = username != null ? username : "";
+            this.isChannel = isChannel;
+            this.isGroup = isGroup;
+        }
+
+        public String getReference() {
+            if (!username.isEmpty()) {
+                return "@" + username;
+            }
+            return name;
+        }
+    }
+
+    public static class ChatResolution {
+        public final long dialogId;
+        public final FoundChat foundChat;
+        public final String errorMessage;
+
+        public ChatResolution(long dialogId, FoundChat foundChat, String errorMessage) {
+            this.dialogId = dialogId;
+            this.foundChat = foundChat;
+            this.errorMessage = errorMessage;
+        }
+    }
+
+    public static List<FoundChat> searchChats(int account, String rawQuery) {
+        List<FoundChat> matches = new ArrayList<>();
+        if (rawQuery == null || rawQuery.trim().isEmpty()) {
+            return matches;
+        }
+        String q = rawQuery.trim().toLowerCase(java.util.Locale.ROOT);
+        if (q.startsWith("@")) {
+            q = q.substring(1).trim();
+        }
+        if (q.isEmpty()) return matches;
+
+        MessagesController mc = MessagesController.getInstance(account);
+        Map<Long, FoundChat> dedup = new HashMap<>();
+
+        // 1. Scan Dialogs
+        ArrayList<TLRPC.Dialog> all = mc.getAllDialogs();
+        if (all != null) {
+            for (int i = 0; i < all.size(); i++) {
+                TLRPC.Dialog d = all.get(i);
+                if (d == null) continue;
+                long did = d.id;
+                if (did > 0) {
+                    TLRPC.User u = mc.getUser(did);
+                    if (u != null) {
+                        String fullName = UserObject.getUserName(u);
+                        String uname = u.username != null ? u.username : "";
+                        if (matchesQuery(q, fullName, uname, u.first_name, u.last_name)) {
+                            dedup.put(did, new FoundChat(did, fullName, uname, false, false));
+                        }
+                    }
+                } else if (did < 0) {
+                    TLRPC.Chat c = mc.getChat(-did);
+                    if (c != null) {
+                        String title = c.title != null ? c.title : "";
+                        String uname = c.username != null ? c.username : "";
+                        boolean isChannel = ChatObject.isChannel(c) && !c.megagroup;
+                        boolean isGroup = ChatObject.isGroup(c) || c.megagroup;
+                        if (matchesQuery(q, title, uname, null, null)) {
+                            dedup.put(did, new FoundChat(did, title, uname, isChannel, isGroup));
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Scan Contacts
+        ContactsController cc = ContactsController.getInstance(account);
+        if (cc != null && cc.contacts != null) {
+            for (int i = 0; i < cc.contacts.size(); i++) {
+                TLRPC.TL_contact tc = cc.contacts.get(i);
+                if (tc == null) continue;
+                long uid = tc.user_id;
+                if (!dedup.containsKey(uid)) {
+                    TLRPC.User u = mc.getUser(uid);
+                    if (u != null) {
+                        String fullName = UserObject.getUserName(u);
+                        String uname = u.username != null ? u.username : "";
+                        if (matchesQuery(q, fullName, uname, u.first_name, u.last_name)) {
+                            dedup.put(uid, new FoundChat(uid, fullName, uname, false, false));
+                        }
+                    }
+                }
+            }
+        }
+
+        matches.addAll(dedup.values());
+        final String finalQ = q;
+        matches.sort((a, b) -> {
+            boolean aExactU = a.username.equalsIgnoreCase(finalQ);
+            boolean bExactU = b.username.equalsIgnoreCase(finalQ);
+            if (aExactU != bExactU) return aExactU ? -1 : 1;
+
+            boolean aExactN = a.name.equalsIgnoreCase(finalQ);
+            boolean bExactN = b.name.equalsIgnoreCase(finalQ);
+            if (aExactN != bExactN) return aExactN ? -1 : 1;
+
+            boolean aStartN = a.name.toLowerCase(java.util.Locale.ROOT).startsWith(finalQ);
+            boolean bStartN = b.name.toLowerCase(java.util.Locale.ROOT).startsWith(finalQ);
+            if (aStartN != bStartN) return aStartN ? -1 : 1;
+
+            return 0;
+        });
+
+        return matches;
+    }
+
+    private static boolean matchesQuery(String query, String name, String username, String first, String last) {
+        if (name != null && name.toLowerCase(java.util.Locale.ROOT).contains(query)) return true;
+        if (username != null && username.toLowerCase(java.util.Locale.ROOT).contains(query)) return true;
+        if (first != null && first.toLowerCase(java.util.Locale.ROOT).contains(query)) return true;
+        if (last != null && last.toLowerCase(java.util.Locale.ROOT).contains(query)) return true;
+        String t = transliterate(query);
+        if (name != null && transliterate(name.toLowerCase(java.util.Locale.ROOT)).contains(t)) return true;
+        return false;
+    }
+
+    private static String transliterate(String text) {
+        if (text == null) return "";
+        return text.replace("а", "a").replace("б", "b").replace("в", "v").replace("г", "h")
+                .replace("ґ", "g").replace("д", "d").replace("е", "e").replace("є", "ye")
+                .replace("ж", "zh").replace("з", "z").replace("и", "y").replace("і", "i")
+                .replace("ї", "yi").replace("й", "y").replace("к", "k").replace("л", "l")
+                .replace("м", "m").replace("н", "n").replace("о", "o").replace("п", "p")
+                .replace("р", "r").replace("с", "s").replace("т", "t").replace("у", "u")
+                .replace("ф", "f").replace("х", "kh").replace("ц", "ts").replace("ч", "ch")
+                .replace("ш", "sh").replace("щ", "shch").replace("ь", "").replace("ю", "yu")
+                .replace("я", "ya");
+    }
+
+    public static ChatResolution resolveChatTarget(int account, JSONObject p) {
+        long chatId = p.optLong("chat_id", 0);
+        if (chatId != 0) {
+            return new ChatResolution(chatId, null, null);
+        }
+        String query = p.optString("chat_query", "");
+        if (query.isEmpty()) query = p.optString("chat_name", "");
+        if (query.isEmpty()) query = p.optString("username", "");
+        if (query.isEmpty()) query = p.optString("query", "");
+
+        if (query.isEmpty()) {
+            return new ChatResolution(0, null, "Будь ласка, вкажи ім'я або юзернейм співрозмовника.");
+        }
+
+        List<FoundChat> results = searchChats(account, query);
+        if (results.isEmpty()) {
+            return new ChatResolution(0, null, "Не вдалося знайти жодного чату за запитом «" + query + "». Перевір правильність написання імені чи юзернейму.");
+        }
+        if (results.size() == 1) {
+            return new ChatResolution(results.get(0).dialogId, results.get(0), null);
+        }
+
+        StringBuilder sb = new StringBuilder("Я знайшла " + results.size() + " схожих профілів за запитом «" + query + "»:\n");
+        int count = Math.min(5, results.size());
+        for (int i = 0; i < count; i++) {
+            FoundChat fc = results.get(i);
+            sb.append(i + 1).append(". ").append(fc.name);
+            if (!fc.username.isEmpty()) {
+                sb.append(" (@").append(fc.username).append(")");
+            }
+            sb.append("\n");
+        }
+        sb.append("Уточни, будь ласка, за @юзернеймом, кого саме ти маєш на увазі?");
+        return new ChatResolution(0, null, sb.toString());
+    }
+
     public static void executeTool(int account, ActionRequest request, Utilities.Callback<String> callback) {
         if (request == null) {
             callback.run("No action specified.");
@@ -113,56 +299,102 @@ public class MiogramCompanionToolbox {
 
         try {
             switch (name) {
-                case "clear_chat": {
-                    long chatId = p.optLong("chat_id", 0);
-                    if (chatId == 0) {
-                        callback.run("Помилка: не вказано ID чату для очищення.");
+                case "find_chat": {
+                    String query = p.optString("query", "");
+                    if (query.isEmpty()) query = p.optString("chat_query", "");
+                    if (query.isEmpty()) query = p.optString("name", "");
+                    if (query.isEmpty()) {
+                        callback.run("Вкажи, будь ласка, ім'я або юзернейм для пошуку (наприклад: «знайди в лс з Віталіком»).");
                         return;
                     }
-                    MessagesController.getInstance(account).deleteDialog(chatId, 1, false);
-                    callback.run("Історію чату (" + chatId + ") успішно очищено.");
+                    List<FoundChat> results = searchChats(account, query);
+                    if (results.isEmpty()) {
+                        callback.run("Не знайшла жодного чату чи контакту за запитом «" + query + "».");
+                        return;
+                    }
+                    if (results.size() == 1) {
+                        FoundChat fc = results.get(0);
+                        String ref = !fc.username.isEmpty() ? ("@" + fc.username) : fc.name;
+                        callback.run("Знайдено чат: " + fc.name + (!fc.username.isEmpty() ? " (@" + fc.username + ")" : "") + ".");
+                        return;
+                    }
+                    StringBuilder sb = new StringBuilder("Я знайшла " + results.size() + " схожих профілів:\n");
+                    int count = Math.min(5, results.size());
+                    for (int i = 0; i < count; i++) {
+                        FoundChat fc = results.get(i);
+                        sb.append(i + 1).append(". ").append(fc.name);
+                        if (!fc.username.isEmpty()) {
+                            sb.append(" (@").append(fc.username).append(")");
+                        }
+                        sb.append("\n");
+                    }
+                    sb.append("Уточни, будь ласка, за @юзернеймом, про кого саме мова?");
+                    callback.run(sb.toString());
+                    break;
+                }
+                case "clear_chat": {
+                    ChatResolution res = resolveChatTarget(account, p);
+                    if (res.errorMessage != null) {
+                        callback.run(res.errorMessage);
+                        return;
+                    }
+                    MessagesController.getInstance(account).deleteDialog(res.dialogId, 1, false);
+                    String targetName = res.foundChat != null ? res.foundChat.getReference() : "цього чату";
+                    callback.run("Історію листування з " + targetName + " успішно очищено.");
                     break;
                 }
                 case "delete_chat": {
-                    long chatId = p.optLong("chat_id", 0);
-                    if (chatId == 0) {
-                        callback.run("Помилка: не вказано ID чату.");
+                    ChatResolution res = resolveChatTarget(account, p);
+                    if (res.errorMessage != null) {
+                        callback.run(res.errorMessage);
                         return;
                     }
-                    MessagesController.getInstance(account).deleteDialog(chatId, 0, false);
-                    callback.run("Діалог (" + chatId + ") успішно видалено зі списку.");
+                    MessagesController.getInstance(account).deleteDialog(res.dialogId, 0, false);
+                    String targetName = res.foundChat != null ? res.foundChat.getReference() : "діалог";
+                    callback.run("Діалог з " + targetName + " успішно видалено зі списку.");
                     break;
                 }
                 case "send_message": {
-                    long chatId = p.optLong("chat_id", 0);
+                    ChatResolution res = resolveChatTarget(account, p);
+                    if (res.errorMessage != null) {
+                        callback.run(res.errorMessage);
+                        return;
+                    }
                     String text = p.optString("text", "");
-                    if (chatId == 0 || text.isEmpty()) {
-                        callback.run("Помилка: не вказано текст або чат для відправки.");
+                    if (text.isEmpty()) {
+                        callback.run("Помилка: не вказано текст повідомлення для відправки.");
                         return;
                     }
                     SendMessagesHelper.getInstance(account).sendMessage(
-                            SendMessagesHelper.SendMessageParams.of(text, chatId, null, null, null, true, null, null, null, true, 0, 0, null, false)
+                            SendMessagesHelper.SendMessageParams.of(text, res.dialogId, null, null, null, true, null, null, null, true, 0, 0, null, false)
                     );
-                    callback.run("Повідомлення успішно відправлено в чат " + chatId + ".");
+                    String targetName = res.foundChat != null ? res.foundChat.getReference() : "чат";
+                    callback.run("Повідомлення успішно відправлено для " + targetName + ".");
                     break;
                 }
                 case "read_messages": {
-                    long chatId = p.optLong("chat_id", 0);
-                    int limit = Math.min(20, Math.max(1, p.optInt("limit", 10)));
-                    if (chatId == 0) {
-                        callback.run("Помилка: ID чату не вказано.");
+                    ChatResolution res = resolveChatTarget(account, p);
+                    if (res.errorMessage != null) {
+                        callback.run(res.errorMessage);
                         return;
                     }
+                    int limit = Math.min(20, Math.max(1, p.optInt("limit", 10)));
                     TLRPC.TL_messages_getHistory req = new TLRPC.TL_messages_getHistory();
-                    req.peer = MessagesController.getInstance(account).getInputPeer(chatId);
+                    req.peer = MessagesController.getInstance(account).getInputPeer(res.dialogId);
                     req.limit = limit;
+                    final FoundChat fc = res.foundChat;
                     ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
                         if (response instanceof TLRPC.messages_Messages) {
-                            TLRPC.messages_Messages res = (TLRPC.messages_Messages) response;
-                            StringBuilder sb = new StringBuilder("Останні повідомлення:\n");
-                            for (TLRPC.Message m : res.messages) {
-                                if (m != null && m.message != null && !m.message.isEmpty()) {
-                                    sb.append("- ").append(m.message.replace("\n", " ")).append("\n");
+                            TLRPC.messages_Messages msgRes = (TLRPC.messages_Messages) response;
+                            String header = fc != null ? ("Останні повідомлення з " + fc.getReference() + ":\n") : "Останні повідомлення:\n";
+                            StringBuilder sb = new StringBuilder(header);
+                            if (msgRes.messages.isEmpty()) {
+                                sb.append("(Листування порожнє або немає недавніх повідомлень)");
+                            } else {
+                                for (TLRPC.Message m : msgRes.messages) {
+                                    if (m != null && m.message != null && !m.message.isEmpty()) {
+                                        sb.append("- ").append(m.message.replace("\n", " ")).append("\n");
+                                    }
                                 }
                             }
                             callback.run(sb.toString());

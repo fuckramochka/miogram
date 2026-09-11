@@ -19,6 +19,7 @@ public class MiogramCompanionPrefs {
 
     private static final String PREFS_NAME = "miogram_companion_prefs";
     private static final String KEY_COMPANION = "active_companion";
+    private static final String KEY_ONBOARDING_COMPLETED = "onboarding_completed_v1";
     private static final String KEY_REPLACE_CONTACTS = "replace_contacts_with_ai";
     private static final String KEY_HISTORY = "chat_history_json";
     private static final String KEY_AFFECTION = "stat_affection";
@@ -52,6 +53,14 @@ public class MiogramCompanionPrefs {
 
     public static void setContactsReplacedWithAi(boolean replaced) {
         getPrefs().edit().putBoolean(KEY_REPLACE_CONTACTS, replaced).apply();
+    }
+
+    public static boolean hasCompletedOnboarding() {
+        return getPrefs().getBoolean(KEY_ONBOARDING_COMPLETED, false);
+    }
+
+    public static void setOnboardingCompleted(boolean completed) {
+        getPrefs().edit().putBoolean(KEY_ONBOARDING_COMPLETED, completed).apply();
     }
 
     public static int getAffection() {
