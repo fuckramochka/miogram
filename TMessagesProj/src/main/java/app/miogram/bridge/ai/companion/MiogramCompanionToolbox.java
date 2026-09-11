@@ -179,8 +179,8 @@ public class MiogramCompanionToolbox {
                     if (c != null) {
                         String title = c.title != null ? c.title : "";
                         String uname = c.username != null ? c.username : "";
-                        boolean isChannel = ChatObject.isChannel(c) && !c.megagroup;
-                        boolean isGroup = ChatObject.isGroup(c) || c.megagroup;
+                        boolean isChannel = ChatObject.isChannelAndNotMegaGroup(c);
+                        boolean isGroup = !isChannel;
                         if (matchesQuery(q, title, uname, null, null)) {
                             dedup.put(did, new FoundChat(did, title, uname, isChannel, isGroup));
                         }

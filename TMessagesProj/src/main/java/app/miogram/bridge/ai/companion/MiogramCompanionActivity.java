@@ -1,5 +1,6 @@
 package app.miogram.bridge.ai.companion;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
@@ -285,6 +286,19 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
 
         statDarkness = createStatChip(context, "DARK " + MiogramCompanionPrefs.getDarkness() + "%", 0xFF2D3436);
         statsBar.addView(statDarkness, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+    }
+
+    private TextView createStatChip(Context context, String text, int color) {
+        TextView chip = new TextView(context);
+        chip.setText(text);
+        chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        chip.setTypeface(AndroidUtilities.bold());
+        chip.setTextColor(color);
+        chip.setGravity(Gravity.CENTER);
+        int bg = Color.argb(0x22, Color.red(color), Color.green(color), Color.blue(color));
+        chip.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(6), bg));
+        chip.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(3), AndroidUtilities.dp(4), AndroidUtilities.dp(3));
+        return chip;
     }
 
     private void showOnboardingSelection(Context context, FrameLayout root) {
