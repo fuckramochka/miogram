@@ -36,6 +36,12 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
 
     private static final String PREFS = "miogram_ai_prefs";
 
+    private int headerCompanionRow;
+    private int openCompanionRow;
+    private int companionChoiceRow;
+    private int companionBottomTabRow;
+    private int companionInfoRow;
+
     private int headerAiRow;
     private int keyRow;
     private int modelRow;
@@ -55,6 +61,12 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
     @Override
     protected void updateRows() {
         super.updateRows();
+
+        headerCompanionRow = addRow();
+        openCompanionRow = addRow();
+        companionChoiceRow = addRow();
+        companionBottomTabRow = addRow();
+        companionInfoRow = addRow();
 
         headerAiRow = addRow();
         keyRow = addRow();
@@ -116,7 +128,17 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == keyRow) {
+        if (position == openCompanionRow) {
+            presentFragment(new app.miogram.bridge.ai.companion.MiogramCompanionActivity());
+        } else if (position == companionChoiceRow) {
+            showCompanionPicker();
+        } else if (position == companionBottomTabRow) {
+            boolean next = !app.miogram.bridge.ai.companion.MiogramCompanionPrefs.isContactsReplacedWithAi();
+            app.miogram.bridge.ai.companion.MiogramCompanionPrefs.setContactsReplacedWithAi(next);
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(next);
+            }
+        } else if (position == keyRow) {
             showKeyDialog();
         } else if (position == modelRow) {
             showModelPicker();
@@ -132,6 +154,23 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
                 ((TextCheckCell) view).setChecked(next);
             }
         }
+    }
+
+    private void showCompanionPicker() {
+        Context ctx = getParentActivity();
+        if (ctx == null) return;
+        String[] companions = {
+                "Ame-chan ໒꒱ (" + MiogramLocale.get("Отаку, депресивна, ніжна", "Отаку, депрессивная, нежная", "Otaku, moody, sweet") + ")",
+                "OMGkawaiiAngel (KAngel) ✧† (" + MiogramLocale.get("Інтернет-Ангел, енергійна", "Интернет-Ангел, энергичная", "Internet Angel, hyperactive") + ")"
+        };
+        AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
+        builder.setTitle(MiogramLocale.get("Оберіть ШІ Супутника", "Выберите ИИ Спутника", "Select AI Companion"));
+        builder.setItems(companions, (dialog, which) -> {
+            app.miogram.bridge.ai.companion.MiogramCompanionPrefs.setActiveCompanion(which == 0 ? app.miogram.bridge.ai.companion.MiogramCompanionPrefs.COMPANION_AME : app.miogram.bridge.ai.companion.MiogramCompanionPrefs.COMPANION_KANGEL);
+            if (listAdapter != null) listAdapter.notifyDataSetChanged();
+        });
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(builder.create());
     }
 
     private void showKeyDialog() {
@@ -221,15 +260,15 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == headerAiRow || position == headerFeaturesRow) {
+            if (position == headerAiRow || position == headerFeaturesRow || position == headerCompanionRow) {
                 return TYPE_HEADER;
-            } else if (position == keyRow || position == modelRow || position == voiceTranscribeInfoRow) {
+            } else if (position == keyRow || position == modelRow || position == voiceTranscribeInfoRow || position == companionChoiceRow) {
                 return TYPE_SETTINGS;
-            } else if (position == getKeyRow) {
+            } else if (position == getKeyRow || position == openCompanionRow) {
                 return TYPE_TEXT;
-            } else if (position == piiMaskRow) {
+            } else if (position == piiMaskRow || position == companionBottomTabRow) {
                 return TYPE_CHECK;
-            } else if (position == aiInfoRow || position == featuresInfoRow) {
+            } else if (position == aiInfoRow || position == featuresInfoRow || position == companionInfoRow) {
                 return TYPE_INFO_PRIVACY;
             }
             return TYPE_SETTINGS;
@@ -240,7 +279,9 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
             switch (holder.getItemViewType()) {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
-                    if (position == headerAiRow) {
+                    if (position == headerCompanionRow) {
+                        cell.setText(MiogramLocale.get("ШІ Супутник (Needy Streamer Overload) ໒꒱", "ИИ Спутник (Needy Streamer Overload) ໒꒱", "AI Companion (Needy Streamer Overload) ໒꒱"));
+                    } else if (position == headerAiRow) {
                         cell.setText(MiogramLocale.get("Конфігурація Gemini AI", "Конфигурация Gemini AI", "Gemini AI Configuration"));
                     } else if (position == headerFeaturesRow) {
                         cell.setText(MiogramLocale.get("Застосування Miogram AI", "Применение Miogram AI", "Miogram AI Applications"));
@@ -250,7 +291,11 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
                 case TYPE_SETTINGS: {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
                     cell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-                    if (position == keyRow) {
+                    if (position == companionChoiceRow) {
+                        boolean isAme = app.miogram.bridge.ai.companion.MiogramCompanionPrefs.isAmeActive();
+                        String companionName = isAme ? "Ame-chan ໒꒱" : "KAngel ✧†";
+                        cell.setTextAndValue(MiogramLocale.get("Активний супутник", "Активный спутник", "Active Companion"), companionName, true);
+                    } else if (position == keyRow) {
                         cell.setTextAndValue(MiogramLocale.get("API ключі Gemini", "API ключи Gemini", "Gemini API Keys"), keySummary(), true);
                     } else if (position == modelRow) {
                         cell.setTextAndValue(MiogramLocale.get("Модель ШІ", "Модель ИИ", "AI Model"), savedModel(), true);
@@ -262,21 +307,32 @@ public class MiogramAiSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
-                    if (position == getKeyRow) {
+                    if (position == openCompanionRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Відкрити чат зі супутником", "Открыть чат со спутником", "Open Companion Chat"), R.drawable.baseline_stars_24, true);
+                    } else if (position == getKeyRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Отримати безкоштовний ключ на Google AI Studio", "Получить бесплатный ключ на Google AI Studio", "Get free API key on Google AI Studio"), R.drawable.msg_bot, false);
                     }
                     break;
                 }
                 case TYPE_CHECK: {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
-                    if (position == piiMaskRow) {
+                    if (position == companionBottomTabRow) {
+                        cell.setTextAndCheck(MiogramLocale.get("Замінити вкладку «Контакти» на ШІ", "Заменить вкладку «Контакты» на ИИ", "Replace «Contacts» tab with AI"),
+                                app.miogram.bridge.ai.companion.MiogramCompanionPrefs.isContactsReplacedWithAi(), false);
+                    } else if (position == piiMaskRow) {
                         cell.setTextAndCheck(MiogramLocale.get("Приховувати персональні дані (PII Shield)", "Скрывать личные данные (PII Shield)", "Protect Personal Data (PII Shield)"), piiMaskEnabled(), false);
                     }
                     break;
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
-                    if (position == aiInfoRow) {
+                    if (position == companionInfoRow) {
+                        cell.setText(MiogramLocale.get(
+                                "Аме та Кангель — автономні ШІ-агенти зі своїми характерами з Needy Streamer Overload. Вони вміють читати й чистити чати, керувати налаштуваннями клієнта та синтезувати плагіни на Gemini 3.8 Flash.",
+                                "Аме и Кангель — автономные ИИ-агенты со своими характерами из Needy Streamer Overload. Они умеют читать и чистить чаты, менять настройки клиента и синтезировать плагины на Gemini 3.8 Flash.",
+                                "Ame and KAngel are autonomous AI agents inspired by Needy Streamer Overload. They can read and clear chats, modify settings, and generate plugins on Gemini 3.8 Flash."
+                        ));
+                    } else if (position == aiInfoRow) {
                         cell.setText(MiogramLocale.get("Додайте один або кілька ключів Gemini, по одному в рядку. Miogram обирає ключі по черзі та переходить до наступного, коли ключ неавторизований або вичерпав квоту.",
                                 "Добавьте один или несколько ключей Gemini, по одному в строке. Miogram выбирает ключи по очереди и переходит к следующему, когда ключ не авторизован или исчерпал квоту.",
                                 "Add one or more Gemini keys, one per line. Miogram rotates keys and tries the next one when a key is unauthorized or out of quota."));

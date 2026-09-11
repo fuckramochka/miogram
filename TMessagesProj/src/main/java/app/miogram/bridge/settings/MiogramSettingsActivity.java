@@ -50,6 +50,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     // Section 3: AI, Ecosystem & System ✧
     private int headerSystemRow;
     private int aiRow;
+    private int companionRow;
     private int pluginsRow;
     private int performanceRow;
     private int generalRow;
@@ -85,6 +86,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         // 3. AI, Ecosystem & System
         headerSystemRow = addRow();
         aiRow = addRow();
+        companionRow = addRow();
         pluginsRow = addRow();
         performanceRow = addRow();
         generalRow = addRow();
@@ -124,6 +126,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
             presentFragment(new app.miogram.bridge.localizer.MiogramLocalizerActivity());
         } else if (position == aiRow) {
             presentFragment(new MiogramAiSettingsActivity());
+        } else if (position == companionRow) {
+            presentFragment(new app.miogram.bridge.ai.companion.MiogramCompanionActivity());
         } else if (position == pluginsRow) {
             presentFragment(new app.exteraless.plugins.ui.PluginsActivity());
         } else if (position == performanceRow) {
@@ -207,6 +211,15 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                         cell.setTextAndIcon(MiogramLocale.get("Локалізатор (Кастомні переклади)", "Локализатор (Кастомные переводы)", "Localizer (Custom Translations)"), R.drawable.msg_edit, false);
                     } else if (position == aiRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Miogram AI", "Miogram AI", "Miogram AI"), R.drawable.msg_bot, true);
+                    } else if (position == companionRow) {
+                        boolean isAme = app.miogram.bridge.ai.companion.MiogramCompanionPrefs.isAmeActive();
+                        String companionName = isAme ? "Ame-chan ໒꒱" : "KAngel ✧†";
+                        cell.setTextAndValueAndIcon(
+                                MiogramLocale.get("ШІ Супутник (Ame / KAngel)", "ИИ Спутник (Ame / KAngel)", "AI Companion (Ame / KAngel)"),
+                                companionName,
+                                R.drawable.baseline_stars_24,
+                                true
+                        );
                     } else if (position == pluginsRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Плагіни Miogram (Python & Каталог)", "Плагины Miogram (Python & Каталог)", "Miogram Plugins (Python & Catalog)"), R.drawable.msg_plugins, true);
                     } else if (position == performanceRow) {

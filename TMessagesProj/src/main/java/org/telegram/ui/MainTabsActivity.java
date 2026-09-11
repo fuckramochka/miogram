@@ -378,6 +378,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabs = new GlassTabView[6];
         tabs[INDEX_CHATS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CHATS, R.string.MainTabsChats);
         tabs[INDEX_CONTACTS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CONTACTS, R.string.MainTabsContacts);
+        if (app.miogram.bridge.ai.companion.MiogramCompanionPrefs.isContactsReplacedWithAi()) {
+            tabs[INDEX_CONTACTS].setText(app.miogram.bridge.MiogramLocale.get("ШІ Супутник", "ИИ Спутник", "AI Companion"));
+        }
         tabs[INDEX_SETTINGS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.SETTINGS, R.string.Settings);
         tabs[INDEX_CALLS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CALLS, R.string.MainTabsCalls);
         tabs[INDEX_PROFILE] = GlassTabView.createAvatar(context, resourceProvider, currentAccount, R.string.MainTabsProfile);
@@ -509,6 +512,26 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             Bundle args = new Bundle();
             args.putBoolean("needFinishFragment", false);
             presentFragment(new CallLogActivity(args));
+        });
+        boolean replacedWithAi = app.miogram.bridge.ai.companion.MiogramCompanionPrefs.isContactsReplacedWithAi();
+        o.add(R.drawable.baseline_stars_24, replacedWithAi
+                ? app.miogram.bridge.MiogramLocale.get("Повернути Контакти", "Вернуть Контакты", "Restore Contacts")
+                : app.miogram.bridge.MiogramLocale.get("Замінити на ШІ Супутника ໒꒱", "Заменить на ИИ Спутника ໒꒱", "Replace with AI Companion ໒꒱"), () -> {
+            app.miogram.bridge.ai.companion.MiogramCompanionPrefs.setContactsReplacedWithAi(!replacedWithAi);
+            if (tabs != null && tabs[INDEX_CONTACTS] != null) {
+                tabs[INDEX_CONTACTS].setText(!replacedWithAi
+                        ? app.miogram.bridge.MiogramLocale.get("ШІ Супутник", "ИИ Спутник", "AI Companion")
+                        : LocaleController.getString(R.string.MainTabsContacts));
+            }
+            dropBaseFragmentAt(getPositionContacts());
+            if (fragmentView != null) {
+                checkUi_contactsOrFeedTabVisible(true);
+            }
+            BulletinFactory.of(this).createSimpleBulletin(R.drawable.baseline_stars_24,
+                    !replacedWithAi
+                            ? app.miogram.bridge.MiogramLocale.get("ШІ Супутник встановлено на панель ໒꒱", "ИИ Спутник установлен на панель ໒꒱", "AI Companion set to bottom tab ໒꒱")
+                            : app.miogram.bridge.MiogramLocale.get("Контакти повернуто", "Контакты возвращены", "Contacts restored")
+            ).show();
         });
         o.add(R.drawable.msg_disable, app.miogram.bridge.MiogramLocale.get("Сховати вкладку", "Скрыть вкладку", "Hide Tab"), () -> {
             NaConfig.INSTANCE.getMainTabsHideContacts().setConfigBool(true);
@@ -935,6 +958,11 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             args.putBoolean("hasMainTabs", true);
             return prepareTabFragment(new FeedActivity(args));
         } else if (!MainTabsHelper.isContactsTabHidden() && position == getPositionContacts()) {
+            if (app.miogram.bridge.ai.companion.MiogramCompanionPrefs.isContactsReplacedWithAi()) {
+                Bundle args = new Bundle();
+                args.putBoolean("hasMainTabs", true);
+                return prepareTabFragment(new app.miogram.bridge.ai.companion.MiogramCompanionActivity(args));
+            }
             Bundle args = new Bundle();
             args.putBoolean("needPhonebook", true);
             args.putBoolean("needFinishFragment", false);
