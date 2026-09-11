@@ -271,7 +271,7 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
         linksDividerRow = addRow();
 
         stickersHeaderRow = addRow("stickersHeader");
-        unlimitedGroupRow = addRow("unlimited");
+        unlimitedGroupRow = addRow("unlimited", "unlimitedRecentStickers");
         if (unlimitedExpanded) {
             unlimitedStickersRow = addRow();
             unlimitedGifsRow = addRow();
