@@ -174,7 +174,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
     private boolean slidingSpeed;
     private ActionBarMenuSubItem[] speedItems = new ActionBarMenuSubItem[6];
     private TextView durationTextView;
-    private ActionBarMenuItem repeatButton;
+    public ActionBarMenuItem repeatButton;
     private ActionBarMenuSubItem playOnceItem;
     private ActionBarMenuSubItem repeatSongItem;
     private ActionBarMenuSubItem repeatListItem;

@@ -92,10 +92,6 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
 
         final Context finalContext = context;
         final long clientUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
-        if (targetUserId <= 0) {
-            targetUserId = clientUserId;
-            isSelf = true;
-        }
         final boolean isFounder = (targetUserId == MiogramBadgeManager.FOUNDER_USER_ID || clientUserId == MiogramBadgeManager.FOUNDER_USER_ID);
         MiogramSupabaseBridge.BadgeRecord record = MiogramBadgeManager.getBadgeRecord(targetUserId);
         if (record == null && isFounder) {

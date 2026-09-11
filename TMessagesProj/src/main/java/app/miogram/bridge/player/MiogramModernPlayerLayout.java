@@ -693,8 +693,8 @@ public class MiogramModernPlayerLayout extends FrameLayout {
                 });
                 repeat.setOnLongClickListener(v -> {
                     MiogramHaptic.tap(v);
-                    if (alert != null && alert.repeatButton != null) {
-                        alert.repeatButton.toggleSubMenu();
+                    if (v instanceof org.telegram.ui.ActionBar.ActionBarMenuItem) {
+                        ((org.telegram.ui.ActionBar.ActionBarMenuItem) v).toggleSubMenu();
                         return true;
                     }
                     return false;
