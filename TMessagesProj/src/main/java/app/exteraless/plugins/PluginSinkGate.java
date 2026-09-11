@@ -693,13 +693,59 @@ public final class PluginSinkGate {
             protected void afterHookedMethod(MethodHookParam param) {
                 PluginRuntime.exitPython();
                 Throwable error = param.getThrowable();
-                if (error != null && isStalePythonProxy(error)) {
+                if (error == null) {
+                    return;
+                }
+                if (isStalePythonProxy(error)) {
                     FileLog.w("PluginSinkGate: dropped a callback into an unloaded plugin ("
                             + describeProxiedMethod(param) + ")");
-                    param.setResult(zeroValueFor(proxiedMethod(param)));
+                } else {
+                    reportCallbackError(param, error);
                 }
+                param.setResult(zeroValueFor(proxiedMethod(param)));
             }
         });
+    }
+
+    private static void reportCallbackError(XC_MethodHook.MethodHookParam param, Throwable error) {
+        String where = describeProxiedMethod(param);
+        if (isPermissionDenial(error)) {
+            FileLog.w("PluginSinkGate: permission denied in " + where + ": " + error.getMessage());
+            return;
+        }
+        String pluginId = PluginRuntime.current();
+        if (pluginId != null) {
+            PluginsWatchdog watchdog = null;
+            try {
+                watchdog = PluginsController.getInstance().getWatchdog();
+            } catch (Throwable ignored) {
+            }
+            if (watchdog != null) {
+                try {
+                    watchdog.handlePluginError(pluginId, error);
+                    return;
+                } catch (Throwable t) {
+                    FileLog.e("PluginSinkGate: watchdog.handlePluginError failed", t);
+                }
+            }
+        }
+        FileLog.e("PluginSinkGate: callback " + where + " failed", error);
+    }
+
+    private static boolean isPermissionDenial(Throwable error) {
+        Throwable current = error;
+        for (int depth = 0; current != null && depth < 8; depth++) {
+            if (current instanceof SecurityException) {
+                return true;
+            }
+            String message = current.getMessage();
+            if (message != null && message.startsWith("PermissionError:")) {
+                return true;
+            }
+            Throwable cause = current.getCause();
+            current = cause == current ? null : cause;
+        }
+        return false;
     }
 
     private static boolean isStalePythonProxy(Throwable error) {
