@@ -44,7 +44,9 @@
     <string name="OEChatsDoubleTap">Двойной тап</string>
     <string name="OEChatsMessages">Сообщения</string>
     <string name="OEChatsVideos">Видео</string>
-    <string name="OEChatsUnlimitedRecentStickers">Безлимит недавних стикеров</string>
+    <string name="OEChatsUnlimited">Бесконечные</string>
+    <string name="OEChatsUnlimitedStickers">Стикеры</string>
+    <string name="OEChatsUnlimitedGifs">GIF</string>
     <string name="OEChatsAdminShortcuts">Быстрые действия администратора</string>
     <string name="OEChatsDisableGreetingSticker">Отключить приветственный стикер</string>
     <string name="OEChatsHideSendAsPeer">Скрыть кнопку «Отправить как…»</string>

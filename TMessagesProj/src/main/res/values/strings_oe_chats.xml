@@ -46,7 +46,9 @@
     <string name="OEChatsDoubleTap">Double Tap</string>
     <string name="OEChatsMessages">Messages</string>
     <string name="OEChatsVideos">Videos</string>
-    <string name="OEChatsUnlimitedRecentStickers">Unlimited Recent Stickers</string>
+    <string name="OEChatsUnlimited">Unlimited</string>
+    <string name="OEChatsUnlimitedStickers">Stickers</string>
+    <string name="OEChatsUnlimitedGifs">GIFs</string>
     <string name="OEChatsAdminShortcuts">Quick Admin Shortcuts</string>
     <string name="OEChatsDisableGreetingSticker">Disable Greeting Sticker</string>
     <string name="OEChatsHideSendAsPeer">Hide \"Send as…\" Button</string>

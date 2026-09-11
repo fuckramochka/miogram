@@ -90,6 +90,7 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
 
     private boolean repliesExpanded;
     private boolean hideReactionsExpanded;
+    private boolean unlimitedExpanded;
     private boolean quickTransitionExpanded;
     private boolean messageMenuExpanded;
     private boolean mediaViewerMenuExpanded;
@@ -119,7 +120,9 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
 
     // Stickers and Emoji
     private int stickersHeaderRow;
-    private int unlimitedRecentStickersRow;
+    private int unlimitedGroupRow;
+    private int unlimitedStickersRow;
+    private int unlimitedGifsRow;
     private int hideReactionsGroupRow;
     private int hideReactionsChannelsRow;
     private int hideReactionsGroupsRow;
@@ -268,7 +271,13 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
         linksDividerRow = addRow();
 
         stickersHeaderRow = addRow("stickersHeader");
-        unlimitedRecentStickersRow = addRow("unlimitedRecentStickers");
+        unlimitedGroupRow = addRow("unlimited");
+        if (unlimitedExpanded) {
+            unlimitedStickersRow = addRow();
+            unlimitedGifsRow = addRow();
+        } else {
+            unlimitedStickersRow = unlimitedGifsRow = -1;
+        }
         hideReactionsGroupRow = addRow("hideReactions");
         if (hideReactionsExpanded) {
             hideReactionsChannelsRow = addRow();
@@ -533,6 +542,7 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
 
     private static final int REPLIES_TOTAL = 3;
     private static final int HIDE_REACTIONS_TOTAL = 3;
+    private static final int UNLIMITED_TOTAL = 2;
     private static final int QUICK_TRANSITIONS_TOTAL = 2;
     private static final int MESSAGE_MENU_TOTAL = 24;
     private static final int MEDIA_VIEWER_MENU_TOTAL = 6;
@@ -546,6 +556,10 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
     private static int hideReactionsSelectedCount() {
         return count(ChatsConfig.hideReactionsInChannels.Bool(), ChatsConfig.hideReactionsInGroups.Bool(),
                 ChatsConfig.hideReactionsInPrivate.Bool());
+    }
+
+    private static int unlimitedSelectedCount() {
+        return count(isUnlimitedRecentStickers(), NaConfig.INSTANCE.getUnlimitedSavedGifs().Bool());
     }
 
     private static int quickTransitionsSelectedCount() {
@@ -631,6 +645,13 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
         ChatsConfig.hideReactionsInGroups.setConfigBool(enable);
         ChatsConfig.hideReactionsInPrivate.setConfigBool(enable);
         rebuildChats();
+        reloadList();
+    }
+
+    private void toggleAllUnlimited() {
+        boolean enable = unlimitedSelectedCount() == 0;
+        setUnlimitedRecentStickers(enable);
+        NaConfig.INSTANCE.getUnlimitedSavedGifs().setConfigBool(enable);
         reloadList();
     }
 
@@ -944,12 +965,19 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
                 || NekoConfig.unlimitedFavedStickers.Bool();
     }
 
-    private void toggleUnlimitedRecentStickers(View view) {
-        boolean value = !isUnlimitedRecentStickers();
+    private static void setUnlimitedRecentStickers(boolean value) {
         NekoConfig.maxRecentStickerCount.setConfigInt(value ? RECENT_STICKERS_MAX : RECENT_STICKERS_DEFAULT);
         NekoConfig.unlimitedFavedStickers.setConfigBool(value);
-        if (view instanceof TextCheckCell) {
-            ((TextCheckCell) view).setChecked(value);
+    }
+
+    private void toggleUnlimitedRecentStickers(View view) {
+        boolean value = !isUnlimitedRecentStickers();
+        setUnlimitedRecentStickers(value);
+        if (view instanceof CheckBoxCell) {
+            ((CheckBoxCell) view).setChecked(value, true);
+        }
+        if (listAdapter != null) {
+            listAdapter.notifyItemChanged(unlimitedGroupRow);
         }
     }
 
@@ -1006,6 +1034,10 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
             return;
         } else if (position == hideReactionsGroupRow) {
             hideReactionsExpanded = !hideReactionsExpanded;
+            reloadList();
+            return;
+        } else if (position == unlimitedGroupRow) {
+            unlimitedExpanded = !unlimitedExpanded;
             reloadList();
             return;
         } else if (position == quickTransitionGroupRow) {
@@ -1076,7 +1108,7 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
         } else if (position == alwaysSendHdRow) {
             toggleHighQualityPhoto(view);
             return;
-        } else if (position == unlimitedRecentStickersRow) {
+        } else if (position == unlimitedStickersRow) {
             toggleUnlimitedRecentStickers(view);
             return;
         } else if (position == adminShortcutsRow) {
@@ -1165,6 +1197,8 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
         } else if (position == hideReactionsChannelsRow || position == hideReactionsGroupsRow
                 || position == hideReactionsPrivateRow) {
             return hideReactionsGroupRow;
+        } else if (position == unlimitedStickersRow || position == unlimitedGifsRow) {
+            return unlimitedGroupRow;
         } else if (position == quickTransitionChannelsRow || position == quickTransitionTopicsRow) {
             return quickTransitionGroupRow;
         } else if (position == menuCopyPhotoRow || position == menuSaveRow || position == menuRepeatRow
@@ -1232,6 +1266,7 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
         if (position == hideReactionsChannelsRow) return ChatsConfig.hideReactionsInChannels;
         if (position == hideReactionsGroupsRow) return ChatsConfig.hideReactionsInGroups;
         if (position == hideReactionsPrivateRow) return ChatsConfig.hideReactionsInPrivate;
+        if (position == unlimitedGifsRow) return NaConfig.INSTANCE.getUnlimitedSavedGifs();
         if (position == disableGreetingRow) return NekoConfig.dontSendGreetingSticker;
         if (position == hideKeyboardOnScrollRow) return NekoConfig.hideKeyboardOnChatScroll;
         if (position == disableGlobalSearchRow) return NaConfig.INSTANCE.getDisableGlobalSearch();
@@ -1570,6 +1605,11 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
                 cell.setTextAndCheck(getString(R.string.OEChatsHideReactions), selected > 0, hideReactionsExpanded);
                 cell.setCollapseArrow(ratio(selected, HIDE_REACTIONS_TOTAL), !hideReactionsExpanded,
                         OpenExteraChatsActivity.this::toggleAllHideReactions);
+            } else if (position == unlimitedGroupRow) {
+                int selected = unlimitedSelectedCount();
+                cell.setTextAndCheck(getString(R.string.OEChatsUnlimited), selected > 0, true);
+                cell.setCollapseArrow(ratio(selected, UNLIMITED_TOTAL), !unlimitedExpanded,
+                        OpenExteraChatsActivity.this::toggleAllUnlimited);
             } else if (position == quickTransitionGroupRow) {
                 int selected = quickTransitionsSelectedCount();
                 cell.setTextAndCheck(getString(R.string.OEChatsQuickTransitions), selected > 0, quickTransitionExpanded);
@@ -1616,6 +1656,10 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
                 cell.setText(getString(R.string.OEChatsHideReactionsGroups), "", ChatsConfig.hideReactionsInGroups.Bool(), true, true);
             } else if (position == hideReactionsPrivateRow) {
                 cell.setText(getString(R.string.OEChatsHideReactionsPrivate), "", ChatsConfig.hideReactionsInPrivate.Bool(), false, true);
+            } else if (position == unlimitedStickersRow) {
+                cell.setText(getString(R.string.OEChatsUnlimitedStickers), "", isUnlimitedRecentStickers(), true, true);
+            } else if (position == unlimitedGifsRow) {
+                cell.setText(getString(R.string.OEChatsUnlimitedGifs), "", NaConfig.INSTANCE.getUnlimitedSavedGifs().Bool(), true, true);
             } else if (position == quickTransitionChannelsRow) {
                 cell.setText(getString(R.string.OEChatsQuickTransitionChannels), "", quickTransitionForChannels(), true, true);
             } else if (position == quickTransitionTopicsRow) {
@@ -1716,8 +1760,6 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
         private void bindCheck(TextCheckCell cell, int position) {
             if (position == hideTimeOnStickersRow) {
                 cell.setTextAndCheck(getString(R.string.OEChatsHideTimeOnStickers), NekoConfig.hideTimeForSticker.Bool(), true);
-            } else if (position == unlimitedRecentStickersRow) {
-                cell.setTextAndCheck(getString(R.string.OEChatsUnlimitedRecentStickers), isUnlimitedRecentStickers(), true);
             } else if (position == adminShortcutsRow) {
                 cell.setTextAndCheck(getString(R.string.OEChatsAdminShortcuts), isQuickAdminShortcuts(), true);
             } else if (position == disableGreetingRow) {
@@ -1892,6 +1934,7 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
 
         private boolean isGroupHeader(int position) {
             return position == repliesGroupRow || position == hideReactionsGroupRow
+                    || position == unlimitedGroupRow
                     || position == quickTransitionGroupRow || position == messageMenuGroupRow
                     || position == mediaViewerMenuGroupRow || position == actionBarButtonsGroupRow
                     || position == extendedSettingsGroupRow || position == pauseGroupRow;

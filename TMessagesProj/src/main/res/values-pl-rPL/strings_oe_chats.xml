@@ -37,7 +37,9 @@
     <string name="OEChatsDoubleTap">Podwójne dotknięcie</string>
     <string name="OEChatsMessages">Wiadomości</string>
     <string name="OEChatsVideos">Filmy</string>
-    <string name="OEChatsUnlimitedRecentStickers">Nieograniczone ostatnie naklejki</string>
+    <string name="OEChatsUnlimited">Nieograniczone</string>
+    <string name="OEChatsUnlimitedStickers">Naklejki</string>
+    <string name="OEChatsUnlimitedGifs">GIF-y</string>
     <string name="OEChatsAdminShortcuts">Szybkie skróty administratora</string>
     <string name="OEChatsDisableGreetingSticker">Wyłącz naklejkę powitalną</string>
     <string name="OEChatsHideSendAsPeer">Ukryj przycisk „Wyślij jako…”</string>

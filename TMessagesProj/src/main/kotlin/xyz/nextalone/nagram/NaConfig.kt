@@ -1407,6 +1407,12 @@ object NaConfig {
             ConfigItem.configTypeBool,
             false
         )
+    val unlimitedSavedGifs =
+        addConfig(
+            "UnlimitedSavedGifs",
+            ConfigItem.configTypeBool,
+            false
+        )
     val saveDeletedInPrivateChats =
         addConfig(
             "SaveDeletedInPrivateChats",

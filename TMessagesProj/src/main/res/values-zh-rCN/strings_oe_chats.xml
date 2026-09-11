@@ -37,7 +37,9 @@
     <string name="OEChatsDoubleTap">双击</string>
     <string name="OEChatsMessages">消息</string>
     <string name="OEChatsVideos">视频</string>
-    <string name="OEChatsUnlimitedRecentStickers">不限最近使用的贴纸数量</string>
+    <string name="OEChatsUnlimited">无限制</string>
+    <string name="OEChatsUnlimitedStickers">贴纸</string>
+    <string name="OEChatsUnlimitedGifs">GIF</string>
     <string name="OEChatsAdminShortcuts">管理员快捷操作</string>
     <string name="OEChatsDisableGreetingSticker">关闭问候贴纸</string>
     <string name="OEChatsHideSendAsPeer">隐藏「以…身份发送」按钮</string>

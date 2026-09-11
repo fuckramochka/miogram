@@ -37,7 +37,9 @@
     <string name="OEChatsDoubleTap">Doble toque</string>
     <string name="OEChatsMessages">Mensajes</string>
     <string name="OEChatsVideos">Videos</string>
-    <string name="OEChatsUnlimitedRecentStickers">Stickers recientes ilimitados</string>
+    <string name="OEChatsUnlimited">Ilimitados</string>
+    <string name="OEChatsUnlimitedStickers">Stickers</string>
+    <string name="OEChatsUnlimitedGifs">GIFs</string>
     <string name="OEChatsAdminShortcuts">Atajos rápidos de administrador</string>
     <string name="OEChatsDisableGreetingSticker">Desactivar el sticker de saludo</string>
     <string name="OEChatsHideSendAsPeer">Ocultar el botón «Enviar como…»</string>
