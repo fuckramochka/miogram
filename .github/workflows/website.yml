@@ -10,11 +10,12 @@ on:
       - main
     paths:
       - 'website/**'
+      - 'miosite/**'
       - '.github/workflows/website.yml'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -40,6 +41,13 @@ jobs:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: website/package-lock.json
+      - name: Sync miosite to website
+        run: |
+          if [ -d "../miosite" ]; then
+            cp -rf ../miosite/src/* ./src/ || true
+            cp -f ../miosite/index.html . || true
+            cp -f ../miosite/vite.config.ts . || true
+          fi
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
       - name: Typecheck + Build

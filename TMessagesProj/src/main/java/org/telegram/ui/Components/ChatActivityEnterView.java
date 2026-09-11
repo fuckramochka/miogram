@@ -7708,6 +7708,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                         } else if (u != null && u != accountInstance.getUserConfig().getCurrentUser()) {
                             messageEditTextText = SpannableStringBuilder.valueOf((user.first_name != null ? user.first_name : "") + " " + (user.last_name != null ? user.last_name : ""));
                         }
+                    }
                     if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
                         TLRPC.Chat dc = accountInstance.getMessagesController().getChat(-dialog_id);
                         TLRPC.User du = accountInstance.getMessagesController().getUser(dialog_id);
