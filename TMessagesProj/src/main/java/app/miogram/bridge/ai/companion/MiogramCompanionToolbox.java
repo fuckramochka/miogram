@@ -253,8 +253,8 @@ public class MiogramCompanionToolbox {
                 }
                 case "report_bug_to_creator": {
                     String details = p.optString("details", "AI detected runtime glitch");
-                    MiogramSupabaseBridge.showSyncErrorDialog(null, details);
-                    callback.run("Діалог відправки звіту та логу творцю @dkramochka активовано!");
+                    MiogramSupabaseBridge.openBugReportChat(null, "AI Companion Report", details);
+                    callback.run("Звіт та системні логи скопійовано англійською. Відкриваю чат із творцем @dkramochka!");
                     break;
                 }
                 default:

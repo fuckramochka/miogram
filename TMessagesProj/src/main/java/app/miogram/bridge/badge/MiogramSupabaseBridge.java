@@ -32,6 +32,14 @@ import android.widget.Toast;
 import java.net.URLEncoder;
 import java.util.TimeZone;
 
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MediaDataController;
+import org.telegram.messenger.R;
+import org.telegram.messenger.browser.Browser;
+import org.telegram.ui.ActionBar.AlertDialog;
+import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.LaunchActivity;
+
 import app.miogram.bridge.MiogramLocale;
 
 /**
@@ -432,6 +440,108 @@ public class MiogramSupabaseBridge {
 
     private static long lastSyncErrorDialogTime = 0;
 
+    public static void openBugReportChat(Context context, String issueType, String errorDetails) {
+        AndroidUtilities.runOnUIThread(() -> {
+            try {
+                int account = UserConfig.selectedAccount;
+                StringBuilder sb = new StringBuilder();
+                sb.append("Hello @dkramochka,\n\n");
+                sb.append("I am reporting an issue encountered in Miogram:\n\n");
+                sb.append("[Miogram Bug Report]\n");
+                sb.append("Issue: ").append(issueType != null && !issueType.isEmpty() ? issueType : "Runtime Issue").append("\n");
+                sb.append("App Version: Miogram ").append(BuildVars.BUILD_VERSION_STRING).append(" (").append(BuildVars.BUILD_VERSION).append(")\n");
+                sb.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
+                sb.append("OS: Android ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append(")\n");
+                try {
+                    long userId = UserConfig.getInstance(account).getClientUserId();
+                    if (userId != 0) {
+                        sb.append("User ID: ").append(userId).append("\n");
+                    }
+                } catch (Throwable ignore) {}
+                try {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss 'UTC'", Locale.US);
+                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    sb.append("Timestamp: ").append(sdf.format(new Date())).append("\n");
+                } catch (Throwable ignore) {}
+                sb.append("\nError Log / Details:\n");
+                sb.append(errorDetails != null && !errorDetails.trim().isEmpty() ? errorDetails.trim() : "No extra logs provided.");
+
+                String fullReport = sb.toString();
+
+                // 1. Copy to clipboard
+                AndroidUtilities.addToClipboard(fullReport);
+
+                Context ctx = context;
+                if (ctx == null) {
+                    ctx = LaunchActivity.instance;
+                }
+                if (ctx == null) {
+                    ctx = ApplicationLoader.applicationContext;
+                }
+
+                try {
+                    Toast.makeText(ctx, MiogramLocale.get(
+                            "Звіт та лог скопійовано. Відкриваємо чат із @dkramochka...",
+                            "Отчет и лог скопированы. Открываем чат с @dkramochka...",
+                            "Bug report copied to clipboard. Opening chat with @dkramochka..."
+                    ), Toast.LENGTH_SHORT).show();
+                } catch (Throwable ignore) {}
+
+                // 2. Resolve @dkramochka, save draft into dialog, and open chat natively
+                BaseFragment lastFragment = LaunchActivity.getLastFragment();
+                MessagesController mc = MessagesController.getInstance(account);
+                mc.getUserNameResolver().resolve("dkramochka", (peerId) -> {
+                    if (peerId != null && peerId > 0) {
+                        try {
+                            MediaDataController.getInstance(account).saveDraft(peerId, 0, fullReport, null, null, true, 0);
+                        } catch (Throwable t) {
+                            FileLog.e(t);
+                        }
+                    }
+                    AndroidUtilities.runOnUIThread(() -> {
+                        try {
+                            if (lastFragment != null) {
+                                mc.openByUserName("dkramochka", lastFragment, 1);
+                            } else {
+                                Browser.openUrl(ctx, "https://t.me/dkramochka");
+                            }
+                        } catch (Throwable t) {
+                            FileLog.e(t);
+                            Browser.openUrl(ctx, "https://t.me/dkramochka");
+                        }
+                    });
+                });
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        });
+    }
+
+    public static void showBugReportDialog(Context context, String title, String message, String issueType, String errorDetails) {
+        AndroidUtilities.runOnUIThread(() -> {
+            Context ctx = context != null ? context : LaunchActivity.instance;
+            if (ctx == null) ctx = ApplicationLoader.applicationContext;
+            if (ctx == null) return;
+            try {
+                AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
+                builder.setTitle(title != null ? title : MiogramLocale.get("Звіт про помилку", "Отчет об ошибке", "Bug Report"));
+                builder.setMessage(message != null ? message : MiogramLocale.get(
+                        "Бажаєте надіслати звіт із логами творцю @dkramochka?",
+                        "Желаете отправить отчет с логами создателю @dkramochka?",
+                        "Would you like to send a bug report with logs to creator @dkramochka?"
+                ));
+                builder.setPositiveButton(MiogramLocale.get("Відправити баг", "Отправить баг", "Send Bug"), (d, which) -> {
+                    d.dismiss();
+                    openBugReportChat(ctx, issueType, errorDetails);
+                });
+                builder.setNegativeButton(LocaleController.getString(R.string.Cancel), (d, which) -> d.dismiss());
+                builder.create().show();
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        });
+    }
+
     public static void showSyncErrorDialog(Context context, String errorDetails) {
         AndroidUtilities.runOnUIThread(() -> {
             long now = System.currentTimeMillis();
@@ -442,7 +552,7 @@ public class MiogramSupabaseBridge {
 
             Context ctx = context;
             if (ctx == null) {
-                ctx = org.telegram.ui.LaunchActivity.instance;
+                ctx = LaunchActivity.instance;
             }
             if (ctx == null) {
                 ctx = ApplicationLoader.applicationContext;
@@ -450,7 +560,7 @@ public class MiogramSupabaseBridge {
             if (ctx == null) return;
 
             try {
-                org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(ctx);
+                AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
                 builder.setTitle(MiogramLocale.get("Критична помилка синхронізації", "Критическая ошибка синхронизации", "Critical Sync Error"));
                 builder.setMessage(MiogramLocale.get(
                         "Критична помилка синхронізації. Щоб уникнути проблем, надішліть помилку творцю",
@@ -466,57 +576,13 @@ public class MiogramSupabaseBridge {
 
                 builder.setPositiveButton(MiogramLocale.get("Відправити баг", "Отправить баг", "Send Bug"), (d, which) -> {
                     d.dismiss();
-
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("Hello, I encountered a critical synchronization error in Miogram.\n\n");
-                    sb.append("[Miogram Bug Report]\n");
-                    sb.append("Issue: Critical Supabase Sync Error\n");
-                    sb.append("App Version: Miogram ").append(BuildVars.BUILD_VERSION_STRING).append(" (").append(BuildVars.BUILD_VERSION).append(")\n");
-                    sb.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
-                    sb.append("OS: Android ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append(")\n");
-                    try {
-                        long userId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
-                        if (userId != 0) {
-                            sb.append("User ID: ").append(userId).append("\n");
-                        }
-                    } catch (Throwable ignore) {}
-                    try {
-                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss 'UTC'", Locale.US);
-                        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-                        sb.append("Timestamp: ").append(sdf.format(new Date())).append("\n");
-                    } catch (Throwable ignore) {}
-                    sb.append("\nError Log:\n");
-                    sb.append(finalError);
-
-                    String fullReport = sb.toString();
-
-                    AndroidUtilities.addToClipboard(fullReport);
-
-                    try {
-                        Toast.makeText(finalCtx, MiogramLocale.get(
-                                "Звіт та лог скопійовано у буфер обміну",
-                                "Отчет и лог скопированы в буфер обмена",
-                                "Bug report and log copied to clipboard"
-                        ), Toast.LENGTH_SHORT).show();
-                    } catch (Throwable ignore) {}
-
-                    try {
-                        String textForUrl = fullReport;
-                        if (textForUrl.length() > 1500) {
-                            textForUrl = textForUrl.substring(0, 1500) + "\n\n... [Full log copied to clipboard]";
-                        }
-                        String encoded = URLEncoder.encode(textForUrl, "UTF-8").replace("+", "%20");
-                        org.telegram.messenger.browser.Browser.openUrl(finalCtx, "https://t.me/dkramochka?text=" + encoded);
-                    } catch (Throwable t) {
-                        FileLog.e(t);
-                        org.telegram.messenger.browser.Browser.openUrl(finalCtx, "https://t.me/dkramochka");
-                    }
+                    openBugReportChat(finalCtx, "Critical Supabase Sync Error", finalError);
                 });
                 builder.setNegativeButton(MiogramLocale.get("Не зараз", "Не сейчас", "Not now"), (d, which) -> {
                     d.dismiss();
                 });
 
-                org.telegram.ui.ActionBar.AlertDialog dialog = builder.create();
+                AlertDialog dialog = builder.create();
                 dialog.setCanceledOnTouchOutside(false);
                 dialog.show();
             } catch (Throwable t) {
