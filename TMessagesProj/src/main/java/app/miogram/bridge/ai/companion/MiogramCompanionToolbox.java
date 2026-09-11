@@ -144,22 +144,35 @@ public class MiogramCompanionToolbox {
         }
     }
 
+    public static class ScoredFoundChat {
+        public final FoundChat chat;
+        public final int score;
+
+        public ScoredFoundChat(FoundChat chat, int score) {
+            this.chat = chat;
+            this.score = score;
+        }
+    }
+
     public static List<FoundChat> searchChats(int account, String rawQuery) {
         List<FoundChat> matches = new ArrayList<>();
         if (rawQuery == null || rawQuery.trim().isEmpty()) {
             return matches;
         }
-        String q = rawQuery.trim().toLowerCase(java.util.Locale.ROOT);
+        String q = rawQuery.trim();
         if (q.startsWith("@")) {
             q = q.substring(1).trim();
         }
         if (q.isEmpty()) return matches;
 
         MessagesController mc = MessagesController.getInstance(account);
-        Map<Long, FoundChat> dedup = new HashMap<>();
+        Map<Long, ScoredFoundChat> dedup = new HashMap<>();
 
         // 1. Scan Dialogs
         ArrayList<TLRPC.Dialog> all = mc.getAllDialogs();
+        if (all == null || all.isEmpty()) {
+            all = mc.dialogs_main;
+        }
         if (all != null) {
             for (int i = 0; i < all.size(); i++) {
                 TLRPC.Dialog d = all.get(i);
@@ -170,8 +183,9 @@ public class MiogramCompanionToolbox {
                     if (u != null) {
                         String fullName = UserObject.getUserName(u);
                         String uname = u.username != null ? u.username : "";
-                        if (matchesQuery(q, fullName, uname, u.first_name, u.last_name)) {
-                            dedup.put(did, new FoundChat(did, fullName, uname, false, false));
+                        int score = calculateMatchScore(q, fullName, uname, u.first_name, u.last_name);
+                        if (score >= 60) {
+                            dedup.put(did, new ScoredFoundChat(new FoundChat(did, fullName, uname, false, false), score));
                         }
                     }
                 } else if (did < 0) {
@@ -181,8 +195,9 @@ public class MiogramCompanionToolbox {
                         String uname = c.username != null ? c.username : "";
                         boolean isChannel = ChatObject.isChannelAndNotMegaGroup(c);
                         boolean isGroup = !isChannel;
-                        if (matchesQuery(q, title, uname, null, null)) {
-                            dedup.put(did, new FoundChat(did, title, uname, isChannel, isGroup));
+                        int score = calculateMatchScore(q, title, uname, null, null);
+                        if (score >= 60) {
+                            dedup.put(did, new ScoredFoundChat(new FoundChat(did, title, uname, isChannel, isGroup), score));
                         }
                     }
                 }
@@ -196,61 +211,134 @@ public class MiogramCompanionToolbox {
                 TLRPC.TL_contact tc = cc.contacts.get(i);
                 if (tc == null) continue;
                 long uid = tc.user_id;
-                if (!dedup.containsKey(uid)) {
-                    TLRPC.User u = mc.getUser(uid);
-                    if (u != null) {
-                        String fullName = UserObject.getUserName(u);
-                        String uname = u.username != null ? u.username : "";
-                        if (matchesQuery(q, fullName, uname, u.first_name, u.last_name)) {
-                            dedup.put(uid, new FoundChat(uid, fullName, uname, false, false));
+                TLRPC.User u = mc.getUser(uid);
+                if (u != null) {
+                    String fullName = UserObject.getUserName(u);
+                    String uname = u.username != null ? u.username : "";
+                    int score = calculateMatchScore(q, fullName, uname, u.first_name, u.last_name);
+                    if (score >= 60) {
+                        ScoredFoundChat existing = dedup.get(uid);
+                        if (existing == null || score > existing.score) {
+                            dedup.put(uid, new ScoredFoundChat(new FoundChat(uid, fullName, uname, false, false), score));
                         }
                     }
                 }
             }
         }
 
-        matches.addAll(dedup.values());
-        final String finalQ = q;
-        matches.sort((a, b) -> {
-            boolean aExactU = a.username.equalsIgnoreCase(finalQ);
-            boolean bExactU = b.username.equalsIgnoreCase(finalQ);
-            if (aExactU != bExactU) return aExactU ? -1 : 1;
+        List<ScoredFoundChat> sorted = new ArrayList<>(dedup.values());
+        sorted.sort((a, b) -> Integer.compare(b.score, a.score));
 
-            boolean aExactN = a.name.equalsIgnoreCase(finalQ);
-            boolean bExactN = b.name.equalsIgnoreCase(finalQ);
-            if (aExactN != bExactN) return aExactN ? -1 : 1;
-
-            boolean aStartN = a.name.toLowerCase(java.util.Locale.ROOT).startsWith(finalQ);
-            boolean bStartN = b.name.toLowerCase(java.util.Locale.ROOT).startsWith(finalQ);
-            if (aStartN != bStartN) return aStartN ? -1 : 1;
-
-            return 0;
-        });
-
+        for (ScoredFoundChat s : sorted) {
+            matches.add(s.chat);
+        }
         return matches;
     }
 
-    private static boolean matchesQuery(String query, String name, String username, String first, String last) {
-        if (name != null && name.toLowerCase(java.util.Locale.ROOT).contains(query)) return true;
-        if (username != null && username.toLowerCase(java.util.Locale.ROOT).contains(query)) return true;
-        if (first != null && first.toLowerCase(java.util.Locale.ROOT).contains(query)) return true;
-        if (last != null && last.toLowerCase(java.util.Locale.ROOT).contains(query)) return true;
-        String t = transliterate(query);
-        if (name != null && transliterate(name.toLowerCase(java.util.Locale.ROOT)).contains(t)) return true;
-        return false;
+    public static int calculateMatchScore(String rawQ, String name, String username, String first, String last) {
+        if (rawQ == null || rawQ.trim().isEmpty()) return 0;
+        String qLower = rawQ.trim().toLowerCase(java.util.Locale.ROOT);
+        String normQ = normalizeText(rawQ);
+        String colQ = collapseRepeats(normQ);
+
+        int best = 0;
+        String[] targets = new String[]{username, name, first, last};
+        for (String target : targets) {
+            if (target == null || target.trim().isEmpty()) continue;
+            String tLower = target.trim().toLowerCase(java.util.Locale.ROOT);
+            if (tLower.equals(qLower)) return 100;
+            if (tLower.contains(qLower)) best = Math.max(best, 92);
+
+            String normT = normalizeText(target);
+            if (normT.isEmpty()) continue;
+            String colT = collapseRepeats(normT);
+
+            if (normT.equals(normQ)) return 95;
+            if (colT.equals(colQ)) return 90;
+
+            if (normT.contains(normQ) || normQ.contains(normT)) best = Math.max(best, 85);
+            if (colT.contains(colQ) || colQ.contains(colT)) best = Math.max(best, 80);
+
+            // Stem match (e.g. "безлик" in "безликий" / "6ezzликий")
+            if (colQ.length() >= 4 && colT.length() >= 4) {
+                String stemQ = colQ.substring(0, Math.min(colQ.length(), 5));
+                String stemT = colT.substring(0, Math.min(colT.length(), 5));
+                if (colT.contains(stemQ) || colQ.contains(stemT)) {
+                    best = Math.max(best, 75);
+                }
+            }
+        }
+        return best;
     }
 
-    private static String transliterate(String text) {
-        if (text == null) return "";
-        return text.replace("а", "a").replace("б", "b").replace("в", "v").replace("г", "h")
-                .replace("ґ", "g").replace("д", "d").replace("е", "e").replace("є", "ye")
-                .replace("ж", "zh").replace("з", "z").replace("и", "y").replace("і", "i")
-                .replace("ї", "yi").replace("й", "y").replace("к", "k").replace("л", "l")
-                .replace("м", "m").replace("н", "n").replace("о", "o").replace("п", "p")
-                .replace("р", "r").replace("с", "s").replace("т", "t").replace("у", "u")
-                .replace("ф", "f").replace("х", "kh").replace("ц", "ts").replace("ч", "ch")
-                .replace("ш", "sh").replace("щ", "shch").replace("ь", "").replace("ю", "yu")
-                .replace("я", "ya");
+    public static String transliterateEnToUa(String s) {
+        if (s == null) return "";
+        s = s.toLowerCase(java.util.Locale.ROOT);
+        s = s.replace("shch", "щ").replace("zh", "ж").replace("ch", "ч").replace("sh", "ш")
+                .replace("yu", "ю").replace("ya", "я").replace("ye", "є").replace("yi", "ї")
+                .replace("ts", "ц").replace("kh", "х");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case 'a': sb.append('а'); break;
+                case 'b': sb.append('б'); break;
+                case 'v': case 'w': sb.append('в'); break;
+                case 'g': sb.append('г'); break;
+                case 'd': sb.append('д'); break;
+                case 'e': sb.append('е'); break;
+                case 'z': sb.append('з'); break;
+                case 'i': sb.append('і'); break;
+                case 'y': sb.append('и'); break;
+                case 'j': sb.append('й'); break;
+                case 'k': sb.append('к'); break;
+                case 'l': sb.append('л'); break;
+                case 'm': sb.append('м'); break;
+                case 'n': sb.append('н'); break;
+                case 'o': sb.append('о'); break;
+                case 'p': sb.append('р'); break;
+                case 'r': sb.append('р'); break;
+                case 's': sb.append('с'); break;
+                case 't': sb.append('т'); break;
+                case 'u': sb.append('у'); break;
+                case 'f': sb.append('ф'); break;
+                case 'h': sb.append('х'); break;
+                case 'c': sb.append('ц'); break;
+                case 'x': sb.append("кс"); break;
+                default: sb.append(c); break;
+            }
+        }
+        return sb.toString();
+    }
+
+    public static String normalizeText(String s) {
+        if (s == null) return "";
+        s = s.toLowerCase(java.util.Locale.ROOT);
+        s = s.replaceAll("[\\p{So}\\p{Cn}\\p{Sk}\\p{Cs}\\p{Punct}#|\\-_\\s]+", "");
+        s = s.replace('6', 'б')
+             .replace('0', 'о')
+             .replace('1', 'і')
+             .replace('3', 'з')
+             .replace('4', 'ч')
+             .replace('5', 'с')
+             .replace('7', 'т')
+             .replace('8', 'в');
+        String cyr = transliterateEnToUa(s);
+        return cyr.replaceAll("[^а-яіїєґ0-9a-z]", "");
+    }
+
+    public static String collapseRepeats(String s) {
+        if (s == null || s.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        char prev = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c != prev) {
+                sb.append(c);
+                prev = c;
+            }
+        }
+        return sb.toString();
     }
 
     public static ChatResolution resolveChatTarget(int account, JSONObject p) {

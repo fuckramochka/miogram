@@ -143,18 +143,18 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         mainColumn.setOrientation(LinearLayout.VERTICAL);
         root.addView(mainColumn, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
-        // 1. Hero NSO Card (Switcher, Stage, Stats)
-        buildHeroCard(context, mainColumn);
-
-        // 2. Scrollable Chat History Layout
+        // 1. Scrollable Chat History Layout
         chatScrollView = new ScrollView(context);
         chatScrollView.setFillViewport(true);
         mainColumn.addView(chatScrollView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 0, 1.0f));
 
         chatMessagesLayout = new LinearLayout(context);
         chatMessagesLayout.setOrientation(LinearLayout.VERTICAL);
-        chatMessagesLayout.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(6), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
+        chatMessagesLayout.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(4), AndroidUtilities.dp(10), AndroidUtilities.dp(8));
         chatScrollView.addView(chatMessagesLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        // 2. Hero NSO Stage (Pinned at top of messages, scrolls naturally with chat)
+        buildHeroCard(context, chatMessagesLayout);
 
         // 3. Quick Prompts & Composer Bar
         buildComposer(context, mainColumn);
@@ -216,60 +216,50 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
     private void buildHeroCard(Context context, LinearLayout parent) {
         heroCard = new LinearLayout(context);
         heroCard.setOrientation(LinearLayout.VERTICAL);
-        heroCard.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(10));
-        LinearLayout.LayoutParams cardLp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 10, 8, 10, 4);
+        heroCard.setGravity(Gravity.CENTER_HORIZONTAL);
+        heroCard.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(14), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
+        LinearLayout.LayoutParams cardLp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 4, 4, 4, 10);
         parent.addView(heroCard, cardLp);
 
-        // Prominent Character Stage Row (Large pixel sprite + character metadata)
-        LinearLayout stageRow = new LinearLayout(context);
-        stageRow.setOrientation(LinearLayout.HORIZONTAL);
-        stageRow.setGravity(Gravity.CENTER_VERTICAL);
-        heroCard.addView(stageRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
-
-        // Prominent Character Sprite (110x110 dp - large & expressive)
+        // Character Sprite (Prominent, centered, 160 x 96 dp)
         stageAvatar = new ImageView(context);
         stageAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        stageRow.addView(stageAvatar, LayoutHelper.createLinear(110, 110, Gravity.CENTER_VERTICAL, 0, 0, 14, 0));
-
-        LinearLayout stageInfo = new LinearLayout(context);
-        stageInfo.setOrientation(LinearLayout.VERTICAL);
-        stageRow.addView(stageInfo, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+        heroCard.addView(stageAvatar, LayoutHelper.createLinear(160, 96, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 8));
 
         stageName = new TextView(context);
         stageName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
         stageName.setTypeface(AndroidUtilities.bold());
-        stageInfo.addView(stageName);
+        stageName.setGravity(Gravity.CENTER);
+        heroCard.addView(stageName, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 2));
 
         stageStatus = new TextView(context);
         stageStatus.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        stageInfo.addView(stageStatus, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
+        stageStatus.setGravity(Gravity.CENTER);
+        heroCard.addView(stageStatus, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
 
+        // Badges row: Mood pill + Model pill
         LinearLayout badgeRow = new LinearLayout(context);
         badgeRow.setOrientation(LinearLayout.HORIZONTAL);
-        badgeRow.setGravity(Gravity.CENTER_VERTICAL);
-        stageInfo.addView(badgeRow, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 6, 0, 0));
+        badgeRow.setGravity(Gravity.CENTER);
+        heroCard.addView(badgeRow, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
 
         stageMoodBadge = new TextView(context);
         stageMoodBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
         stageMoodBadge.setTypeface(AndroidUtilities.bold());
-        stageMoodBadge.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(3), AndroidUtilities.dp(8), AndroidUtilities.dp(3));
-        badgeRow.addView(stageMoodBadge, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 6, 0));
+        stageMoodBadge.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(4), AndroidUtilities.dp(10), AndroidUtilities.dp(4));
+        badgeRow.addView(stageMoodBadge, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 8, 0));
 
         modelBadge = new TextView(context);
         modelBadge.setText("⚡ 3.5 Flash Lite");
         modelBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
         modelBadge.setTypeface(AndroidUtilities.bold());
-        modelBadge.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(3), AndroidUtilities.dp(8), AndroidUtilities.dp(3));
+        modelBadge.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(4), AndroidUtilities.dp(10), AndroidUtilities.dp(4));
         badgeRow.addView(modelBadge, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
-        // Divider & NSO Stats
-        View divider = new View(context);
-        divider.setBackgroundColor(Theme.getColor(Theme.key_divider));
-        heroCard.addView(divider, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 1, 0, 4, 0, 6));
-
+        // NSO Stats Row
         LinearLayout statsBar = new LinearLayout(context);
         statsBar.setOrientation(LinearLayout.HORIZONTAL);
-        statsBar.setGravity(Gravity.CENTER_VERTICAL);
+        statsBar.setGravity(Gravity.CENTER);
         heroCard.addView(statsBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         statDay = createStatChip(context, "DAY 24", 0xFF6C5CE7);
@@ -284,7 +274,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         statAffection = createStatChip(context, "LOVE ♡ " + MiogramCompanionPrefs.getAffection() + "%", 0xFFFF70A6);
         statsBar.addView(statAffection, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.2f, 0, 0, 3, 0));
 
-        statDarkness = createStatChip(context, "DARK " + MiogramCompanionPrefs.getDarkness() + "%", 0xFF2D3436);
+        statDarkness = createStatChip(context, "DARK " + MiogramCompanionPrefs.getDarkness() + "%", 0xFF636E72);
         statsBar.addView(statDarkness, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
     }
 
@@ -519,6 +509,13 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         chipsRow.setOrientation(LinearLayout.HORIZONTAL);
         chipsRow.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(4), AndroidUtilities.dp(10), AndroidUtilities.dp(6));
         chipsScroll.addView(chipsRow, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        addChip(context, chipsRow, "🔍 " + MiogramLocale.get("Знайти чат", "Найти чат", "Find chat"), () -> {
+            inputField.setText(MiogramLocale.get("Знайди в лс з ", "Найди в лс с ", "Find chat with "));
+            inputField.setSelection(inputField.getText().length());
+            inputField.requestFocus();
+            AndroidUtilities.showKeyboard(inputField);
+        });
 
         if (scopedDialogId != 0) {
             addChip(context, chipsRow, "💬 " + MiogramLocale.get("Що тут пишуть?", "Что тут пишут?", "What are they writing?"), () -> {
@@ -794,6 +791,9 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
 
     private void renderFullHistory() {
         chatMessagesLayout.removeAllViews();
+        if (heroCard != null) {
+            chatMessagesLayout.addView(heroCard);
+        }
         for (MiogramCompanionPrefs.ChatMessage msg : history) {
             renderMessageBubble(msg);
         }
@@ -809,20 +809,22 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         bubbleRow.setOrientation(LinearLayout.HORIZONTAL);
         if (msg.isUser) {
             bubbleRow.setGravity(Gravity.RIGHT);
-            bubbleRow.setPadding(AndroidUtilities.dp(44), AndroidUtilities.dp(3), AndroidUtilities.dp(4), AndroidUtilities.dp(3));
+            bubbleRow.setPadding(AndroidUtilities.dp(56), AndroidUtilities.dp(2), AndroidUtilities.dp(4), AndroidUtilities.dp(2));
         } else {
             bubbleRow.setGravity(Gravity.LEFT);
-            bubbleRow.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(3), AndroidUtilities.dp(44), AndroidUtilities.dp(3));
+            bubbleRow.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(2), AndroidUtilities.dp(56), AndroidUtilities.dp(2));
         }
         chatMessagesLayout.addView(bubbleRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         if (!msg.isUser) {
+            FrameLayout avatarFrame = new FrameLayout(ctx);
+            avatarFrame.setBackground(Theme.createCircleDrawable(AndroidUtilities.dp(36), isAme ? 0x25FF70A6 : 0x2500B4D8));
             ImageView spriteAvatar = new ImageView(ctx);
             spriteAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            // Stable companion avatar - doesn't change on every message
-            int resId = isAme ? R.drawable.miogram_ai_ame_home : R.drawable.miogram_ai_kangel_start;
+            int resId = isAme ? R.drawable.miogram_ai_ame_avatar : R.drawable.miogram_ai_kangel_avatar;
             spriteAvatar.setImageResource(resId);
-            bubbleRow.addView(spriteAvatar, LayoutHelper.createLinear(34, 34, Gravity.BOTTOM, 0, 0, 6, 0));
+            avatarFrame.addView(spriteAvatar, LayoutHelper.createFrame(32, 32, Gravity.CENTER));
+            bubbleRow.addView(avatarFrame, LayoutHelper.createLinear(36, 36, Gravity.BOTTOM, 0, 0, 8, 0));
         }
 
         LinearLayout bubbleCard = new LinearLayout(ctx);
@@ -839,19 +841,12 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             bubbleCard.setBackground(gd);
             bubbleRow.addView(bubbleCard, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT));
 
-            TextView author = new TextView(ctx);
-            author.setText("P-chan (You)");
-            author.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-            author.setTypeface(AndroidUtilities.bold());
-            author.setTextColor(0xCCFFFFFF);
-            bubbleCard.addView(author);
-
             TextView body = new TextView(ctx);
             body.setText(msg.text);
-            body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             body.setTextColor(Theme.getColor(Theme.key_chat_messageTextOut));
             body.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
-            bubbleCard.addView(body, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 3, 0, 0));
+            bubbleCard.addView(body, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
             TextView time = new TextView(ctx);
             time.setText(timeFormat.format(new Date(msg.timestamp)));
@@ -863,7 +858,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             GradientDrawable gd = new GradientDrawable();
             gd.setColor(Theme.getColor(Theme.key_chat_inBubble));
             gd.setCornerRadii(new float[]{r, r, r, r, r, r, tail, tail});
-            gd.setStroke(AndroidUtilities.dp(1), isAme ? 0x25FF70A6 : 0x2500B4D8);
+            gd.setStroke(AndroidUtilities.dp(1), isAme ? 0x22FF70A6 : 0x2200B4D8);
             bubbleCard.setBackground(gd);
             bubbleRow.addView(bubbleCard, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT));
 
@@ -876,10 +871,10 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
 
             TextView body = new TextView(ctx);
             body.setText(msg.text);
-            body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             body.setTextColor(Theme.getColor(Theme.key_chat_messageTextIn));
             body.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
-            bubbleCard.addView(body, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 3, 0, 0));
+            bubbleCard.addView(body, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
 
             if (scopedDialogId != 0 || onDraftInsertCallback != null) {
                 TextView insertBtn = new TextView(ctx);
@@ -1069,10 +1064,20 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
 
             if (action != null && !action.sensitive) {
                 MiogramCompanionToolbox.executeTool(currentAccount, action, resultText -> AndroidUtilities.runOnUIThread(() -> {
-                    MiogramCompanionPrefs.ChatMessage autoResult = new MiogramCompanionPrefs.ChatMessage(false, "✓ " + resultText, "happy", System.currentTimeMillis(), null, null);
-                    history.add(autoResult);
+                    String finalReply;
+                    if (cleanText == null || cleanText.isEmpty() || cleanText.contains("Зараз") || cleanText.contains("хвилинку") || cleanText.contains("секунду")) {
+                        finalReply = resultText;
+                    } else if (cleanText.trim().equalsIgnoreCase(resultText.trim())) {
+                        finalReply = resultText;
+                    } else {
+                        finalReply = cleanText + "\n\n" + resultText;
+                    }
+                    botBubble.text = finalReply;
+                    botBubble.actionExecuted = true;
                     MiogramCompanionPrefs.saveHistory(history);
-                    renderMessageBubble(autoResult);
+                    renderFullHistory();
+                    boolean isError = resultText.contains("Не вдалося") || resultText.contains("Не знайшла") || resultText.contains("Помилка");
+                    updateStageMood(isError ? "sad" : "happy");
                 }));
             }
         }));
