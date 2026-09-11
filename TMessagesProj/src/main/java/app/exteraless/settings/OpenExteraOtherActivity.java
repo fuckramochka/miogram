@@ -120,6 +120,10 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
     private boolean saveMediaExpanded;
     private int ayuBotUserRow;
     private int ayuBotChatRow;
+    private int ayuSaveDeletedPrivateRow;
+    private int ayuSaveDeletedGroupsRow;
+    private int ayuSaveDeletedChannelsRow;
+    private int ayuReplyToDeletedRow;
     private int ayuTranslucentRow;
     private int ayuDeletedIconRow;
     private int ayuDeletedMarkRow;
@@ -175,6 +179,8 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
         ayuMomentsRow = addRow("ayuMoments");
         ayuGhostRow = ayuRegexRow = ayuSaveLastSeenRow = ayuSaveDeletedRow = ayuSaveEditsRow = -1;
         ayuSaveMediaRow = ayuBotUserRow = ayuBotChatRow = ayuTranslucentRow = -1;
+        ayuSaveDeletedPrivateRow = ayuSaveDeletedGroupsRow = ayuSaveDeletedChannelsRow = -1;
+        ayuReplyToDeletedRow = -1;
         saveMediaPrivateChatsRow = saveMediaPublicChannelsRow = saveMediaPrivateChannelsRow = -1;
         saveMediaPublicGroupsRow = saveMediaPrivateGroupsRow = -1;
         ayuDeletedIconRow = ayuDeletedMarkRow = ayuForwardProtectedRow = ayuClearDbRow = -1;
@@ -195,10 +201,14 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
                     saveMediaPublicGroupsRow = addRow();
                     saveMediaPrivateGroupsRow = addRow();
                 }
+                ayuSaveDeletedPrivateRow = addRow(NaConfig.INSTANCE.getSaveDeletedInPrivateChats().getKey());
+                ayuSaveDeletedGroupsRow = addRow(NaConfig.INSTANCE.getSaveDeletedInGroups().getKey());
+                ayuSaveDeletedChannelsRow = addRow(NaConfig.INSTANCE.getSaveDeletedInChannels().getKey());
                 ayuBotUserRow = addRow(NaConfig.INSTANCE.getSaveDeletedMessageForBotUser().getKey());
                 if (NaConfig.INSTANCE.getSaveDeletedMessageForBotUser().Bool()) {
                     ayuBotChatRow = addRow(NaConfig.INSTANCE.getSaveDeletedMessageForBot().getKey());
                 }
+                ayuReplyToDeletedRow = addRow(NaConfig.INSTANCE.getReplyToDeletedAsQuote().getKey());
                 ayuTranslucentRow = addRow(NaConfig.INSTANCE.getTranslucentDeletedMessages().getKey());
                 ayuDeletedIconRow = addRow(NaConfig.INSTANCE.getUseDeletedIcon().getKey());
                 if (!NaConfig.INSTANCE.getUseDeletedIcon().Bool()) {
@@ -319,6 +329,14 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
             toggleAyuConfig(view, NaConfig.INSTANCE.getSaveDeletedMessageForBotUser(), true);
         } else if (position == ayuBotChatRow) {
             toggleAyuConfig(view, NaConfig.INSTANCE.getSaveDeletedMessageForBot(), false);
+        } else if (position == ayuSaveDeletedPrivateRow) {
+            toggleAyuConfig(view, NaConfig.INSTANCE.getSaveDeletedInPrivateChats(), false);
+        } else if (position == ayuSaveDeletedGroupsRow) {
+            toggleAyuConfig(view, NaConfig.INSTANCE.getSaveDeletedInGroups(), false);
+        } else if (position == ayuSaveDeletedChannelsRow) {
+            toggleAyuConfig(view, NaConfig.INSTANCE.getSaveDeletedInChannels(), false);
+        } else if (position == ayuReplyToDeletedRow) {
+            toggleAyuConfig(view, NaConfig.INSTANCE.getReplyToDeletedAsQuote(), false);
         } else if (position == ayuTranslucentRow) {
             toggleAyuConfig(view, NaConfig.INSTANCE.getTranslucentDeletedMessages(), false);
         } else if (position == ayuDeletedIconRow) {
@@ -889,6 +907,17 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
                             bindAyuCheck(cell, NaConfig.INSTANCE.getSaveDeletedMessageForBotUser(), true);
                         } else if (position == ayuBotChatRow) {
                             bindAyuCheck(cell, NaConfig.INSTANCE.getSaveDeletedMessageForBot(), true);
+                        } else if (position == ayuSaveDeletedPrivateRow) {
+                            bindAyuCheck(cell, NaConfig.INSTANCE.getSaveDeletedInPrivateChats(), true);
+                        } else if (position == ayuSaveDeletedGroupsRow) {
+                            bindAyuCheck(cell, NaConfig.INSTANCE.getSaveDeletedInGroups(), true);
+                        } else if (position == ayuSaveDeletedChannelsRow) {
+                            bindAyuCheck(cell, NaConfig.INSTANCE.getSaveDeletedInChannels(), true);
+                        } else if (position == ayuReplyToDeletedRow) {
+                            cell.setTextAndValueAndCheck(
+                                    getString(R.string.ReplyToDeletedAsQuote),
+                                    getString(R.string.ReplyToDeletedAsQuoteInfo),
+                                    NaConfig.INSTANCE.getReplyToDeletedAsQuote().Bool(), true, true);
                         } else if (position == ayuTranslucentRow) {
                             bindAyuCheck(cell, NaConfig.INSTANCE.getTranslucentDeletedMessages(), true);
                         } else if (position == ayuDeletedIconRow) {
