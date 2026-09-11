@@ -1143,7 +1143,15 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             rightDrawableIsScamOrVerified = false;
             rightDrawable2ContentDescription = null;
         }
-        if (premium || DialogObject.getEmojiStatusDocumentId(emojiStatus) != 0) {
+        TLRPC.User currentUser = parentFragment != null ? parentFragment.getCurrentUser() : null;
+        if (currentUser != null && app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(currentUser.id)) {
+            titleTextView.setRightDrawable(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(currentUser.id, 20));
+            rightDrawableIsScamOrVerified = false;
+            rightDrawableContentDescription = app.miogram.bridge.badge.MiogramBadgeManager.getBadgeTitle(currentUser.id);
+            if (isCentered()) {
+                titleTextView.setRightDrawable2(null);
+            }
+        } else if (premium || DialogObject.getEmojiStatusDocumentId(emojiStatus) != 0) {
             if (titleTextView.getRightDrawable() instanceof AnimatedEmojiDrawable.WrapSizeDrawable &&
                 ((AnimatedEmojiDrawable.WrapSizeDrawable) titleTextView.getRightDrawable()).getDrawable() instanceof AnimatedEmojiDrawable) {
                 ((AnimatedEmojiDrawable) ((AnimatedEmojiDrawable.WrapSizeDrawable) titleTextView.getRightDrawable()).getDrawable()).removeView(titleTextView);

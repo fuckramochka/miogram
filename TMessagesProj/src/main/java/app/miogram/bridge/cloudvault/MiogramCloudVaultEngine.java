@@ -577,33 +577,14 @@ public class MiogramCloudVaultEngine {
             return;
         }
 
-        TLRPC.TL_messages_search req = new TLRPC.TL_messages_search();
-        req.peer = MessagesController.getInstance(currentAccount).getInputPeer(-vaultChatId);
-        req.filter = new TLRPC.TL_inputMessagesFilterEmpty();
-        req.q = "#MVLT";
-        req.limit = 100;
+        TLRPC.TL_messages_getHistory reqHistory = new TLRPC.TL_messages_getHistory();
+        reqHistory.peer = MessagesController.getInstance(currentAccount).getInputPeer(-vaultChatId);
+        reqHistory.limit = 100;
 
-        ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {
-            if (error != null) {
-                TLRPC.TL_messages_getHistory reqHistory = new TLRPC.TL_messages_getHistory();
-                reqHistory.peer = MessagesController.getInstance(currentAccount).getInputPeer(-vaultChatId);
-                reqHistory.limit = 100;
-                ConnectionsManager.getInstance(currentAccount).sendRequest(reqHistory, (resp2, err2) -> {
-                    if (resp2 instanceof TLRPC.messages_Messages) {
-                        processSyncMessages(currentAccount, ((TLRPC.messages_Messages) resp2).messages);
-                    }
-                    AndroidUtilities.runOnUIThread(() -> {
-                        saveCache(currentAccount);
-                        if (callback != null) callback.onSyncComplete(getFilesForTopic(0));
-                    });
-                });
-                return;
+        ConnectionsManager.getInstance(currentAccount).sendRequest(reqHistory, (respHistory, errHistory) -> {
+            if (respHistory instanceof TLRPC.messages_Messages) {
+                processSyncMessages(currentAccount, ((TLRPC.messages_Messages) respHistory).messages);
             }
-
-            if (response instanceof TLRPC.messages_Messages) {
-                processSyncMessages(currentAccount, ((TLRPC.messages_Messages) response).messages);
-            }
-
             AndroidUtilities.runOnUIThread(() -> {
                 saveCache(currentAccount);
                 if (callback != null) callback.onSyncComplete(getFilesForTopic(0));
@@ -739,6 +720,80 @@ public class MiogramCloudVaultEngine {
         }
         file.chunkMessages = sortedMsgs;
         file.chunkDocuments = sortedDocs;
+    }
+
+    /**
+     * Resolves and populates chunkDocuments for a vault file if not yet loaded into memory.
+     * Tries direct message lookup by chunkMsgIds via TL_channels_getMessages first,
+     * and falls back to supergroup history sync if chunkMsgIds is empty or partial.
+     */
+    public static void resolveChunkDocuments(int currentAccount, long vaultChatId, MiogramCloudVaultFile file, Runnable onReady) {
+        if (file == null) {
+            if (onReady != null) AndroidUtilities.runOnUIThread(onReady);
+            return;
+        }
+        if (!file.chunkDocuments.isEmpty() && file.chunkDocuments.size() >= file.chunksCount) {
+            if (onReady != null) AndroidUtilities.runOnUIThread(onReady);
+            return;
+        }
+        if (vaultChatId == 0) {
+            if (onReady != null) AndroidUtilities.runOnUIThread(onReady);
+            return;
+        }
+
+        if (file.chunkMsgIds != null && !file.chunkMsgIds.isEmpty()) {
+            TLRPC.TL_channels_getMessages req = new TLRPC.TL_channels_getMessages();
+            req.channel = MessagesController.getInstance(currentAccount).getInputChannel(vaultChatId);
+            req.id = new ArrayList<>(file.chunkMsgIds);
+            ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {
+                if (error == null && response instanceof TLRPC.messages_Messages) {
+                    ArrayList<TLRPC.Message> msgs = ((TLRPC.messages_Messages) response).messages;
+                    if (msgs != null) {
+                        for (TLRPC.Message msg : msgs) {
+                            if (msg != null && msg.media != null && msg.media.document != null) {
+                                attachChunkDoc(file, msg, partIndexOf(msg.message));
+                            }
+                        }
+                        reorderChunks(file);
+                    }
+                }
+                if (!file.chunkDocuments.isEmpty()) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        if (onReady != null) onReady.run();
+                    });
+                } else {
+                    syncVaultFiles(currentAccount, vaultChatId, new SyncCallback() {
+                        @Override
+                        public void onSyncProgress(int count) {}
+
+                        @Override
+                        public void onSyncComplete(ArrayList<MiogramCloudVaultFile> files) {
+                            if (onReady != null) onReady.run();
+                        }
+
+                        @Override
+                        public void onSyncError(String message) {
+                            if (onReady != null) onReady.run();
+                        }
+                    });
+                }
+            });
+        } else {
+            syncVaultFiles(currentAccount, vaultChatId, new SyncCallback() {
+                @Override
+                public void onSyncProgress(int count) {}
+
+                @Override
+                public void onSyncComplete(ArrayList<MiogramCloudVaultFile> files) {
+                    if (onReady != null) onReady.run();
+                }
+
+                @Override
+                public void onSyncError(String message) {
+                    if (onReady != null) onReady.run();
+                }
+            });
+        }
     }
 
     public static void deleteVaultFile(int currentAccount, long vaultChatId, MiogramCloudVaultFile file, boolean deleteServerMessages) {

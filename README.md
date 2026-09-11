@@ -1,135 +1,180 @@
 <div align="center">
 
-<img src="assets/logo.png" width="128" alt="Miogram">
+<img src="assets/logo.png" width="128" alt="Miogram Logo">
 
 # Miogram (Міограм)
 
-### *More than just a messenger.*
-**Next-Generation Telegram Client with Zero-Trust Security, WebAssembly & Cyber Pixel Badges**
+### *More than just a messenger. Telegram, but make it cute & powerful.*
+**Next-Generation Telegram Client with Zero-Trust Security, Modern Audio Player, WebAssembly Plugins & Cyber Pixel Badges**
 
-[![Download APK](https://img.shields.io/badge/Download-Latest%20APK-00F0FF?style=for-the-badge&logo=android&logoColor=black)](https://github.com/fuckramochka/miogram/releases/latest)
+[![Download Latest APK](https://img.shields.io/badge/Download-Latest%20APK-00F0FF?style=for-the-badge&logo=android&logoColor=black)](https://github.com/fuckramochka/miogram/releases/latest)
+[![Official Website](https://img.shields.io/badge/Website-MioGram%20Portal-FF69B4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://fuckramochka.github.io/miogram/)
 [![Author](https://img.shields.io/badge/Author-@dkramochka-FF2A93?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/dkramochka)
 [![License](https://img.shields.io/badge/License-GPL%20v3-9D4EDD?style=for-the-badge)](LICENSE)
-[![CI](https://img.shields.io/badge/CI-Passing-00E5FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/fuckramochka/miogram/actions)
+[![Android 15](https://img.shields.io/badge/Android%2015-16KB%20ELF%20Ready-3DDC84?style=for-the-badge&logo=android&logoColor=white)](docs/BUILD.md)
 
 </div>
 
 ---
 
-## ✦ Overview
+## ✦ Overview / Про проєкт
 
-**Miogram** is an advanced, high-performance Telegram client engineered from the ground up for power users who demand uncompromising privacy, hardware-backed security, cyber-aesthetic design, and boundless customization.
+**Miogram** — незалежний високоефективний клієнт Telegram для Android, створений для тих, хто цінує абсолютну конфіденційність, сучасну естетику, першокласний звук і безмежну кастомізацію.
 
-Unlike standard messaging forks, Miogram introduces a revolutionary architecture combining **Zero-Trust Duress Protection**, **Ultra-Fast WebAssembly (WASM) Rust Plugins**, **Liquid Glass AGSL GPU Shaders**, and a **Global Supabase-Powered Community Badge Ecosystem**.
-
----
-
-## ʚ♡ɞ Key Features
-
-### 1. ✦ 10 Canonical Pixel Badges & Supabase Cloud Ecosystem
-Miogram introduces an exclusive, pixel-art community badge identity system inspired by the cyber-aesthetic of *Needy Streamer Overload* and retro PC-98 visuals:
-* **10 Distinct Styles:**
-  * `01 — ORIGINAL`: Canonical winged heart with tech visor, obsidian core, cyan glowing contour, and pink feather tips.
-  * `02 — PINK`: Neon pink aesthetic with chevron heart ribs and pastel gradient wings.
-  * `03 — CYAN`: Electric cyber sky-blue wings with luminous starlight.
-  * `04 — DARK`: Midnight obsidian wings with glowing velvet violet fringe.
-  * `05 — ANGEL`: Fluffy white wings, lavender periwinkle heart, and a floating glowing halo ring.
-  * `06 — DEVIL`: Scalloped bat wings with cute devil horns and hot crimson/pink neon rim.
-  * `07 — RAINBOW`: Prismatic 5-color rainbow spectrum feathers with golden halo trim.
-  * `08 — OUTLINE`: Minimalist 1px cyber wireframe contour with bloom and transparent hollow center.
-  * `09 — GLITCH`: Split chromatic RGB displacement with dynamic CRT scanline jitter.
-  * `10 — PREMIUM`: Radiant 3-peak golden royal crown, amber wings, and golden chest armor ribs.
-* **Atmospheric Lighting & Twinkling Sparkles:** Features radiant radial neon bloom, specular shading, and 6 animated floating starlight cross particles (✦). Contours and white pixel eyes (`• •`) remain crystal clear on AMOLED dark and light themes.
-* **Supabase Cloud Resolution:** User badges, titles, and acquisition stories are stored in Supabase PostgREST database and cached locally for 0ms startup time.
-* **Badge Lore & Obtain History:** Tapping someone else's badge reveals their authentic obtain story, granting reason, and date. Tapping your own badge opens the interactive cyber card carousel.
-* **Strict Multi-Account Isolation:** Badges are tied strictly to verified `user_id` accounts. Secondary accounts without badges remain clean without leakage.
+Miogram поєднує в собі:
+- 🛡️ **Zero-Trust сховище «Подвійне дно»** з екстреним Duress PIN та апаратною ізоляцією StrongBox.
+- 🎵 **Сучасний аудіоплеєр** з живою візуалізацією басів, текстами пісень та ергономікою Apple Music / Spotify.
+- 🎨 **Мультимакетний інтерфейс**: миттєве перемикання між стилями Discord, iOS, Minimalist та класичним Telegram.
+- ⚡ **WebAssembly (WASM) Rust плагін-рушій** з холодним запуском < 1 мс та мінімальним споживанням пам'яті (~150 КБ).
+- ʚ♡ɞ **10 канонічних піксельних бейджів** з хмарною синхронізацією через Supabase та інтерактивними часточками.
+- 🧠 **Приватний AI-роутер**: локальний Whisper STT без інтернету та розумна санітизація даних.
 
 ---
 
-### 2. 🛡️ Duress PIN & Double Bottom Vault Protection
-* **Dual Independent PIN Architecture:**
-  * *Normal PIN:* Unlocks your genuine workspace.
-  * *Duress (Emergency) PIN:* Instantly boots into a sterile, neutral decoy screen (`MiogramDecoyActivity`) without exposing or decrypting genuine master keys.
-* **Argon2id KDF (RFC 9106) + Timing Equalization:** Mathematically uniform key derivation time between valid and decoy passes to neutralize timing side-channel attacks.
-* **Hardware StrongBox / TEE Isolation:** Cryptographic master secrets are sealed within AndroidKeyStore hardware-backed keystores.
-* **Biometric Forcing Defense:** In duress/vault modes, fingerprint unlocking is strictly suspended to prevent coerced unlocks while asleep.
-* **Instant RAM Wipe (`zeroizeNow`):** Asynchronous zeroization of sensitive plaintext buffers upon lock transitions with generation-guard race protection.
-* **Full Database Encryption:** SQLCipher database engine with automatic migration pipeline (`wal_checkpoint` $\rightarrow$ `sqlcipher_export` $\rightarrow$ `integrity_check`).
+## ʚ♡ɞ Ключові можливості / Key Features
+
+### 1. 🛡️ Захист від примусу (Duress PIN) та шифрування SQLCipher
+* **Два незалежних PIN-коди:**
+  * *Звичайний PIN:* розблоковує ваше основне захищене робоче середовище.
+  * *Duress (Тривожний) PIN:* миттєво відкриває нейтральний декой-екран (`MiogramDecoyActivity`) без дешифрування справжніх ключів.
+* **Argon2id KDF (RFC 9106) + Timing Equalization:** вирівнювання часу деривації для виключення таймінг-атак.
+* **Апаратний захист StrongBox / TEE:** неекспортовані ключі в AndroidKeyStore.
+* **Захист від примусової біометрії:** у захищеному режимі сканування відбитка вимикається, запобігаючи розблокуванню уві сні.
+* **Миттєве очищення пам'яті (`zeroizeNow`):** асинхронне стирання відкритих ключів при переході у фоновий режим.
+* **Повне шифрування бази даних:** рушій SQLCipher з перевіркою цілісності сторінок.
+
+📖 *Детальніше у [Security Whitepaper](docs/SECURITY.md).*
 
 ---
 
-### 3. ⚡ WebAssembly (WASM) Rust Plugin Engine
-* **< 1ms Instant Cold Boot:** Bytecode executes natively on the ultra-compact **WAMR** (WebAssembly Micro Runtime) engine instead of heavyweight interpreters.
-* **Minimal Footprint:** Memory overhead slashed from ~60 MB to **~150 KB**, with APK overhead reduced to **~85 KB**.
-* **Official Rust SDK (`sdk/rust/miogram-plugin-sdk`):** Native toolchain featuring the `register!` macro, typed envelope protocols, and Zero-Copy memory sharing.
-* **Ed25519 Cryptographic Signatures:** Every plugin is verified against author signatures; binary `"HYPE"` codec prevents runtime tampering.
-* **Granular Capability Gates:** Sandboxed permissions and automatic quarantine for faulty plugins.
+### 2. 🎵 Сучасний аудіоплеєр з візуалізацією басів
+* **Жива візуалізація басів (`MiogramBassVisualizer`):** плавний мультисмуговий спектральний аналізатор у компактному та повноекранному режимах, що адаптується до кольорів теми.
+* **Повноекранна обкладинка з інфо:** назва треку, автор, кнопка улюбленого та живий візуалізатор відображаються прямо поверх повноформатної обкладинки.
+* **6-кнопкова ергономічна панель:** виділена кнопка Shuffle (випадковий порядок), кнопка Repeat з підтримкою довгого натискання для виклику підменю, кнопки попереднього/наступного треку, Play/Pause та черга.
+* **Фікс контрастності та подвійного ріпла:** кристально чиста біла іконка Play/Pause у режимі `SRC_IN` без темних артефактів.
+* **Синхронізовані тексти пісень (LRC)** та жестове перемотування.
+
+📖 *Детальніше у [Audio Player Architecture](docs/AUDIO_PLAYER.md).*
 
 ---
 
-### 4. 🎨 Spatial Liquid Glass & Audio Experience
-* **Liquid Frosted Glass (AGSL):** Hardware-accelerated GPU shader calculating real-time light refraction, chromatic edge dispersion, and specular sheen at a fluid 120 FPS on Android 13+.
-* **Theme Neutrality:** Full respect for user-created custom Telegram themes without color hijacking in `Theme.getColor`.
-* **Apple Music & Spotify Ergonomic Player:** 1:1 Apple Music card player with live mini-bass visualizer and intuitive gesture scrubbing.
-* **Discord & iOS Layout Presets:** Switch between classic Telegram layout, full Discord server/channel rails, or Cupertino frosted-glass navigation bars.
+### 3. 🎨 Мультимакетний інтерфейс (Layout Switcher)
+Перемикайте інтерфейс головного екрана в один дотик:
+* **Discord Layout:** бічні сервери та канали, знайома структура для геймерів та спільнот.
+* **iOS Cupertino:** витончена нижня панель та напівпрозорий розмитий заголовок.
+* **Minimalist Rail:** ультракомпактна бічна колонка для фокусування на повідомленнях.
+* **Classic & Modern Telegram:** перевірений часом швидкий інтерфейс.
+* *Захист від нашарування:* автоматична система тегів `miogram_custom_layout` гарантує відсутність дублювання елементів при зміні режимів.
 
 ---
 
-### 5. 🧠 Private AI Router & On-Device STT
-* **Cloud Privacy Shield:** Automatic regex-based sanitization of phone numbers, credit cards, emails, and passwords before payload transmission to external AI models.
-* **On-Device Whisper Speech-to-Text:** Local 16 kHz PCM audio frontend, BPE tokenizer, and ONNX Whisper decoder running directly on device NPUs without internet.
-* **Bring-Your-Own-Key (BYOK):** Store private Gemini API keys inside encrypted vault storage with metered-data guards.
+### 4. ⚡ WebAssembly (WASM) Rust плагін-рушій
+* **Субмілісекундний запуск:** виконання на базі мікрорантайму WAMR без важких інтерпретаторів.
+* **Мінімальний оверхед:** лише ~150 КБ оперативної пам'яті та ~85 КБ у фінальному APK.
+* **Офіційний Rust SDK (`sdk/rust/miogram-plugin-sdk`):** набір інструментів з макросом `register!`, типізованими конвертами та нульовим копіюванням.
+* **Криптографічний підпис Ed25519:** захист плагінів від модифікації.
+* **Паралельна підтримка Python-плагінів (Chaquopy 3.11)** та Java/Kotlin розширень.
+
+📖 *Детальніше у [Plugin Developer Guide](docs/PLUGINS_DEV_GUIDE.md).*
 
 ---
 
-## 📱 Miogram Website & Direct APK Download
-
-Download prebuilt releases, browse badge catalogs, and review updates directly from our landing page:
-* **Website:** [Miogram Official Portal](https://fuckramochka.github.io/miogram/)
-* **Direct APK Download:** [GitHub Releases](https://github.com/fuckramochka/miogram/releases/latest)
+### 5. ʚ♡ɞ 10 канонічних піксельних бейджів та Supabase
+* **10 унікальних стилів:** Original Visor, Neon Pink, Cyan Cyber, Dark Velvet, Angel Halo, Devil Horns, Rainbow Prismatic, Wireframe Outline, Chromatic Glitch, Royal Golden Crown.
+* **Хмарна синхронізація Supabase:** статус учасника та історія нагородження зберігаються у базі PostgREST та кешуються локально для миттєвого відображення.
+* **Інтерактивна картка:** натискання на бейдж показує історію та причину нагородження.
 
 ---
 
-## 🏗 Project Architecture
+### 6. 🧠 Приватний AI-роутер та локальний Whisper STT
+* **Автоматична санітизація (Privacy Shield):** номери карток, телефонів та паролі маскуються перед передачею в хмарні AI-сервіси.
+* **Локальне розпізнавання мови (Whisper STT):** транскрипція аудіо безпосередньо на пристрої без виходу в інтернет.
+* **Підтримка BYOK:** використання власних ключів Google Gemini з шифруванням у сховищі.
 
-Miogram enforces a strict unidirectional dependency graph:
+---
+
+### 7. 🗑️ Великоднє яйце «Мусордроп» (`tg://musor_drop`)
+* Інтерактивне відео-яйце з підтримкою відтворення як `.mp4`, так і `.mp3`.
+* Вбудований ассет прямо в APK (`assets/musordrop.mp4`) забезпечує гарантовану роботу з коробки без необхідності завантажувати файли вручну.
+
+📖 *Детальніше у [Easter Eggs Guide](docs/EASTER_EGGS.md).*
+
+---
+
+## 🌐 Вебсайт та пряме встановлення / Website & Downloads
+
+* **Офіційний портал:** [https://fuckramochka.github.io/miogram/](https://fuckramochka.github.io/miogram/)
+  * Лічильник активних користувачів у реальному часі через Supabase.
+  * Пряме завантаження APK в один клік з GitHub Releases.
+  * Інтерактивне демо тем (Strawberry milk, Lavender dream, Minty angel).
+* **GitHub Releases:** [https://github.com/fuckramochka/miogram/releases/latest](https://github.com/fuckramochka/miogram/releases/latest)
+
+---
+
+## 🏗 Архітектура проєкту / Project Structure
+
+Miogram слідує суворій односпрямованій архітектурі:
 ```
 app.miogram.ui        →    app.miogram.bridge    →    app.miogram.core
 (Activities, Views)        (System Keystore, DB)      (Pure JVM Crypto, Vault, WASM)
 ```
-* `app.miogram.core` — Zero Android SDK dependencies, 100% testable on pure JVM.
-* `app.miogram.bridge` — Hardware bridge layer (AndroidKeyStore, Room, SQLCipher, Supabase).
-* `sdk/rust/miogram-plugin-sdk` — Official Rust crate for WebAssembly plugin development.
+
+* `app.miogram.core` — 100% чиста JVM-логіка (криптографія, політики, кодеки), що тестується без емулятора.
+* `app.miogram.bridge` — адаптери до Android-системи (AndroidKeyStore, Room, SQLCipher, Supabase).
+* `sdk/rust/miogram-plugin-sdk` — Rust-бібліотека для розробки WASM-плагінів.
+* `website/` — офіційний вебсайт проєкту на базі React 19, Vite та Tailwind.
 
 ---
 
-## 🛠 Building from Source
+## 🛠 Збирання з вихідного коду / Building from Source
 
-### Prerequisites:
-* **JDK:** 21 (Temurin or OpenJDK)
-* **Android SDK:** Platform `android-37.0`, Build-Tools `36.0.0`, NDK `27.2.12479018`
-* **Rust:** Stable toolchain with target `wasm32-unknown-unknown`
-* **Python:** 3.11+
+### Системні вимоги:
+* **JDK:** 21 (Eclipse Temurin або OpenJDK)
+* **Android SDK:** Platform `37`, Build-Tools `36.0.0`
+* **Android NDK:** `27.2.12479018`
+* **Android 15 Сумісність:** вирівнювання 16 KB ELF встановлено у всіх нативних бібліотеках (`-Wl,-z,max-page-size=16384`).
 
-### Build Commands:
+### Команди збирання:
 ```bash
-# 1. Clone repository with submodules
-git clone --recursive https://github.com/fuckramochka/miogram.git miogram
+# 1. Клонувати репозиторій з субмодулями:
+git clone --recursive https://github.com/fuckramochka/miogram.git
 cd miogram
 
-# 2. Build Release APK via Gradle
+# 2. Зібрати Debug APK:
+./gradlew assembleDebug
+
+# 3. Зібрати оптимізований Release APK:
 ./gradlew assembleAfatRelease
+
+# 4. Запустити модульні JVM-тести ядра:
+./gradlew testReleaseUnitTest
 ```
 
----
-
-## 🇺🇦 Коротко про проєкт (Українська)
-
-**Miogram (Міограм)** — український клієнт Telegram нового покоління, створений розробником [@dkramochka](https://t.me/dkramochka). Месенджер поєднує безкомпромісну безпеку «Подвійного дна» (два незалежні PIN-коди, Argon2id, StrongBox, повне шифрування SQLCipher), блискавичні WebAssembly-плагіни на Rust (<1 мс запуск, 150 КБ пам'яті), шейдери «Рідкого скла» на AGSL, аудіоплеєр у стилі Apple Music, та унікальну систему з 10 канонічних піксельних бейджів із хмарною синхронізацією через Supabase.
+📖 *Повний посібник зі збирання: [docs/BUILD.md](docs/BUILD.md).*
 
 ---
 
-## ⚖️ License & Credits
+## 📚 Документація / Documentation Index
 
-Miogram is licensed under the [GNU General Public License v3.0 (GPLv3)](LICENSE).  
-Built with ♡ by [@dkramochka](https://t.me/dkramochka) and the Miogram Community.
+| Документ | Опис |
+|---|---|
+| 📐 [Architecture Blueprint](docs/ARCHITECTURE.md) | Цільова архітектура, правила ізоляції, карта інтеграції з ядром Telegram |
+| 🛡️ [Security Whitepaper](docs/SECURITY.md) | Модель загроз, Duress PIN, Argon2id, StrongBox, SQLCipher, zeroizeNow |
+| 🎵 [Audio Player Architecture](docs/AUDIO_PLAYER.md) | Живий візуалізатор басів, ергономіка керування, тексти пісень, жести |
+| ⚡ [Plugin Developer Guide](docs/PLUGINS_DEV_GUIDE.md) | Створення плагінів на Rust (WASM), Python (Chaquopy) та Java/Kotlin |
+| 🛠️ [Build & Compilation Guide](docs/BUILD.md) | Налаштування оточення, Gradle-скрипти, перевірка 16 KB ELF для Android 15 |
+| 🎀 [Easter Eggs](docs/EASTER_EGGS.md) | Секретні команди та конвеєр відтворення Мусордропу |
+
+---
+
+## 📄 Ліцензія / License
+
+Код Miogram поширюється під ліцензією **GNU General Public License v3.0 (GPL-3.0)**.  
+Дивіться файл [LICENSE](LICENSE) для отримання повної інформації.
+
+---
+
+<div align="center">
+Made with ♡ by <b>@dkramochka</b> and the Miogram Community.<br>
+<i>Stay soft. Stay safe. Stay you. ✧</i>
+</div>

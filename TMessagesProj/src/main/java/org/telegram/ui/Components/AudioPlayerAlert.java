@@ -1599,6 +1599,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         modernPlayerLayout.setControlButtons(repeatButton, prevButton, playButton, nextButton);
         modernPlayerLayout.setProfileButtons(saveToProfileButton, unsaveFromProfileButton);
         modernPlayerLayout.setSong(MediaController.getInstance().getPlayingMessageObject());
+        modernPlayerLayout.setPlaying(!MediaController.getInstance().isMessagePaused());
 
         containerView.addView(modernPlayerLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
@@ -2476,6 +2477,9 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
     public void updateRepeatButton() {
         if (shuffleButton != null) {
             updateShuffleButton();
+        }
+        if (modernPlayerLayout != null) {
+            modernPlayerLayout.updateShuffleButton();
         }
         int mode = SharedConfig.repeatMode;
         if (mode == 0 || mode == 1) {

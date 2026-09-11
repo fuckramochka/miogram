@@ -75,6 +75,7 @@ android {
     defaultConfig.applicationId = APP_PACKAGE
 
     androidResources {
+        noCompress 'mp4'
         localeFilters += [
                 'en', 'ar', 'de', 'es', 'es-rES', 'fa-rIR', 'in-rID', 'it', 'it-rIT', 'ja-rJP',
                 'ko', 'nl', 'pl-rPL', 'pt-rBR', 'ru-rRU', 'tr-rTR', 'uk-rUA', 'vi-rVN', 'zh-rCN', 'zh-rTW'

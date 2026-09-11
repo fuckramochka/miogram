@@ -61,8 +61,11 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
 
     public MiogramBadgeBottomSheet(BaseFragment fragment, long userId) {
         super(fragment.getParentActivity(), false, fragment.getResourceProvider());
-        this.targetUserId = userId;
         long currentUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+        if (userId <= 0) {
+            userId = currentUserId;
+        }
+        this.targetUserId = userId;
         this.isSelf = (userId == currentUserId || userId == 0);
         this.selectedBadge = MiogramBadgeManager.getBadgeType(userId);
         init(fragment.getParentActivity());
@@ -70,25 +73,45 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
 
     public MiogramBadgeBottomSheet(Context context, long userId) {
         super(context, false);
-        this.targetUserId = userId;
         long currentUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+        if (userId <= 0) {
+            userId = currentUserId;
+        }
+        this.targetUserId = userId;
         this.isSelf = (userId == currentUserId || userId == 0);
         this.selectedBadge = MiogramBadgeManager.getBadgeType(userId);
         init(context);
     }
 
-    private void init(Context context) {
-        if (context == null) {
-            context = ApplicationLoader.applicationContext;
-        }
+    private void init(Context inContext) {
+        final Context context = inContext != null ? inContext : ApplicationLoader.applicationContext;
 
         setApplyBottomPadding(false);
         setApplyTopPadding(false);
         fixNavigationBar(Theme.getColor(Theme.key_dialogBackground, resourcesProvider));
 
         final Context finalContext = context;
-        final MiogramSupabaseBridge.BadgeRecord record = MiogramBadgeManager.getBadgeRecord(targetUserId);
-        final boolean isFounder = (targetUserId == MiogramBadgeManager.FOUNDER_USER_ID);
+        final long clientUserId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
+        if (targetUserId <= 0) {
+            targetUserId = clientUserId;
+            isSelf = true;
+        }
+        final boolean isFounder = (targetUserId == MiogramBadgeManager.FOUNDER_USER_ID || clientUserId == MiogramBadgeManager.FOUNDER_USER_ID);
+        MiogramSupabaseBridge.BadgeRecord record = MiogramBadgeManager.getBadgeRecord(targetUserId);
+        if (record == null && isFounder) {
+            record = new MiogramSupabaseBridge.BadgeRecord(
+                    targetUserId,
+                    selectedBadge != null ? selectedBadge : MiogramBadgeType.ORIGINAL,
+                    MiogramLocale.get("Засновник Miogram ໒꒱", "Создатель Miogram ໒꒱", "Miogram Founder ໒꒱"),
+                    MiogramLocale.get("Особиста відзнака засновника та головного архітектора екосистеми Miogram (@fuckramochka).",
+                            "Личное отличие создателя и главного архитектора экосистемы Miogram (@fuckramochka).",
+                            "Personal distinction of the Founder & Chief Architect of Miogram (@fuckramochka)."),
+                    "01.09.2026",
+                    true,
+                    true,
+                    MiogramBadgeManager.FOUNDER_USER_ID
+            );
+        }
 
         ScrollView scrollView = new ScrollView(context);
         scrollView.setVerticalScrollBarEnabled(false);
@@ -144,8 +167,8 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
         badgeSubView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         badgeSubView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, resourcesProvider));
         badgeSubView.setGravity(Gravity.CENTER);
-        badgeSubView.setText(selectedBadge.getTitle() + " • Supabase Cloud Verified ✓");
-        if (record == null) {
+        badgeSubView.setText(selectedBadge.getTitle() + (isFounder ? " • Founder Verified ✓" : " • Supabase Cloud Verified ✓"));
+        if (record == null && !isSelf && !isFounder) {
             badgeSubView.setText(MiogramLocale.get("Не активовано в Supabase", "Не активировано в Supabase", "Not Active in Supabase"));
             LinearLayout infoCard = new LinearLayout(context);
             infoCard.setOrientation(LinearLayout.VERTICAL);
@@ -465,7 +488,7 @@ public class MiogramBadgeBottomSheet extends BottomSheet {
             // Founder-only: grant badges to other users.
             try {
                 long selfId = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
-                if (selfId == MiogramBadgeManager.FOUNDER_USER_ID) {
+                if (isFounder || selfId == MiogramBadgeManager.FOUNDER_USER_ID) {
                     TextView grantEntry = new TextView(context);
                     grantEntry.setText(MiogramLocale.get("★ Видати стрілочку людині", "★ Выдать стрелочку человеку", "★ Grant a badge"));
                     grantEntry.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);

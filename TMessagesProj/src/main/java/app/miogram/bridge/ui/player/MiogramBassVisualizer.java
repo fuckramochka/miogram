@@ -54,6 +54,13 @@ public class MiogramBassVisualizer extends View {
         postInvalidateOnAnimation();
     }
 
+    private int customColor = 0;
+
+    public void setColor(int color) {
+        this.customColor = color;
+        postInvalidateOnAnimation();
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -80,6 +87,8 @@ public class MiogramBassVisualizer extends View {
         float maxBarHeight = h * 0.7f;
         float corner = AndroidUtilities.dp(2);
 
+        int baseColor = customColor != 0 ? (customColor & 0x00FFFFFF) : 0x00FF77AA;
+
         for (int i = 0; i < bars; i++) {
             float amp = currentAmplitudes[i % currentAmplitudes.length];
             float barH = Math.max(AndroidUtilities.dp(3), amp * maxBarHeight * (1.0f + animatedBass * 0.4f));
@@ -89,7 +98,7 @@ public class MiogramBassVisualizer extends View {
             float right = left + barWidth;
 
             int alpha = (int) (120 + 135 * Math.min(1.0f, amp + animatedBass * 0.3f));
-            wavePaint.setColor(0x00FF77AA | (Math.min(255, alpha) << 24));
+            wavePaint.setColor(baseColor | (Math.min(255, alpha) << 24));
 
             barRect.set(left, top, right, h);
             canvas.drawRoundRect(barRect, corner, corner, wavePaint);

@@ -3,6 +3,8 @@ package app.miogram.bridge.plugins;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.text.InputType;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -14,8 +16,11 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.content.FileProvider;
+
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.FileLog;
 import org.telegram.messenger.R;
 import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.ActionBar;
@@ -25,8 +30,11 @@ import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import app.miogram.bridge.MiogramLocale;
 import app.miogram.bridge.ai.MiogramAiService;
@@ -43,6 +51,8 @@ import app.miogram.bridge.customui.MiogramHaptic;
  */
 public class MiogramPluginForgeActivity extends BaseFragment {
 
+    private static final int REQUEST_CODE_PICK_WASM = 1421;
+
     private EditTextBoldCursor input;
     private TextView modelNote;
     private TextView generateBtn;
@@ -54,6 +64,9 @@ public class MiogramPluginForgeActivity extends BaseFragment {
     private TextView saveBtn;
     private TextView buildBtn;
     private TextView copyBtn;
+    private LinearLayout fallbackRow;
+    private TextView importWasmBtn;
+    private TextView exportZipBtn;
 
     private MiogramAiService.ForgeResult lastResult;
     private File lastProjectDir;
@@ -191,6 +204,26 @@ public class MiogramPluginForgeActivity extends BaseFragment {
 
         content.addView(resultRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
+        fallbackRow = new LinearLayout(context);
+        fallbackRow.setOrientation(LinearLayout.HORIZONTAL);
+        fallbackRow.setVisibility(View.GONE);
+
+        importWasmBtn = makeButton(context, MiogramLocale.get("📥 Імпорт plugin.wasm", "📥 Импорт plugin.wasm", "📥 Import plugin.wasm"), false);
+        importWasmBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            onPickWasm();
+        });
+        fallbackRow.addView(importWasmBtn, LayoutHelper.createLinear(0, 44, 1.0f, 0, 0, 6, 0));
+
+        exportZipBtn = makeButton(context, MiogramLocale.get("📤 Експорт ZIP", "📤 Экспорт ZIP", "📤 Export ZIP"), false);
+        exportZipBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            onExportZip();
+        });
+        fallbackRow.addView(exportZipBtn, LayoutHelper.createLinear(0, 44, 1.0f, 6, 0, 0, 0));
+
+        content.addView(fallbackRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 8, 0, 0));
+
         buildProgress = new ProgressBar(context);
         buildProgress.setVisibility(View.GONE);
         content.addView(buildProgress, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 8, 0, 0, 0));
@@ -287,6 +320,7 @@ public class MiogramPluginForgeActivity extends BaseFragment {
                 codeView.setText(res.code);
                 codeView.setVisibility(View.VISIBLE);
                 resultRow.setVisibility(View.VISIBLE);
+                fallbackRow.setVisibility(View.VISIBLE);
                 renderSteps();
                 statusView.setText(MiogramLocale.get("Готово: ", "Готово: ", "Done: ") + res.name + " (" + res.id + ", " + res.language + ")");
                 MiogramHaptic.success(codeView);
@@ -303,6 +337,7 @@ public class MiogramPluginForgeActivity extends BaseFragment {
                 codeView.setText(lastResult.code);
                 codeView.setVisibility(View.VISIBLE);
                 resultRow.setVisibility(View.VISIBLE);
+                fallbackRow.setVisibility(View.VISIBLE);
                 renderSteps();
                 statusView.setText(err != null ? err : MiogramLocale.get("Модель мовчить — підставлено заготовку.",
                         "Модель молчит — подставлена заготовка.", "Model is silent — scaffold used instead."));
@@ -394,6 +429,9 @@ public class MiogramPluginForgeActivity extends BaseFragment {
                     buildBtn.setAlpha(1f);
                     buildBtn.setClickable(true);
                     statusView.setText((success ? "BUILD OK\n" : "") + log);
+                    if (fallbackRow != null) {
+                        fallbackRow.setVisibility(View.VISIBLE);
+                    }
                     if (success) {
                         MiogramHaptic.success(statusView);
                         Toast.makeText(getParentActivity(),
@@ -401,10 +439,142 @@ public class MiogramPluginForgeActivity extends BaseFragment {
                                 Toast.LENGTH_LONG).show();
                     } else {
                         Toast.makeText(getParentActivity(),
-                                MiogramLocale.get("Збірка не вдалася — деталі вище", "Сборка не удалась — детали выше", "Build failed — details above"),
+                                MiogramLocale.get("Збірка не вдалася — скористайтесь імпортом або експортом", "Сборка не удалась — воспользуйтесь импортом или экспортом", "Build failed — use import or export below"),
                                 Toast.LENGTH_LONG).show();
                     }
                 }));
+    }
+
+    private void onPickWasm() {
+        if (lastProjectDir == null) {
+            if (lastResult != null) {
+                saveProject(this::onPickWasm);
+                return;
+            }
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Спочатку згенеруйте проєкт", "Сначала сгенерируйте проект", "Generate project first"), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("*/*");
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            startActivityForResult(Intent.createChooser(intent, MiogramLocale.get("Виберіть plugin.wasm", "Выберите plugin.wasm", "Select plugin.wasm")), REQUEST_CODE_PICK_WASM);
+        } catch (Exception e) {
+            FileLog.e(e);
+            Toast.makeText(getParentActivity(), e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
+        super.onActivityResultFragment(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_PICK_WASM && resultCode == android.app.Activity.RESULT_OK && data != null && data.getData() != null) {
+            Uri uri = data.getData();
+            importWasmFromUri(uri);
+        }
+    }
+
+    private void importWasmFromUri(Uri uri) {
+        if (lastProjectDir == null) {
+            if (lastResult != null) {
+                saveProject(() -> importWasmFromUri(uri));
+                return;
+            }
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Спочатку згенеруйте проєкт", "Сначала сгенерируйте проект", "Generate project first"), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Utilities.globalQueue.postRunnable(() -> {
+            try {
+                Context ctx = ApplicationLoader.applicationContext;
+                File dest = new File(lastProjectDir, "plugin.wasm");
+                try (java.io.InputStream in = ctx.getContentResolver().openInputStream(uri);
+                     FileOutputStream out = new FileOutputStream(dest)) {
+                    if (in == null) throw new IllegalStateException("Cannot read selected file");
+                    byte[] buf = new byte[65536];
+                    int len;
+                    while ((len = in.read(buf)) > 0) {
+                        out.write(buf, 0, len);
+                    }
+                    out.flush();
+                }
+                AndroidUtilities.runOnUIThread(() -> {
+                    statusView.setText(MiogramLocale.get("ІМПОРТОВАНО: ", "ИМПОРТИРОВАНО: ", "IMPORTED: ") + dest.getAbsolutePath() + " (" + dest.length() + " bytes)");
+                    MiogramHaptic.success(statusView);
+                    Toast.makeText(getParentActivity(), MiogramLocale.get("plugin.wasm успішно імпортовано в проєкт!", "plugin.wasm успешно импортирован в проект!", "plugin.wasm successfully imported!"), Toast.LENGTH_LONG).show();
+                });
+            } catch (Exception e) {
+                FileLog.e(e);
+                AndroidUtilities.runOnUIThread(() -> {
+                    statusView.setText(MiogramLocale.get("Помилка імпорту: ", "Ошибка импорта: ", "Import error: ") + e.getMessage());
+                    Toast.makeText(getParentActivity(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void onExportZip() {
+        if (lastProjectDir == null) {
+            if (lastResult != null) {
+                saveProject(this::onExportZip);
+                return;
+            }
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Спочатку згенеруйте проєкт", "Сначала сгенерируйте проект", "Generate project first"), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final File dir = lastProjectDir;
+        Utilities.globalQueue.postRunnable(() -> {
+            try {
+                Context ctx = ApplicationLoader.applicationContext;
+                File zipFile = new File(ctx.getCacheDir(), dir.getName() + "_forge_project.zip");
+                if (zipFile.exists()) zipFile.delete();
+
+                try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {
+                    zipDirectory(dir, dir.getName(), zos);
+                    zos.flush();
+                }
+
+                AndroidUtilities.runOnUIThread(() -> {
+                    try {
+                        Intent share = new Intent(Intent.ACTION_SEND);
+                        share.setType("application/zip");
+                        Uri uri = FileProvider.getUriForFile(
+                                ApplicationLoader.applicationContext,
+                                ApplicationLoader.getApplicationId() + ".provider",
+                                zipFile
+                        );
+                        share.putExtra(Intent.EXTRA_STREAM, uri);
+                        share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        getParentActivity().startActivity(Intent.createChooser(share, MiogramLocale.get("Поділитися проєктом плагіна", "Поделиться проектом плагина", "Share plugin project")));
+                    } catch (Exception e) {
+                        FileLog.e(e);
+                        Toast.makeText(getParentActivity(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (Exception e) {
+                FileLog.e(e);
+                AndroidUtilities.runOnUIThread(() -> Toast.makeText(getParentActivity(), "Zip error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    private void zipDirectory(File folder, String parentFolder, ZipOutputStream zos) throws Exception {
+        File[] files = folder.listFiles();
+        if (files == null) return;
+        byte[] buffer = new byte[8192];
+        for (File f : files) {
+            if (f.isDirectory()) {
+                zipDirectory(f, parentFolder + "/" + f.getName(), zos);
+                continue;
+            }
+            try (FileInputStream in = new FileInputStream(f)) {
+                zos.putNextEntry(new ZipEntry(parentFolder + "/" + f.getName()));
+                int len;
+                while ((len = in.read(buffer)) > 0) {
+                    zos.write(buffer, 0, len);
+                }
+                zos.closeEntry();
+            }
+        }
     }
 
     @Override

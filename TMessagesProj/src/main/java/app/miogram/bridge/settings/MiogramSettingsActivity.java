@@ -30,31 +30,46 @@ import tw.nekomimi.nekogram.ui.cells.HeaderCell;
  */
 public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
-    private int headerMiogramFeaturesRow;
-    private int cloudVaultRow;
-    private int multichatRow;
-    private int badgeStudioRow;
-    private int miogramFeaturesInfoRow;
-
-    private int headerCategoriesRow;
+    // Category 1: Customization ໒꒱
+    private int headerCustomizationRow;
     private int visualsRow;
+    private int iconPacksRow;
     private int navigationRow;
     private int subfoldersRow;
-    private int iconPacksRow;
-    private int chatsRow;
+    private int badgeStudioRow;
+    private int customizationInfoRow;
+
+    // Category 2: Security & Privacy 🛡️
+    private int headerSecurityRow;
     private int privacyRow;
-    private int generalRow;
+    private int telemetryRow;
+    private int securityInfoRow;
+
+    // Category 3: Cloud Vault ☁️
+    private int headerCloudRow;
+    private int cloudVaultRow;
+    private int cloudInfoRow;
+
+    // Category 4: Chats & Media 💬
+    private int headerChatsRow;
+    private int multichatRow;
+    private int chatsRow;
     private int translatorRow;
     private int localizerRow;
-    private int performanceRow;
-    private int categoriesInfoRow;
+    private int chatsInfoRow;
 
-    private int headerAdvancedRow;
+    // Category 5: AI & Plugins 🧠
+    private int headerAiPluginsRow;
     private int aiRow;
     private int pluginsRow;
-    private int telemetryRow;
+    private int aiPluginsInfoRow;
+
+    // Category 6: System & Performance ✧
+    private int headerSystemRow;
+    private int performanceRow;
+    private int generalRow;
     private int updaterRow;
-    private int advancedInfoRow;
+    private int systemInfoRow;
 
     @Override
     protected String getActionBarTitle() {
@@ -65,71 +80,87 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     protected void updateRows() {
         super.updateRows();
 
-        headerMiogramFeaturesRow = addRow();
-        cloudVaultRow = addRow();
-        multichatRow = addRow();
-        badgeStudioRow = addRow();
-        miogramFeaturesInfoRow = addRow();
-
-        headerCategoriesRow = addRow();
+        // 1. Customization
+        headerCustomizationRow = addRow();
         visualsRow = addRow();
+        iconPacksRow = addRow();
         navigationRow = addRow();
         subfoldersRow = addRow();
-        iconPacksRow = addRow();
-        chatsRow = addRow();
+        badgeStudioRow = addRow();
+        customizationInfoRow = addRow();
+
+        // 2. Security & Privacy
+        headerSecurityRow = addRow();
         privacyRow = addRow();
-        generalRow = addRow();
+        telemetryRow = addRow();
+        securityInfoRow = addRow();
+
+        // 3. Cloud Vault
+        headerCloudRow = addRow();
+        cloudVaultRow = addRow();
+        cloudInfoRow = addRow();
+
+        // 4. Chats & Media
+        headerChatsRow = addRow();
+        multichatRow = addRow();
+        chatsRow = addRow();
         translatorRow = addRow();
         localizerRow = addRow();
-        performanceRow = addRow();
-        categoriesInfoRow = addRow();
+        chatsInfoRow = addRow();
 
-        headerAdvancedRow = addRow();
+        // 5. AI & Plugins
+        headerAiPluginsRow = addRow();
         aiRow = addRow();
         pluginsRow = addRow();
-        telemetryRow = addRow();
+        aiPluginsInfoRow = addRow();
+
+        // 6. System & Performance
+        headerSystemRow = addRow();
+        performanceRow = addRow();
+        generalRow = addRow();
         updaterRow = addRow();
-        advancedInfoRow = addRow();
+        systemInfoRow = addRow();
     }
 
     @Override
     public void onItemClick(View view, int position, float x, float y) {
-        if (position == cloudVaultRow) {
-            presentFragment(new app.miogram.bridge.cloudvault.MiogramCloudVaultActivity());
-        } else if (position == multichatRow) {
-            presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0));
-        } else if (position == badgeStudioRow) {
-            app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(getParentActivity(), currentAccount);
-        } else if (position == visualsRow) {
+        if (position == visualsRow) {
             presentFragment(new MiogramVisualsActivity());
+        } else if (position == iconPacksRow) {
+            presentFragment(new app.exteraless.icons.IconPacksActivity());
         } else if (position == navigationRow) {
             presentFragment(new app.exteraless.settings.OpenExteraAppNavigationActivity());
         } else if (position == subfoldersRow) {
             presentFragment(new app.miogram.bridge.folders.MiogramSubfolderSettingsActivity());
-        } else if (position == iconPacksRow) {
-            presentFragment(new app.exteraless.icons.IconPacksActivity());
-        } else if (position == chatsRow) {
-            presentFragment(new MiogramChatsSettingsActivity());
+        } else if (position == badgeStudioRow) {
+            long clientUserId = UserConfig.getInstance(currentAccount).getClientUserId();
+            app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(getParentActivity(), clientUserId);
         } else if (position == privacyRow) {
             presentFragment(new MiogramPrivacySettingsActivity());
-        } else if (position == generalRow) {
-            presentFragment(new app.exteraless.settings.OpenExteraGeneralActivity());
-        } else if (position == translatorRow) {
-            presentFragment(new NekoTranslatorSettingsActivity());
-        } else if (position == localizerRow) {
-            presentFragment(new app.miogram.bridge.localizer.MiogramLocalizerActivity());
-        } else if (position == performanceRow) {
-            presentFragment(new MiogramPerformanceActivity());
-        } else if (position == aiRow) {
-            presentFragment(new MiogramAiSettingsActivity());
-        } else if (position == pluginsRow) {
-            presentFragment(new app.exteraless.plugins.ui.PluginsActivity());
         } else if (position == telemetryRow) {
             boolean nextState = !MiogramSupabaseBridge.isTelemetryEnabled();
             MiogramSupabaseBridge.setTelemetryEnabled(nextState);
             if (view instanceof TextCheckCell) {
                 ((TextCheckCell) view).setChecked(nextState);
             }
+        } else if (position == cloudVaultRow) {
+            presentFragment(new app.miogram.bridge.cloudvault.MiogramCloudVaultActivity());
+        } else if (position == multichatRow) {
+            presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0));
+        } else if (position == chatsRow) {
+            presentFragment(new MiogramChatsSettingsActivity());
+        } else if (position == translatorRow) {
+            presentFragment(new NekoTranslatorSettingsActivity());
+        } else if (position == localizerRow) {
+            presentFragment(new app.miogram.bridge.localizer.MiogramLocalizerActivity());
+        } else if (position == aiRow) {
+            presentFragment(new MiogramAiSettingsActivity());
+        } else if (position == pluginsRow) {
+            presentFragment(new app.exteraless.plugins.ui.PluginsActivity());
+        } else if (position == performanceRow) {
+            presentFragment(new MiogramPerformanceActivity());
+        } else if (position == generalRow) {
+            presentFragment(new app.exteraless.settings.OpenExteraGeneralActivity());
         } else if (position == updaterRow) {
             MiogramUpdater.checkAndShowUpdate(this, true);
         }
@@ -148,11 +179,15 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == headerMiogramFeaturesRow || position == headerCategoriesRow || position == headerAdvancedRow) {
+            if (position == headerCustomizationRow || position == headerSecurityRow
+                    || position == headerCloudRow || position == headerChatsRow
+                    || position == headerAiPluginsRow || position == headerSystemRow) {
                 return TYPE_HEADER;
             } else if (position == telemetryRow) {
                 return TYPE_CHECK;
-            } else if (position == miogramFeaturesInfoRow || position == categoriesInfoRow || position == advancedInfoRow) {
+            } else if (position == customizationInfoRow || position == securityInfoRow
+                    || position == cloudInfoRow || position == chatsInfoRow
+                    || position == aiPluginsInfoRow || position == systemInfoRow) {
                 return TYPE_INFO_PRIVACY;
             }
             return TYPE_TEXT;
@@ -167,54 +202,60 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                         cell.setTextAndCheck(
                                 MiogramLocale.get("Хмарна телеметрія та бейджі спільноти", "Облачная телеметрия и бейджи сообщества", "Community Cloud Telemetry & Badges"),
                                 MiogramSupabaseBridge.isTelemetryEnabled(),
-                                true
+                                false
                         );
                     }
                     break;
                 }
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
-                    if (position == headerMiogramFeaturesRow) {
-                        cell.setText(MiogramLocale.get("Ексклюзивні функції Miogram", "Эксклюзивные функции Miogram", "Miogram Exclusive Features"));
-                    } else if (position == headerCategoriesRow) {
-                        cell.setText(MiogramLocale.get("Зовнішній вигляд та функції", "Внешний вид и функции", "Appearance & Features"));
-                    } else if (position == headerAdvancedRow) {
-                        cell.setText(MiogramLocale.get("Система та Інструменти", "Система и Инструменты", "System & Tools"));
+                    if (position == headerCustomizationRow) {
+                        cell.setText(MiogramLocale.get("Кастомізація та стиль ໒꒱", "Кастомизация и стиль ໒꒱", "Customization & Style ໒꒱"));
+                    } else if (position == headerSecurityRow) {
+                        cell.setText(MiogramLocale.get("Безпека та конфіденційність 🛡️", "Безопасность и приватность 🛡️", "Security & Privacy 🛡️"));
+                    } else if (position == headerCloudRow) {
+                        cell.setText(MiogramLocale.get("Хмарне сховище ☁️", "Облачное хранилище ☁️", "Cloud Vault ☁️"));
+                    } else if (position == headerChatsRow) {
+                        cell.setText(MiogramLocale.get("Чати та спілкування 💬", "Чаты и общение 💬", "Chats & Communication 💬"));
+                    } else if (position == headerAiPluginsRow) {
+                        cell.setText(MiogramLocale.get("Штучний інтелект та плагіни 🧠", "Искусственный интеллект и плагины 🧠", "AI & Plugins 🧠"));
+                    } else if (position == headerSystemRow) {
+                        cell.setText(MiogramLocale.get("Система та продуктивність ✧", "Система и производительность ✧", "System & Performance ✧"));
                     }
                     break;
                 }
                 case TYPE_TEXT: {
                     TextCell cell = (TextCell) holder.itemView;
-                    if (position == cloudVaultRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Хмарне сховище (Cloud Vault)", "Облачное хранилище (Cloud Vault)", "Encrypted Cloud Vault"), R.drawable.cloud_sync, true);
-                    } else if (position == multichatRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Мультичат (Split-Screen)", "Мультичат (Split-Screen)", "Multi-Chat (Split-Screen)"), R.drawable.msg_fave, true);
-                    } else if (position == badgeStudioRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Канонічні відзнаки Miogram", "Канонические отличия Miogram", "Miogram Canonical Badges"), R.drawable.msg_premium_badge, true);
-                    } else if (position == visualsRow) {
+                    if (position == visualsRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Зовнішній вигляд та стиль", "Внешний вид и стиль", "Appearance & Style"), R.drawable.msg_theme, true);
+                    } else if (position == iconPacksRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Паки іконок", "Паки иконок", "Icon Packs"), R.drawable.msg_sticker, true);
                     } else if (position == navigationRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Навігація та Меню", "Навигация и Меню", "Navigation & Menu"), R.drawable.msg_home_solar, true);
                     } else if (position == subfoldersRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Підпапки та Розумні фільтри", "Подпапки и Умные фильтры", "Subfolders & Smart Filters"), R.drawable.msg_folders, true);
-                    } else if (position == iconPacksRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Паки іконок", "Паки иконок", "Icon Packs"), R.drawable.msg_sticker, true);
-                    } else if (position == chatsRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Чати та Медіа", "Чаты и Медиа", "Chats & Media"), R.drawable.msg_camera, true);
+                    } else if (position == badgeStudioRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Канонічні відзнаки Miogram", "Канонические отличия Miogram", "Miogram Canonical Badges"), R.drawable.msg_premium_badge, false);
                     } else if (position == privacyRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Конфіденційність та Ghost Mode", "Конфиденциальность и Ghost Mode", "Privacy & Ghost Mode"), R.drawable.msg_secret, true);
-                    } else if (position == generalRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Розширені налаштування", "Расширенные настройки", "Advanced Preferences"), R.drawable.msg_settings, true);
+                    } else if (position == cloudVaultRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Хмарне сховище (Cloud Vault)", "Облачное хранилище (Cloud Vault)", "Encrypted Cloud Vault"), R.drawable.cloud_sync, false);
+                    } else if (position == multichatRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Мультичат (Split-Screen)", "Мультичат (Split-Screen)", "Multi-Chat (Split-Screen)"), R.drawable.msg_fave, true);
+                    } else if (position == chatsRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Чати та Медіа", "Чаты и Медиа", "Chats & Media"), R.drawable.msg_camera, true);
                     } else if (position == translatorRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Перекладач", "Переводчик", "Translator"), R.drawable.msg_translate, true);
                     } else if (position == localizerRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Локалізатор (Кастомні переклади)", "Локализатор (Кастомные переводы)", "Localizer (Custom Translations)"), R.drawable.msg_edit, true);
-                    } else if (position == performanceRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Продуктивність", "Производительность", "Performance"), R.drawable.msg_speed, false);
+                        cell.setTextAndIcon(MiogramLocale.get("Локалізатор (Кастомні переклади)", "Локализатор (Кастомные переводы)", "Localizer (Custom Translations)"), R.drawable.msg_edit, false);
                     } else if (position == aiRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Miogram AI", "Miogram AI", "Miogram AI"), R.drawable.msg_bot, true);
                     } else if (position == pluginsRow) {
-                        cell.setTextAndIcon(MiogramLocale.get("Плагіни Miogram (Python & Каталог)", "Плагины Miogram (Python & Каталог)", "Miogram Plugins (Python & Catalog)"), R.drawable.msg_plugins, true);
+                        cell.setTextAndIcon(MiogramLocale.get("Плагіни Miogram (Python & Каталог)", "Плагины Miogram (Python & Каталог)", "Miogram Plugins (Python & Catalog)"), R.drawable.msg_plugins, false);
+                    } else if (position == performanceRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Продуктивність", "Производительность", "Performance"), R.drawable.msg_speed, true);
+                    } else if (position == generalRow) {
+                        cell.setTextAndIcon(MiogramLocale.get("Розширені налаштування", "Расширенные настройки", "Advanced Preferences"), R.drawable.msg_settings, true);
                     } else if (position == updaterRow) {
                         cell.setTextAndIcon(MiogramLocale.get("Перевірити оновлення Miogram", "Проверить обновления Miogram", "Check for Updates"), R.drawable.msg_retry, false);
                     }
@@ -222,12 +263,18 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
-                    if (position == miogramFeaturesInfoRow) {
-                        cell.setText(MiogramLocale.get("Зашифрований хмарний диск на базі форум-супергрупи, нарізка файлів >2 ГБ, мультичат, розумна стрічка та 10 канонічних відзнак.", "Зашифрованный облачный диск на базе форум-супергруппы, нарезка файлов >2 ГБ, мультичат, умная лента и 10 канонических бейджей.", "Encrypted cloud vault on forum supergroup, >2GB file chunking, multi-chat, smart feed, and 10 canonical badges."));
-                    } else if (position == categoriesInfoRow) {
-                        cell.setText(MiogramLocale.get("Зовнішній вигляд, персоналізація, навігація, паки іконок та розширені параметри чатів.", "Внешний вид, персонализация, навигация, паки иконок и расширенные параметры чатов.", "Appearance, customization, navigation, icon packs, and enhanced chat options."));
-                    } else if (position == advancedInfoRow) {
-                        cell.setText(MiogramLocale.get("Керування плагінами, сервісами штучного інтелекту та оновленнями Miogram.", "Управление плагинами, сервисами искусственного интеллекта и обновлениями Miogram.", "Manage plugins, AI services, and Miogram updates."));
+                    if (position == customizationInfoRow) {
+                        cell.setText(MiogramLocale.get("Теми, іконки додатку, нижня панель навігації та канонічні відзнаки профілю.", "Темы, иконки приложения, нижняя панель навигации и канонические бейджи профиля.", "Themes, app icons, bottom navigation bar, and canonical profile badges."));
+                    } else if (position == securityInfoRow) {
+                        cell.setText(MiogramLocale.get("Режими прихованого читання, заборона відстеження та синхронізація відзнак через безпечний сервер.", "Режимы скрытого чтения, запрет отслеживания и синхронизация бейджей через безопасный сервер.", "Ghost mode, anti-tracking, and badge synchronization through a secure server."));
+                    } else if (position == cloudInfoRow) {
+                        cell.setText(MiogramLocale.get("Зашифрований хмарний диск без обмежень на базі форум-супергрупи з автоматичною нарізкою великих файлів.", "Зашифрованный облачный диск без ограничений на базе форум-супергруппы с автоматической нарезкой больших файлов.", "Encrypted cloud disk without limits based on forum supergroups with automatic chunking of large files."));
+                    } else if (position == chatsInfoRow) {
+                        cell.setText(MiogramLocale.get("Паралельне відображення двох чатів на одному екрані, переклади повідомлень та медіа-налаштування.", "Параллельное отображение двух чатов на одном экране, переводы сообщений и медиа-настройки.", "Split-screen parallel view of two chats, inline translations, and media settings."));
+                    } else if (position == aiPluginsInfoRow) {
+                        cell.setText(MiogramLocale.get("Інтеграція нейромереж, обробка відповідей та екосистема розширень.", "Интеграция нейросетей, обработка ответов и экосистема расширений.", "Neural network integration, response processing, and extensions ecosystem."));
+                    } else if (position == systemInfoRow) {
+                        cell.setText(MiogramLocale.get("Оптимізація пам'яті, кешування та автоматична перевірка офіційних релізів Miogram.", "Оптимизация памяти, кэширование и автоматическая проверка официальных релизов Miogram.", "Memory optimization, caching, and automatic check for official Miogram releases."));
                     }
                     break;
                 }

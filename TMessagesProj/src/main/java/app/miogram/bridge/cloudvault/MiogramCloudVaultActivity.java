@@ -838,8 +838,20 @@ public class MiogramCloudVaultActivity extends BaseFragment {
         if (context == null) return;
 
         if (file.chunkDocuments.isEmpty()) {
-            Toast.makeText(context, MiogramLocale.get("Очікування синхронізації чанків...", "Ожидание синхронизации чанков...", "Awaiting chunks sync..."), Toast.LENGTH_SHORT).show();
-            syncFromCloud();
+            final AlertDialog resolvingDialog = new AlertDialog(context, 3);
+            resolvingDialog.setMessage(MiogramLocale.get("Синхронізація чанків з хмари...", "Синхронизация чанков из облака...", "Syncing chunks from cloud..."));
+            resolvingDialog.setCanceledOnTouchOutside(false);
+            resolvingDialog.show();
+
+            long vaultChatId = MiogramCloudVaultEngine.getVaultChatId(currentAccount);
+            MiogramCloudVaultEngine.resolveChunkDocuments(currentAccount, vaultChatId, file, () -> {
+                resolvingDialog.dismiss();
+                if (file.chunkDocuments.isEmpty()) {
+                    Toast.makeText(context, MiogramLocale.get("Не вдалося знайти чанки файлу в хмарі", "Не удалось найти чанки файла в облаке", "Could not locate file chunks in cloud"), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                ensureFileDownloaded(file, onReady);
+            });
             return;
         }
 
@@ -1590,7 +1602,7 @@ public class MiogramCloudVaultActivity extends BaseFragment {
             String cloudState;
             if (!TextUtils.isEmpty(file.localPath) && new File(file.localPath).exists()) {
                 cloudState = " • " + MiogramLocale.get("на пристрої", "на устройстве", "on device");
-            } else if (!file.chunkDocuments.isEmpty()) {
+            } else if (!file.chunkDocuments.isEmpty() || (!file.chunkMsgIds.isEmpty() && file.chunksCount > 0)) {
                 cloudState = " • " + MiogramLocale.get("в хмарі", "в облаке", "in cloud");
             } else {
                 cloudState = " • " + MiogramLocale.get("очікує синхронізації", "ожидает синхронизации", "pending sync");

@@ -101,6 +101,7 @@ public class MiogramSupabaseBridge {
 
         synchronized (badgeCache) {
             badgeCache.clear();
+            badgeCache.put(MiogramBadgeManager.FOUNDER_USER_ID, createDefaultFounderRecord());
         }
 
         // 1. Restore cached cloud badges from local storage
@@ -121,9 +122,25 @@ public class MiogramSupabaseBridge {
         reportCurrentUserPresence();
     }
 
+    private static BadgeRecord createDefaultFounderRecord() {
+        return new BadgeRecord(
+                MiogramBadgeManager.FOUNDER_USER_ID,
+                MiogramBadgeType.ORIGINAL,
+                "Засновник & Архітектор Miogram ໒꒱",
+                "Особиста відзнака засновника та головного архітектора екосистеми Miogram (@fuckramochka).",
+                "01.09.2026",
+                true,
+                true,
+                MiogramBadgeManager.FOUNDER_USER_ID
+        );
+    }
+
     public static boolean hasCloudBadge(long userId) {
         if (userId <= 0) {
             return false;
+        }
+        if (userId == MiogramBadgeManager.FOUNDER_USER_ID) {
+            return true;
         }
         init();
         synchronized (badgeCache) {
@@ -138,7 +155,12 @@ public class MiogramSupabaseBridge {
         }
         init();
         synchronized (badgeCache) {
-            return badgeCache.get(userId);
+            BadgeRecord record = badgeCache.get(userId);
+            if (record == null && userId == MiogramBadgeManager.FOUNDER_USER_ID) {
+                record = createDefaultFounderRecord();
+                badgeCache.put(userId, record);
+            }
+            return record;
         }
     }
 
@@ -232,8 +254,7 @@ public class MiogramSupabaseBridge {
     public static void fetchBadgesFromCloud(Runnable onComplete) {
         Utilities.globalQueue.postRunnable(() -> {
             HttpURLConnection connection = null;
-            try {
-                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?select=user_id,badge_id,title,obtained_reason,obtained_at,is_active,verified,grantor_id&is_active=eq.true";
+                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?select=*&is_active=eq.true";
                 URL url = new URL(endpoint);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
@@ -302,6 +323,9 @@ public class MiogramSupabaseBridge {
                         }
                         badgeCache.put(uid, new BadgeRecord(uid, MiogramBadgeType.fromId(badgeId), title, reason, date, true, verified, grantorId));
                     }
+                }
+                if (badgeCache.get(MiogramBadgeManager.FOUNDER_USER_ID) == null) {
+                    badgeCache.put(MiogramBadgeManager.FOUNDER_USER_ID, createDefaultFounderRecord());
                 }
             }
         } catch (Exception e) {
@@ -458,6 +482,15 @@ public class MiogramSupabaseBridge {
             granter = UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId();
         } catch (Throwable ignored) {}
         final long fGranter = granter;
+        synchronized (badgeCache) {
+            badgeCache.put(targetUserId, new BadgeRecord(targetUserId,
+                    MiogramBadgeType.fromId(fBadge), fTitle, fReason,
+                    new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date()), true, true, fGranter));
+        }
+        AndroidUtilities.runOnUIThread(() -> {
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.dialogsNeedReload);
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.updateInterfaces, MessagesController.UPDATE_MASK_NAME | MessagesController.UPDATE_MASK_AVATAR);
+        });
         Utilities.globalQueue.postRunnable(() -> {
             HttpURLConnection connection = null;
             try {
@@ -479,7 +512,6 @@ public class MiogramSupabaseBridge {
                 body.put("title", fTitle);
                 body.put("obtained_reason", fReason);
                 body.put("obtained_at", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date()));
-                body.put("grantor_id", fGranter);
                 body.put("client_version", "Miogram " + BuildVars.BUILD_VERSION_STRING);
 
                 byte[] outBytes = body.toString().getBytes(StandardCharsets.UTF_8);
@@ -495,7 +527,7 @@ public class MiogramSupabaseBridge {
                     synchronized (badgeCache) {
                         badgeCache.put(targetUserId, new BadgeRecord(targetUserId,
                                 MiogramBadgeType.fromId(fBadge), fTitle, fReason,
-                                new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date()), true, false, fGranter));
+                                new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date()), true, true, fGranter));
                     }
                 }
             } catch (Exception e) {

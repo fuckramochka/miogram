@@ -3112,6 +3112,31 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
             return;
         }
+        if (user != null && app.miogram.bridge.badge.MiogramBadgeManager.hasArrow(user.id)) {
+            statusDrawable.set(app.miogram.bridge.badge.MiogramBadgeManager.getArrowDrawable(user.id, 20), animated);
+            statusDrawable.setParticles(false, animated);
+            statusDrawableGiftId = null;
+            actionBar.setRightDrawableOnClick(e -> {
+                if (dialogStoriesCellVisible && dialogStoriesCell != null && !dialogStoriesCell.isExpanded()) {
+                    scrollToTop(true, true);
+                    return;
+                }
+                app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(getParentActivity(), user.id);
+            });
+            boolean isOnDefaultTab = filterTabsView == null || filterTabsView.getCurrentTabId() == filterTabsView.getDefaultTabId();
+            if (!NaConfig.INSTANCE.getFolderNameAsTitle().Bool() || isOnDefaultTab) {
+                SimpleTextView titleTextView = actionBar.getTitleTextView();
+                if (titleTextView != null && titleTextView.getRightDrawable() != statusDrawable) {
+                    titleTextView.setRightDrawable(statusDrawable);
+                    statusDrawable.setParentView(titleTextView);
+                }
+            }
+            statusDrawable.setColor(Theme.getColor(Theme.key_profile_verifiedBackground));
+            if (animatedStatusView != null) {
+                animatedStatusView.setColor(Theme.getColor(Theme.key_profile_verifiedBackground));
+            }
+            return;
+        }
         Long emojiStatusId = UserObject.getEmojiStatusDocumentId(user);
         statusDrawableGiftId = null;
         if (emojiStatusId != null) {
@@ -13504,6 +13529,16 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         };
         ((ContentView) fragmentView).addView(searchViewPager, searchViewPagerIndex);
 
+        if (fragmentView instanceof ViewGroup) {
+            ViewGroup cv = (ViewGroup) fragmentView;
+            for (int i = cv.getChildCount() - 1; i >= 0; i--) {
+                View child = cv.getChildAt(i);
+                if (child != null && "miogram_custom_layout".equals(child.getTag())) {
+                    cv.removeViewAt(i);
+                }
+            }
+        }
+
         if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
             actionBar.setVisibility(View.GONE);
             if (filterTabsView != null) {
@@ -13525,6 +13560,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         }
                     });
             if (channelHeader != null) {
+                channelHeader.setTag("miogram_custom_layout");
                 ((ContentView) fragmentView).addView(channelHeader, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT, 72, AndroidUtilities.statusBarHeight, 0, 0));
             }
 
@@ -13568,6 +13604,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
             });
             if (discordRail != null) {
+                discordRail.setTag("miogram_custom_layout");
                 ((ContentView) fragmentView).addView(discordRail, LayoutHelper.createFrame(72, LayoutHelper.MATCH_PARENT, Gravity.LEFT));
             }
 
@@ -13609,6 +13646,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
             View userFooter = app.miogram.bridge.ui.discord.MiogramDiscordLayout.createDiscordUserFooter(getContext());
             if (userFooter != null) {
+                userFooter.setTag("miogram_custom_layout");
                 ((ContentView) fragmentView).addView(userFooter, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 52, Gravity.BOTTOM | Gravity.LEFT, 72, 0, 0, 0));
             }
         } else if (app.miogram.bridge.ui.minimal.MiogramMinimalRail.isActive(getContext())) {
@@ -13616,6 +13654,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             // Profile / Settings) since the bottom navigation is hidden.
             View minimalRail = app.miogram.bridge.ui.minimal.MiogramMinimalRail.createMinimalRail(getContext());
             if (minimalRail != null) {
+                minimalRail.setTag("miogram_custom_layout");
                 ((ContentView) fragmentView).addView(minimalRail, LayoutHelper.createFrame(
                         app.miogram.bridge.ui.minimal.MiogramMinimalRail.RAIL_WIDTH_DP, LayoutHelper.MATCH_PARENT, Gravity.LEFT));
             }
@@ -13662,14 +13701,18 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
         } else {
             final boolean isIosLayout = app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext());
+            if (!isIosLayout) {
+                fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+            }
             if (actionBar != null && !isIosLayout && actionBar.getVisibility() != View.VISIBLE) {
                 actionBar.setVisibility(View.VISIBLE);
             }
             if (actionBar != null && !isIosLayout) {
                 // Discord/Minimalist rails shift the bar right — restore on classic.
                 FrameLayout.LayoutParams abLp = (FrameLayout.LayoutParams) actionBar.getLayoutParams();
-                if (abLp != null && abLp.leftMargin != 0) {
+                if (abLp != null && (abLp.leftMargin != 0 || abLp.topMargin != 0)) {
                     abLp.leftMargin = 0;
+                    abLp.topMargin = 0;
                     actionBar.setLayoutParams(abLp);
                 }
             }
@@ -13707,8 +13750,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         v -> openSearch.run(),
                         v -> openSearch.run(),
                         v -> openSearch.run());
-                ((ContentView) fragmentView).addView(iosHeader, LayoutHelper.createFrame(
-                        LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT));
+                if (iosHeader != null) {
+                    iosHeader.setTag("miogram_custom_layout");
+                    ((ContentView) fragmentView).addView(iosHeader, LayoutHelper.createFrame(
+                            LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT));
+                }
 
                 View iosTabBar = app.miogram.bridge.ui.ios.MiogramIosLayout.createIosTabBar(getContext(), 2, tabIndex -> {
                     if (tabIndex == 3) {
@@ -13717,8 +13763,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         openSearch.run();
                     }
                 });
-                ((ContentView) fragmentView).addView(iosTabBar, LayoutHelper.createFrame(
-                        LayoutHelper.MATCH_PARENT, 58, Gravity.BOTTOM | Gravity.LEFT));
+                if (iosTabBar != null) {
+                    iosTabBar.setTag("miogram_custom_layout");
+                    ((ContentView) fragmentView).addView(iosTabBar, LayoutHelper.createFrame(
+                            LayoutHelper.MATCH_PARENT, 58, Gravity.BOTTOM | Gravity.LEFT));
+                }
             } else {
                 if (filterTabsView != null) {
                     filterTabsView.setVisibility(View.VISIBLE);

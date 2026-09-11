@@ -1543,6 +1543,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         } else {
                             drawVerified = !forbidVerified && chat.verified;
                             drawBotVerified = !forbidVerified && chat.bot_verification_icon != 0;
+                            emojiStatus.set((Drawable) null, false);
                         }
                     } else if (user != null) {
                         dialogBotVerificationIcon = DialogObject.getBotVerificationIcon(user);
@@ -1576,6 +1577,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                                     emojiStatus.set(PremiumGradient.getInstance().premiumStarDrawableMini, false);
                                     emojiStatus.setParticles(false, false);
                                 }
+                            } else {
+                                emojiStatus.set((Drawable) null, false);
                             }
                         }
                     }
