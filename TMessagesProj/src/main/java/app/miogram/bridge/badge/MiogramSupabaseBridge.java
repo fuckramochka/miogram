@@ -550,7 +550,7 @@ public class MiogramSupabaseBridge {
     public static void showSyncErrorDialog(Context context, String errorDetails) {
         AndroidUtilities.runOnUIThread(() -> {
             long now = System.currentTimeMillis();
-            if (now - lastSyncErrorDialogTime < 15_000L) {
+            if (now - lastSyncErrorDialogTime < 60_000L) {
                 return;
             }
             lastSyncErrorDialogTime = now;
@@ -581,8 +581,8 @@ public class MiogramSupabaseBridge {
                 });
 
                 AlertDialog dialog = builder.create();
-                dialog.setCanceledOnTouchOutside(false);
-                dialog.setCancelable(false);
+                dialog.setCanceledOnTouchOutside(true);
+                dialog.setCancelable(true);
                 dialog.show();
             } catch (Throwable t) {
                 FileLog.e(t);
@@ -612,23 +612,18 @@ public class MiogramSupabaseBridge {
         Utilities.globalQueue.postRunnable(() -> {
             HttpURLConnection connection = null;
             try {
-                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_users?on_conflict=user_id";
+                String endpoint = DEFAULT_SUPABASE_URL + "/rest/v1/miogram_badges?user_id=eq." + userId;
                 URL url = new URL(endpoint);
                 connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("POST");
+                connection.setRequestMethod("PATCH");
                 connection.setDoOutput(true);
                 connection.setConnectTimeout(8000);
                 connection.setReadTimeout(8000);
                 connection.setRequestProperty("apikey", DEFAULT_ANON_KEY);
                 connection.setRequestProperty("Authorization", "Bearer " + DEFAULT_ANON_KEY);
                 connection.setRequestProperty("Content-Type", "application/json");
-                connection.setRequestProperty("Prefer", "resolution=merge-duplicates");
-
-                String isoDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(new Date());
 
                 JSONObject body = new JSONObject();
-                body.put("user_id", userId);
-                body.put("last_seen_at", isoDate);
                 body.put("client_version", "Miogram " + BuildVars.BUILD_VERSION_STRING);
 
                 byte[] outBytes = body.toString().getBytes(StandardCharsets.UTF_8);
@@ -639,14 +634,9 @@ public class MiogramSupabaseBridge {
                 os.close();
 
                 int code = connection.getResponseCode();
-                FileLog.d("MiogramSupabaseBridge presence reported: " + code);
-                if (code < 200 || code >= 300) {
-                    showSyncErrorDialog(null, "Presence HTTP " + code);
-                }
+                FileLog.d("MiogramSupabaseBridge presence reported for user " + userId + ": " + code);
             } catch (Exception e) {
                 FileLog.e(e);
-                String msg = e.getMessage();
-                showSyncErrorDialog(null, (msg != null && !msg.isEmpty()) ? (e.getClass().getSimpleName() + ": " + msg) : e.toString());
             } finally {
                 if (connection != null) {
                     connection.disconnect();
