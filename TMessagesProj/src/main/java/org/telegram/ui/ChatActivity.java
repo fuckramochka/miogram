@@ -1577,6 +1577,15 @@ public class ChatActivity extends BaseFragment implements
         return isTopic || chatMode == MODE_SAVED || chatMode == MODE_QUICK_REPLIES || chatMode == MODE_SUGGESTIONS ? threadMessageId : 0L;
     }
 
+    private app.exteraless.ai.network.Client aiClient;
+
+    public app.exteraless.ai.network.Client getClient() {
+        if (aiClient == null) {
+            aiClient = new app.exteraless.ai.network.Client.Builder().build();
+        }
+        return aiClient;
+    }
+
     public SendMessageChatArguments getMessageChatSendParams() {
         final SendMessageChatArguments.Builder builder = new SendMessageChatArguments.Builder();
         if (chatMode == MODE_WELCOME_MESSAGES) {

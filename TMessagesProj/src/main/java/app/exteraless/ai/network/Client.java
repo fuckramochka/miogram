@@ -12,6 +12,7 @@ import org.telegram.messenger.Utilities;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -192,6 +193,18 @@ public class Client {
             }
         }
         return null;
+    }
+
+    public String getResponse(String prompt, GenerationCallback callback) {
+        String requestId = UUID.randomUUID().toString();
+        List<Message> messages = new ArrayList<>();
+        messages.add(new Message("user", prompt));
+        generate(requestId, messages, callback);
+        return requestId;
+    }
+
+    public void stopRequest(String requestId) {
+        cancel(requestId);
     }
 
     public void generate(String requestId, List<Message> messages, GenerationCallback callback) {
