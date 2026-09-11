@@ -363,12 +363,12 @@ public final class ExteraConfig {
 
     public static boolean getHideStories() {
         ensureLoaded();
-        return NaConfig.INSTANCE.getDisableStories().Bool();
+        return NaConfig.INSTANCE.getHideStoriesFromHeader().Bool();
     }
 
     public static void setHideStories(boolean value) {
         ensureLoaded();
-        NaConfig.INSTANCE.getDisableStories().setConfigBool(value);
+        NaConfig.INSTANCE.getHideStoriesFromHeader().setConfigBool(value);
     }
 
     public static boolean getHideFloatingButton() {
@@ -904,12 +904,12 @@ public final class ExteraConfig {
 
     public static boolean getReplaceEditedWithIcon() {
         ensureLoaded();
-        return ChatsConfig.replaceEditedWithIcon.Bool();
+        return NaConfig.INSTANCE.getUseEditedIcon().Bool();
     }
 
     public static void setReplaceEditedWithIcon(boolean value) {
         ensureLoaded();
-        ChatsConfig.replaceEditedWithIcon.setConfigBool(value);
+        NaConfig.INSTANCE.getUseEditedIcon().setConfigBool(value);
     }
 
     public static boolean getShowOnlineStatus() {

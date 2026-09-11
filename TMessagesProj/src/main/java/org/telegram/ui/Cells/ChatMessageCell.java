@@ -18934,7 +18934,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             } else if (messageObject.messageOwner.fwd_from != null && messageObject.messageOwner.fwd_from.imported) {
                 currentTimeString.insert(0, " ");
             } else {
-                String toInsert = edited && !TimeStringHelper.useEditedIcon() ? ", " : " "; // openExtera: + ChatsConfig.replaceEditedWithIcon
+                String toInsert = edited && !TimeStringHelper.useEditedIcon() ? ", " : " "; // openExtera: + NaConfig.UseEditedIcon
                 currentTimeString.insert(0, toInsert);
             }
         }
@@ -18975,7 +18975,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         }
         timeTextWidth = timeWidth = (int) Math.ceil(Theme.chat_timePaint.measureText(currentTimeString, 0, currentTimeString == null ? 0 : currentTimeString.length()));
         if (timeString instanceof SpannableStringBuilder) {
-            if (edited && TimeStringHelper.useEditedIcon() && TimeStringHelper.editedDrawable != null) { // openExtera: + ChatsConfig.replaceEditedWithIcon
+            if (edited && TimeStringHelper.useEditedIcon() && TimeStringHelper.editedDrawable != null) { // openExtera: + NaConfig.UseEditedIcon
                 timeTextWidth = timeWidth += TimeStringHelper.editedDrawable.getIntrinsicWidth();
             }
             if (ayuDeleted && NaConfig.INSTANCE.getUseDeletedIcon().Bool() && TimeStringHelper.deletedDrawable != null) {

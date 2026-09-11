@@ -176,8 +176,9 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
 
         nagramHeaderRow = addRow("nagramHeader");
         nagramSettingsRow = addRow("nagramSettings");
+        ayuGhostRow = addRow("ayuGhost");
         ayuMomentsRow = addRow("ayuMoments");
-        ayuGhostRow = ayuRegexRow = ayuSaveLastSeenRow = ayuSaveDeletedRow = ayuSaveEditsRow = -1;
+        ayuRegexRow = ayuSaveLastSeenRow = ayuSaveDeletedRow = ayuSaveEditsRow = -1;
         ayuSaveMediaRow = ayuBotUserRow = ayuBotChatRow = ayuTranslucentRow = -1;
         ayuSaveDeletedPrivateRow = ayuSaveDeletedGroupsRow = ayuSaveDeletedChannelsRow = -1;
         ayuReplyToDeletedRow = -1;
@@ -185,7 +186,6 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
         saveMediaPublicGroupsRow = saveMediaPrivateGroupsRow = -1;
         ayuDeletedIconRow = ayuDeletedMarkRow = ayuForwardProtectedRow = ayuClearDbRow = -1;
         if (GeneralConfig.showAyuMoments()) {
-            ayuGhostRow = addRow("ayuGhost");
             ayuRegexRow = addRow(NaConfig.INSTANCE.getRegexFiltersEnabled().getKey());
             ayuSaveLastSeenRow = addRow(NaConfig.INSTANCE.getSaveLocalLastSeen().getKey());
             ayuSaveDeletedRow = addRow(NaConfig.INSTANCE.getEnableSaveDeletedMessages().getKey());

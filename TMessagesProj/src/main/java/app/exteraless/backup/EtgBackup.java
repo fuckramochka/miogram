@@ -323,7 +323,7 @@ public final class EtgBackup {
         bool(list, "singleCornerRadius", AppearanceConfig.singleCornerRadius);
         bool(list, "hideActionBarStatus", AppearanceConfig.hideActionBarStatus);
         bool(list, "centerTitle", AppearanceConfig.centerTitle);
-        bool(list, "hideStories", NaConfig.INSTANCE.getDisableStories());
+        bool(list, "hideStories", NaConfig.INSTANCE.getHideStoriesFromHeader());
         bool(list, "hideFloatingButton", NaConfig.INSTANCE.getDisableDialogsFloatingButton());
         bool(list, "hideDialogsSearchBar", NaConfig.INSTANCE.getHideDialogsSearchField());
         bool(list, "senderMiniAvatars", AppearanceConfig.senderMiniAvatars);
@@ -463,8 +463,8 @@ public final class EtgBackup {
     private static void addCompositeEntries(List<Entry> list) {
         // showIdAndDc: 0 скрыть, 1 Telegram API, 2 Bot API. У нас только тумблер.
         list.add(new Entry(SECTION_EXTERA, "showIdAndDc", KIND_INT, 0, 2, null,
-                () -> new JsonPrimitive(NekoConfig.showIdAndDc.Bool() ? 1 : 0),
-                value -> NekoConfig.showIdAndDc.setConfigBool(value.getAsInt() != 0)));
+                () -> new JsonPrimitive(NaConfig.INSTANCE.getIdDcType().Int()),
+                value -> NaConfig.INSTANCE.getIdDcType().setConfigInt(value.getAsInt())));
 
         // springAnimations у нас стало стилем анимации «назад»: 1 — пружина.
         list.add(new Entry(SECTION_EXTERA, "springAnimations", KIND_BOOL, 0, 0, null,

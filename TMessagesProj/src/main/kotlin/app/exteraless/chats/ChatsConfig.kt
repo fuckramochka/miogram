@@ -159,10 +159,6 @@ object ChatsConfig {
     @JvmField
     val removeMessageTail = addConfig("OEChatsRemoveMessageTail", ConfigItem.configTypeBool, true)
 
-    /** Заменять «edited» иконкой (только UI). */
-    @JvmField
-    val replaceEditedWithIcon = addConfig("OEChatsReplaceEditedWithIcon", ConfigItem.configTypeBool, true)
-
     /** Показывать результаты опроса до голосования (только UI). */
     @JvmField
     val showResultsBeforeVoting = addConfig("OEChatsShowResultsBeforeVoting", ConfigItem.configTypeBool, false)
