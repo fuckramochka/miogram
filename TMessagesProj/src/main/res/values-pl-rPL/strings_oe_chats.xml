@@ -42,6 +42,7 @@
     <string name="OEChatsDisableGreetingSticker">Wyłącz naklejkę powitalną</string>
     <string name="OEChatsHideSendAsPeer">Ukryj przycisk „Wyślij jako…”</string>
     <string name="OEChatsHideSendAsPeerInfo">Menu „Wyślij jako…” nadal otworzysz, przytrzymując przycisk emoji/naklejek/GIF-ów.</string>
+    <string name="OEChatsDisableGlobalSearch">Wyłącz wyszukiwanie globalne</string>
     <string name="OEChatsTapToSwitchRecord">Dotknięcie przełącza głos i wideo</string>
     <string name="OEChatsKeepAttachButton">Zachowaj przycisk załącznika podczas pisania</string>
     <string name="OEChatsRemoveMessageTail">Usuń ogonek dymka</string>

@@ -49,6 +49,7 @@
     <string name="OEChatsDisableGreetingSticker">Отключить приветственный стикер</string>
     <string name="OEChatsHideSendAsPeer">Скрыть кнопку «Отправить как…»</string>
     <string name="OEChatsHideSendAsPeerInfo">Меню «Отправить как…» остаётся доступным по долгому нажатию на кнопку эмодзи/стикеров/GIF.</string>
+    <string name="OEChatsDisableGlobalSearch">Отключить глобальный поиск</string>
     <string name="OEChatsTapToSwitchRecord">Нажатие переключает голос и видео</string>
     <string name="OEChatsKeepAttachButton">Сохранять кнопку вложения при наборе</string>
     <string name="OEChatsRemoveMessageTail">Убрать «хвостик» пузыря</string>

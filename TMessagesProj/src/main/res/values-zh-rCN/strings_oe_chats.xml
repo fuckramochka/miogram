@@ -42,6 +42,7 @@
     <string name="OEChatsDisableGreetingSticker">关闭问候贴纸</string>
     <string name="OEChatsHideSendAsPeer">隐藏「以…身份发送」按钮</string>
     <string name="OEChatsHideSendAsPeerInfo">长按表情/贴纸/GIF 按钮，仍可打开「以…身份发送」菜单。</string>
+    <string name="OEChatsDisableGlobalSearch">关闭全局搜索</string>
     <string name="OEChatsTapToSwitchRecord">点按切换语音和视频</string>
     <string name="OEChatsKeepAttachButton">输入时保留附件按钮</string>
     <string name="OEChatsRemoveMessageTail">去掉气泡小尾巴</string>

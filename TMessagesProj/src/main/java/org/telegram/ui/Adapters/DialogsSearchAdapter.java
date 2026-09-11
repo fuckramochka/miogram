@@ -78,6 +78,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 
+import xyz.nextalone.nagram.NaConfig;
+
 public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
 
     public final static int VIEW_TYPE_PROFILE_CELL = 0;
@@ -152,6 +154,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
     private int nextSearchRate;
     private int lastSearchId;
     private int lastGlobalSearchId;
+    private final boolean allowGlobalSearch;
     private int lastLocalSearchId;
     private int lastMessagesSearchId;
     private int dialogsType;
@@ -354,7 +357,8 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
                 return searchId == lastSearchId;
             }
         });
-        searchAdapterHelper.setAllowGlobalResults(allowGlobalSearch);
+        this.allowGlobalSearch = allowGlobalSearch;
+        searchAdapterHelper.setAllowGlobalResults(globalResultsAllowed());
         mContext = context;
         needMessagesSearch = messagesSearch;
         dialogsType = type;
@@ -1079,7 +1083,12 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
 
     int waitingResponseCount;
 
+    private boolean globalResultsAllowed() {
+        return allowGlobalSearch && !NaConfig.INSTANCE.getDisableGlobalSearch().Bool();
+    }
+
     public void searchDialogs(String text, int folderId, boolean allowPublicPosts) {
+        searchAdapterHelper.setAllowGlobalResults(globalResultsAllowed());
         if (text != null && text.equals(lastSearchText) && (folderId == this.folderId || TextUtils.isEmpty(text))) {
             return;
         }

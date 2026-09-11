@@ -51,6 +51,7 @@
     <string name="OEChatsDisableGreetingSticker">Disable Greeting Sticker</string>
     <string name="OEChatsHideSendAsPeer">Hide \"Send as…\" Button</string>
     <string name="OEChatsHideSendAsPeerInfo">You can still access the \"Send as…\" menu by long pressing the Emojis/Stickers/GIFs button.</string>
+    <string name="OEChatsDisableGlobalSearch">Disable Global Search</string>
     <string name="OEChatsTapToSwitchRecord">Tap to Switch Voice and Video</string>
     <string name="OEChatsKeepAttachButton">Keep the Attach Button While Typing</string>
     <string name="OEChatsRemoveMessageTail">Remove Message Tail</string>

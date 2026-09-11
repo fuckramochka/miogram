@@ -1401,6 +1401,12 @@ object NaConfig {
             ConfigItem.configTypeBool,
             false
         )
+    val disableGlobalSearch =
+        addConfig(
+            "DisableGlobalSearch",
+            ConfigItem.configTypeBool,
+            false
+        )
     val saveDeletedInPrivateChats =
         addConfig(
             "SaveDeletedInPrivateChats",

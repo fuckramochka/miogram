@@ -42,6 +42,7 @@
     <string name="OEChatsDisableGreetingSticker">Desactivar el sticker de saludo</string>
     <string name="OEChatsHideSendAsPeer">Ocultar el botón «Enviar como…»</string>
     <string name="OEChatsHideSendAsPeerInfo">Aún puedes abrir el menú «Enviar como…» manteniendo pulsado el botón de emojis/stickers/GIF.</string>
+    <string name="OEChatsDisableGlobalSearch">Desactivar la búsqueda global</string>
     <string name="OEChatsTapToSwitchRecord">Tocar para cambiar entre voz y video</string>
     <string name="OEChatsKeepAttachButton">Mantener el botón de adjuntar al escribir</string>
     <string name="OEChatsRemoveMessageTail">Quitar la cola del mensaje</string>

@@ -143,6 +143,7 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
     private int quickTransitionTopicsRow;
     private int disableGreetingRow;
     private int hideKeyboardOnScrollRow;
+    private int disableGlobalSearchRow;
     private int addCommaRow;
     private int hideSendAsPeerRow;
     private int tapToSwitchRecordRow;
@@ -302,6 +303,7 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
         }
         disableGreetingRow = addRow("disableGreeting");
         hideKeyboardOnScrollRow = addRow("hideKeyboardOnScroll");
+        disableGlobalSearchRow = addRow("disableGlobalSearch");
         addCommaRow = addRow("addCommaAfterMention");
         hideSendAsPeerRow = addRow("hideSendAsPeer");
         tapToSwitchRecordRow = addRow("tapToSwitchRecord");
@@ -1232,6 +1234,7 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
         if (position == hideReactionsPrivateRow) return ChatsConfig.hideReactionsInPrivate;
         if (position == disableGreetingRow) return NekoConfig.dontSendGreetingSticker;
         if (position == hideKeyboardOnScrollRow) return NekoConfig.hideKeyboardOnChatScroll;
+        if (position == disableGlobalSearchRow) return NaConfig.INSTANCE.getDisableGlobalSearch();
         if (position == addCommaRow) return OpenExteraConfig.addCommaAfterMention;
         if (position == hideSendAsPeerRow) return NekoConfig.hideSendAsChannel;
         if (position == keepAttachButtonRow) return ChatsConfig.keepAttachButton;
@@ -1721,6 +1724,8 @@ public class OpenExteraChatsActivity extends BaseNekoSettingsActivity {
                 cell.setTextAndCheck(getString(R.string.OEChatsDisableGreetingSticker), NekoConfig.dontSendGreetingSticker.Bool(), true);
             } else if (position == hideKeyboardOnScrollRow) {
                 cell.setTextAndCheck(getString(R.string.HideKeyboardOnChatScroll), NekoConfig.hideKeyboardOnChatScroll.Bool(), true);
+            } else if (position == disableGlobalSearchRow) {
+                cell.setTextAndCheck(getString(R.string.OEChatsDisableGlobalSearch), NaConfig.INSTANCE.getDisableGlobalSearch().Bool(), true);
             } else if (position == addCommaRow) {
                 cell.setTextAndCheck(getString(R.string.AddCommaAfterMention), OpenExteraConfig.addCommaAfterMention.Bool(), true);
             } else if (position == hideSendAsPeerRow) {
