@@ -98,6 +98,8 @@ public class SimpleTextView extends View implements Drawable.Callback {
     private int textHeight;
     public int rightDrawableX;
     public int rightDrawableY;
+    public int rightDrawable2X;
+    public int rightDrawable2Y;
     private boolean wasLayout;
 
     private boolean leftDrawableOutside, rightDrawableOutside;
@@ -128,7 +130,9 @@ public class SimpleTextView extends View implements Drawable.Callback {
     private boolean canHideRightDrawable;
     private boolean rightDrawableHidden;
     private OnClickListener rightDrawableOnClickListener;
+    private OnClickListener rightDrawable2OnClickListener;
     private boolean maybeClick;
+    private boolean maybeClick2;
     private float touchDownX, touchDownY;
 
     private AnimatedEmojiSpan.EmojiGroupedSpans emojiStack;
@@ -1152,6 +1156,8 @@ public class SimpleTextView extends View implements Drawable.Callback {
                 y = getPaddingTop() + (textHeight - dh) / 2 + rightDrawableTopPadding;
             }
             rightDrawable2.setBounds(x, y, x + dw, y + dh);
+            rightDrawable2X = x + (dw >> 1);
+            rightDrawable2Y = y + (dh >> 1);
             rightDrawable2.draw(canvas);
         }
     }
@@ -1162,6 +1168,14 @@ public class SimpleTextView extends View implements Drawable.Callback {
 
     public int getRightDrawableY() {
         return rightDrawableY;
+    }
+
+    public int getRightDrawable2X() {
+        return rightDrawable2X;
+    }
+
+    public int getRightDrawable2Y() {
+        return rightDrawable2Y;
     }
 
     public int getMaxTextWidth() {
@@ -1331,38 +1345,86 @@ public class SimpleTextView extends View implements Drawable.Callback {
         rightDrawableOnClickListener = onClickListener;
     }
 
+    public void setRightDrawable2OnClick(OnClickListener onClickListener) {
+        rightDrawable2OnClickListener = onClickListener;
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (rightDrawableOnClickListener != null && rightDrawable != null) {
-            AndroidUtilities.rectTmp.set(rightDrawableX - dp(16), rightDrawableY - dp(16), rightDrawableX + dp(16), rightDrawableY + dp(16));
-            if (event.getAction() == MotionEvent.ACTION_DOWN && AndroidUtilities.rectTmp.contains((int) event.getX(), (int) event.getY())) {
-                maybeClick = true;
-                touchDownX = event.getX();
-                touchDownY = event.getY();
-                getParent().requestDisallowInterceptTouchEvent(true);
-                if (rightDrawable instanceof PressableDrawable) {
-                    ((PressableDrawable) rightDrawable).setPressed(true);
-                }
-            } else if (event.getAction() == MotionEvent.ACTION_MOVE && maybeClick) {
-                if (Math.abs(event.getX() - touchDownX) >= AndroidUtilities.touchSlop || Math.abs(event.getY() - touchDownY) >= AndroidUtilities.touchSlop) {
-                    maybeClick = false;
-                    getParent().requestDisallowInterceptTouchEvent(false);
-                    if (rightDrawable instanceof PressableDrawable) {
-                        ((PressableDrawable) rightDrawable).setPressed(false);
+        if ((rightDrawableOnClickListener != null && rightDrawable != null) || (rightDrawable2OnClickListener != null && rightDrawable2 != null)) {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                if (rightDrawableOnClickListener != null && rightDrawable != null) {
+                    if (rightDrawable2 != null && rightDrawable2OnClickListener == null) {
+                        int minX = Math.min(rightDrawableX, rightDrawable2X) - dp(16);
+                        int maxX = Math.max(rightDrawableX, rightDrawable2X) + dp(16);
+                        int minY = Math.min(rightDrawableY, rightDrawable2Y) - dp(16);
+                        int maxY = Math.max(rightDrawableY, rightDrawable2Y) + dp(16);
+                        AndroidUtilities.rectTmp.set(minX, minY, maxX, maxY);
+                    } else {
+                        AndroidUtilities.rectTmp.set(rightDrawableX - dp(16), rightDrawableY - dp(16), rightDrawableX + dp(16), rightDrawableY + dp(16));
                     }
+                    if (AndroidUtilities.rectTmp.contains((int) event.getX(), (int) event.getY())) {
+                        maybeClick = true;
+                        touchDownX = event.getX();
+                        touchDownY = event.getY();
+                        getParent().requestDisallowInterceptTouchEvent(true);
+                        if (rightDrawable instanceof PressableDrawable) {
+                            ((PressableDrawable) rightDrawable).setPressed(true);
+                        }
+                    }
+                }
+                if (!maybeClick && rightDrawable2OnClickListener != null && rightDrawable2 != null) {
+                    AndroidUtilities.rectTmp.set(rightDrawable2X - dp(16), rightDrawable2Y - dp(16), rightDrawable2X + dp(16), rightDrawable2Y + dp(16));
+                    if (AndroidUtilities.rectTmp.contains((int) event.getX(), (int) event.getY())) {
+                        maybeClick2 = true;
+                        touchDownX = event.getX();
+                        touchDownY = event.getY();
+                        getParent().requestDisallowInterceptTouchEvent(true);
+                        if (rightDrawable2 instanceof PressableDrawable) {
+                            ((PressableDrawable) rightDrawable2).setPressed(true);
+                        }
+                    }
+                }
+            } else if (event.getAction() == MotionEvent.ACTION_MOVE && (maybeClick || maybeClick2)) {
+                if (Math.abs(event.getX() - touchDownX) >= AndroidUtilities.touchSlop || Math.abs(event.getY() - touchDownY) >= AndroidUtilities.touchSlop) {
+                    if (maybeClick) {
+                        maybeClick = false;
+                        if (rightDrawable instanceof PressableDrawable) {
+                            ((PressableDrawable) rightDrawable).setPressed(false);
+                        }
+                    }
+                    if (maybeClick2) {
+                        maybeClick2 = false;
+                        if (rightDrawable2 instanceof PressableDrawable) {
+                            ((PressableDrawable) rightDrawable2).setPressed(false);
+                        }
+                    }
+                    getParent().requestDisallowInterceptTouchEvent(false);
                 }
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
-                if (maybeClick && event.getAction() == MotionEvent.ACTION_UP) {
-                    rightDrawableOnClickListener.onClick(this);
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    if (maybeClick && rightDrawableOnClickListener != null) {
+                        rightDrawableOnClickListener.onClick(this);
+                    } else if (maybeClick2 && rightDrawable2OnClickListener != null) {
+                        rightDrawable2OnClickListener.onClick(this);
+                    }
+                }
+                if (maybeClick) {
                     if (rightDrawable instanceof PressableDrawable) {
                         ((PressableDrawable) rightDrawable).setPressed(false);
                     }
+                    maybeClick = false;
                 }
-                maybeClick = false;
+                if (maybeClick2) {
+                    if (rightDrawable2 instanceof PressableDrawable) {
+                        ((PressableDrawable) rightDrawable2).setPressed(false);
+                    }
+                    maybeClick2 = false;
+                }
                 getParent().requestDisallowInterceptTouchEvent(false);
             }
         }
-        return super.onTouchEvent(event) || maybeClick;
+        return super.onTouchEvent(event) || maybeClick || maybeClick2;
     }
 
     public static interface PressableDrawable {

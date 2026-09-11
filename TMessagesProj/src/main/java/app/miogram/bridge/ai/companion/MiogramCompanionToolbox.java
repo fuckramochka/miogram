@@ -171,7 +171,10 @@ public class MiogramCompanionToolbox {
         // 1. Scan Dialogs
         ArrayList<TLRPC.Dialog> all = mc.getAllDialogs();
         if (all == null || all.isEmpty()) {
-            all = mc.dialogs_main;
+            all = mc.getDialogs(0);
+        }
+        if (all == null || all.isEmpty()) {
+            all = mc.dialogsServerOnly;
         }
         if (all != null) {
             for (int i = 0; i < all.size(); i++) {

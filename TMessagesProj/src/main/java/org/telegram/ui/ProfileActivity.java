@@ -12039,12 +12039,77 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     nameTextView[a].setRightDrawableOnClick(v -> {
                         new app.miogram.bridge.badge.MiogramBadgeBottomSheet(ProfileActivity.this, user.id).show();
                     });
-                } else if (user.self && getMessagesController().isPremiumUser(user)) {
+                    if (user.self && getMessagesController().isPremiumUser(user)) {
+                        nameTextView[a].setRightDrawable2OnClick(v -> {
+                            showStatusSelect();
+                        });
+                    } else if (!user.self && getMessagesController().isPremiumUser(user)) {
+                        final SimpleTextView textView = nameTextView[a];
+                        nameTextView[a].setRightDrawable2OnClick(v -> {
+                            if (user.emoji_status instanceof TLRPC.TL_emojiStatusCollectible) {
+                                TLRPC.TL_emojiStatusCollectible status = (TLRPC.TL_emojiStatusCollectible) user.emoji_status;
+                                if (status != null) {
+                                    Browser.openUrl(getContext(), "https://" + getMessagesController().linkPrefix + "/nft/" + status.slug);
+                                }
+                                return;
+                            }
+                            PremiumPreviewBottomSheet premiumPreviewBottomSheet = new PremiumPreviewBottomSheet(ProfileActivity.this, currentAccount, user, resourcesProvider);
+                            int[] coords = new int[2];
+                            textView.getLocationOnScreen(coords);
+                            premiumPreviewBottomSheet.startEnterFromX = textView.rightDrawable2X;
+                            premiumPreviewBottomSheet.startEnterFromY = textView.rightDrawable2Y;
+                            premiumPreviewBottomSheet.startEnterFromScale = textView.getScaleX();
+                            premiumPreviewBottomSheet.startEnterFromX1 = textView.getLeft();
+                            premiumPreviewBottomSheet.startEnterFromY1 = textView.getTop();
+                            premiumPreviewBottomSheet.startEnterFromView = textView;
+                            if (textView.getRightDrawable2() == emojiStatusDrawable[1] && emojiStatusDrawable[1] != null && emojiStatusDrawable[1].getDrawable() instanceof AnimatedEmojiDrawable) {
+                                premiumPreviewBottomSheet.startEnterFromScale *= 0.98f;
+                                TLRPC.Document document = ((AnimatedEmojiDrawable) emojiStatusDrawable[1].getDrawable()).getDocument();
+                                if (document != null) {
+                                    BackupImageView icon = new BackupImageView(getContext());
+                                    String filter = "160_160";
+                                    ImageLocation mediaLocation;
+                                    String mediaFilter;
+                                    SvgHelper.SvgDrawable thumbDrawable = DocumentObject.getSvgThumb(document.thumbs, Theme.key_windowBackgroundWhiteGrayIcon, 0.2f);
+                                    TLRPC.PhotoSize thumb = FileLoader.getClosestPhotoSizeWithSize(document.thumbs, 90);
+                                    if ("video/webm".equals(document.mime_type)) {
+                                        mediaLocation = ImageLocation.getForDocument(document);
+                                        mediaFilter = filter + "_" + ImageLoader.AUTOPLAY_FILTER;
+                                        if (thumbDrawable != null) {
+                                            thumbDrawable.overrideWidthAndHeight(512, 512);
+                                        }
+                                    } else {
+                                        if (thumbDrawable != null && MessageObject.isAnimatedStickerDocument(document, false)) {
+                                            thumbDrawable.overrideWidthAndHeight(512, 512);
+                                        }
+                                        mediaLocation = ImageLocation.getForDocument(document);
+                                        mediaFilter = filter;
+                                    }
+                                    icon.setLayerNum(7);
+                                    icon.setRoundRadius(AndroidUtilities.dp(4));
+                                    icon.setImage(mediaLocation, mediaFilter, ImageLocation.getForDocument(thumb, document), "140_140", thumbDrawable, document);
+                                    if (((AnimatedEmojiDrawable) emojiStatusDrawable[1].getDrawable()).canOverrideColor()) {
+                                        icon.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteBlueIcon), PorterDuff.Mode.SRC_IN));
+                                        premiumPreviewBottomSheet.statusStickerSet = MessageObject.getInputStickerSet(document);
+                                    } else {
+                                        premiumPreviewBottomSheet.statusStickerSet = MessageObject.getInputStickerSet(document);
+                                    }
+                                    premiumPreviewBottomSheet.overrideTitleIcon = icon;
+                                    premiumPreviewBottomSheet.isEmojiStatus = true;
+                                }
+                            }
+                            showDialog(premiumPreviewBottomSheet);
+                        });
+                    } else {
+                        nameTextView[a].setRightDrawable2OnClick(null);
+                    }
+                } else if (user != null && user.self && getMessagesController().isPremiumUser(user)) {
                     nameTextView[a].setRightDrawableOnClick(v -> {
                         showStatusSelect();
                     });
-                }
-                if (!user.self && getMessagesController().isPremiumUser(user)) {
+                    nameTextView[a].setRightDrawable2OnClick(null);
+                } else if (user != null && !user.self && getMessagesController().isPremiumUser(user)) {
+                    nameTextView[a].setRightDrawable2OnClick(null);
                     final SimpleTextView textView = nameTextView[a];
                     nameTextView[a].setRightDrawableOnClick(v -> {
                         if (user.emoji_status instanceof TLRPC.TL_emojiStatusCollectible) {
@@ -12101,6 +12166,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         }
                         showDialog(premiumPreviewBottomSheet);
                     });
+                } else {
+                    nameTextView[a].setRightDrawableOnClick(null);
+                    nameTextView[a].setRightDrawable2OnClick(null);
                 }
             }
 
