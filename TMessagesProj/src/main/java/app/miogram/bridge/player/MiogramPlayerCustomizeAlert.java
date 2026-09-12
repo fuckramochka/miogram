@@ -55,8 +55,9 @@ public class MiogramPlayerCustomizeAlert extends BottomSheet {
         root.setBackgroundColor(bgColor);
         root.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(12), AndroidUtilities.dp(20), AndroidUtilities.dp(24));
 
-        int accentColor = getThemedColor(Theme.key_windowBackgroundWhiteBlueHeader);
-        if (accentColor == 0) accentColor = 0xFF5B8DEF;
+        int accentColorTmp = getThemedColor(Theme.key_windowBackgroundWhiteBlueHeader);
+        if (accentColorTmp == 0) accentColorTmp = 0xFF5B8DEF;
+        final int accentColor = accentColorTmp;
         int textColor = getThemedColor(Theme.key_dialogTextBlack);
         if (textColor == 0) textColor = 0xFFFFFFFF;
         int subTextColor = getThemedColor(Theme.key_dialogTextGray2);
@@ -210,16 +211,17 @@ public class MiogramPlayerCustomizeAlert extends BottomSheet {
         };
 
         for (int[] p : presets) {
+            final int[] pp = p;
             FrameLayout chip = new FrameLayout(context);
-            GradientDrawable chipBg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{p[0], p[1]});
+            GradientDrawable chipBg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{pp[0], pp[1]});
             chipBg.setShape(GradientDrawable.OVAL);
             chipBg.setStroke(AndroidUtilities.dp(2), 0x44FFFFFF);
             chip.setBackground(chipBg);
             chip.setOnClickListener(v -> {
                 MiogramHaptic.tap(v);
-                MiogramPlayerPrefs.setGradientColor1(p[0]);
-                MiogramPlayerPrefs.setGradientColor2(p[1]);
-                MiogramPlayerPrefs.setSolidColor(p[2]);
+                MiogramPlayerPrefs.setGradientColor1(pp[0]);
+                MiogramPlayerPrefs.setGradientColor2(pp[1]);
+                MiogramPlayerPrefs.setSolidColor(pp[2]);
                 // Preset implies gradient — switch so user instantly sees result.
                 MiogramPlayerPrefs.setBackgroundMode(MiogramPlayerPrefs.BG_MODE_GRADIENT);
                 updateModeButtonStyles(modeButtons, modeValues, accentColor);
