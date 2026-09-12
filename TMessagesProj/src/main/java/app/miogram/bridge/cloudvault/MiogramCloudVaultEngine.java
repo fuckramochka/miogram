@@ -15,6 +15,7 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
@@ -84,6 +85,10 @@ public class MiogramCloudVaultEngine {
         return ApplicationLoader.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     }
 
+    private static SharedPreferences getPrefs(int currentAccount) {
+        return ApplicationLoader.applicationContext.getSharedPreferences(PREFS_NAME + "_" + currentAccount, Context.MODE_PRIVATE);
+    }
+
     // --- Master Key Management ---
 
     public static byte[] getMasterKey() {
@@ -136,6 +141,10 @@ public class MiogramCloudVaultEngine {
 
     public static boolean isVaultLinked(int currentAccount) {
         return getVaultChatId(currentAccount) != 0;
+    }
+
+    public static boolean hasVault(int currentAccount) {
+        return isVaultLinked(currentAccount);
     }
 
     // --- Cryptographic Primitives (AES-256-GCM) ---
