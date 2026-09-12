@@ -106,6 +106,7 @@ public class NekoExperimentalSettingsActivity extends BaseNekoXSettingsActivity 
                     getString(R.string.BackAnimationClassic),
                     getString(R.string.BackAnimationSpring),
                     getString(R.string.BackAnimationPredictive),
+                    getString(R.string.OEBackAnimationSlide),
             } : new String[]{
                     getString(R.string.BackAnimationClassic),
                     getString(R.string.BackAnimationSpring),
@@ -113,11 +114,12 @@ public class NekoExperimentalSettingsActivity extends BaseNekoXSettingsActivity 
     private final AbstractConfigCell springAnimationCrossfadeRow = cellGroup.appendCell(new ConfigCellTextCheck(NaConfig.INSTANCE.getSpringAnimationCrossfade()));
     private final AbstractConfigCell localPremiumRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.localPremium));
     private final AbstractConfigCell unlimitedPinnedDialogsRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.unlimitedPinnedDialogs, getString(R.string.UnlimitedPinnedDialogsAbout)));
+    private final AbstractConfigCell unlimitedFavedStickersRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.unlimitedFavedStickers, getString(R.string.UnlimitedFavoredStickersAbout)));
     private final AbstractConfigCell dividerGeneral = cellGroup.appendCell(new ConfigCellDivider());
 
     // Connections
     private final AbstractConfigCell headerConnection = cellGroup.appendCell(new ConfigCellHeader(getString(R.string.Connection)));
-    private final AbstractConfigCell enhancedFileLoaderRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.enhancedFileLoader));
+    private final AbstractConfigCell boostUploadRow = cellGroup.appendCell(new ConfigCellTextCheck(NekoConfig.uploadBoost));
     private final AbstractConfigCell dividerConnection = cellGroup.appendCell(new ConfigCellDivider());
 
     // Media
@@ -141,8 +143,12 @@ public class NekoExperimentalSettingsActivity extends BaseNekoXSettingsActivity 
     private final AbstractConfigCell enableSaveDeletedMessagesRow = cellGroup.appendCell(new ConfigCellTextCheck(NaConfig.INSTANCE.getEnableSaveDeletedMessages()));
     private final AbstractConfigCell enableSaveEditsHistoryRow = cellGroup.appendCell(new ConfigCellTextCheck(NaConfig.INSTANCE.getEnableSaveEditsHistory()));
     private final AbstractConfigCell messageSavingSaveMediaRow = cellGroup.appendCell(new ConfigCellTextCheck(NaConfig.INSTANCE.getMessageSavingSaveMedia(), getString(R.string.MessageSavingSaveMediaHint)));
+    private final AbstractConfigCell saveDeletedInPrivateChatsRow = cellGroup.appendCell(new ConfigCellTextCheck(NaConfig.INSTANCE.getSaveDeletedInPrivateChats()));
+    private final AbstractConfigCell saveDeletedInGroupsRow = cellGroup.appendCell(new ConfigCellTextCheck(NaConfig.INSTANCE.getSaveDeletedInGroups()));
+    private final AbstractConfigCell saveDeletedInChannelsRow = cellGroup.appendCell(new ConfigCellTextCheck(NaConfig.INSTANCE.getSaveDeletedInChannels()));
     private final AbstractConfigCell saveDeletedMessageForBotsUserRow = cellGroup.appendCell(new ConfigCellTextCheck(NaConfig.INSTANCE.getSaveDeletedMessageForBotUser()));
     private final AbstractConfigCell saveDeletedMessageInBotChatRow = cellGroup.appendCell(new ConfigCellTextCheck(NaConfig.INSTANCE.getSaveDeletedMessageForBot()));
+    private final AbstractConfigCell replyToDeletedAsQuoteRow = cellGroup.appendCell(new ConfigCellTextCheck(NaConfig.INSTANCE.getReplyToDeletedAsQuote(), getString(R.string.ReplyToDeletedAsQuoteInfo)));
     private final AbstractConfigCell translucentDeletedMessagesRow = cellGroup.appendCell(new ConfigCellTextCheck(NaConfig.INSTANCE.getTranslucentDeletedMessages()));
     private final AbstractConfigCell useDeletedIconRow = cellGroup.appendCell(new ConfigCellTextCheck(NaConfig.INSTANCE.getUseDeletedIcon()));
     private final AbstractConfigCell customDeletedMarkRow = cellGroup.appendCell(new ConfigCellTextInput(null, NaConfig.INSTANCE.getCustomDeletedMark(), "", null));
@@ -625,8 +631,12 @@ public class NekoExperimentalSettingsActivity extends BaseNekoXSettingsActivity 
         final boolean isSaveEnabled = NaConfig.INSTANCE.getEnableSaveDeletedMessages().Bool();
         final List<AbstractConfigCell> allManagedRows = Arrays.asList(
                 messageSavingSaveMediaRow,
+                saveDeletedInPrivateChatsRow,
+                saveDeletedInGroupsRow,
+                saveDeletedInChannelsRow,
                 saveDeletedMessageForBotsUserRow,
                 saveDeletedMessageInBotChatRow,
+                replyToDeletedAsQuoteRow,
                 translucentDeletedMessagesRow,
                 useDeletedIconRow,
                 customDeletedMarkRow
@@ -656,10 +666,14 @@ public class NekoExperimentalSettingsActivity extends BaseNekoXSettingsActivity 
         if (isSaveEnabled) {
             final List<AbstractConfigCell> rowsToAdd = new ArrayList<>();
             rowsToAdd.add(messageSavingSaveMediaRow);
+            rowsToAdd.add(saveDeletedInPrivateChatsRow);
+            rowsToAdd.add(saveDeletedInGroupsRow);
+            rowsToAdd.add(saveDeletedInChannelsRow);
             rowsToAdd.add(saveDeletedMessageForBotsUserRow);
             if (NaConfig.INSTANCE.getSaveDeletedMessageForBotUser().Bool()) {
                 rowsToAdd.add(saveDeletedMessageInBotChatRow);
             }
+            rowsToAdd.add(replyToDeletedAsQuoteRow);
             rowsToAdd.add(translucentDeletedMessagesRow);
             rowsToAdd.add(useDeletedIconRow);
             if (!NaConfig.INSTANCE.getUseDeletedIcon().Bool()) {

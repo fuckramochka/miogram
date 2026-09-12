@@ -3,6 +3,7 @@
 .kotlin
 .vscode
 *.aar
+!TMessagesProj/libs/glyph-matrix-sdk-2.0.aar
 *.so
 *.iml
 **/.DS_Store
@@ -19,8 +20,13 @@ TMessagesProj/jni/ffmpeg/build_android
 __pycache__/
 *.pyc
 
+# JVM crash dumps
+hs_err_pid*.log
+replay_pid*.log
+
 # Ключ подписи
 TMessagesProj/release.keystore
+TMessagesProj/release/
 tests/local/
 hs_err_*
 release_apk_latest/

@@ -22,6 +22,7 @@ import android.text.style.ImageSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityEvent;
@@ -159,6 +160,30 @@ public class LiteModeSettingsActivity extends BaseFragment {
         updateItems();
 
         return fragmentView;
+    }
+
+    @Override
+    public boolean isSwipeBackEnabled(MotionEvent event) {
+        if (event != null && listView != null) {
+            for (int i = 0; i < listView.getChildCount(); ++i) {
+                View child = listView.getChildAt(i);
+                if (child instanceof PowerSaverSlider
+                        && touchesSeekBar(((PowerSaverSlider) child).seekBarView, event)) {
+                    return false;
+                }
+            }
+        }
+        return super.isSwipeBackEnabled(event);
+    }
+
+    private static boolean touchesSeekBar(View seekBar, MotionEvent event) {
+        if (seekBar == null) {
+            return false;
+        }
+        int[] position = new int[2];
+        seekBar.getLocationOnScreen(position);
+        float y = event.getRawY();
+        return y >= position[1] - dp(10) && y <= position[1] + seekBar.getHeight() + dp(10);
     }
 
     @Override

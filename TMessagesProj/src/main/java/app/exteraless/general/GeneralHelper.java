@@ -123,7 +123,7 @@ public final class GeneralHelper {
         resetToDefault(NekoConfig.uploadBoost);
         resetToDefault(NekoConfig.customSavePath);
         resetToDefault(NekoConfig.hidePhone);
-        resetToDefault(NekoConfig.showIdAndDc);
+        resetToDefault(NaConfig.INSTANCE.getIdDcType());
         resetToDefault(NaConfig.INSTANCE.getHideArchive());
         resetToDefault(NekoConfig.openArchiveOnPull);
         resetToDefault(NaConfig.INSTANCE.getDoNotUnarchiveBySwipe());

@@ -20,7 +20,8 @@ import os
 import re
 import sys
 import threading
-from dataclasses import dataclass, field
+from collections import namedtuple
+from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Dict, List, Optional
 
 # Make sibling top-level modules (base_plugin, ui, ...) importable regardless
@@ -67,6 +68,7 @@ __all__ = [
     "plugin_context", "current_plugin_id",
     # песочница
     "caller_plugin_id", "has_permission", "require_permission", "plugin_files",
+    "unsafe_mode", "set_unsafe_mode",
     "PERM_UI", "PERM_MESSAGES_READ", "PERM_MESSAGES_SEND", "PERM_NETWORK",
     "PERM_FILES", "PERM_INTENTS", "PERM_SETTINGS", "PERM_HOOKS", "PERM_NATIVE",
 ]
@@ -87,6 +89,7 @@ class PluginRecord:
 
 plugins: Dict[str, PluginRecord] = {}
 
+_HookDispatchResult = namedtuple("_HookDispatchResult", ("strategy", "value"))
 _VALID_STRATEGIES = frozenset({
     HookStrategy.DEFAULT, HookStrategy.CANCEL, HookStrategy.MODIFY, HookStrategy.MODIFY_FINAL,
 })
@@ -383,7 +386,7 @@ _INTERNAL_MODULES = frozenset({
 
 def _deny_internal_import(name, fromlist=()) -> None:
     """Бросить ImportError, если плагин лезет во внутренний модуль движка."""
-    if type(name) is not str:
+    if type(name) is not str or unsafe_mode():
         return
     candidates = [name]
     if fromlist:
@@ -484,6 +487,8 @@ def guard_java_class(name):
     (app.exteraless.plugins.PluginSinkGate), эта проверка лишь снимает самый
     ходовой путь: 178 плагинов зовут find_class, 94 — jclass.
     """
+    if unsafe_mode():
+        return True
     if name in _JAVA_CLASS_DENIED:
         pid = plugin_frame_owner()
         if pid is not None:
@@ -706,6 +711,8 @@ def _permissions():
 
 def has_permission(perm: str, plugin_id: Optional[str] = None) -> bool:
     """Тихая проверка. Вне кода плагина и без JVM — True (гейтить нечего)."""
+    if unsafe_mode():
+        return True
     pid = plugin_id or caller_plugin_id()
     if pid is None:
         return True
@@ -716,6 +723,27 @@ def has_permission(perm: str, plugin_id: Optional[str] = None) -> bool:
         return bool(java.hasPermission(pid, perm))
     except Exception:
         return True
+
+
+_unsafe_mode: Optional[bool] = None
+
+
+def set_unsafe_mode(value) -> None:
+    global _unsafe_mode
+    _unsafe_mode = bool(value)
+
+
+def unsafe_mode() -> bool:
+    global _unsafe_mode
+    if _unsafe_mode is None:
+        java = _permissions()
+        if java is None:
+            return False
+        try:
+            _unsafe_mode = bool(java.isUnsafeMode())
+        except Exception:
+            return False
+    return _unsafe_mode
 
 
 def require_permission(perm: str, what: str, detail: Optional[str] = None,
@@ -731,6 +759,8 @@ def require_permission(perm: str, what: str, detail: Optional[str] = None,
     исключения, иначе множество дедупликации на Java-стороне росло бы
     на каждый новый путь.
     """
+    if unsafe_mode():
+        return
     pid = plugin_id or caller_plugin_id()
     if pid is None:
         return
@@ -840,6 +870,30 @@ def _sandboxed_import_module(name, package=None):
 _sandboxed_import_module._exteraless_sandbox = True
 
 
+def _log_neighbour_import_failure(name, exc) -> None:
+    """Плагин не смог импортировать соседа: настоящая причина — в лог.
+
+    Плагины каталога ловят такой сбой сами и показывают своё «библиотека не
+    установлена», подменяя причину. Без этой записи в логах не остаётся
+    ничего: ни имени модуля, ни исключения.
+    """
+    try:
+        pid = _direct_plugin_caller()
+        if pid is None:
+            return
+        root = name.partition(".")[0]
+        if root == pid:
+            return
+        plugins_dir = _plugins_dir_path()
+        if not plugins_dir or not os.path.isfile(os.path.join(plugins_dir, root + ".py")):
+            return
+        _log_once(f"{pid}|neighbour|{root}|{type(exc).__name__}",
+                  f"plugin {pid!r}: import {root!r} failed: "
+                  f"{type(exc).__name__}: {exc}")
+    except Exception:
+        pass
+
+
 def _sandboxed_import(name, globals=None, locals=None, fromlist=(), level=0):
     """Обёртка builtins.__import__.
 
@@ -856,7 +910,11 @@ def _sandboxed_import(name, globals=None, locals=None, fromlist=(), level=0):
             pass
     if level != 0 or type(name) is not str \
             or name.partition(".")[0] not in _JAVA_ROOTS:
-        return _original_import(name, globals, locals, fromlist, level)
+        try:
+            return _original_import(name, globals, locals, fromlist, level)
+        except Exception as exc:
+            _log_neighbour_import_failure(name, exc)
+            raise
     try:
         return _original_import(name, globals, locals, fromlist, level)
     except ModuleNotFoundError as exc:
@@ -1056,6 +1114,104 @@ def _install_jclass_guard() -> None:
         print(f"[exteraless:plugin_loader] jclass guard failed: {e}", file=sys.stderr)
 
 
+_PROXY_DEFAULTS = {
+    "void": None,
+    "boolean": False,
+    "byte": 0,
+    "short": 0,
+    "int": 0,
+    "long": 0,
+    "float": 0.0,
+    "double": 0.0,
+    "char": "\0",
+}
+
+
+def _proxy_return_defaults(interfaces):
+    defaults = {}
+    for interface in interfaces:
+        try:
+            methods = interface.getClass().getMethods()
+        except Exception:
+            continue
+        for index in range(len(methods)):
+            try:
+                method = methods[index]
+                name = str(method.getName())
+                if name in defaults:
+                    continue
+                defaults[name] = _PROXY_DEFAULTS.get(
+                    str(method.getReturnType().getName()))
+            except Exception:
+                continue
+    return defaults
+
+
+def _guard_proxy_method(fn, default, owner):
+    import functools
+
+    @functools.wraps(fn)
+    def guarded(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except PermissionError as e:
+            print(f"[exteraless:plugin_loader] {owner}.{fn.__name__} denied: {e}",
+                  file=sys.stderr)
+            return default
+        except Exception:
+            import traceback
+            print(f"[exteraless:plugin_loader] {owner}.{fn.__name__} "
+                  f"raised into Java:\n{traceback.format_exc()}", file=sys.stderr)
+            return default
+
+    guarded._exteraless_guarded = True
+    return guarded
+
+
+def _guard_proxy_subclass(cls, defaults):
+    for name, value in list(vars(cls).items()):
+        if name.startswith("__") or not callable(value):
+            continue
+        if defaults and name not in defaults:
+            continue
+        if getattr(value, "_exteraless_guarded", False):
+            continue
+        if isinstance(value, (staticmethod, classmethod, type)):
+            continue
+        try:
+            setattr(cls, name, _guard_proxy_method(value, defaults.get(name), cls.__name__))
+        except Exception:
+            continue
+
+
+def _install_dynamic_proxy_guard() -> None:
+    try:
+        import java
+        original = getattr(java, "dynamic_proxy", None)
+        if original is None or getattr(original, "_exteraless_guard", False):
+            return
+
+        def dynamic_proxy(*interfaces, **kwargs):
+            base = original(*interfaces, **kwargs)
+            try:
+                defaults = _proxy_return_defaults(interfaces)
+
+                def __init_subclass__(cls, **subclass_kwargs):
+                    _guard_proxy_subclass(cls, defaults)
+
+                base.__init_subclass__ = classmethod(__init_subclass__)
+            except Exception as e:
+                print(f"[exteraless:plugin_loader] proxy guard skipped: {e}",
+                      file=sys.stderr)
+            return base
+
+        dynamic_proxy._exteraless_guard = True
+        java.dynamic_proxy = dynamic_proxy
+    except Exception as e:
+        print(f"[exteraless:plugin_loader] dynamic_proxy guard failed: {e}",
+              file=sys.stderr)
+
+
 def _install_sandbox() -> None:
     """Поставить финдер и врапперы импорта/open. Идемпотентно, не бросает."""
     global _original_import, _original_import_module, _original_open
@@ -1082,6 +1238,7 @@ def _install_sandbox() -> None:
         audit_gate.install(sys.modules[__name__])
         _install_thread_marking()
         _install_jclass_guard()
+        _install_dynamic_proxy_guard()
         from . import class_aliases
         class_aliases.install_import_hook()
         if not any(isinstance(finder, _PermissionFinder) for finder in sys.meta_path):
@@ -1263,12 +1420,30 @@ def _import_module(path: str, plugin_id: str):
     return module, module_name
 
 
-def _find_plugin_class(module, path: str):
-    """The plugin class: a BasePlugin subclass defined in the plugin module itself."""
+def _class_owner(obj) -> Optional[str]:
+    source = sys.modules.get(getattr(obj, "__module__", "") or "")
+    path = getattr(source, "__file__", None)
+    if not path:
+        return None
+    try:
+        return _resolve_owner(path)
+    except Exception:
+        return None
+
+
+def _find_plugin_class(module, path: str, plugin_id: Optional[str] = None):
+    fallback = None
     for obj in vars(module).values():
-        if isinstance(obj, type) and issubclass(obj, BasePlugin) \
-                and obj is not BasePlugin and obj.__module__ == module.__name__:
+        if not isinstance(obj, type) or not issubclass(obj, BasePlugin) or obj is BasePlugin:
+            continue
+        if obj.__module__ == module.__name__:
             return obj
+        if fallback is None:
+            owner = _class_owner(obj)
+            if owner is None or owner == plugin_id:
+                fallback = obj
+    if fallback is not None:
+        return fallback
     raise RuntimeError(f"no BasePlugin subclass defined in {path!r}")
 
 
@@ -1334,7 +1509,7 @@ def load_plugin(path: str, plugin_id: str) -> str:
             _ensure_requirements(plugin_id, meta["requirements"])
 
         module, module_name = _import_module(path, plugin_id)
-        plugin_class = _find_plugin_class(module, path)
+        plugin_class = _find_plugin_class(module, path, plugin_id)
         instance = plugin_class()
         instance._attach(plugin_id)
         plugins[plugin_id] = PluginRecord(module=module, instance=instance, path=path,
@@ -1497,7 +1672,7 @@ def _strategy_of(result) -> str:
     return strategy if strategy in _VALID_STRATEGIES else HookStrategy.DEFAULT
 
 
-def _dispatch_hook(plugin_id: str, account: int, fn, *args) -> str:
+def _dispatch_hook(plugin_id: str, account: int, fn, *args, result_field=None):
     """Вызвать хук в scope аккаунта и вернуть стратегию.
 
     PermissionError гасится здесь: движок трактует исключение из хука как
@@ -1507,13 +1682,21 @@ def _dispatch_hook(plugin_id: str, account: int, fn, *args) -> str:
     """
     try:
         with client_utils.hook_scope(account), plugin_context(plugin_id):
-            return _strategy_of(fn(*args))
+            result = fn(*args)
+            strategy = _strategy_of(result)
+            if result_field is not None and strategy in (HookStrategy.MODIFY, HookStrategy.MODIFY_FINAL):
+                value = getattr(result, result_field, None)
+                if value is None:
+                    value = getattr(result, "result", None)
+                if value is not None:
+                    return _HookDispatchResult(strategy, value)
+            return strategy
     except PermissionError as e:
         _log_permission_error(plugin_id, e)
         return HookStrategy.DEFAULT
 
 
-def call_send_message_hook(plugin_id: str, account: int, params) -> str:
+def call_send_message_hook(plugin_id: str, account: int, params) -> Any:
     record = plugins.get(plugin_id)
     if record is None:
         return HookStrategy.DEFAULT
@@ -1521,10 +1704,10 @@ def call_send_message_hook(plugin_id: str, account: int, params) -> str:
     if not _overrides(type(instance), "on_send_message_hook"):
         return HookStrategy.DEFAULT
     return _dispatch_hook(plugin_id, account,
-                          instance.on_send_message_hook, account, params)
+                          instance.on_send_message_hook, account, params, result_field="params")
 
 
-def call_pre_request_hook(plugin_id: str, account: int, request_name: str, request) -> str:
+def call_pre_request_hook(plugin_id: str, account: int, request_name: str, request) -> Any:
     record = plugins.get(plugin_id)
     if record is None:
         return HookStrategy.DEFAULT
@@ -1532,11 +1715,11 @@ def call_pre_request_hook(plugin_id: str, account: int, request_name: str, reque
     if not _overrides(type(instance), "pre_request_hook"):
         return HookStrategy.DEFAULT
     return _dispatch_hook(plugin_id, account,
-                          instance.pre_request_hook, request_name, account, request)
+                          instance.pre_request_hook, request_name, account, request, result_field="request")
 
 
 def call_post_request_hook(plugin_id: str, account: int, request_name: str,
-                           response, error) -> str:
+                           response, error) -> Any:
     record = plugins.get(plugin_id)
     if record is None:
         return HookStrategy.DEFAULT
@@ -1544,10 +1727,10 @@ def call_post_request_hook(plugin_id: str, account: int, request_name: str,
     if not _overrides(type(instance), "post_request_hook"):
         return HookStrategy.DEFAULT
     return _dispatch_hook(plugin_id, account,
-                          instance.post_request_hook, request_name, account, response, error)
+                          instance.post_request_hook, request_name, account, response, error, result_field="response")
 
 
-def call_update_hook(plugin_id: str, account: int, update_name: str, update) -> str:
+def call_update_hook(plugin_id: str, account: int, update_name: str, update) -> Any:
     """Dispatch a single TL_update* to on_update_hook (Java routes by name)."""
     record = plugins.get(plugin_id)
     if record is None:
@@ -1556,10 +1739,10 @@ def call_update_hook(plugin_id: str, account: int, update_name: str, update) -> 
     if not _overrides(type(instance), "on_update_hook"):
         return HookStrategy.DEFAULT
     return _dispatch_hook(plugin_id, account,
-                          instance.on_update_hook, update_name, account, update)
+                          instance.on_update_hook, update_name, account, update, result_field="update")
 
 
-def call_updates_hook(plugin_id: str, account: int, container_name: str, updates) -> str:
+def call_updates_hook(plugin_id: str, account: int, container_name: str, updates) -> Any:
     """Dispatch a TL_updates* container to on_updates_hook (Java routes by name)."""
     record = plugins.get(plugin_id)
     if record is None:
@@ -1568,7 +1751,7 @@ def call_updates_hook(plugin_id: str, account: int, container_name: str, updates
     if not _overrides(type(instance), "on_updates_hook"):
         return HookStrategy.DEFAULT
     return _dispatch_hook(plugin_id, account,
-                          instance.on_updates_hook, container_name, account, updates)
+                          instance.on_updates_hook, container_name, account, updates, result_field="updates")
 
 
 # Settings serialization
@@ -1579,16 +1762,53 @@ def _put(data: dict, key: str, value):
         data[key] = value
 
 
-def _item_ident(item, scope: str, index: int) -> str:
-    """Стабильное имя строки: путь заголовков от корня, тип и ключ или текст.
+def _setting_identity_value(value):
+    if value is None or isinstance(value, (str, bool, int, float)):
+        return value
+    if isinstance(value, tuple):
+        return [_setting_identity_value(entry) for entry in value]
+    return [type(value).__module__, type(value).__qualname__, id(value)]
 
-    Нумеровать строки по порядку нельзя: список пересобирается при каждом
-    изменении настройки, часть строк появляется и исчезает по условию, и
-    порядковый id начинает указывать на чужой колбэк — а экран, открытый до
-    пересборки, продолжает слать старые id.
-    """
-    name = getattr(item, "key", None) or getattr(item, "text", None) or f"#{index}"
-    return f"{scope}/{type(item).__name__}:{name}"
+
+def _setting_callback_ident(callback):
+    if callback is None:
+        return None
+    owner = None
+    if inspect.ismethod(callback):
+        owner = _setting_identity_value(callback.__self__)
+        callback = callback.__func__
+    if not inspect.isfunction(callback):
+        return _setting_identity_value(callback)
+    closure = []
+    for cell in callback.__closure__ or ():
+        try:
+            closure.append(_setting_identity_value(cell.cell_contents))
+        except ValueError:
+            closure.append(None)
+    return [callback.__code__.co_filename, callback.__code__.co_firstlineno,
+            callback.__qualname__,
+            [_setting_identity_value(value) for value in callback.__defaults__ or ()],
+            closure, owner]
+
+
+def _item_ident(item, scope: str, index: int) -> str:
+    key = getattr(item, "key", None)
+    alias = getattr(item, "link_alias", None)
+    if key:
+        name = ["key", key]
+    elif alias:
+        name = ["alias", alias]
+    else:
+        name = ["text", getattr(item, "text", None), getattr(item, "icon", None),
+                bool(getattr(item, "create_sub_fragment", None))]
+        callbacks = [_setting_callback_ident(getattr(item, field, None))
+                     for field in ("on_click", "on_long_click", "create_sub_fragment")]
+        native_id = _setting_identity_value(getattr(getattr(item, "item", None), "id", None))
+        custom = [getattr(item, field, None) for field in ("view", "factory", "factory_args")]
+        name.extend([callbacks, native_id, [_setting_identity_value(value) for value in custom]])
+        if not any(name[1:4]) and not any(callbacks) and native_id is None and not any(value is not None for value in custom):
+            name.append(index)
+    return json.dumps([scope, type(item).__name__, name], ensure_ascii=False)
 
 
 def _ident_hash(prefix: str, ident: str) -> str:
@@ -1624,11 +1844,118 @@ def _attach_callbacks(data: dict, item, record: PluginRecord, ident: str) -> Non
     _put(data, "long_callback_id", _register_long_click(item, record, ident))
 
 
+def _java_setting_kind(item) -> Optional[str]:
+    if isinstance(item, (ui_settings.Header, ui_settings.Divider, ui_settings.Switch,
+                         ui_settings.Selector, ui_settings.Input, ui_settings.Text,
+                         ui_settings.EditText, ui_settings.Custom)):
+        return None
+    getter = getattr(item, "getType", None)
+    if getter is None or getattr(item, "getClass", None) is None:
+        return None
+    try:
+        kind = getter()
+    except Exception:
+        return None
+    return kind if isinstance(kind, str) else None
+
+
+def _java_get(item, name, fallback=None):
+    getter = getattr(item, name, None)
+    if getter is None:
+        return fallback
+    try:
+        value = getter()
+    except Exception:
+        return fallback
+    return fallback if value is None else value
+
+
+def _from_java_setting(item, kind: str):
+    s = ui_settings
+    icon = _java_get(item, "getIcon")
+    long_click = _java_get(item, "getOnLongClickCallback")
+    alias = _java_get(item, "getLinkAlias")
+    if kind == "header":
+        return s.Header(text=_java_get(item, "getText", ""))
+    if kind == "divider":
+        return s.Divider(text=_java_get(item, "getText"))
+    if kind == "switch":
+        return s.Switch(key=_java_get(item, "getKey", ""),
+                        text=_java_get(item, "getText", ""),
+                        default=bool(_java_get(item, "getDefaultValue", False)),
+                        subtext=_java_get(item, "getSubtext"), icon=icon,
+                        on_change=_java_get(item, "getOnChangeCallback"),
+                        on_long_click=long_click, link_alias=alias)
+    if kind == "selector":
+        items = _java_get(item, "getItems", [])
+        return s.Selector(key=_java_get(item, "getKey", ""),
+                          text=_java_get(item, "getText", ""),
+                          default=int(_java_get(item, "getDefaultValue", 0)),
+                          items=[str(entry) for entry in items],
+                          subtext=_java_get(item, "getSubtext"), icon=icon,
+                          on_change=_java_get(item, "getOnChangeCallback"),
+                          on_long_click=long_click, link_alias=alias)
+    if kind == "input":
+        return s.Input(key=_java_get(item, "getKey", ""),
+                       text=_java_get(item, "getText", ""),
+                       default=_java_get(item, "getDefaultValue"),
+                       subtext=_java_get(item, "getSubtext"), icon=icon,
+                       on_change=_java_get(item, "getOnChangeCallback"),
+                       on_long_click=long_click, link_alias=alias)
+    if kind == "edit_text":
+        max_length = _java_get(item, "getMaxLength", 0)
+        return s.EditText(key=_java_get(item, "getKey", ""),
+                          hint=_java_get(item, "getHint", ""),
+                          default=_java_get(item, "getDefaultValue", ""),
+                          multiline=bool(_java_get(item, "getMultiline", False)),
+                          max_length=int(max_length) or None,
+                          mask=_java_get(item, "getMask"),
+                          on_change=_java_get(item, "getOnChangeCallback"))
+    if kind == "text":
+        return s.Text(text=_java_get(item, "getText", ""),
+                      subtext=_java_get(item, "getSubtext"), icon=icon,
+                      accent=bool(_java_get(item, "getAccent", False)),
+                      red=bool(_java_get(item, "getRed", False)),
+                      on_click=_java_get(item, "getOnClickCallback"),
+                      on_long_click=long_click,
+                      create_sub_fragment=_java_get(item, "getCreateSubFragmentCallback"),
+                      link_alias=alias)
+    if kind == "custom":
+        return s.Custom(item=_java_get(item, "getItem"),
+                        view=_java_get(item, "getView"),
+                        factory=_java_get(item, "getFactory"),
+                        factory_args=_java_get(item, "getFactoryArgs"),
+                        on_click=_java_get(item, "getOnClickCallback"),
+                        on_long_click=long_click,
+                        create_sub_fragment=_java_get(item, "getCreateSubFragmentCallback"),
+                        link_alias=alias)
+    return None
+
+
 def _serialize_setting_item(item, record: PluginRecord, scope: str = "",
-                            index: int = 0) -> Optional[dict]:
+                            index: int = 0, identities: Optional[dict] = None) -> Optional[dict]:
+    kind = _java_setting_kind(item)
+    if kind is not None:
+        converted = _from_java_setting(item, kind)
+        if converted is None:
+            return None
+        item = converted
+    ident = _item_ident(item, scope, index)
+    if identities is not None:
+        occurrence = identities.get(ident, 0)
+        identities[ident] = occurrence + 1
+        ident = json.dumps([ident, occurrence], ensure_ascii=False)
+    ident = hashlib.sha256(ident.encode("utf-8")).hexdigest()
+    data = _serialize_setting_data(item, record, ident)
+    if data is not None:
+        data["row_id"] = ident
+        _put(data, "link_alias", getattr(item, "link_alias", None))
+    return data
+
+
+def _serialize_setting_data(item, record: PluginRecord, ident: str) -> Optional[dict]:
     s = ui_settings
     instance = record.instance
-    ident = _item_ident(item, scope, index)
 
     if isinstance(item, s.Header):
         return {"type": "header", "text": item.text}
@@ -1659,6 +1986,16 @@ def _serialize_setting_item(item, record: PluginRecord, scope: str = "",
             "value": instance.get_setting(item.key, item.default),
             "default": item.default,
         }
+        _put(data, "subtext", item.subtext)
+        _put(data, "icon", item.icon)
+        _attach_callbacks(data, item, record, ident)
+        return data
+
+    if isinstance(item, s.Slider):
+        data = {"type": "slider", "key": item.key, "text": item.text,
+                "min": item.min, "max": item.max, "step": item.step,
+                "integral": isinstance(item.normalize(item.default), int),
+                "value": item.normalize(instance.get_setting(item.key, item.default))}
         _put(data, "subtext", item.subtext)
         _put(data, "icon", item.icon)
         _attach_callbacks(data, item, record, ident)
@@ -1707,8 +2044,9 @@ def _serialize_setting_item(item, record: PluginRecord, scope: str = "",
                 sub_items = None
             if sub_items:
                 sub_page = []
+                identities = {}
                 for sub_index, sub_item in enumerate(sub_items):
-                    entry = _serialize_setting_item(sub_item, record, ident, sub_index)
+                    entry = _serialize_setting_item(sub_item, record, ident, sub_index, identities)
                     if entry is not None:
                         sub_page.append(entry)
                 if sub_page:
@@ -1728,8 +2066,9 @@ def _serialize_setting_item(item, record: PluginRecord, scope: str = "",
                 sub_items = None
             if sub_items:
                 sub_page = []
+                identities = {}
                 for sub_index, sub_item in enumerate(sub_items):
-                    entry = _serialize_setting_item(sub_item, record, ident, sub_index)
+                    entry = _serialize_setting_item(sub_item, record, ident, sub_index, identities)
                     if entry is not None:
                         sub_page.append(entry)
                 if sub_page:
@@ -1756,21 +2095,27 @@ def get_settings_json(plugin_id: str) -> str:
         print(f"[{plugin_id}] {summary}\n{traceback.format_exc()}", file=sys.stderr)
         return json.dumps([{"type": "divider", "text": summary}], ensure_ascii=False)
     if items is None:
+        record.click_callbacks.clear()
+        record.change_callbacks.clear()
+        record.custom_views.clear()
         return "null"
 
-    # Реестры не обнуляем, а дополняем: id теперь выводятся из самой строки,
-    # поэтому повторная сборка даёт те же самые, а строки, открытые на экране
-    # до пересборки, продолжают попадать в свои колбэки.
+    pending = replace(record, click_callbacks={}, change_callbacks={}, custom_views={})
     out = []
+    identities = {}
     for index, item in enumerate(items):
         try:
-            entry = _serialize_setting_item(item, record, "", index)
+            entry = _serialize_setting_item(item, pending, "", index, identities)
         except Exception as e:
             instance.log(f"settings item skipped: {type(e).__name__}: {e}")
             continue
         if entry is not None:
             out.append(entry)
-    return json.dumps(out, ensure_ascii=False)
+    result = json.dumps(out, ensure_ascii=False)
+    record.click_callbacks = pending.click_callbacks
+    record.change_callbacks = pending.change_callbacks
+    record.custom_views = pending.custom_views
+    return result
 
 
 # Settings callbacks
@@ -1847,6 +2192,18 @@ def _build_custom_view(item, context):
     factory = getattr(item, "factory", None)
     if factory is None:
         return None
+    if getattr(factory, "getClass", None) is not None:
+        from java import jclass
+        custom_setting = jclass("app.exteraless.plugins.models.CustomSetting")
+        if isinstance(factory, custom_setting.Factory):
+            return custom_setting(factory, getattr(item, "factory_args", None),
+                                  getattr(item, "on_click", None),
+                                  getattr(item, "create_sub_fragment", None),
+                                  getattr(item, "on_long_click", None),
+                                  getattr(item, "link_alias", None))
+    build = getattr(factory, "build_view", None)
+    if callable(build):
+        return build(context, False)
     create = getattr(factory, "create_view", None)
     if not callable(create):
         return None
@@ -1954,4 +2311,3 @@ if pip_controller is not None:
     except Exception as e:
         print(f"[exteraless:plugin_loader] restore_sys_path failed: {e}",
               file=sys.stderr)
-

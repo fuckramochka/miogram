@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 
-public class UItem extends AdapterWithDiffUtils.Item {
+public class UItem extends AdapterWithDiffUtils.Item implements Cloneable {
 
     public static final int MAX_SPAN_COUNT = -1;
 
@@ -63,6 +63,8 @@ public class UItem extends AdapterWithDiffUtils.Item {
 
     public View.OnClickListener clickCallback;
     public View.OnClickListener clickCallback2;
+    public View.OnClickListener switchClickCallback;
+    public boolean exteraExpandableSwitch;
     public Utilities.Callback<View> bind;
 
     public Object object;
@@ -81,6 +83,14 @@ public class UItem extends AdapterWithDiffUtils.Item {
     public UItem(int viewType, Object object) {
         super(viewType, false);
         this.object = object;
+    }
+
+    public UItem copy() {
+        try {
+            return (UItem) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError(e);
+        }
     }
 
     public static UItem asCustom(int id, View view) {
@@ -354,6 +364,10 @@ public class UItem extends AdapterWithDiffUtils.Item {
         return i;
     }
 
+    public static UItem asShadow() {
+        return asShadow(-1, null);
+    }
+
     public static UItem asShadow(CharSequence text) {
         UItem i = new UItem(UniversalAdapter.VIEW_TYPE_SHADOW, false);
         i.text = text;
@@ -564,6 +578,14 @@ public class UItem extends AdapterWithDiffUtils.Item {
         item.id = id;
         item.text = text;
         item.animatedText = subText;
+        return item;
+    }
+
+    public static UItem asExteraExpandableSwitch(int id, CharSequence text, CharSequence subText,
+                                                 View.OnClickListener switchClickCallback) {
+        UItem item = asExpandableSwitch(id, text, subText);
+        item.exteraExpandableSwitch = true;
+        item.switchClickCallback = switchClickCallback;
         return item;
     }
 

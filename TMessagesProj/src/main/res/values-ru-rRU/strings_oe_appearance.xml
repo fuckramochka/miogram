@@ -18,6 +18,7 @@
     <string name="OEAppearanceChatListInfo">Снежинки будут падать в шапке, боковом меню и на фоне чатов.</string>
 
     <string name="OEAppearanceFolders">Папки</string>
+    <string name="OEAppearanceInterface">Интерфейс</string>
     <string name="OEAppearanceTabTitleStyle">Заголовок папки</string>
     <string name="OEAppearanceTabTitleStyleTextOnly">Только названия</string>
     <string name="OEAppearanceTabTitleStyleIconsOnly">Только иконки</string>
@@ -39,6 +40,7 @@
     <string name="OEAppearanceDisableAvatarBlur">Отключить размытие аватарок</string>
     <string name="OEAppearanceBlurInfo">Размытие будет применяться ко всем темам, независимо от их настроек.</string>
 
+    <string name="OEAppearanceRestartNow">Перезапустить</string>
     <string name="OEAppearanceNeedRestart">Перезапустите приложение, чтобы применить настройку.</string>
 
     <string name="OEAppearanceMaterialDesign3" translatable="false">Material Design 3</string>
@@ -74,6 +76,7 @@
     <string name="OEBackAnimationClassic">Классическая</string>
     <string name="OEBackAnimationSpring">Пружинная</string>
     <string name="OEBackAnimationPredictive">Предиктивная</string>
+    <string name="OEBackAnimationSlide">Скольжение</string>
     <string name="OEPredictiveBackIntensity">Интенсивность жеста</string>
     <string name="OEPredictiveBackOff">Выкл</string>
     <string name="OEPredictiveBackMax">Макс</string>
@@ -98,12 +101,21 @@
     <string name="OEBottomNavigationModeShow">Показывать</string>
     <string name="OEBottomNavigationModeHide">Скрывать</string>
     <string name="OEBackAnimationInfo">Плавнее переключает экраны и открывает боковое меню.</string>
-    <string name="OEAppearanceNewLoadingStyle">Стиль загрузки</string>
+    <string name="OEAppearanceNewLoadingStyle">MD3-лоадеры</string>
     <string name="OEAppearanceNewChatHeaderStyle">Шапка чата</string>
-    <string name="OEAppearanceNewNavigationBarStyle">Нижняя панель навигации</string>
+    <string name="OEAppearanceNewNavigationBarStyle">Панель навигации в стиле Material 3</string>
+    <string name="OEAppearanceIosDesign" translatable="false">iOS Design</string>
+    <string name="OEAppearanceIosNavigationBarStyle">Панель навигации в стиле iOS</string>
+    <string name="OEAppearanceIosFirstFolderOnTabTap">Тап по вкладке — первая папка</string>
     <string name="OEAppearanceHideActionBarStatus">Скрыть статус</string>
     <string name="OEAppearanceHideAi">Скрыть AI</string>
     <string name="OEAppearanceHideAiEditor">Кнопка AI-редактора</string>
     <string name="OEAppearanceHideAiSummary">Кнопка саммари сообщения</string>
     <string name="OEAppearanceHideAiIv">Саммари в Instant View</string>
+    <string name="OEAppearanceTabCounterAll">Все чаты</string>
+    <string name="OEAppearanceTabCounterUnmuted">Кроме чатов без звука</string>
+    <string name="OEAppearanceTabCounterOff">Выключен</string>
+    <string name="MonetStyleHeader">Палитра Monet</string>
+    <string name="MonetStyleTelemone">Telemone</string>
+    <string name="MonetStyleClassic">Классическая</string>
 </resources>

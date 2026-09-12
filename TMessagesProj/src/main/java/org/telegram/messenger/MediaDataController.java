@@ -1123,7 +1123,8 @@ public class MediaDataController extends BaseController {
         if (!found) {
             recentGifs.add(0, document);
         }
-        if ((recentGifs.size() > getMessagesController().savedGifsLimitDefault && !UserConfig.getInstance(currentAccount).isPremium()) || recentGifs.size() > getMessagesController().savedGifsLimitPremium) {
+        if (!NaConfig.INSTANCE.getUnlimitedSavedGifs().Bool()
+                && ((recentGifs.size() > getMessagesController().savedGifsLimitDefault && !UserConfig.getInstance(currentAccount).isPremium()) || recentGifs.size() > getMessagesController().savedGifsLimitPremium)) {
             TLRPC.Document old = recentGifs.remove(recentGifs.size() - 1);
             getMessagesStorage().getStorageQueue().postRunnable(() -> {
                 try {
@@ -2070,7 +2071,7 @@ public class MediaDataController extends BaseController {
                     request = req;
                 } else {
                     TLRPC.TL_messages_getRecentStickers req = new TLRPC.TL_messages_getRecentStickers();
-                    req.hash = calcDocumentsHash(recentStickers[type]);
+                    req.hash = calcDocumentsHash(recentStickers[type], getMessagesController().maxRecentStickersCount);
                     req.attached = type == TYPE_MASK;
                     request = req;
                 }
@@ -2120,7 +2121,7 @@ public class MediaDataController extends BaseController {
                     SQLiteDatabase database = getMessagesStorage().getDatabase();
                     int maxCount;
                     if (gif) {
-                        maxCount = getMessagesController().maxRecentGifsCount;
+                        maxCount = NaConfig.INSTANCE.getUnlimitedSavedGifs().Bool() ? Integer.MAX_VALUE : getMessagesController().maxRecentGifsCount;
                     } else {
                         if (type == TYPE_GREETINGS || type == TYPE_PREMIUM_STICKERS) {
                             maxCount = 200;
@@ -2132,12 +2133,16 @@ public class MediaDataController extends BaseController {
                     }
                     // For unlimited faved stickers, merge with existing database entries
                     ArrayList<TLRPC.Document> finalDocuments = documents;
-                    if (type == TYPE_FAVE && NekoConfig.unlimitedFavedStickers.Bool() && replace) {
+                    final boolean keepLocalExtras = replace
+                            && (gif ? NaConfig.INSTANCE.getUnlimitedSavedGifs().Bool()
+                            : type == TYPE_FAVE && NekoConfig.unlimitedFavedStickers.Bool()
+                            || type == TYPE_IMAGE && NekoConfig.maxRecentStickerCount.Int() > getMessagesController().maxRecentStickersCount);
+                    if (keepLocalExtras) {
                         HashSet<Long> serverIds = new HashSet<>();
                         for (TLRPC.Document doc : documents) {
                             serverIds.add(doc.id);
                         }
-                        SQLiteCursor cursor = database.queryFinalized("SELECT document FROM web_recent_v3 WHERE type = 5 ORDER BY date DESC");
+                        SQLiteCursor cursor = database.queryFinalized("SELECT document FROM web_recent_v3 WHERE type = " + (gif ? 2 : type == TYPE_FAVE ? 5 : 3) + " ORDER BY date DESC");
                         ArrayList<TLRPC.Document> localStickers = new ArrayList<>();
                         while (cursor.next()) {
                             if (!cursor.isNull(0)) {
@@ -2183,10 +2188,10 @@ public class MediaDataController extends BaseController {
                                     editor.putLong("lastStickersLoadTimeFavs", System.currentTimeMillis()).apply();
                                 }
                             }
+                            ArrayList<TLRPC.Document> documentsToUse = mergedDocumentsHolder[0] != null ? mergedDocumentsHolder[0] : documents;
                             if (gif) {
-                                recentGifs = documents;
+                                recentGifs = documentsToUse;
                             } else {
-                                ArrayList<TLRPC.Document> documentsToUse = mergedDocumentsHolder[0] != null ? mergedDocumentsHolder[0] : documents;
                                 recentStickers[type] = documentsToUse;
                             }
                             if (type == TYPE_GREETINGS) {
@@ -2215,7 +2220,7 @@ public class MediaDataController extends BaseController {
                     } else {
                         cacheType = 5;
                     }
-                    if (replace && (type != TYPE_FAVE || !NekoConfig.unlimitedFavedStickers.Bool())) {
+                    if (replace && !keepLocalExtras) {
                         database.executeFast("DELETE FROM web_recent_v3 WHERE type = " + cacheType).stepThis().dispose();
                     }
                     for (int a = 0; a < count; a++) {

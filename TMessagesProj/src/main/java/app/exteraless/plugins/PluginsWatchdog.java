@@ -10,17 +10,24 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.AlertDialog;
+import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.Components.BulletinFactory;
+import org.telegram.ui.LaunchActivity;
 
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Защита от плагина, который вешает или роняет приложение. Перенос
@@ -84,16 +91,42 @@ public class PluginsWatchdog {
     /** Столько раз процесс должен умереть на плагине, прежде чем его выключат. */
     private static final int CRASH_STRIKES_BEFORE_DISABLE = 2;
 
+    private static final long MAIN_BUDGET_WINDOW_MS = 1000L;
+    /**
+     * Шаг обхода активных заходов. Вдвое чаще окна бюджета: маркер должен
+     * попасть на диск как можно ближе к {@link #MARKER_AFTER_MS}, иначе смерть
+     * процесса в этом промежутке останется без виновника.
+     */
+    private static final long EXECUTION_SWEEP_MS = 500L;
+    private static final long MAIN_BUDGET_NANOS = 250L * 1_000_000L;
+    private static final int SLOW_WINDOWS_BEFORE_ALERT = 3;
+
     /** Один заход в код плагина. Сравнивается по ссылке — так проверка узнаёт «тот же самый». */
     public static final class ExecutionInfo {
         final String pluginId;
+        final long mainEnterNanos;
+        final long startNanos;
+        volatile boolean markerWritten;
 
-        ExecutionInfo(String pluginId) {
+        ExecutionInfo(String pluginId, long mainEnterNanos, long startNanos) {
             this.pluginId = pluginId;
+            this.mainEnterNanos = mainEnterNanos;
+            this.startNanos = startNanos;
         }
 
         public String getPluginId() {
             return pluginId;
+        }
+    }
+
+    /** Кадр стека вызовов плагинов в одном потоке. Трогает только сам поток. */
+    private static final class Frame {
+        final String pluginId;
+        final long mainEnterNanos;
+
+        Frame(String pluginId, long mainEnterNanos) {
+            this.pluginId = pluginId;
+            this.mainEnterNanos = mainEnterNanos;
         }
     }
 
@@ -103,10 +136,18 @@ public class PluginsWatchdog {
     private final ConcurrentHashMap<Thread, ExecutionInfo> executingPlugins = new ConcurrentHashMap<>();
     /** Поток -> заход, признанный зависшим. */
     private final ConcurrentHashMap<Thread, ExecutionInfo> frozenExecutions = new ConcurrentHashMap<>();
-    /** Поток -> его отложенная проверка на зависание. */
-    private final ConcurrentHashMap<Thread, ScheduledFuture<?>> scheduledChecks = new ConcurrentHashMap<>();
+    /** Стек заходов текущего потока: внешний кадр остаётся владельцем потока. */
+    private final ThreadLocal<ArrayDeque<Frame>> frames = ThreadLocal.withInitial(ArrayDeque::new);
+
+    private final ConcurrentHashMap<String, AtomicLong> mainThreadNanos = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicInteger> overBudgetWindows = new ConcurrentHashMap<>();
+    private final Set<String> loggedSlow = ConcurrentHashMap.newKeySet();
+    private final Set<String> alertedSlow = ConcurrentHashMap.newKeySet();
 
     private volatile ScheduledExecutorService scheduler;
+    private volatile ScheduledFuture<?> budgetSweep;
+    private volatile ScheduledFuture<?> executionSweep;
+    private final Thread mainThread = android.os.Looper.getMainLooper().getThread();
 
     /** Файл-маркер и его текущее содержимое (чтобы не писать одно и то же). */
     private volatile RandomAccessFile markerFile;
@@ -133,14 +174,34 @@ public class PluginsWatchdog {
             executor.setRemoveOnCancelPolicy(true);
             scheduler = executor;
         }
+        ScheduledExecutorService active = scheduler;
+        if (active != null && budgetSweep == null) {
+            try {
+                budgetSweep = active.scheduleWithFixedDelay(this::sweepMainThreadBudget,
+                        MAIN_BUDGET_WINDOW_MS, MAIN_BUDGET_WINDOW_MS, TimeUnit.MILLISECONDS);
+                executionSweep = active.scheduleWithFixedDelay(this::sweepExecutions,
+                        EXECUTION_SWEEP_MS, EXECUTION_SWEEP_MS, TimeUnit.MILLISECONDS);
+            } catch (RejectedExecutionException ignored) {
+            }
+        }
     }
 
     /** Остановить планировщик и снять все пометки «не отвечает». */
     public void stop() {
-        for (ScheduledFuture<?> check : scheduledChecks.values()) {
-            check.cancel(false);
+        ScheduledFuture<?> sweep = budgetSweep;
+        if (sweep != null) {
+            sweep.cancel(false);
         }
-        scheduledChecks.clear();
+        budgetSweep = null;
+        ScheduledFuture<?> executions = executionSweep;
+        if (executions != null) {
+            executions.cancel(false);
+        }
+        executionSweep = null;
+        mainThreadNanos.clear();
+        overBudgetWindows.clear();
+        loggedSlow.clear();
+        alertedSlow.clear();
         ScheduledExecutorService existing = scheduler;
         if (existing != null) {
             existing.shutdownNow();
@@ -154,8 +215,9 @@ public class PluginsWatchdog {
     // ---------- горячий путь ----------
 
     /**
-     * Плагин начал исполняться в текущем потоке. Только память и постановка
-     * задачи в планировщик — никакого ввода-вывода.
+     * Плагин начал исполняться в текущем потоке. Только память — ни ввода-вывода,
+     * ни планировщика: хук может висеть на аллокации буфера и срабатывать тысячи
+     * раз в секунду, а очередь у планировщика одна на всё приложение.
      */
     public void notePluginEnter(String pluginId) {
         notePluginEnter(pluginId, false);
@@ -173,48 +235,34 @@ public class PluginsWatchdog {
             return;
         }
         Thread thread = Thread.currentThread();
-        ExecutionInfo info = new ExecutionInfo(pluginId);
-        executingPlugins.put(thread, info);
+        final long now = System.nanoTime();
+        final long mainEnter = thread == mainThread ? now : 0L;
 
-        // Этот поток раньше висел — значит, отвис.
-        ExecutionInfo wasFrozen = frozenExecutions.remove(thread);
-        if (wasFrozen != null) {
-            if (wasFrozen.pluginId.equals(pluginId)) {
-                // Тот же плагин снова в работе: считаем, что он всё ещё висит.
-                frozenExecutions.put(thread, info);
-            } else {
-                notifyRecoveredIfLastFrozen(wasFrozen.pluginId);
+        ArrayDeque<Frame> stack = frames.get();
+        stack.push(new Frame(pluginId, mainEnter));
+
+        if (stack.size() == 1) {
+            ExecutionInfo info = new ExecutionInfo(pluginId, mainEnter, now);
+            executingPlugins.put(thread, info);
+
+            // Этот поток раньше висел — значит, отвис.
+            ExecutionInfo wasFrozen = frozenExecutions.remove(thread);
+            if (wasFrozen != null) {
+                if (wasFrozen.pluginId.equals(pluginId)) {
+                    // Тот же плагин снова в работе: считаем, что он всё ещё висит.
+                    frozenExecutions.put(thread, info);
+                } else {
+                    notifyRecoveredIfLastFrozen(wasFrozen.pluginId);
+                }
             }
         }
 
         if (risky) {
             noteMarker(pluginId);
-        }
-
-        ScheduledFuture<?> previous = scheduledChecks.remove(thread);
-        if (previous != null) {
-            previous.cancel(false);
-        }
-        ScheduledExecutorService executor = scheduler;
-        if (executor == null) {
-            return;
-        }
-        try {
-            // Маркер ставит отложенная задача: если заход к этому моменту уже
-            // закончился, писать нечего.
-            if (!risky) {
-                executor.schedule(() -> {
-                    if (executingPlugins.get(thread) == info) {
-                        noteMarker(pluginId);
-                    }
-                }, MARKER_AFTER_MS, TimeUnit.MILLISECONDS);
+            ExecutionInfo outer = executingPlugins.get(thread);
+            if (outer != null) {
+                outer.markerWritten = true;
             }
-            scheduledChecks.put(thread, executor.schedule(
-                    () -> checkFrozen(thread, info, pluginId),
-                    FREEZE_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-        } catch (RejectedExecutionException e) {
-            // Планировщик уже гасится — просто не следим за этим заходом.
-            executingPlugins.remove(thread, info);
         }
     }
 
@@ -243,18 +291,23 @@ public class PluginsWatchdog {
         if (pluginId == null) {
             return;
         }
+        ArrayDeque<Frame> stack = frames.get();
+        Frame frame = stack.peek();
+        if (frame == null || !frame.pluginId.equals(pluginId)) {
+            return;
+        }
+        stack.pop();
+
+        if (frame.mainEnterNanos != 0L) {
+            mainThreadNanos.computeIfAbsent(pluginId, id -> new AtomicLong())
+                    .addAndGet(System.nanoTime() - frame.mainEnterNanos);
+        }
+        if (!stack.isEmpty()) {
+            return;
+        }
+
         Thread thread = Thread.currentThread();
-        ExecutionInfo info = executingPlugins.get(thread);
-        if (info == null || !info.pluginId.equals(pluginId)) {
-            return;
-        }
-        if (!executingPlugins.remove(thread, info)) {
-            return;
-        }
-        ScheduledFuture<?> check = scheduledChecks.remove(thread);
-        if (check != null) {
-            check.cancel(false);
-        }
+        executingPlugins.remove(thread);
         ExecutionInfo wasFrozen = frozenExecutions.remove(thread);
         if (wasFrozen != null) {
             notifyRecoveredIfLastFrozen(wasFrozen.pluginId);
@@ -262,22 +315,60 @@ public class PluginsWatchdog {
         scheduleMarkerClear();
     }
 
-    /** Проверка «не вернулся за {@value #FREEZE_TIMEOUT_SECONDS} с». Идёт в потоке планировщика. */
-    private void checkFrozen(Thread thread, ExecutionInfo expected, String pluginId) {
-        boolean[] froze = new boolean[1];
-        executingPlugins.computeIfPresent(thread, (t, current) -> {
-            if (current == expected) {
-                frozenExecutions.put(thread, expected);
-                froze[0] = true;
+    private void sweepMainThreadBudget() {
+        for (Map.Entry<String, AtomicLong> entry : mainThreadNanos.entrySet()) {
+            final String pluginId = entry.getKey();
+            final long spent = entry.getValue().getAndSet(0L);
+            AtomicInteger streak = overBudgetWindows.computeIfAbsent(pluginId, id -> new AtomicInteger());
+            if (spent < MAIN_BUDGET_NANOS) {
+                streak.set(0);
+                continue;
             }
-            return current;
-        });
-        if (froze[0]) {
-            FileLog.e("PluginsWatchdog: plugin " + pluginId + " is not responding on "
+            if (streak.incrementAndGet() < SLOW_WINDOWS_BEFORE_ALERT) {
+                continue;
+            }
+            streak.set(0);
+            final long millis = spent / 1_000_000L;
+            if (loggedSlow.add(pluginId)) {
+                FileLog.e("PluginsWatchdog: plugin " + pluginId + " is holding the main thread for "
+                        + millis + "ms per second");
+            }
+            Activity activity = currentActivity();
+            if (activity != null && alertedSlow.add(pluginId)) {
+                showSlowingDownAlert(pluginId, activity, millis);
+            }
+        }
+    }
+
+    /**
+     * Обход активных заходов: ставит маркер тем, кто перевалил за
+     * {@value #MARKER_AFTER_MS} мс, и признаёт зависшими тех, кто не вернулся за
+     * {@value #FREEZE_TIMEOUT_SECONDS} с. Раньше на каждый заход ставились две
+     * задачи в планировщик; при хуке на горячем методе очередь планировщика
+     * становилась узким местом и вешала приложение целиком.
+     */
+    private void sweepExecutions() {
+        final long now = System.nanoTime();
+        for (Map.Entry<Thread, ExecutionInfo> entry : executingPlugins.entrySet()) {
+            final Thread thread = entry.getKey();
+            final ExecutionInfo info = entry.getValue();
+            final long ageMs = (now - info.startNanos) / 1_000_000L;
+
+            if (!info.markerWritten && ageMs >= MARKER_AFTER_MS) {
+                info.markerWritten = true;
+                noteMarker(info.pluginId);
+            }
+            if (ageMs < FREEZE_TIMEOUT_SECONDS * 1000L) {
+                continue;
+            }
+            if (frozenExecutions.putIfAbsent(thread, info) != null) {
+                continue;
+            }
+            FileLog.e("PluginsWatchdog: plugin " + info.pluginId + " is not responding on "
                     + thread.getName());
             NotificationCenter.getGlobalInstance()
-                    .postNotificationNameOnUIThread(NotificationCenter.pluginIsNotResponding, pluginId);
-            showNotRespondingAlert(pluginId, currentActivity());
+                    .postNotificationNameOnUIThread(NotificationCenter.pluginIsNotResponding, info.pluginId);
+            showNotRespondingAlert(info.pluginId, currentActivity());
         }
     }
 
@@ -503,19 +594,39 @@ public class PluginsWatchdog {
         });
     }
 
-    /** Диалог «плагин не отвечает» с предложением его отключить. */
-    public void showNotRespondingAlert(String pluginId, Activity activity) {
-        if (activity == null || pluginId == null) {
+    public boolean isWarningMuted(String pluginId) {
+        return pluginId != null
+                && preferences.getBoolean(PluginsConstants.KEY_WATCHDOG_MUTED_PREFIX + pluginId, false);
+    }
+
+    public void setWarningMuted(String pluginId, boolean muted) {
+        if (pluginId == null) {
             return;
         }
-        String name = pluginId;
+        String key = PluginsConstants.KEY_WATCHDOG_MUTED_PREFIX + pluginId;
+        if (muted) {
+            preferences.edit().putBoolean(key, true).apply();
+        } else {
+            preferences.edit().remove(key).apply();
+            alertedSlow.remove(pluginId);
+        }
+    }
+
+    private String displayNameOf(String pluginId) {
         for (Plugin plugin : PluginsController.getInstance().getPluginsSnapshot()) {
             if (pluginId.equals(plugin.id)) {
-                name = plugin.getDisplayName();
-                break;
+                return plugin.getDisplayName();
             }
         }
-        final String displayName = name;
+        return pluginId;
+    }
+
+    /** Диалог «плагин не отвечает» с предложением его отключить. */
+    public void showNotRespondingAlert(String pluginId, Activity activity) {
+        if (activity == null || pluginId == null || isWarningMuted(pluginId)) {
+            return;
+        }
+        final String displayName = displayNameOf(pluginId);
         AndroidUtilities.runOnUIThread(() -> {
             try {
                 new AlertDialog.Builder(activity)
@@ -524,12 +635,52 @@ public class PluginsWatchdog {
                                 R.string.PluginNotRespondingMessage, displayName))
                         .setPositiveButton(LocaleController.getString(R.string.PluginDisable),
                                 (dialog, which) -> forceDisablePlugin(pluginId, activity))
+                        .setNeutralButton(LocaleController.getString(R.string.PluginWatchdogMute),
+                                (dialog, which) -> muteFromDialog(pluginId, displayName))
                         .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
                         .show();
             } catch (Throwable t) {
                 FileLog.e("PluginsWatchdog: cannot show not-responding alert", t);
             }
         });
+    }
+
+    public void showSlowingDownAlert(String pluginId, Activity activity, long millisPerSecond) {
+        if (activity == null || pluginId == null || isWarningMuted(pluginId)) {
+            return;
+        }
+        final String displayName = displayNameOf(pluginId);
+        AndroidUtilities.runOnUIThread(() -> {
+            try {
+                new AlertDialog.Builder(activity)
+                        .setTitle(LocaleController.getString(R.string.PluginSlowingDownTitle))
+                        .setMessage(LocaleController.formatString(
+                                R.string.PluginSlowingDownMessage, displayName, millisPerSecond))
+                        .setPositiveButton(LocaleController.getString(R.string.PluginDisable),
+                                (dialog, which) -> forceDisablePlugin(pluginId, activity))
+                        .setNeutralButton(LocaleController.getString(R.string.PluginWatchdogMute),
+                                (dialog, which) -> muteFromDialog(pluginId, displayName))
+                        .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                        .show();
+            } catch (Throwable t) {
+                FileLog.e("PluginsWatchdog: cannot show slowing-down alert", t);
+            }
+        });
+    }
+
+    private void muteFromDialog(String pluginId, String displayName) {
+        setWarningMuted(pluginId, true);
+        BaseFragment fragment = LaunchActivity.getLastFragment();
+        if (fragment == null) {
+            return;
+        }
+        BulletinFactory.of(fragment).createSimpleBulletin(R.raw.chats_infotip,
+                LocaleController.formatString(R.string.PluginWatchdogMuted, displayName)).show();
+    }
+
+    public long getMainThreadMillis(String pluginId) {
+        AtomicLong counter = pluginId == null ? null : mainThreadNanos.get(pluginId);
+        return counter == null ? 0L : counter.get() / 1_000_000L;
     }
 
     /** id плагина, отключённого после падения (однократное чтение для UI, потом очистить). */

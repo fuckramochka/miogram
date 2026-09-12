@@ -50,6 +50,7 @@ public class PluginsInfoActivity extends BaseFragment {
     private static final int ID_INSTALL_FROM_FILE = 6;
     private static final int ID_DOCUMENTATION = 7;
     private static final int ID_TRUSTED = 8;
+    private static final int ID_UNSAFE_MODE = 9;
 
     private static final String DOCS_URL = "https://plugins.exteragram.app";
     private static final String TRUSTED_URL = "https://t.me/addlist/pPhOtEq00KhjYTc6";
@@ -112,6 +113,14 @@ public class PluginsInfoActivity extends BaseFragment {
                 .setChecked(safeMode));
         items.add(UItem.asShadow(getString(R.string.PluginsSafeModeSummary)));
 
+        items.add(PluginUiItem.check(ID_UNSAFE_MODE, getString(R.string.PluginsUnsafeMode),
+                        R.drawable.msg_warning)
+                .setChecked(controller.isUnsafeMode())
+                .setValue(getString(R.string.PluginsUnsafeModeInfo))
+                .setMultiline(true)
+                .setEnabled(engineOn && !safeMode));
+        items.add(UItem.asShadow(getString(R.string.PluginsUnsafeModeSummary)));
+
         items.add(UItem.asHeader("Python SDK"));
         items.add(UItem.asButton(ID_SDK_VERSION, getString(R.string.PluginsPythonSdk))
                 .setValue("v" + PluginsConstants.SDK_VERSION));
@@ -149,6 +158,13 @@ public class PluginsInfoActivity extends BaseFragment {
             BulletinFactory.of(this)
                     .createSimpleBulletin(R.raw.contact_check, getString(R.string.RestartRequired))
                     .show();
+        } else if (item.id == ID_UNSAFE_MODE) {
+            if (controller.isUnsafeMode()) {
+                controller.setUnsafeMode(false);
+            } else {
+                confirmUnsafeMode();
+                return;
+            }
         } else if (item.id == ID_INSTALL_FROM_FILE) {
             PluginsActivity.openPluginPicker(this);
             return;
@@ -164,6 +180,28 @@ public class PluginsInfoActivity extends BaseFragment {
         if (listView != null) {
             listView.adapter.update(true);
         }
+    }
+
+    private void confirmUnsafeMode() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity())
+                .setTitle(getString(R.string.PluginsUnsafeMode))
+                .setMessage(getString(R.string.PluginsUnsafeModeConfirm))
+                .setPositiveButton(getString(R.string.PluginsUnsafeModeEnable), (dialog, which) -> {
+                    PluginsController.getInstance().setUnsafeMode(true);
+                    if (listView != null) {
+                        listView.adapter.update(true);
+                    }
+                    BulletinFactory.of(this)
+                            .createSimpleBulletin(R.raw.chats_infotip,
+                                    getString(R.string.PluginsUnsafeModeOn))
+                            .show();
+                })
+                .setNegativeButton(getString(R.string.Cancel), null)
+                .makeRed(org.telegram.ui.ActionBar.AlertDialog.BUTTON_POSITIVE)
+                .show();
     }
 
     private void openUrl(String url) {

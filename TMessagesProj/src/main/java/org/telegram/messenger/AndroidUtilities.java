@@ -280,6 +280,12 @@ public class AndroidUtilities {
     }
 
     private static final Hashtable<String, Typeface> typefaceCache = new Hashtable<>();
+
+    public static void clearTypefaceCache() {
+        typefaceCache.clear();
+        mediumTypeface = null;
+    }
+
     public static float touchSlop;
     private static int prevOrientation = -10;
     private static boolean waitingForSms = false;
@@ -6752,6 +6758,10 @@ public class AndroidUtilities {
             FileLog.e(e);
         }
         return false;
+    }
+
+    public static String getHelloWorld() {
+        return "Hello World!";
     }
 
     public static String getBuildVersionInfo() {

@@ -5746,9 +5746,10 @@ public class Theme {
             }
         }
         if (current) {
-            applyTheme(currentTheme, true, false);
+            final boolean night = isCurrentThemeNight();
+            applyTheme(currentTheme, true, night);
             NotificationCenter.getGlobalInstance().postNotificationName(
-                    NotificationCenter.needSetDayNightTheme, currentTheme, false, null,
+                    NotificationCenter.needSetDayNightTheme, currentTheme, night, null,
                     DEFALT_THEME_ACCENT_ID);
         }
     }

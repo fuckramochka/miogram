@@ -2243,7 +2243,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                                 conferenceSlug = path.replace("call/", "");
                                             } else if (path.startsWith("addemoji/")) {
                                                 emoji = path.replace("addemoji/", "");
-                                            } else if (path.startsWith("nasettings/")) {
+                                            } else if (SettingsHelper.isDeepLink(path)) {
                                                 SettingsHelper.processDeepLink(this, data, fragment -> {
                                                     AndroidUtilities.runOnUIThread(() -> presentFragment(fragment, false, false));
                                                     if (AndroidUtilities.isTablet()) {
@@ -7207,6 +7207,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         isResumed = true;
         app.exteraless.plugins.PluginsController.getInstance().executeOnAppEvent(app.exteraless.plugins.PluginsConstants.EVENT_APP_RESUME);
         app.exteraless.plugins.PluginDenialNotice.flush();
+        app.exteraless.crash.CrashReportDialog.showIfPending(this);
         pipActivityHandler.onResume();
         if (onResumeStaticCallback != null) {
             onResumeStaticCallback.run();

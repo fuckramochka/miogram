@@ -229,6 +229,7 @@ public class SharedConfig {
     public static long pushStringGetTimeStart;
     public static long pushStringGetTimeEnd;
     public static boolean pushStatSent;
+    public static long pushLastReceivedTime;
     public static byte[] pushAuthKey;
     public static byte[] pushAuthKeyId;
     public static boolean forceForumTabs;
@@ -483,6 +484,7 @@ public class SharedConfig {
                 editor.putString("pushString2", pushString);
                 editor.putInt("pushType", pushType);
                 editor.putBoolean("pushStatSent", pushStatSent);
+                editor.putLong("pushLastReceivedTime", pushLastReceivedTime);
                 editor.putString("pushAuthKey", pushAuthKey != null ? Base64.encodeToString(pushAuthKey, Base64.DEFAULT) : "");
                 editor.putInt("lastLocalId", lastLocalId);
                 editor.putString("passportConfigJson", passportConfigJson);
@@ -582,6 +584,7 @@ public class SharedConfig {
             pushString = preferences.getString("pushString2", "");
             pushType = preferences.getInt("pushType", PushListenerController.PUSH_TYPE_FIREBASE);
             pushStatSent = preferences.getBoolean("pushStatSent", false);
+            pushLastReceivedTime = preferences.getLong("pushLastReceivedTime", 0);
             passportConfigJson = preferences.getString("passportConfigJson", "");
             passportConfigHash = preferences.getInt("passportConfigHash", 0);
             storageCacheDir = preferences.getString("storageCacheDir", null);

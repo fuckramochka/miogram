@@ -34,6 +34,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
@@ -153,6 +154,7 @@ import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.NotificationsController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SendMessagesHelper;
+import org.telegram.messenger.SendMessageChatArguments;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.SharedPrefsHelper;
 import org.telegram.messenger.UserConfig;
@@ -226,6 +228,7 @@ import org.telegram.ui.iv.RichHtml;
 import org.telegram.ui.iv.RichMessageConvert;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -6253,7 +6256,7 @@ public class ChatActivityEnterView extends FrameLayout implements
     /** Бывший ChatActivityEditTextCaption.send(). */
     private void sendReceivedMedia(String mime, Uri uri, boolean notify, int scheduleDate, int scheduleRepeatPeriod) {
         if (delegate != null) {
-            delegate.beforeMessageSend(null, true, scheduleDate, 0);
+            delegate.beforeMessageSend(null, notify, scheduleDate, 0);
         }
         if (messageSendPreview != null) {
             messageSendPreview.dismiss(true);
@@ -6263,14 +6266,201 @@ public class ChatActivityEnterView extends FrameLayout implements
             parentFragment.showQuoteMessageUpdate();
             return;
         }
+        final AccountInstance targetAccount = accountInstance;
+        final long targetDialogId = dialog_id;
+        final MessageObject reply = replyingMessageObject;
+        final MessageObject thread = getThreadMessage();
+        final ChatActivity.ReplyQuote quote = replyingQuote;
+        final int mode = parentFragment == null ? 0 : parentFragment.getChatMode();
+        final SendMessageChatArguments chatArguments = parentFragment == null
+                ? SendMessageChatArguments.EMPTY : parentFragment.getMessageChatSendParams();
+        final SendMessagesHelper.SendingMediaInfo info = new SendMessagesHelper.SendingMediaInfo();
+        info.uri = uri;
+        final Runnable send = () -> {
+            ArrayList<SendMessagesHelper.SendingMediaInfo> media = new ArrayList<>();
+            media.add(info);
+            SendMessagesHelper.prepareSendingMedia(targetAccount, media, targetDialogId,
+                    reply, thread, null, quote, false, false, null, notify,
+                    scheduleDate, scheduleRepeatPeriod, mode, false, null,
+                    chatArguments, 0, false, 0, 0, null);
+        };
         if (mime != null && mime.equalsIgnoreCase("image/gif")) {
-            SendMessagesHelper.prepareSendingDocument(accountInstance, null, null, uri, null, "image/gif", dialog_id, replyingMessageObject, getThreadMessage(), null, replyingQuote, null, notify, 0, null, parentFragment != null ? parentFragment.getMessageChatSendParams() : null, false);
+            send.run();
         } else {
-            SendMessagesHelper.prepareSendingPhoto(accountInstance, null, uri, dialog_id, replyingMessageObject, getThreadMessage(), replyingQuote, null, null, null, null, 0, null, notify, 0, parentFragment == null ? 0 : parentFragment.getChatMode(), parentFragment != null ? parentFragment.getMessageChatSendParams() : null);
+            Utilities.globalQueue.postRunnable(() -> {
+                info.path = isSimpleWebp(uri) ? null : keyboardStickerPath(uri);
+                if (info.path != null) {
+                    info.uri = null;
+                }
+                AndroidUtilities.runOnUIThread(send);
+            });
         }
         if (delegate != null) {
-            delegate.onMessageSend(null, true, scheduleDate, scheduleRepeatPeriod, 0);
+            delegate.onMessageSend(null, notify, scheduleDate, scheduleRepeatPeriod, 0);
         }
+    }
+
+    private static String keyboardStickerPath(Uri uri) {
+        if (uri == null) {
+            return null;
+        }
+        Bitmap bitmap = null;
+        try {
+            try (InputStream stream = ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri)) {
+                bitmap = BitmapFactory.decodeStream(stream);
+            }
+            if (bitmap == null || bitmap.getWidth() <= 0 || bitmap.getHeight() <= 0) {
+                FileLog.d("keyboard sticker: cannot decode " + uri);
+                return null;
+            }
+            final int width = bitmap.getWidth();
+            final int height = bitmap.getHeight();
+            if (Math.max(width, height) != 512) {
+                final float scale = 512f / Math.max(width, height);
+                Bitmap scaled = Bitmap.createScaledBitmap(bitmap,
+                        Math.max(1, Math.min(512, Math.round(width * scale))),
+                        Math.max(1, Math.min(512, Math.round(height * scale))), true);
+                if (scaled != bitmap) {
+                    bitmap.recycle();
+                    bitmap = scaled;
+                }
+            }
+            File file = new File(FileLoader.getDirectory(FileLoader.MEDIA_DIR_CACHE),
+                    Utilities.generateRandomString(12) + ".webp");
+            Bitmap.CompressFormat format = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    ? Bitmap.CompressFormat.WEBP_LOSSLESS : Bitmap.CompressFormat.WEBP;
+            boolean written;
+            try (FileOutputStream out = new FileOutputStream(file)) {
+                written = bitmap.compress(format, 100, out);
+            }
+            FileLog.d("keyboard sticker: " + width + "x" + height
+                    + " -> " + bitmap.getWidth() + "x" + bitmap.getHeight()
+                    + " alpha=" + bitmap.hasAlpha() + " written=" + written
+                    + " size=" + file.length());
+            if (!written || file.length() <= 0) {
+                return null;
+            }
+            simplifyWebp(file);
+            return file.getAbsolutePath();
+        } catch (Throwable e) {
+            FileLog.e(e);
+            return null;
+        } finally {
+            if (bitmap != null) {
+                bitmap.recycle();
+            }
+        }
+    }
+
+    private static boolean isSimpleWebp(Uri uri) {
+        if (uri == null) {
+            return false;
+        }
+        byte[] header = new byte[16];
+        try (InputStream stream = ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri)) {
+            if (stream == null) {
+                return false;
+            }
+            int read = 0;
+            while (read < header.length) {
+                int count = stream.read(header, read, header.length - read);
+                if (count <= 0) {
+                    break;
+                }
+                read += count;
+            }
+            if (read < header.length) {
+                return false;
+            }
+        } catch (Throwable e) {
+            return false;
+        }
+        if (!isTag(header, 0, "RIFF") || !isTag(header, 8, "WEBP")) {
+            return false;
+        }
+        return isTag(header, 12, "VP8L") || isTag(header, 12, "VP8 ");
+    }
+
+    private static boolean isTag(byte[] data, int offset, String tag) {
+        if (data.length < offset + 4) {
+            return false;
+        }
+        for (int a = 0; a < 4; a++) {
+            if (data[offset + a] != (byte) tag.charAt(a)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static void simplifyWebp(File file) {
+        try {
+            long length = file.length();
+            if (length <= 20 || length > 8 * 1024 * 1024) {
+                return;
+            }
+            byte[] data = new byte[(int) length];
+            try (FileInputStream stream = new FileInputStream(file)) {
+                int read = 0;
+                while (read < data.length) {
+                    int count = stream.read(data, read, data.length - read);
+                    if (count <= 0) {
+                        break;
+                    }
+                    read += count;
+                }
+                if (read < data.length) {
+                    return;
+                }
+            }
+            if (!isTag(data, 0, "RIFF") || !isTag(data, 8, "WEBP") || !isTag(data, 12, "VP8X")) {
+                return;
+            }
+            int offset = 12;
+            int losslessAt = -1;
+            int losslessSize = 0;
+            while (offset + 8 <= data.length) {
+                int size = (data[offset + 4] & 0xff) | ((data[offset + 5] & 0xff) << 8)
+                        | ((data[offset + 6] & 0xff) << 16) | ((data[offset + 7] & 0xff) << 24);
+                if (size < 0 || offset + 8 + size > data.length) {
+                    return;
+                }
+                if (isTag(data, offset, "ANIM") || isTag(data, offset, "ANMF")
+                        || isTag(data, offset, "ALPH") || isTag(data, offset, "VP8 ")) {
+                    return;
+                }
+                if (isTag(data, offset, "VP8L")) {
+                    losslessAt = offset + 8;
+                    losslessSize = size;
+                }
+                offset += 8 + size + (size & 1);
+            }
+            if (losslessAt < 0 || losslessSize <= 0) {
+                return;
+            }
+            int pad = losslessSize & 1;
+            int riffSize = 4 + 8 + losslessSize + pad;
+            try (FileOutputStream out = new FileOutputStream(file)) {
+                out.write(new byte[]{'R', 'I', 'F', 'F'});
+                writeInt(out, riffSize);
+                out.write(new byte[]{'W', 'E', 'B', 'P', 'V', 'P', '8', 'L'});
+                writeInt(out, losslessSize);
+                out.write(data, losslessAt, losslessSize);
+                if (pad != 0) {
+                    out.write(0);
+                }
+            }
+            FileLog.d("keyboard sticker: simplified webp, size=" + file.length());
+        } catch (Throwable e) {
+            FileLog.e(e);
+        }
+    }
+
+    private static void writeInt(FileOutputStream out, int value) throws java.io.IOException {
+        out.write(value & 0xff);
+        out.write((value >> 8) & 0xff);
+        out.write((value >> 16) & 0xff);
+        out.write((value >> 24) & 0xff);
     }
 
     private View mCustomWindowView;
@@ -7853,6 +8043,14 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     private void checkAttachButton(boolean use, int duration) {
+        if (suggestButton != null) {
+            if (use) {
+                suggestButton.setVisibility(GONE);
+            } else if (suggestButton.getVisibility() == GONE
+                    && messageEditText != null && TextUtils.isEmpty(messageEditText.getText())) {
+                suggestButton.setVisibility(VISIBLE);
+            }
+        }
         if (use && app.exteraless.chats.ChatsConfig.keepAttachButton.Bool()) {
             use = false;
         }
@@ -7874,10 +8072,6 @@ public class ChatActivityEnterView extends FrameLayout implements
             } else if (checkBotButton()) {
                 updateBotButton(true);
             }
-        }
-
-        if (use && suggestButton != null) {
-            suggestButton.setVisibility(GONE);
         }
 
         if (use) {
@@ -7912,12 +8106,6 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
         if (this.paidMessagesPrice > 0 && attachLayout != null) {
             attachLayout.setTranslationX(-dp(24));
-        }
-        if (suggestButton != null && suggestButton.getVisibility() == GONE) {
-            final boolean show = messageEditText != null && TextUtils.isEmpty(messageEditText.getText());
-            if (show) {
-                suggestButton.setVisibility(VISIBLE);
-            }
         }
     }
 

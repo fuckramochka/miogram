@@ -143,7 +143,7 @@ public class OpenExteraAppNavigationActivity extends BaseFragment {
         // Вместо переключателя Spring Animations здесь трёхпозиционный
         // NaConfig.backAnimationStyle: он покрывает и Spring, и Classic.
         items.add(UItem.asButton(ID_BACK_ANIMATION, getString(R.string.OEBackAnimation),
-                backAnimations()[clamp(NaConfig.INSTANCE.getBackAnimationStyle().Int(), 3)]));
+                backAnimations()[clamp(NaConfig.INSTANCE.getBackAnimationStyle().Int(), backAnimations().length)]));
         items.add(UItem.asShadow(getString(R.string.OEBackAnimationInfo)));
 
         if (android.os.Build.VERSION.SDK_INT >= 34) {
@@ -442,10 +442,18 @@ public class OpenExteraAppNavigationActivity extends BaseFragment {
     private static final int BACK_ANIMATION_SPRING = 1;
 
     private CharSequence[] backAnimations() {
+        if (android.os.Build.VERSION.SDK_INT < 34) {
+            return new CharSequence[]{
+                    getString(R.string.OEBackAnimationClassic),
+                    getString(R.string.OEBackAnimationSpring),
+                    getString(R.string.OEBackAnimationPredictive),
+            };
+        }
         return new CharSequence[]{
                 getString(R.string.OEBackAnimationClassic),
                 getString(R.string.OEBackAnimationSpring),
                 getString(R.string.OEBackAnimationPredictive),
+                getString(R.string.OEBackAnimationSlide),
         };
     }
 

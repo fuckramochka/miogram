@@ -135,6 +135,10 @@ public class ApplicationLoader extends Application implements CameraXConfig.Prov
         return mapsProvider;
     }
 
+    public static void resetMapsProvider() {
+        mapsProvider = null;
+    }
+
     /*protected IMapsProvider onCreateMapsProvider() {
         return new GoogleMapsProvider();
     }*/
@@ -287,6 +291,15 @@ public class ApplicationLoader extends Application implements CameraXConfig.Prov
         app.exteraless.chats.ChatsConfig.init();
         app.exteraless.general.GeneralConfig.init();
         app.exteraless.utils.UtilsConfig.init();
+        app.exteraless.glyph.GlyphConfig.init();
+        app.exteraless.glyph.GlyphController.getInstance().init();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Суффикс набора Monet запекается в ThemeInfo.assetName при первой загрузке
+            // класса Theme. Если она случилась до загрузки конфигов (процесс поднялся
+            // ради ресивера/провайдера), палитра молча откатывалась бы на набор по
+            // умолчанию — патчим assetName после инициализации конфигов.
+            org.telegram.ui.ActionBar.Theme.reloadMonetThemes();
+        }
         app.exteraless.plugins.PluginsController.getInstance().init(applicationContext);
         SharedPrefsHelper.init(applicationContext);
         try {
@@ -344,7 +357,11 @@ public class ApplicationLoader extends Application implements CameraXConfig.Prov
         installCrashReportFilter();
         app.miogram.bridge.perf.MiogramPerformanceOptimizer.init(this);
 
+        // AndroidUtilities must be initialized before FileLog
+        final String helloWorld = AndroidUtilities.getHelloWorld();
+
         if (BuildVars.LOGS_ENABLED) {
+            FileLog.d(helloWorld);
             FileLog.d("app start time = " + (startTime = SystemClock.elapsedRealtime()));
             try {
                 final PackageInfo info = ApplicationLoader.applicationContext.getPackageManager().getPackageInfo(ApplicationLoader.applicationContext.getPackageName(), 0);
@@ -390,14 +407,20 @@ public class ApplicationLoader extends Application implements CameraXConfig.Prov
                 }
             }
         };
+        if (BuildVars.DEBUG_VERSION) {
+            new ANRDetector(FileLog::dumpANR);
+        }
+
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("load libs time = " + (SystemClock.elapsedRealtime() - startTime));
         }
 
         applicationHandler = new Handler(applicationContext.getMainLooper());
 
-        org.osmdroid.config.Configuration.getInstance().setUserAgentValue("Telegram-FOSS ( NekoX ) " + BuildConfig.VERSION_NAME);
-        org.osmdroid.config.Configuration.getInstance().setOsmdroidBasePath(new File(ApplicationLoader.applicationContext.getCacheDir(), "osmdroid"));
+        org.osmdroid.config.Configuration.getInstance().setUserAgentValue("exteraless/" + BuildConfig.VERSION_NAME + " (+https://github.com/exteraless/exteraless)");
+        final File osmdroidBasePath = new File(ApplicationLoader.applicationContext.getCacheDir(), "osmdroid");
+        org.osmdroid.config.Configuration.getInstance().setOsmdroidBasePath(osmdroidBasePath);
+        org.osmdroid.config.Configuration.getInstance().setOsmdroidTileCache(new File(osmdroidBasePath, "tiles"));
 
         LauncherIconController.tryFixLauncherIconIfNeeded();
         ProxyRotationController.init();
@@ -409,13 +432,17 @@ public class ApplicationLoader extends Application implements CameraXConfig.Prov
     }
 
     private static void startPushServiceInternal() {
-        if (PushListenerController.getProvider().hasServices()) {
-            return;
-        }
         SharedPreferences preferences = MessagesController.getNotificationsSettings(UserConfig.selectedAccount);
+        final int pushServiceType = NaConfig.INSTANCE.getPushServiceType().Int();
+        final boolean remotePush = pushServiceType != 0
+                && (pushServiceType == 2 || PushListenerController.getProvider().hasServices());
         boolean enabled;
-        if (preferences.contains("pushService")) {
+        if (remotePush) {
+            enabled = false;
+        } else if (preferences.contains("pushService")) {
             enabled = preferences.getBoolean("pushService", true);
+        } else if (PushListenerController.getProvider().hasServices()) {
+            return;
         } else {
             enabled = MessagesController.getMainSettings(UserConfig.selectedAccount).getBoolean("keepAliveService", false);
             SharedPreferences.Editor editor = preferences.edit();
@@ -428,17 +455,13 @@ public class ApplicationLoader extends Application implements CameraXConfig.Prov
             AndroidUtilities.runOnUIThread(() -> {
                 try {
                     Log.d("TFOSS", "Starting push service...");
-                    if (NaConfig.INSTANCE.getPushServiceTypeInAppDialog().Bool()) {
-                        applicationContext.startForegroundService(new Intent(applicationContext, NotificationsService.class));
-                    } else {
-                        applicationContext.startService(new Intent(applicationContext, NotificationsService.class));
-                    }
+                    applicationContext.startForegroundService(new Intent(applicationContext, NotificationsService.class));
 
                     Log.d("TFOSS", "Trying to start push service every 10 minutes");
                     // Telegram-FOSS: unconditionally enable push service
                     AlarmManager am = (AlarmManager) applicationContext.getSystemService(Context.ALARM_SERVICE);
                     Intent i = new Intent(applicationContext, NotificationsService.class);
-                    pendingIntent = PendingIntent.getBroadcast(applicationContext, 0, i, PendingIntent.FLAG_IMMUTABLE);
+                    pendingIntent = PendingIntent.getForegroundService(applicationContext, 0, i, PendingIntent.FLAG_IMMUTABLE);
 
                     am.cancel(pendingIntent);
                     am.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 10 * 60 * 1000, pendingIntent);
@@ -843,6 +866,7 @@ public class ApplicationLoader extends Application implements CameraXConfig.Prov
     private void installCrashReportFilter() {
         Thread.UncaughtExceptionHandler crashlyticsHandler = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler((thread, error) -> {
+            app.exteraless.crash.CrashLog.record(thread, error);
             if (AndroidUtil.shouldReportCrashToCrashlytics(error)) {
                 if (crashlyticsHandler != null) {
                     crashlyticsHandler.uncaughtException(thread, error);

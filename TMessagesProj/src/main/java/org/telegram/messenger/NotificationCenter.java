@@ -397,6 +397,7 @@ public class NotificationCenter {
 
     public static final int feedNeedReload = totalEvents++;
     public static final int feedTabVisibleToggled = totalEvents++;
+    public static final int pillStackLayoutChanged = totalEvents++;
 
     private final SparseArray<ArrayList<NotificationCenterDelegate>> observers = new SparseArray<>();
     private final SparseArray<ArrayList<NotificationCenterDelegate>> removeAfterBroadcast = new SparseArray<>();

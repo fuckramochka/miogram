@@ -7,6 +7,7 @@ from pyrogram import Client
 
 APK_GLOB = "TMessagesProj/build/outputs/apk/release/*.apk"
 CAPTION_LIMIT = 1024
+TITLE = "New CI Build!"
 
 
 def commits():
@@ -22,10 +23,9 @@ def commits():
     return out
 
 
-def head():
+def head_subject():
     lines = (os.environ.get("COMMIT_MESSAGE") or "").strip().splitlines()
-    subject = lines[0] if lines else "без описания"
-    return subject, "\n".join(lines[1:]).strip()
+    return lines[0] if lines else "без описания"
 
 
 def quote(entries):
@@ -38,15 +38,12 @@ def quote(entries):
 
 
 def caption():
-    subject, body = head()
     sha = (os.environ.get("COMMIT_SHA") or "")[:9]
     tail = f"`{sha}`\n{os.environ.get('RUN_URL', '')}"
-    entries = commits()
+    entries = commits() or [head_subject()]
 
     while True:
-        parts = [f"**{subject}**"]
-        if body:
-            parts.append(body)
+        parts = [f"**{TITLE}**"]
         block = quote(entries)
         if block:
             parts.append(block)

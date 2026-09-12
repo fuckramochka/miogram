@@ -39,11 +39,14 @@ import org.telegram.ui.Components.UniversalAdapter;
 import org.telegram.ui.Components.UniversalRecyclerView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 
 import app.exteraless.plugins.Plugin;
 import app.exteraless.plugins.PluginPermissions;
 import app.exteraless.plugins.PluginsController;
+import app.exteraless.plugins.PluginsWatchdog;
 import com.exteragram.messenger.preferences.BasePreferencesActivity;
 
 /**
@@ -65,9 +68,11 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
     private static final int ID_PERMISSIONS = -1;
     private static final int ID_NOT_LOADED = -2;
     private static final int ID_PERMISSIONS_SHADOW = -3;
+    private static final int ID_WATCHDOG_WARNINGS = -4;
 
     static {
         UItem.UItemFactory.setup(new PluginCustomRowFactory());
+        UItem.UItemFactory.setup(new PluginSliderCell.Factory());
     }
 
     private String pluginId;
@@ -89,6 +94,9 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
 
     /** Строки экрана в исходном виде — как их отдал Python-SDK. */
     private final ArrayList<JSONObject> rows = new ArrayList<>();
+    private String lastJson;
+    private final IdentityHashMap<UItem, JSONObject> rowsByItem = new IdentityHashMap<>();
+    private final HashMap<String, Integer> rowIds = new HashMap<>();
 
     public PluginSettingsActivity() {
     }
@@ -227,6 +235,9 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
         super.onResume();
         // Возврат с подстраницы: там могли переключить то, от чего зависит состав
         // строк на этом экране.
+        if (lastJson != null && lastJson.equals(fetchJson())) {
+            return;
+        }
         rebuildFromEngine();
     }
 
@@ -310,10 +321,11 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
                 || layoutManager == null) {
             return;
         }
-        final int id = targetSetting.hashCode() & 0x7FFFFFFF;
         for (int i = 0; i < listView.adapter.getItemCount(); i++) {
             UItem item = listView.adapter.getItem(i);
-            if (item != null && item.id == id) {
+            JSONObject row = rowOf(item);
+            if (row != null && (targetSetting.equals(optNonEmpty(row, "key"))
+                    || targetSetting.equals(optNonEmpty(row, "link_alias")))) {
                 layoutManager.scrollToPositionWithOffset(i, AndroidUtilities.dp(48));
                 targetSetting = null;
                 return;
@@ -359,6 +371,9 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
                 applyTextCellGeometry((TextCell) view, null);
             }
         }));
+        items.add(UItem.asCheck(ID_WATCHDOG_WARNINGS, getString(R.string.PluginWatchdogWarnings))
+                .setChecked(!PluginsController.getInstance().getWatchdog().isWarningMuted(pluginId)));
+        items.add(UItem.asShadow(-5, getString(R.string.PluginWatchdogWarningsInfo)));
     }
 
     private static boolean endsWithShadow(ArrayList<UItem> items) {
@@ -372,16 +387,9 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
     private void reloadRows() {
         ArrayList<JSONObject> previous = new ArrayList<>(rows);
         rows.clear();
-        String json;
-        if (subPageIndex != null) {
-            String resolved = resolveSubPageJson();
-            if (resolved != null) {
-                subPageJson = resolved;
-            }
-            json = subPageJson;
-        } else {
-            json = PluginsController.getInstance().getPluginSettingsJson(pluginId);
-        }
+        rowsByItem.clear();
+        String json = fetchJson();
+        lastJson = json;
         if (json != null && !"null".equals(json)) {
             try {
                 JSONArray array = new JSONArray(json);
@@ -405,11 +413,17 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
         }
     }
 
-    /**
-     * Свежий JSON этой подстраницы: она рисует срез корневого списка, а он
-     * пересобирается при каждом изменении настроек. Идём по запомненному пути
-     * от корня, сверяя заголовки, — состав строк по дороге мог измениться.
-     */
+    private String fetchJson() {
+        if (subPageIndex != null) {
+            String resolved = resolveSubPageJson();
+            if (resolved != null) {
+                subPageJson = resolved;
+            }
+            return subPageJson;
+        }
+        return PluginsController.getInstance().getPluginSettingsJson(pluginId);
+    }
+
     private String resolveSubPageJson() {
         String rootJson = PluginsController.getInstance().getPluginSettingsJson(pluginId);
         if (rootJson == null || "null".equals(rootJson)) {
@@ -435,23 +449,23 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
         }
     }
 
-    private static JSONObject subPageHolder(JSONArray array, int index, String text) {
+    private static JSONObject subPageHolder(JSONArray array, int index, String owner) {
         JSONObject candidate = array.optJSONObject(index);
-        if (holdsSubPage(candidate, text)) {
+        if (holdsSubPage(candidate, owner)) {
             return candidate;
         }
         for (int i = 0; i < array.length(); i++) {
             JSONObject obj = array.optJSONObject(i);
-            if (holdsSubPage(obj, text)) {
+            if (holdsSubPage(obj, owner)) {
                 return obj;
             }
         }
         return null;
     }
 
-    private static boolean holdsSubPage(JSONObject obj, String text) {
+    private static boolean holdsSubPage(JSONObject obj, String owner) {
         return obj != null && obj.optJSONArray("sub_page") != null
-                && (text == null || text.equals(obj.optString("text")));
+                && (owner == null || owner.equals(subPageOwner(obj)));
     }
 
     /**
@@ -468,10 +482,15 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
         return out;
     }
 
-    private String[] ownersTo(String text) {
+    private static String subPageOwner(JSONObject row) {
+        String identity = optNonEmpty(row, "row_id");
+        return identity != null ? identity : row.optString("text");
+    }
+
+    private String[] ownersTo(JSONObject row) {
         String[] parent = subPageOwners == null ? new String[0] : subPageOwners;
         String[] out = java.util.Arrays.copyOf(parent, parent.length + 1);
-        out[parent.length] = text;
+        out[parent.length] = subPageOwner(row);
         return out;
     }
 
@@ -504,19 +523,17 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
 
     // ---------- строка JSON -> UItem ----------
 
-    /**
-     * Идентификатор строки для diff-а адаптера. По ключу настройки, а не по
-     * позиции: она уезжает, как только плагин вставит в список своё.
-     */
-    private static int rowId(JSONObject item, int index) {
-        String base = optNonEmpty(item, "key");
-        if (base == null) {
-            base = optNonEmpty(item, "text");
+    private int rowId(JSONObject item, int index) {
+        String identity = optNonEmpty(item, "row_id");
+        if (identity == null) {
+            identity = item.optString("type") + '#' + index;
         }
-        if (base == null) {
-            base = item.optString("type") + '#' + index;
+        Integer id = rowIds.get(identity);
+        if (id == null) {
+            id = rowIds.size() + 1;
+            rowIds.put(identity, id);
         }
-        return base.hashCode() & 0x7FFFFFFF;
+        return id;
     }
 
     private UItem toUItem(JSONObject row, int index) {
@@ -525,7 +542,7 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
         final UItem item;
         switch (type) {
             case "header":
-                item = UItem.asHeader(row.optString("text"));
+                item = UItem.asHeader(id, row.optString("text"));
                 break;
             case "divider":
                 item = UItem.asShadow(id, optNonEmpty(row, "text"));
@@ -541,11 +558,20 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
             }
             case "custom":
                 return customRow(row, id);
+            case "slider":
+                item = UItem.ofFactory(PluginSliderCell.Factory.class);
+                item.id = id;
+                item.object = row;
+                try {
+                    row.put("plugin_id", pluginId);
+                } catch (JSONException ignored) {
+                }
+                break;
             default:
                 item = textRow(row, id, type);
                 break;
         }
-        item.object = row;
+        rowsByItem.put(item, row);
         return item;
     }
 
@@ -578,16 +604,27 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
     }
 
     private UItem customRow(JSONObject row, int id) {
-        UItem item = UItem.ofFactory(PluginCustomRowFactory.class);
-        item.id = id;
-        item.object = row;
         String viewId = optNonEmpty(row, "view_id");
-        if (viewId != null) {
-            item.view = PluginsController.getInstance()
-                    .getPluginSettingsCustomView(pluginId, viewId, getContext());
-        }
-        item.enabled = optNonEmpty(row, "callback_id") != null
+        Object content = viewId == null ? null : PluginsController.getInstance()
+                .getPluginSettingsCustomContent(pluginId, viewId, getContext());
+        boolean interactive = optNonEmpty(row, "callback_id") != null
+                || optNonEmpty(row, "long_callback_id") != null
                 || row.optJSONArray("sub_page") != null;
+        UItem item;
+        if (content instanceof UItem) {
+            item = ((UItem) content).copy();
+            if (interactive && item.viewType < 0 && item.view != null) {
+                item.viewType = UItem.ofFactory(PluginCustomRowFactory.class).viewType;
+            }
+        } else {
+            item = UItem.ofFactory(PluginCustomRowFactory.class);
+            item.view = content instanceof View ? (View) content : null;
+        }
+        item.id = id;
+        rowsByItem.put(item, row);
+        if (!(content instanceof UItem)) {
+            item.enabled = interactive;
+        }
         return item;
     }
 
@@ -692,8 +729,8 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
     // ---------- нажатия ----------
 
     /** JSON-строка, стоящая за элементом списка, или null, если элемент чужой. */
-    private static JSONObject rowOf(UItem item) {
-        return item != null && item.object instanceof JSONObject ? (JSONObject) item.object : null;
+    private JSONObject rowOf(UItem item) {
+        return item == null ? null : rowsByItem.get(item);
     }
 
     @Override
@@ -701,7 +738,8 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
         JSONObject row = rowOf(item);
         String callbackId = row == null ? null : optNonEmpty(row, "long_callback_id");
         if (callbackId == null) {
-            return false;
+            return row != null && "custom".equals(row.optString("type"))
+                    && PluginsController.getInstance().dispatchSettingsCustomClick(pluginId, item, view, true);
         }
         PluginsController.getInstance().dispatchSettingClick(pluginId, callbackId, view);
         return true;
@@ -711,6 +749,16 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
     public void onClick(UItem item, View view, int position, float x, float y) {
         if (item != null && item.id == ID_PERMISSIONS && rowOf(item) == null) {
             presentFragment(new PluginPermissionsActivity(pluginId));
+            return;
+        }
+        if (item != null && item.id == ID_WATCHDOG_WARNINGS && rowOf(item) == null) {
+            PluginsWatchdog watchdog = PluginsController.getInstance().getWatchdog();
+            boolean warn = watchdog.isWarningMuted(pluginId);
+            watchdog.setWarningMuted(pluginId, !warn);
+            item.checked = warn;
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(warn);
+            }
             return;
         }
         JSONObject row = rowOf(item);
@@ -751,9 +799,11 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
                 JSONArray customSubPage = row.optJSONArray("sub_page");
                 if (customSubPage != null) {
                     presentFragment(newSubPage(pluginId, customSubPage.toString(), getTitle(),
-                            pathTo(row), ownersTo(null)));
+                            pathTo(row), ownersTo(row)));
                 } else if (callbackId != null) {
                     controller.dispatchSettingClick(pluginId, callbackId, view);
+                } else {
+                    controller.dispatchSettingsCustomClick(pluginId, item, view, false);
                 }
                 break;
             }
@@ -761,7 +811,7 @@ public class PluginSettingsActivity extends BasePreferencesActivity {
                 JSONArray subPage = row.optJSONArray("sub_page");
                 if (subPage != null) {
                     presentFragment(newSubPage(pluginId, subPage.toString(), row.optString("text"),
-                            pathTo(row), ownersTo(row.optString("text"))));
+                            pathTo(row), ownersTo(row)));
                 } else if (callbackId != null) {
                     controller.dispatchSettingClick(pluginId, callbackId, view);
                 }

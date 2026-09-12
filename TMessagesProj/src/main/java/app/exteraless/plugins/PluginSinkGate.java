@@ -286,8 +286,14 @@ public final class PluginSinkGate {
                                 describe(param) + " (" + reason + ")", true);
                         return;
                     }
+                    if (PluginPermissions.has(pluginId, PluginPermissions.NATIVE)) {
+                        PluginAuditJournal.record(pluginId, event, "native",
+                                describe(param) + " (granted)", true);
+                        return;
+                    }
                     deny(pluginId, event, "native", describe(param),
-                            "loading a native library is never available to plugins", param);
+                            "loading a native library needs the 'native' permission,"
+                                    + " available only on the trusted level", param);
                 } finally {
                     leaveCheck();
                 }
@@ -686,8 +692,117 @@ public final class PluginSinkGate {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
                 PluginRuntime.exitPython();
+                Throwable error = param.getThrowable();
+                if (error == null) {
+                    return;
+                }
+                if (isStalePythonProxy(error)) {
+                    FileLog.w("PluginSinkGate: dropped a callback into an unloaded plugin ("
+                            + describeProxiedMethod(param) + ")");
+                } else {
+                    reportCallbackError(param, error);
+                }
+                param.setResult(zeroValueFor(proxiedMethod(param)));
             }
         });
+    }
+
+    private static void reportCallbackError(XC_MethodHook.MethodHookParam param, Throwable error) {
+        String where = describeProxiedMethod(param);
+        if (isPermissionDenial(error)) {
+            FileLog.w("PluginSinkGate: permission denied in " + where + ": " + error.getMessage());
+            return;
+        }
+        String pluginId = PluginRuntime.current();
+        if (pluginId != null) {
+            PluginsWatchdog watchdog = null;
+            try {
+                watchdog = PluginsController.getInstance().getWatchdog();
+            } catch (Throwable ignored) {
+            }
+            if (watchdog != null) {
+                try {
+                    watchdog.handlePluginError(pluginId, error);
+                    return;
+                } catch (Throwable t) {
+                    FileLog.e("PluginSinkGate: watchdog.handlePluginError failed", t);
+                }
+            }
+        }
+        FileLog.e("PluginSinkGate: callback " + where + " failed", error);
+    }
+
+    private static boolean isPermissionDenial(Throwable error) {
+        Throwable current = error;
+        for (int depth = 0; current != null && depth < 8; depth++) {
+            if (current instanceof SecurityException) {
+                return true;
+            }
+            String message = current.getMessage();
+            if (message != null && message.startsWith("PermissionError:")) {
+                return true;
+            }
+            Throwable cause = current.getCause();
+            current = cause == current ? null : cause;
+        }
+        return false;
+    }
+
+    private static boolean isStalePythonProxy(Throwable error) {
+        Throwable current = error;
+        for (int depth = 0; current != null && depth < 8; depth++) {
+            String message = current.getMessage();
+            if (message != null && (message.contains("_chaquopyGetDict")
+                    || message.contains("_chaquopySetDict"))) {
+                return true;
+            }
+            Throwable cause = current.getCause();
+            current = cause == current ? null : cause;
+        }
+        return false;
+    }
+
+    private static Method proxiedMethod(XC_MethodHook.MethodHookParam param) {
+        Object[] args = param.args;
+        if (args != null && args.length > 1 && args[1] instanceof Method) {
+            return (Method) args[1];
+        }
+        return null;
+    }
+
+    private static String describeProxiedMethod(XC_MethodHook.MethodHookParam param) {
+        Method method = proxiedMethod(param);
+        return method == null ? "unknown method"
+                : method.getDeclaringClass().getName() + "." + method.getName();
+    }
+
+    private static Object zeroValueFor(Method method) {
+        Class<?> type = method == null ? null : method.getReturnType();
+        if (type == null || !type.isPrimitive() || type == void.class) {
+            return null;
+        }
+        if (type == boolean.class) {
+            return Boolean.FALSE;
+        }
+        if (type == char.class) {
+            return (char) 0;
+        }
+        if (type == byte.class) {
+            return (byte) 0;
+        }
+        if (type == short.class) {
+            return (short) 0;
+        }
+        if (type == int.class) {
+            return 0;
+        }
+        if (type == long.class) {
+            return 0L;
+        }
+        if (type == float.class) {
+            return 0f;
+        }
+        return 0d;
     }
 
     /** id плагина, если проверять надо; null — приложение или мы уже внутри проверки. */
@@ -769,6 +884,10 @@ public final class PluginSinkGate {
      */
     private static void denySilently(String pluginId, String event, String category, String detail,
                                      String reason, XC_MethodHook.MethodHookParam param) {
+        if (PluginPermissions.isUnsafeMode()) {
+            PluginAuditJournal.record(pluginId, event, category, detail, true);
+            return;
+        }
         PluginAuditJournal.record(pluginId, event, category, detail, false);
         FileLog.w("PluginSinkGate: skipped " + event + " for plugin " + pluginId + " — " + reason);
         param.setResult(emptyResultFor(param));
@@ -776,33 +895,15 @@ public final class PluginSinkGate {
 
     /** Пустое значение под тип возврата метода: у примитивов null уронил бы распаковку. */
     private static Object emptyResultFor(XC_MethodHook.MethodHookParam param) {
-        Class<?> returnType = null;
-        if (param.method instanceof Method) {
-            returnType = ((Method) param.method).getReturnType();
-        }
-        if (returnType == null || returnType == void.class || !returnType.isPrimitive()) {
-            return null;
-        }
-        if (returnType == boolean.class) {
-            return Boolean.FALSE;
-        }
-        if (returnType == long.class) {
-            return 0L;
-        }
-        if (returnType == float.class) {
-            return 0f;
-        }
-        if (returnType == double.class) {
-            return 0d;
-        }
-        if (returnType == char.class) {
-            return (char) 0;
-        }
-        return 0;
+        return zeroValueFor(param.method instanceof Method ? (Method) param.method : null);
     }
 
     private static void deny(String pluginId, String event, String category, String detail,
                              String reason, XC_MethodHook.MethodHookParam param) {
+        if (PluginPermissions.isUnsafeMode()) {
+            PluginAuditJournal.record(pluginId, event, category, detail, true);
+            return;
+        }
         PluginAuditJournal.record(pluginId, event, category, detail, false, callerStack());
         FileLog.w("PluginSinkGate: denied " + event + " to plugin " + pluginId + " — " + reason);
         param.setThrowable(denialFor(event, category, pluginId, reason));

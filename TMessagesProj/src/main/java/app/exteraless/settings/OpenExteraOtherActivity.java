@@ -57,6 +57,8 @@ import app.exteraless.drawer.MainMenuItem;
 import app.exteraless.drawer.MainMenuLayout;
 import app.exteraless.general.GeneralConfig;
 import app.exteraless.pillstack.PillStackConfig;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
+
 import app.exteraless.pillstack.PillType;
 import app.exteraless.general.GeneralHelper;
 import tw.nekomimi.nekogram.NekoConfig;
@@ -67,6 +69,7 @@ import tw.nekomimi.nekogram.settings.GhostModeActivity;
 import xyz.nextalone.nagram.NaConfig;
 import tw.nekomimi.nekogram.ui.cells.HeaderCell;
 import tw.nekomimi.nekogram.utils.AlertUtil;
+import tw.nekomimi.nekogram.utils.AndroidUtil;
 
 /**
  * Экран «Other» раздела openExtera — повторяет Other из exteraGram
@@ -94,8 +97,12 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
             NaConfig.INSTANCE.getSaveDeletedMessageForBot(),
             NaConfig.INSTANCE.getTranslucentDeletedMessages(),
             NaConfig.INSTANCE.getUseDeletedIcon(),
+            NaConfig.INSTANCE.getForwardProtectedAsCopy(),
     };
 
+    private int googleHeaderRow;
+    private int crashReportsRow;
+    private int googleDividerRow;
     private int nagramHeaderRow;
     private int nagramSettingsRow;
     private int ayuMomentsRow;
@@ -113,15 +120,22 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
     private boolean saveMediaExpanded;
     private int ayuBotUserRow;
     private int ayuBotChatRow;
+    private int ayuSaveDeletedPrivateRow;
+    private int ayuSaveDeletedGroupsRow;
+    private int ayuSaveDeletedChannelsRow;
+    private int ayuReplyToDeletedRow;
     private int ayuTranslucentRow;
     private int ayuDeletedIconRow;
     private int ayuDeletedMarkRow;
+    private int ayuForwardProtectedRow;
     private int ayuClearDbRow;
     private int nagramDividerRow;
 
     private int exportEtgRow;
     private int importEtgRow;
     private int etgDividerRow;
+    private int glyphRow;
+    private int glyphDividerRow;
     private int resetSettingsRow;
     private int deleteAccountRow;
     private int bottomDividerRow;
@@ -156,16 +170,22 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
         // «nu.gpu.nagram», а у нас com.exteraless.app — переключатель стоял
         // мёртвым. На его месте вход в настройки NagramX, выключенный по
         // умолчанию.
+        googleHeaderRow = addRow("googleHeader");
+        crashReportsRow = addRow("crashReports");
+        googleDividerRow = addRow();
+
         nagramHeaderRow = addRow("nagramHeader");
         nagramSettingsRow = addRow("nagramSettings");
+        ayuGhostRow = addRow("ayuGhost");
         ayuMomentsRow = addRow("ayuMoments");
-        ayuGhostRow = ayuRegexRow = ayuSaveLastSeenRow = ayuSaveDeletedRow = ayuSaveEditsRow = -1;
+        ayuRegexRow = ayuSaveLastSeenRow = ayuSaveDeletedRow = ayuSaveEditsRow = -1;
         ayuSaveMediaRow = ayuBotUserRow = ayuBotChatRow = ayuTranslucentRow = -1;
+        ayuSaveDeletedPrivateRow = ayuSaveDeletedGroupsRow = ayuSaveDeletedChannelsRow = -1;
+        ayuReplyToDeletedRow = -1;
         saveMediaPrivateChatsRow = saveMediaPublicChannelsRow = saveMediaPrivateChannelsRow = -1;
         saveMediaPublicGroupsRow = saveMediaPrivateGroupsRow = -1;
-        ayuDeletedIconRow = ayuDeletedMarkRow = ayuClearDbRow = -1;
+        ayuDeletedIconRow = ayuDeletedMarkRow = ayuForwardProtectedRow = ayuClearDbRow = -1;
         if (GeneralConfig.showAyuMoments()) {
-            ayuGhostRow = addRow("ayuGhost");
             ayuRegexRow = addRow(NaConfig.INSTANCE.getRegexFiltersEnabled().getKey());
             ayuSaveLastSeenRow = addRow(NaConfig.INSTANCE.getSaveLocalLastSeen().getKey());
             ayuSaveDeletedRow = addRow(NaConfig.INSTANCE.getEnableSaveDeletedMessages().getKey());
@@ -181,16 +201,21 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
                     saveMediaPublicGroupsRow = addRow();
                     saveMediaPrivateGroupsRow = addRow();
                 }
+                ayuSaveDeletedPrivateRow = addRow(NaConfig.INSTANCE.getSaveDeletedInPrivateChats().getKey());
+                ayuSaveDeletedGroupsRow = addRow(NaConfig.INSTANCE.getSaveDeletedInGroups().getKey());
+                ayuSaveDeletedChannelsRow = addRow(NaConfig.INSTANCE.getSaveDeletedInChannels().getKey());
                 ayuBotUserRow = addRow(NaConfig.INSTANCE.getSaveDeletedMessageForBotUser().getKey());
                 if (NaConfig.INSTANCE.getSaveDeletedMessageForBotUser().Bool()) {
                     ayuBotChatRow = addRow(NaConfig.INSTANCE.getSaveDeletedMessageForBot().getKey());
                 }
+                ayuReplyToDeletedRow = addRow(NaConfig.INSTANCE.getReplyToDeletedAsQuote().getKey());
                 ayuTranslucentRow = addRow(NaConfig.INSTANCE.getTranslucentDeletedMessages().getKey());
                 ayuDeletedIconRow = addRow(NaConfig.INSTANCE.getUseDeletedIcon().getKey());
                 if (!NaConfig.INSTANCE.getUseDeletedIcon().Bool()) {
                     ayuDeletedMarkRow = addRow(NaConfig.INSTANCE.getCustomDeletedMark().getKey());
                 }
             }
+            ayuForwardProtectedRow = addRow(NaConfig.INSTANCE.getForwardProtectedAsCopy().getKey());
             ayuClearDbRow = addRow("ayuClearDatabase");
         }
         nagramDividerRow = addRow();
@@ -198,6 +223,9 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
         exportEtgRow = addRow("exportEtgSettings");
         importEtgRow = addRow("importEtgSettings");
         etgDividerRow = addRow();
+
+        glyphRow = addRow("glyph");
+        glyphDividerRow = addRow();
 
         resetSettingsRow = addRow("resetSettings");
         deleteAccountRow = addRow("deleteAccount");
@@ -207,6 +235,21 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
     @Override
     protected String getActionBarTitle() {
         return getString(R.string.OEGeneralOtherTitle);
+    }
+
+    @Override
+    public int getSearchGuid() {
+        return 23000;
+    }
+
+    @Override
+    public int getSearchIcon() {
+        return R.drawable.msg_fave;
+    }
+
+    @Override
+    public String getSearchPrefix() {
+        return "OEGeneral";
     }
 
     @Override
@@ -221,7 +264,14 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
 
     @Override
     protected void onItemClick(View view, int position, float x, float y) {
-        if (position == nagramSettingsRow) {
+        if (position == crashReportsRow) {
+            boolean enabled = GeneralConfig.crashReports.toggleConfigBool();
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(enabled);
+            }
+            FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(
+                    AndroidUtil.shouldEnableCrashlytics());
+        } else if (position == nagramSettingsRow) {
             boolean enabled = GeneralConfig.showNagramSettings.toggleConfigBool();
             if (view instanceof TextCheckCell) {
                 ((TextCheckCell) view).setChecked(enabled);
@@ -279,18 +329,30 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
             toggleAyuConfig(view, NaConfig.INSTANCE.getSaveDeletedMessageForBotUser(), true);
         } else if (position == ayuBotChatRow) {
             toggleAyuConfig(view, NaConfig.INSTANCE.getSaveDeletedMessageForBot(), false);
+        } else if (position == ayuSaveDeletedPrivateRow) {
+            toggleAyuConfig(view, NaConfig.INSTANCE.getSaveDeletedInPrivateChats(), false);
+        } else if (position == ayuSaveDeletedGroupsRow) {
+            toggleAyuConfig(view, NaConfig.INSTANCE.getSaveDeletedInGroups(), false);
+        } else if (position == ayuSaveDeletedChannelsRow) {
+            toggleAyuConfig(view, NaConfig.INSTANCE.getSaveDeletedInChannels(), false);
+        } else if (position == ayuReplyToDeletedRow) {
+            toggleAyuConfig(view, NaConfig.INSTANCE.getReplyToDeletedAsQuote(), false);
         } else if (position == ayuTranslucentRow) {
             toggleAyuConfig(view, NaConfig.INSTANCE.getTranslucentDeletedMessages(), false);
         } else if (position == ayuDeletedIconRow) {
             toggleAyuConfig(view, NaConfig.INSTANCE.getUseDeletedIcon(), true);
         } else if (position == ayuDeletedMarkRow) {
             showDeletedMarkDialog();
+        } else if (position == ayuForwardProtectedRow) {
+            toggleAyuConfig(view, NaConfig.INSTANCE.getForwardProtectedAsCopy(), false);
         } else if (position == ayuClearDbRow) {
             showClearAyuDatabaseDialog();
         } else if (position == exportEtgRow) {
             exportEtgSettings();
         } else if (position == importEtgRow) {
             openEtgFilePicker();
+        } else if (position == glyphRow) {
+            presentFragment(new OpenExteraGlyphActivity());
         } else if (position == resetSettingsRow) {
             showResetSettingsDialog();
         } else if (position == deleteAccountRow) {
@@ -808,12 +870,18 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
                     HeaderCell cell = (HeaderCell) holder.itemView;
                     if (position == nagramHeaderRow) {
                         cell.setText(getString(R.string.OEGeneralNagramHeader));
+                    } else if (position == googleHeaderRow) {
+                        cell.setText(getString(R.string.OEGeneralGoogleHeader));
                     }
                     break;
                 }
                 case TYPE_CHECK: {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
-                    if (position == nagramSettingsRow) {
+                    if (position == crashReportsRow) {
+                        cell.setTextAndCheck(getString(R.string.OEGeneralCrashReports),
+                                GeneralConfig.crashReports(), false);
+                        cell.setIcon(R.drawable.msg_report);
+                    } else if (position == nagramSettingsRow) {
                         cell.setTextAndCheck(getString(R.string.OEGeneralNagramSettings),
                                 GeneralConfig.showNagramSettings(), true);
                         // setIcon после setTextAndCheck — тот сбрасывает отступы текста.
@@ -839,10 +907,26 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
                             bindAyuCheck(cell, NaConfig.INSTANCE.getSaveDeletedMessageForBotUser(), true);
                         } else if (position == ayuBotChatRow) {
                             bindAyuCheck(cell, NaConfig.INSTANCE.getSaveDeletedMessageForBot(), true);
+                        } else if (position == ayuSaveDeletedPrivateRow) {
+                            bindAyuCheck(cell, NaConfig.INSTANCE.getSaveDeletedInPrivateChats(), true);
+                        } else if (position == ayuSaveDeletedGroupsRow) {
+                            bindAyuCheck(cell, NaConfig.INSTANCE.getSaveDeletedInGroups(), true);
+                        } else if (position == ayuSaveDeletedChannelsRow) {
+                            bindAyuCheck(cell, NaConfig.INSTANCE.getSaveDeletedInChannels(), true);
+                        } else if (position == ayuReplyToDeletedRow) {
+                            cell.setTextAndValueAndCheck(
+                                    getString(R.string.ReplyToDeletedAsQuote),
+                                    getString(R.string.ReplyToDeletedAsQuoteInfo),
+                                    NaConfig.INSTANCE.getReplyToDeletedAsQuote().Bool(), true, true);
                         } else if (position == ayuTranslucentRow) {
                             bindAyuCheck(cell, NaConfig.INSTANCE.getTranslucentDeletedMessages(), true);
                         } else if (position == ayuDeletedIconRow) {
                             bindAyuCheck(cell, NaConfig.INSTANCE.getUseDeletedIcon(), true);
+                        } else if (position == ayuForwardProtectedRow) {
+                            cell.setTextAndValueAndCheck(
+                                    getString(R.string.ForwardProtectedAsCopy),
+                                    getString(R.string.ForwardProtectedAsCopyInfo),
+                                    NaConfig.INSTANCE.getForwardProtectedAsCopy().Bool(), true, true);
                         }
                     }
                     break;
@@ -858,6 +942,9 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
                     } else if (position == importEtgRow) {
                         cell.setColors(Theme.key_windowBackgroundWhiteGrayIcon, Theme.key_windowBackgroundWhiteBlackText);
                         cell.setTextAndIcon(getString(R.string.OEGeneralImportEtgSettings), R.drawable.msg_download, false);
+                    } else if (position == glyphRow) {
+                        cell.setColors(Theme.key_windowBackgroundWhiteGrayIcon, Theme.key_windowBackgroundWhiteBlackText);
+                        cell.setText(getString(R.string.OEGlyphTitle), false);
                     } else if (position == resetSettingsRow) {
                         cell.setColors(Theme.key_windowBackgroundWhiteGrayIcon, Theme.key_windowBackgroundWhiteBlackText);
                         cell.setTextAndIcon(getString(R.string.OEGeneralResetSettings), R.drawable.msg_reset, true);
@@ -883,10 +970,14 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
                     boolean bottom = position == bottomDividerRow;
-                    if (position == nagramDividerRow) {
+                    if (position == googleDividerRow) {
+                        cell.setText(getString(R.string.OEGeneralCrashReportsInfo));
+                    } else if (position == nagramDividerRow) {
                         cell.setText(getString(R.string.OEGeneralNagramSettingsInfo));
                     } else if (position == etgDividerRow) {
                         cell.setText(getString(R.string.OEGeneralEtgSettingsInfo));
+                    } else if (position == glyphDividerRow) {
+                        cell.setText(getString(R.string.OEGlyphInfo));
                     } else {
                         cell.setText(null);
                     }
@@ -900,14 +991,15 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == nagramHeaderRow) {
+            if (position == nagramHeaderRow || position == googleHeaderRow) {
                 return TYPE_HEADER;
             } else if (position == nagramDividerRow || position == etgDividerRow
+                    || position == googleDividerRow || position == glyphDividerRow
                     || position == bottomDividerRow) {
                 return TYPE_INFO_PRIVACY;
             } else if (position == exportEtgRow || position == importEtgRow
                     || position == resetSettingsRow || position == deleteAccountRow
-                    || position == ayuGhostRow) {
+                    || position == glyphRow || position == ayuGhostRow) {
                 return TYPE_TEXT;
             } else if (position == ayuDeletedMarkRow || position == ayuClearDbRow) {
                 return TYPE_SETTINGS;

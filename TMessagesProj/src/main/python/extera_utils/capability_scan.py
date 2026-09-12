@@ -86,10 +86,15 @@ _MARKERS = (
     # ---- хуки и код на ходу ----
     ("MethodHook", PERM_HOOKS, "Xposed"),
     ("hook_method", PERM_HOOKS, "Xposed"),
+    ("hook_all_methods", PERM_HOOKS, "Xposed"),
+    ("hook_all_constructors", PERM_HOOKS, "Xposed"),
     ("XposedBridge", PERM_HOOKS, "Xposed"),
     ("InMemoryDexClassLoader", PERM_HOOKS, "DexClassLoader"),
     ("DexClassLoader", PERM_HOOKS, "DexClassLoader"),
     ("generate_proxy_class", PERM_HOOKS, "class proxy"),
+    ("java_subclass", PERM_HOOKS, "class proxy"),
+    ("joverride", PERM_HOOKS, "class proxy"),
+    ("allocate_instance", PERM_HOOKS, "class proxy"),
     ("deoptimize", PERM_HOOKS, "deoptimize"),
     # ---- нативный код ----
     ("import ctypes", PERM_NATIVE, "ctypes"),

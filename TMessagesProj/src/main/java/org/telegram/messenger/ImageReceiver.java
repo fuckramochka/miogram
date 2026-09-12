@@ -2401,6 +2401,9 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
         imageY = y;
         imageW = width;
         imageH = height;
+        if (oeIsAvatar) {
+            applyRoundRadiusInternal();
+        }
     }
 
     public void setImageCoords(Rect bounds) {
@@ -2409,6 +2412,9 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
             imageY = bounds.top;
             imageW = bounds.width();
             imageH = bounds.height();
+            if (oeIsAvatar) {
+                applyRoundRadiusInternal();
+            }
         }
     }
 
@@ -2418,6 +2424,9 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
             imageY = bounds.top;
             imageW = bounds.width();
             imageH = bounds.height();
+            if (oeIsAvatar) {
+                applyRoundRadiusInternal();
+            }
         }
     }
 
@@ -2588,13 +2597,38 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
     private void applyRoundRadiusInternal() {
         int[] value = oeRequestedRoundRadius;
         if (oeIsAvatar && !oeAvatarCornersApplied && !app.exteraless.appearance.AppearanceConfig.avatarCornersDefault()) {
-            int corners = app.exteraless.appearance.AppearanceConfig.avatarCorners();
-            int max = app.exteraless.appearance.AppearanceConfig.AVATAR_CORNERS_MAX;
-            int[] scaled = new int[4];
-            for (int a = 0; a < 4; a++) {
-                scaled[a] = (int) Math.ceil(value[a] * corners / (float) max);
+            if (app.exteraless.appearance.AppearanceConfig.singleCornerRadius()) {
+                // When "singleCornerRadius" is ON, all avatars must get the same corners
+                // regardless of what radius the stock code requested (circle vs squircle).
+                // Infer the avatar diameter from the max requested radius (= half-side for circles)
+                // and compute a uniform corner radius from it.
+                int maxR = 0;
+                for (int a = 0; a < 4; a++) {
+                    int r = value[a];
+                    if (imageW > 0) {
+                        r = Math.min(r, (int) Math.ceil(imageW / 2f));
+                    }
+                    if (r > maxR) maxR = r;
+                }
+                int uniformCorner = app.exteraless.appearance.AppearanceConfig.getAvatarCorners(maxR * 2f);
+                int[] scaled = new int[4];
+                for (int a = 0; a < 4; a++) {
+                    scaled[a] = uniformCorner;
+                }
+                value = scaled;
+            } else {
+                int corners = app.exteraless.appearance.AppearanceConfig.avatarCorners();
+                int max = app.exteraless.appearance.AppearanceConfig.AVATAR_CORNERS_MAX;
+                int[] scaled = new int[4];
+                for (int a = 0; a < 4; a++) {
+                    int r = value[a];
+                    if (imageW > 0) {
+                        r = Math.min(r, (int) Math.ceil(imageW / 2f));
+                    }
+                    scaled[a] = (int) Math.ceil(r * corners / (float) max);
+                }
+                value = scaled;
             }
-            value = scaled;
         }
         boolean changed = false;
         int firstValue = value[0];

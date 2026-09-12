@@ -239,11 +239,11 @@ public class BaseNekoXSettingsActivity extends BaseFragment {
         String key = getRowKey(position);
         String value = getRowValue(position);
         options.add(R.drawable.msg_link2, getString(R.string.CopyLink), () -> {
-            AndroidUtilities.addToClipboard(String.format(Locale.getDefault(), "https://%s/nasettings/%s?r=%s", getMessagesController().linkPrefix, prefix, key));
+            AndroidUtilities.addToClipboard(String.format(Locale.getDefault(), "https://%s/%s?r=%s", getMessagesController().linkPrefix, tw.nekomimi.nekogram.helpers.SettingsHelper.linkPathFor(prefix), key));
             BulletinFactory.of(this).createCopyLinkBulletin().show();
         });
         options.addIf(value != null && !value.isEmpty(), R.drawable.msg_copy, getString(R.string.BackupSettings), () -> {
-            AndroidUtilities.addToClipboard(String.format(Locale.getDefault(), "https://%s/nasettings/%s?r=%s&v=%s", getMessagesController().linkPrefix, prefix, key, value));
+            AndroidUtilities.addToClipboard(String.format(Locale.getDefault(), "https://%s/%s?r=%s&v=%s", getMessagesController().linkPrefix, tw.nekomimi.nekogram.helpers.SettingsHelper.linkPathFor(prefix), key, value));
             BulletinFactory.of(this).createCopyLinkBulletin().show();
         });
     }

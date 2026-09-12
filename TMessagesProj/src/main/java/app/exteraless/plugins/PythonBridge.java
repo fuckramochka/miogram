@@ -91,6 +91,10 @@ public final class PythonBridge {
         return PluginPermissions.check(pluginId, permission, what);
     }
 
+    public static boolean isUnsafeMode() {
+        return PluginPermissions.isUnsafeMode();
+    }
+
     /** Абсолютный путь к каталогу плагинов (filesDir/plugins). */
     public static String getPluginsDir() {
         return controller().getPluginsDir().getAbsolutePath();

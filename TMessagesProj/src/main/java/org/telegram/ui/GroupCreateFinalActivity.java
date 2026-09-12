@@ -501,7 +501,11 @@ public class GroupCreateFinalActivity extends BaseFragment implements Notificati
                 super.invalidate(l, t, r, b);
             }
         };
-        avatarImage.setRoundRadius(dp(chatType == ChatObject.CHAT_TYPE_FORUM ? 16 : 32));
+        avatarImage.setRoundRadius(app.exteraless.appearance.AppearanceConfig.getAvatarCorners(
+                dp(64), chatType == ChatObject.CHAT_TYPE_FORUM
+                        ? app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_FORUM
+                        : app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_DEFAULT));
+        avatarImage.getImageReceiver().setAvatarCornersApplied(true);
         avatarDrawable.setInfo(5, null, null);
         avatarImage.setImageDrawable(avatarDrawable);
         avatarImage.setContentDescription(getString(R.string.ChoosePhoto));

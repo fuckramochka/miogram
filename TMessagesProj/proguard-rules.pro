@@ -255,6 +255,8 @@
 # Р’СЃС‘ РЅРёР¶Рµ РґРѕСЃС‚РёР¶РёРјРѕ С‚РѕР»СЊРєРѕ РёР· Python С‡РµСЂРµР· СЂРµС„Р»РµРєСЃРёСЋ Chaquopy, РґР»СЏ СЃС‚Р°С‚РёС‡РµСЃРєРѕРіРѕ
 # Р°РЅР°Р»РёР·Р°С‚РѕСЂР° СЌС‚Рѕ РјС‘СЂС‚РІС‹Р№ РєРѕРґ. minifyEnabled РІ СЂРµР»РёР·Рµ РІС‹СЂРµР·Р°Р» Р±С‹ РµРіРѕ С†РµР»РёРєРѕРј.
 -keep class app.exteraless.plugins.** { *; }
+-keep class app.exteraless.settings.utils.** { *; }
+-keep class app.exteraless.utils.text.** { *; }
 -keep class com.exteragram.messenger.** { *; }
 -keep class de.robv.android.xposed.** { *; }
 -keep class kotlin.** { *; }

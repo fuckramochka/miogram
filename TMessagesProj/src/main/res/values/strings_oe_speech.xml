@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="DownloadingModel">Downloading model…</string>
+    <string name="DownloadingModelInfo">Please keep this window open while the language model is downloading.</string>
+    <string name="ModelUnzipping">Unzipping…</string>
+</resources>

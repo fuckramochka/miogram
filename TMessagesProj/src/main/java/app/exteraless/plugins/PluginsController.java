@@ -8,8 +8,12 @@ import org.json.JSONObject;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildVars;
+import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.LaunchActivity;
 
@@ -25,6 +29,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -83,6 +88,11 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
     private final Map<String, List<String>> updatesContainerHooks = new ConcurrentHashMap<>();
 
     private final Map<String, Integer> hookPriorities = new ConcurrentHashMap<>();
+    private final HookTargetCache sendTargetsCache = new HookTargetCache();
+    private final HookTargetCache requestTargetsCache = new HookTargetCache();
+    private final HookTargetCache updateTargetsCache = new HookTargetCache();
+    private final HookTargetCache updatesTargetsCache = new HookTargetCache();
+
     private final List<MenuItemRecord> menuItems = Collections.synchronizedList(new ArrayList<>());
     /** Слушатель открытого экрана настроек плагина. */
     private final Map<String, List<Runnable>> settingsReloadListeners = new ConcurrentHashMap<>();
@@ -180,7 +190,10 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
     }
 
     public void setEngineEnabled(boolean enabled) {
-        preferences.edit().putBoolean(PluginsConstants.KEY_ENGINE_ENABLED, enabled).apply();
+        preferences.edit()
+                .putBoolean(PluginsConstants.KEY_ENGINE_ENABLED, enabled)
+                .remove(PluginsConstants.KEY_NATIVE_HOOKS_BROKEN)
+                .apply();
         if (enabled && initialized) {
             PythonPluginsEngine.getInstance().ensureStarted(appContext, ok -> {
                 if (ok) {
@@ -199,6 +212,25 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
     public void setSafeMode(boolean safeMode) {
         preferences.edit().putBoolean(PluginsConstants.KEY_SAFE_MODE, safeMode).apply();
     }
+
+    public boolean isUnsafeMode() {
+        if (unsafeMode == null) {
+            unsafeMode = preferences != null
+                    && preferences.getBoolean(PluginsConstants.KEY_UNSAFE_MODE, false);
+        }
+        return unsafeMode;
+    }
+
+    public void setUnsafeMode(boolean value) {
+        unsafeMode = value;
+        if (preferences != null) {
+            preferences.edit().putBoolean(PluginsConstants.KEY_UNSAFE_MODE, value).apply();
+        }
+        FileLog.w("PluginsController: unsafe mode " + (value ? "ON" : "off"));
+        PythonPluginsEngine.getInstance().setUnsafeMode(value);
+    }
+
+    private Boolean unsafeMode;
 
     public boolean isDeveloperMode() {
         return preferences != null && preferences.getBoolean(PluginsConstants.KEY_DEVELOPER_MODE, false);
@@ -252,6 +284,34 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
             preferences.edit().putBoolean("plugin_pinned_" + id, true).apply();
         } else {
             preferences.edit().remove("plugin_pinned_" + id).apply();
+        }
+    }
+
+    private static boolean hasPluginExtension(String name) {
+        if (name == null) {
+            return false;
+        }
+        String lower = name.toLowerCase(Locale.ROOT);
+        return lower.endsWith(PluginsConstants.PLUGIN_EXT)
+                || lower.endsWith(PluginsConstants.PLUGIN_EXT_PY)
+                || lower.endsWith(PluginsConstants.PLUGIN_EXT_ELYX)
+                || lower.endsWith(PluginsConstants.PLUGIN_EXT_EAF);
+    }
+
+    public static boolean isPlugin(File file, MessageObject message) {
+        return file != null && file.exists() && file.length() > 0
+                && hasPluginExtension(file.getName());
+    }
+
+    public static boolean isPlugin(MessageObject message) {
+        if (message == null || !hasPluginExtension(message.getDocumentName())) {
+            return false;
+        }
+        try {
+            return isPlugin(FileLoader.getInstance(UserConfig.selectedAccount)
+                    .getPathToMessage(message.messageOwner), message);
+        } catch (Throwable t) {
+            return false;
         }
     }
 
@@ -628,6 +688,7 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
         updateHooks.clear();
         updatesContainerHooks.clear();
         hookPriorities.clear();
+        invalidateHookTargets();
         synchronized (menuItems) {
             menuItems.clear();
         }
@@ -650,6 +711,13 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
             PythonPluginsEngine.getInstance().unloadPlugin(p);
         }
         return true;
+    }
+
+    public void setPluginEnabled(String id, boolean enabled, Utilities.Callback<String> callback) {
+        boolean ok = setPluginEnabled(id, enabled);
+        if (callback != null) {
+            AndroidUtilities.runOnUIThread(() -> callback.run(ok ? null : id));
+        }
     }
 
     public void reloadPlugin(String id) {
@@ -743,6 +811,10 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
      * Валидация метаданных — до копирования; при совпадении id — перезапись.
      */
     public void installPlugin(File source, InstallCallback callback) {
+        installPlugin(source, true, callback);
+    }
+
+    public void installPlugin(File source, boolean enable, InstallCallback callback) {
         fileExecutor.execute(() -> {
             if (source == null) {
                 deliver(callback, false, "file is null", null);
@@ -807,8 +879,8 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
                     deliver(callback, false, "metadata parse error", null);
                     return;
                 }
-                p.enabled = true;
-                preferences.edit().putBoolean(PluginsConstants.KEY_PLUGIN_ENABLED_PREFIX + id, true).apply();
+                p.enabled = enable;
+                preferences.edit().putBoolean(PluginsConstants.KEY_PLUGIN_ENABLED_PREFIX + id, enable).apply();
                 // Согласие пользователя записывает диалог установки (PluginPermissions.setGranted).
                 // Если он этого не сделал, запись всё равно должна появиться: без неё
                 // свежепоставленный плагин уедет в режим совместимости, где ему дают всё.
@@ -820,7 +892,7 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
                 synchronized (this) {
                     plugins.put(id, p);
                 }
-                if (!isSafeMode()) {
+                if (enable && !isSafeMode()) {
                     loadPluginInternal(p);
                 }
                 if (p.loadError != null) {
@@ -1042,6 +1114,261 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
         return PythonPluginsEngine.getInstance().getSettingsJson(pluginId);
     }
 
+    // ---------- имена API exteraGram ----------
+
+    public void init() {
+        init(isSafeMode(), null);
+    }
+
+    public void init(Runnable onDone) {
+        init(isSafeMode(), onDone);
+    }
+
+    public void init(boolean startWithSafeMode) {
+        init(startWithSafeMode, null);
+    }
+
+    public void init(boolean startWithSafeMode, Runnable onDone) {
+        setSafeMode(startWithSafeMode);
+        if (appContext == null && ApplicationLoader.applicationContext != null) {
+            init(ApplicationLoader.applicationContext);
+        }
+        if (onDone != null) {
+            AndroidUtilities.runOnUIThread(onDone);
+        }
+    }
+
+    public boolean getInitialized() {
+        return initialized;
+    }
+
+    public void restart() {
+        restart(isSafeMode());
+    }
+
+    public void restart(boolean startWithSafeMode) {
+        setSafeMode(startWithSafeMode);
+        unloadAll();
+        if (!isEngineEnabled() || startWithSafeMode) {
+            return;
+        }
+        PythonPluginsEngine.getInstance().ensureStarted(appContext, ok -> {
+            if (ok) {
+                rescanAndLoadEnabled();
+            }
+        });
+    }
+
+    public void shutdown() {
+        shutdown(null);
+    }
+
+    public void shutdown(Runnable onDone) {
+        unloadAll();
+        if (onDone != null) {
+            AndroidUtilities.runOnUIThread(onDone);
+        }
+    }
+
+    public void runOnPluginsQueue(Runnable runnable) {
+        if (runnable != null) {
+            fileExecutor.execute(runnable);
+        }
+    }
+
+    public String getPluginPath(String id) {
+        Plugin plugin = getPlugin(id);
+        return plugin == null ? null : plugin.path;
+    }
+
+    public PythonPluginsEngine getPluginEngine(String pluginId) {
+        return PythonPluginsEngine.getInstance();
+    }
+
+    public PythonPluginsEngine getPluginEngine(File file) {
+        return PythonPluginsEngine.getInstance();
+    }
+
+    public boolean isPluginEngineAvailable() {
+        return PythonPluginsEngine.getInstance().isStarted();
+    }
+
+    public boolean isPluginEngineSupported() {
+        return true;
+    }
+
+    public void notifyPluginsChanged() {
+        AndroidUtilities.runOnUIThread(() -> NotificationCenter.getGlobalInstance()
+                .postNotificationName(NotificationCenter.pluginsUpdated));
+    }
+
+    public void deletePlugin(String pluginId, Utilities.Callback<String> callback) {
+        boolean removed = uninstallPlugin(pluginId);
+        if (callback != null) {
+            AndroidUtilities.runOnUIThread(() -> callback.run(removed ? null : pluginId));
+        }
+    }
+
+    public void loadPluginSettings() {
+        for (Plugin plugin : getPluginsSnapshot()) {
+            loadPluginSettings(plugin.id);
+        }
+    }
+
+    public void invalidatePluginSettings(String pluginId) {
+        reloadSettingsScreen(pluginId);
+    }
+
+    public boolean hasPluginSettings(String pluginId) {
+        String json = getPluginSettingsJson(pluginId);
+        return json != null && !json.isEmpty() && !"[]".equals(json.trim());
+    }
+
+    public Map<String, ?> getPluginSettingsPreferences(String pluginId) {
+        if (appContext == null || pluginId == null) {
+            return Collections.emptyMap();
+        }
+        return pluginPrefs(pluginId).getAll();
+    }
+
+    public void clearPluginSettingsPreferences(String pluginId, boolean reloadSettings) {
+        if (appContext == null || pluginId == null) {
+            return;
+        }
+        pluginPrefs(pluginId).edit().clear().apply();
+        if (reloadSettings) {
+            reloadSettingsScreen(pluginId);
+        }
+    }
+
+    public List<Object> getPluginSettingsList(String pluginId) {
+        List<Object> items = new ArrayList<>();
+        String json = getPluginSettingsJson(pluginId);
+        if (json == null || json.isEmpty()) {
+            return items;
+        }
+        try {
+            JSONArray array = new JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                items.add(fromJson(array.opt(i)));
+            }
+        } catch (Exception e) {
+            FileLog.e("PluginsController: settings list failed for " + pluginId, e);
+        }
+        return items;
+    }
+
+    public Map<String, List<Object>> getSettings() {
+        Map<String, List<Object>> all = new ConcurrentHashMap<>();
+        for (Plugin plugin : getPluginsSnapshot()) {
+            all.put(plugin.id, getPluginSettingsList(plugin.id));
+        }
+        return all;
+    }
+
+    public boolean getPluginSettingBoolean(String pluginId, String key, boolean defaultValue) {
+        Object value = readSetting(pluginId, key);
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue() != 0;
+        }
+        return defaultValue;
+    }
+
+    public int getPluginSettingInt(String pluginId, String key, int defaultValue) {
+        Object value = readSetting(pluginId, key);
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        if (value instanceof Boolean) {
+            return ((Boolean) value) ? 1 : 0;
+        }
+        return defaultValue;
+    }
+
+    public String getPluginSettingString(String pluginId, String key, String defaultValue) {
+        Object value = readSetting(pluginId, key);
+        return value == null ? defaultValue : String.valueOf(value);
+    }
+
+    public void setPluginSetting(String pluginId, String key, Object value) {
+        setPluginSettingJson(pluginId, key, toJson(value), true);
+    }
+
+    public void setPluginSettingAndTriggerOnChange(String pluginId, String key, Object value,
+                                                   com.chaquo.python.PyObject onChangeCallback) {
+        String json = toJson(value);
+        setPluginSettingJson(pluginId, key, json, true);
+        notifySettingChanged(pluginId, key, json);
+        if (onChangeCallback != null) {
+            try {
+                onChangeCallback.call(value);
+            } catch (Throwable t) {
+                FileLog.e("PluginsController: on_change failed for " + pluginId + "/" + key, t);
+            }
+        }
+    }
+
+    private Object readSetting(String pluginId, String key) {
+        String raw = getPluginSettingJson(pluginId, key);
+        if (raw == null) {
+            return null;
+        }
+        try {
+            return fromJson(new JSONArray("[" + raw + "]").opt(0));
+        } catch (Exception e) {
+            return raw;
+        }
+    }
+
+    private static String toJson(Object value) {
+        if (value == null) {
+            return "null";
+        }
+        if (value instanceof Boolean || value instanceof Number) {
+            return String.valueOf(value);
+        }
+        return JSONObject.quote(String.valueOf(value));
+    }
+
+    private static Object fromJson(Object value) {
+        if (value == JSONObject.NULL) {
+            return null;
+        }
+        if (value instanceof JSONObject) {
+            JSONObject object = (JSONObject) value;
+            Map<String, Object> map = new HashMap<>();
+            Iterator<String> keys = object.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                map.put(key, fromJson(object.opt(key)));
+            }
+            return map;
+        }
+        if (value instanceof JSONArray) {
+            JSONArray array = (JSONArray) value;
+            List<Object> list = new ArrayList<>();
+            for (int i = 0; i < array.length(); i++) {
+                list.add(fromJson(array.opt(i)));
+            }
+            return list;
+        }
+        return value;
+    }
+
+    public boolean dispatchSettingsCustomClick(String pluginId,
+                                                org.telegram.ui.Components.UItem item,
+                                                android.view.View view, boolean longClick) {
+        return PythonPluginsEngine.getInstance().dispatchSettingsCustomClick(pluginId, item, view, longClick);
+    }
+
+    public Object getPluginSettingsCustomContent(String pluginId, String viewId,
+                                                  android.content.Context context) {
+        return PythonPluginsEngine.getInstance().getSettingsCustomContent(pluginId, viewId, context);
+    }
+
     public android.view.View getPluginSettingsCustomView(String pluginId, String viewId,
                                                          android.content.Context context) {
         return PythonPluginsEngine.getInstance().getSettingsCustomView(pluginId, viewId, context);
@@ -1107,9 +1434,13 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
             return;
         }
         sendMessageHooks.put(pluginId, priority);
+        sendTargetsCache.invalidate();
     }
 
     public void registerRequestHook(String pluginId, String requestName, boolean matchSubstring, int priority) {
+        if (pluginId == null || requestName == null || requestName.isEmpty()) {
+            return;
+        }
         // PLUGINS-SECURITY.md: update/updates/post-request хуки требуют messages.read.
         // Pre- и post-request живут в одном реестре (findRequestHookTargets), разделить
         // их на регистрации нечем — поэтому гейт стоит на всей регистрации.
@@ -1120,12 +1451,14 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
         // Маршрутизация по имени: TL_updates* — контейнеры апдейтов, TL_update* —
         // одиночные апдейты, остальное — TL-запросы (pre/post request hook).
         Map<String, List<String>> target;
-        if (requestName != null && requestName.startsWith("TL_updates")) {
+        if (matchSubstring) {
+            target = requestHooksSubstring;
+        } else if (requestName.startsWith("TL_updates") || requestName.startsWith("TL_updateShort")) {
             target = updatesContainerHooks;
-        } else if (requestName != null && requestName.startsWith("TL_update")) {
+        } else if (requestName.startsWith("TL_update")) {
             target = updateHooks;
         } else {
-            target = matchSubstring ? requestHooksSubstring : requestHooks;
+            target = requestHooks;
         }
         synchronized (target) {
             List<String> list = target.computeIfAbsent(requestName, k -> new ArrayList<>());
@@ -1134,6 +1467,7 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
             }
         }
         hookPriorities.merge(priorityKey(requestName, pluginId), priority, Math::max);
+        invalidateHookTargets();
     }
 
     private static String priorityKey(String hookName, String pluginId) {
@@ -1153,16 +1487,7 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
         return ordered;
     }
 
-    private List<String> orderedTargets(String hookName, List<String> pluginIds) {
-        if (pluginIds == null || pluginIds.size() < 2) {
-            return pluginIds == null ? new ArrayList<>() : new ArrayList<>(pluginIds);
-        }
-        Map<String, Integer> priorities = new HashMap<>();
-        for (String pluginId : pluginIds) {
-            priorities.merge(pluginId, hookPriority(hookName, pluginId), Math::max);
-        }
-        return byPriority(priorities);
-    }
+
 
     /** Снять один request-хук плагина (SDK: {@code remove_hook(name)}). */
     public void unregisterRequestHook(String pluginId, String requestName) {
@@ -1175,13 +1500,21 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
         synchronized (requestHooksSubstring) {
             dropPluginFromKey(requestHooksSubstring, requestName, pluginId);
         }
+        synchronized (updateHooks) {
+            dropPluginFromKey(updateHooks, requestName, pluginId);
+        }
+        synchronized (updatesContainerHooks) {
+            dropPluginFromKey(updatesContainerHooks, requestName, pluginId);
+        }
         hookPriorities.remove(priorityKey(requestName, pluginId));
+        invalidateHookTargets();
     }
 
     /** Снять хук исходящих сообщений (SDK: {@code remove_hook("on_send_message_hook")}). */
     public void unregisterSendMessageHook(String pluginId) {
         if (pluginId != null) {
             sendMessageHooks.remove(pluginId);
+            sendTargetsCache.invalidate();
         }
     }
 
@@ -1224,6 +1557,7 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
         synchronized (updatesContainerHooks) {
             dropPluginFrom(updatesContainerHooks, pluginId);
         }
+        invalidateHookTargets();
         synchronized (menuItems) {
             menuItems.removeIf(item -> item.pluginId.equals(pluginId));
         }
@@ -1278,20 +1612,23 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
         if (sendMessageHooks.isEmpty() || !PythonPluginsEngine.getInstance().isStarted()) {
             return HookResult.DEFAULT;
         }
-        List<Map.Entry<String, Integer>> sorted = new ArrayList<>(sendMessageHooks.entrySet());
-        sorted.sort((a, b) -> b.getValue() - a.getValue());
+        List<String> sorted = sendTargetsCache.get("send", () -> byPriority(new HashMap<>(sendMessageHooks)));
         HookResult last = HookResult.DEFAULT;
-        for (Map.Entry<String, Integer> e : sorted) {
-            Plugin p = getPlugin(e.getKey());
+        for (String pluginId : sorted) {
+            Plugin p = getPlugin(pluginId);
             if (p == null || !p.loaded) {
                 continue;
             }
-            HookResult r = PythonPluginsEngine.getInstance().callSendMessageHook(e.getKey(), account, params);
+            HookResult r = PythonPluginsEngine.getInstance().callSendMessageHook(pluginId, account, params);
             if (r.isCancel()) {
                 return r;
             }
             if (r.strategy != HookResult.Strategy.DEFAULT) {
-                last = r;
+                Object replacement = r.replacement(org.telegram.messenger.SendMessagesHelper.SendMessageParams.class);
+                if (replacement != null) {
+                    params = replacement;
+                }
+                last = new HookResult(r.strategy, params);
             }
             if (r.isFinal()) {
                 break;
@@ -1318,7 +1655,11 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
                 return r;
             }
             if (r.strategy != HookResult.Strategy.DEFAULT) {
-                last = r;
+                Object replacement = r.replacement(org.telegram.tgnet.TLObject.class);
+                if (replacement != null) {
+                    request = replacement;
+                }
+                last = new HookResult(r.strategy, request);
             }
             if (r.isFinal()) {
                 break;
@@ -1345,7 +1686,11 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
                 return r;
             }
             if (r.strategy != HookResult.Strategy.DEFAULT) {
-                last = r;
+                Object replacement = r.replacement(org.telegram.tgnet.TLObject.class);
+                if (replacement != null) {
+                    response = replacement;
+                }
+                last = new HookResult(r.strategy, response);
             }
             if (r.isFinal()) {
                 break;
@@ -1355,43 +1700,22 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
     }
 
     private List<String> findRequestHookTargets(String requestName) {
-        Map<String, Integer> priorities = new HashMap<>();
-        synchronized (requestHooks) {
-            List<String> exact = requestHooks.get(requestName);
-            if (exact != null) {
-                for (String pluginId : exact) {
-                    priorities.merge(pluginId, hookPriority(requestName, pluginId), Math::max);
-                }
-            }
-        }
-        synchronized (requestHooksSubstring) {
-            for (Map.Entry<String, List<String>> e : requestHooksSubstring.entrySet()) {
-                if (requestName != null && requestName.contains(e.getKey())) {
-                    for (String pluginId : e.getValue()) {
-                        priorities.merge(pluginId, hookPriority(e.getKey(), pluginId), Math::max);
-                    }
-                }
-            }
-        }
-        return byPriority(priorities);
+        return requestTargetsCache.get(requestName, () -> resolveRequestHookTargets(requestName));
     }
 
     // ---------- хуки апдейтов ----------
 
     public boolean hasAnyUpdateHooks() {
-        return !updateHooks.isEmpty();
+        return !updateHooks.isEmpty() || !requestHooksSubstring.isEmpty();
     }
 
     public boolean hasAnyUpdatesContainerHooks() {
-        return !updatesContainerHooks.isEmpty();
+        return !updatesContainerHooks.isEmpty() || !requestHooksSubstring.isEmpty();
     }
 
     /** Одиночный апдейт из MessagesController.processUpdateArray. CANCEL = не обрабатывать. */
     public HookResult executeOnUpdateHook(int account, String updateName, Object update) {
-        List<String> targets;
-        synchronized (updateHooks) {
-            targets = orderedTargets(updateName, updateHooks.get(updateName));
-        }
+        List<String> targets = updateTargetsCache.get(updateName, () -> resolveHookTargets(updateName, updateHooks));
         if (targets.isEmpty() || !PythonPluginsEngine.getInstance().isStarted()) {
             return HookResult.DEFAULT;
         }
@@ -1407,7 +1731,11 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
                 return r;
             }
             if (r.strategy != HookResult.Strategy.DEFAULT) {
-                last = r;
+                Object replacement = r.replacement(org.telegram.tgnet.TLRPC.Update.class);
+                if (replacement != null) {
+                    update = replacement;
+                }
+                last = new HookResult(r.strategy, update);
             }
             if (r.isFinal()) {
                 break;
@@ -1418,10 +1746,7 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
 
     /** Контейнер апдейтов из MessagesController.processUpdates. CANCEL = не обрабатывать. */
     public HookResult executeOnUpdatesHook(int account, String containerName, Object updates) {
-        List<String> targets;
-        synchronized (updatesContainerHooks) {
-            targets = orderedTargets(containerName, updatesContainerHooks.get(containerName));
-        }
+        List<String> targets = updatesTargetsCache.get(containerName, () -> resolveHookTargets(containerName, updatesContainerHooks));
         if (targets.isEmpty() || !PythonPluginsEngine.getInstance().isStarted()) {
             return HookResult.DEFAULT;
         }
@@ -1437,7 +1762,11 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
                 return r;
             }
             if (r.strategy != HookResult.Strategy.DEFAULT) {
-                last = r;
+                Object replacement = r.replacement(org.telegram.tgnet.TLRPC.Updates.class);
+                if (replacement != null) {
+                    updates = replacement;
+                }
+                last = new HookResult(r.strategy, updates);
             }
             if (r.isFinal()) {
                 break;
@@ -1538,5 +1867,38 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
         org.telegram.messenger.NotificationCenter.getGlobalInstance()
                 .postNotificationNameOnUIThread(
                         org.telegram.messenger.NotificationCenter.pluginMenuItemsUpdated);
+    }
+
+    private void invalidateHookTargets() {
+        sendTargetsCache.invalidate();
+        requestTargetsCache.invalidate();
+        updateTargetsCache.invalidate();
+        updatesTargetsCache.invalidate();
+    }
+
+    private List<String> resolveRequestHookTargets(String requestName) {
+        return resolveHookTargets(requestName, requestHooks);
+    }
+
+    private List<String> resolveHookTargets(String requestName, Map<String, List<String>> exactHooks) {
+        Map<String, Integer> priorities = new HashMap<>();
+        synchronized (exactHooks) {
+            List<String> exact = exactHooks.get(requestName);
+            if (exact != null) {
+                for (String pluginId : exact) {
+                    priorities.merge(pluginId, hookPriority(requestName, pluginId), Math::max);
+                }
+            }
+        }
+        synchronized (requestHooksSubstring) {
+            for (Map.Entry<String, List<String>> e : requestHooksSubstring.entrySet()) {
+                if (requestName != null && requestName.contains(e.getKey())) {
+                    for (String pluginId : e.getValue()) {
+                        priorities.merge(pluginId, hookPriority(e.getKey(), pluginId), Math::max);
+                    }
+                }
+            }
+        }
+        return byPriority(priorities);
     }
 }

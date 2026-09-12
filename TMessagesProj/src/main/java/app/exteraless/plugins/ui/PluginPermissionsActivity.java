@@ -54,12 +54,14 @@ public class PluginPermissionsActivity extends BaseFragment {
     /** Ниже базы переключателей: id строк-переключателей начинаются со 100. */
     private static final int ID_ACTIVITY_LOG = 1;
     private static final int ID_OBFUSCATION = 2;
+    private static final int ID_UNSAFE = 3;
 
     private final String pluginId;
 
     private UniversalRecyclerView listView;
     /** Блок «код обфусцирован»: держим один, чтобы список не переанимировал строку. */
     private android.view.View obfuscationView;
+    private android.view.View unsafeView;
     /** Какие строки раскрыты — переживает пересборку списка. */
     private final java.util.Set<String> expanded = new java.util.HashSet<>();
     /** Вьюхи строк по разрешению: новая вьюха на каждую пересборку = анимация строки. */
@@ -268,6 +270,20 @@ public class PluginPermissionsActivity extends BaseFragment {
                 obfuscationView = frame;
             }
             items.add(UItem.asCustom(ID_OBFUSCATION, obfuscationView));
+        }
+        if (PluginPermissions.isUnsafeMode()) {
+            if (unsafeView == null) {
+                android.widget.FrameLayout frame = new android.widget.FrameLayout(getContext());
+                frame.addView(PluginInstallSheet.createWarningBox(getContext(),
+                                getString(R.string.PluginsUnsafeMode),
+                                getString(R.string.PluginsUnsafeModeActive), null),
+                        org.telegram.ui.Components.LayoutHelper.createFrame(
+                                org.telegram.ui.Components.LayoutHelper.MATCH_PARENT,
+                                org.telegram.ui.Components.LayoutHelper.WRAP_CONTENT,
+                                android.view.Gravity.TOP, 16, 4, 16, 12));
+                unsafeView = frame;
+            }
+            items.add(UItem.asCustom(ID_UNSAFE, unsafeView));
         }
         List<String> enforced = new ArrayList<>();
         for (String perm : requested) {
@@ -509,7 +525,16 @@ public class PluginPermissionsActivity extends BaseFragment {
         // происходило, приходилось жать «Перезагрузить» вручную.
         // reloadPlugin умеет и то и другое: снимет хуки, если загружен, и
         // загрузит заново в любом случае.
-        if (plugin == null || !plugin.enabled) {
+        if (plugin == null) {
+            return;
+        }
+        if (!plugin.enabled) {
+            if (getContext() != null) {
+                BulletinFactory.of(this)
+                        .createSimpleBulletin(R.raw.info,
+                                getString(R.string.PluginPermissionsEnableFirst))
+                        .show();
+            }
             return;
         }
         controller.reloadPlugin(pluginId);

@@ -297,10 +297,21 @@ public final class PluginPermissions {
         if (UI.equals(perm)) {
             return true;
         }
+        if (isUnsafeMode()) {
+            return true;
+        }
         if (pluginId == null || !isKnown(perm)) {
             return false;
         }
         return getEffective(pluginId).contains(perm);
+    }
+
+    public static boolean isUnsafeMode() {
+        try {
+            return PluginsController.getInstance().isUnsafeMode();
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     /**

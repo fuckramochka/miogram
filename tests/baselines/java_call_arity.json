@@ -2,9 +2,6 @@
   "known": [
     "org.telegram.messenger.MessageObject#<init>(3)",
     "org.telegram.messenger.SendMessagesHelper#getInstance(0)",
-    "org.telegram.messenger.SendMessagesHelper#prepareSendingDocument(17)",
-    "org.telegram.messenger.SendMessagesHelper#prepareSendingMedia(22)",
-    "org.telegram.messenger.SendMessagesHelper#prepareSendingVideo(22)",
     "org.telegram.messenger.SendMessagesHelper$SendMessageParams#of(11)",
     "org.telegram.messenger.SendMessagesHelper$SendMessageParams#of(12)",
     "org.telegram.messenger.SendMessagesHelper$SendMessageParams#of(13)",
@@ -20,7 +17,6 @@
     "org.telegram.ui.Components.Paint.ColorPickerBottomSheet#<init>(3)",
     "org.telegram.ui.Components.ShareAlert#<init>(14)",
     "org.telegram.ui.Components.UItem#asButtonCheck(4)",
-    "org.telegram.ui.Components.UItem#asShadow(0)",
     "org.telegram.ui.Components.spoilers.SpoilersTextView#setText(1)",
     "org.telegram.ui.MainTabsActivity#<init>(1)"
   ]

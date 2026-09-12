@@ -7,6 +7,7 @@ Java renderer lives in extera_utils.plugin_loader.
 from typing import Any, Callable, List, Optional
 
 from dataclasses import dataclass
+import math
 
 
 @dataclass
@@ -96,8 +97,9 @@ class SimpleSettingFactory:
     """Declarative factory for Custom settings items.
 
     ``create_view(context)`` and ``bind_view(view, item, divider)`` are called
-    by the settings renderer when the row is drawn; ``java``/``instance`` still
-    require the class-proxy subsystem, which this build does not have.
+    by the settings renderer when the row is drawn. ``java``/``instance`` give
+    the shared Java peer (app.exteraless.plugins.models.PluginItemFactory),
+    which delegates back to this object instead of generating a subclass.
     """
 
     def __init__(self, create_view=None, bind_view=None, is_clickable: bool = False,
@@ -115,20 +117,83 @@ class SimpleSettingFactory:
         self.equals = equals
         self.content_equals = content_equals
 
+    def build_view(self, context, divider=False):
+        if not callable(self.create_view):
+            return None
+        try:
+            view = self.create_view(context)
+        except TypeError:
+            view = self.create_view()
+        if view is None:
+            return None
+        if callable(self.bind_view):
+            item = self.create_item() if callable(self.create_item) else None
+            try:
+                self.bind_view(view, item, divider)
+            except TypeError:
+                try:
+                    self.bind_view(view)
+                except TypeError:
+                    pass
+        return view
+
+    @classmethod
+    def getInstance(cls):
+        from java import jclass
+        return jclass("app.exteraless.plugins.models.PluginItemFactory").getInstance()
+
     @property
     def instance(self):
-        """The bridged Java peer of this factory (unavailable in this build)."""
-        return self
+        """The bridged Java peer of this factory."""
+        return self.java
 
     @property
     def java(self):
-        raise RuntimeError(
-            "Custom setting factories require the class-proxy subsystem, "
-            "not available in this build"
-        )
+        from java import jclass
+        return jclass("app.exteraless.plugins.models.PluginItemFactory").getInstance()
+
+    def to_item(self, *factory_args):
+        from java import jclass
+        return jclass("app.exteraless.plugins.models.PluginItemFactory").create(
+            self, factory_args or None)
 
     def __call__(self, *factory_args, link_alias: Optional[str] = None) -> Custom:
         """Factory(link_alias="x") or Factory(*factory_args) -> Custom(...)."""
         return Custom(factory=self,
                       factory_args=factory_args or None,
                       link_alias=link_alias)
+
+
+PluginItemFactory = SimpleSettingFactory
+
+
+@dataclass
+class Slider:
+    key: str
+    text: str
+    default: float = 0
+    min: float = 0
+    max: float = 100
+    step: float = 1
+    subtext: Optional[str] = None
+    icon: Optional[str] = None
+    on_change: Optional[Callable] = None
+    on_long_click: Optional[Callable] = None
+    link_alias: Optional[str] = None
+
+    def __post_init__(self):
+        if not all(math.isfinite(float(value)) for value in (self.default, self.min, self.max, self.step)):
+            raise ValueError("Slider values must be finite")
+        if self.max <= self.min or self.step <= 0 or math.ceil((self.max - self.min) / self.step) > 2147483647:
+            raise ValueError("Invalid slider range or step")
+
+    def normalize(self, value):
+        try:
+            value = float(value)
+            if not math.isfinite(value):
+                value = self.default
+        except (TypeError, ValueError):
+            value = self.default
+        value = min(self.max, max(self.min, value))
+        value = min(self.max, self.min + math.floor((value - self.min) / self.step + 0.5) * self.step)
+        return int(value) if all(float(v).is_integer() for v in (self.min, self.max, self.step)) else value

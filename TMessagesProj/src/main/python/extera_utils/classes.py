@@ -25,6 +25,7 @@ constructor arguments and may return a replacement tuple/list (or None to keep).
 
 import inspect
 import json
+import sys
 import threading
 
 try:
@@ -477,10 +478,10 @@ def _info_for(cls):
     return info
 
 
-def _current_plugin_id():
+def _owner_plugin_id():
     try:
-        from extera_utils import plugin_loader
-        return plugin_loader.current_plugin_id()
+        from extera_utils.plugin_loader import caller_plugin_id
+        return caller_plugin_id()
     except Exception:
         return None
 
@@ -494,7 +495,7 @@ def _ensure_java_class(info):
         if info.class_key is not None:
             return info.class_key
         spec_json = json.dumps(info.build_spec())
-        key = PluginServices.generateProxyClass(_current_plugin_id(), spec_json)
+        key = PluginServices.generateProxyClass(_owner_plugin_id(), spec_json)
         if key is None:
             try:
                 reason = PluginServices.getProxyError()
@@ -560,7 +561,7 @@ class Base:
         class_key = _ensure_java_class(info)
         peer = cls.__new__(cls)
         proxy = PluginServices.newProxyInstance(
-            _current_plugin_id(), class_key, ctor_sig or "",
+            _owner_plugin_id(), class_key, ctor_sig or "",
             _object_array(java_ctor_args), peer)
         if proxy is None:
             raise RuntimeError(f"newProxyInstance failed for {cls.__name__}; see logcat")
@@ -644,8 +645,80 @@ class Base:
         _dispatch_state.ctx = (info, proxy, py_key, fn.__name__)
         try:
             return fn(self, *args)
+        except Exception:
+            return _dispatch_failed(info, py_key, fn.__name__)
         finally:
             _dispatch_state.ctx = prev
+
+
+_JAVA_DEFAULTS = {
+    "void": None,
+    "boolean": False,
+    "byte": 0,
+    "short": 0,
+    "int": 0,
+    "long": 0,
+    "float": 0.0,
+    "double": 0.0,
+    "char": "\0",
+}
+
+
+def _log(message):
+    try:
+        from android_utils import log
+        log(message)
+        return
+    except Exception:
+        pass
+    print(f"[exteraless:classes] {message}", file=sys.stderr)
+
+
+def _return_defaults(info):
+    cached = getattr(info, "return_defaults", None)
+    if cached is not None:
+        return cached
+    defaults = {}
+    by_name = {}
+    sources = [info.superclass]
+    sources.extend(info.interfaces)
+    for source in sources:
+        if source is None:
+            continue
+        try:
+            methods = source.getClass().getMethods()
+        except Exception:
+            continue
+        for index in range(len(methods)):
+            try:
+                method = methods[index]
+                name = str(method.getName())
+                if name in by_name:
+                    continue
+                by_name[name] = _JAVA_DEFAULTS.get(str(method.getReturnType().getName()))
+            except Exception:
+                continue
+    for spec in info.method_specs:
+        declared = spec.get("return")
+        if declared is not None:
+            defaults[spec["key"]] = _JAVA_DEFAULTS.get(declared)
+        else:
+            defaults[spec["key"]] = by_name.get(spec["name"])
+    info.return_defaults = defaults
+    return defaults
+
+
+def _dispatch_failed(info, py_key, fn_name):
+    try:
+        import traceback
+        _log(f"{info.cls.__name__}.{fn_name} raised into Java:\n"
+             + traceback.format_exc())
+    except Exception:
+        pass
+    try:
+        return _return_defaults(info).get(py_key)
+    except Exception:
+        return None
 
 
 def java_subclass(superclass, *extra_interfaces, custom_name=None, interfaces=None):

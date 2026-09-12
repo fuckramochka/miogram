@@ -23,9 +23,9 @@ idea {
 }
 
 def buildTimestamp = System.getenv('BUILD_TIMESTAMP') ?: '0'
-def commitId = System.getenv('COMMIT_ID')
+def shortCommit = commitId?.take(7) ?: ''
 def runNumber = System.getenv('RUN_NUMBER')
-def verName = runNumber ? "12.10.${runNumber}" : (commitId ? "12.10.1-${commitId.take(7)}" : APP_VERSION_NAME)
+def verName = runNumber ? "12.10.${runNumber}" : (commitId ? "12.10.1-${shortCommit}" : APP_VERSION_NAME)
 def verCode = 1261
 
 def officialVer = APP_VERSION_NAME
@@ -163,17 +163,30 @@ android {
         // so a key taken from another build shows an empty map.
         def mapsKey = 'AIzaSyDE_x6GRKJCSfCY33soBYUQ2piYsgjVpVE'
 
+        // Nothing Glyph SDK. «test» — отладочный ключ из Glyph Developer Kit, боевой
+        // запрашивается у Nothing под package name приложения.
+        def glyphKey = 'test'
+
         // Resolution order: local.properties -> environment -> built-in fallback.
         // NOTE: the env branch must work even when local.properties is absent
         // (CI runners) — a dead env path silently ships the desktop test key,
         // which Telegram's servers reject for third-party packages.
-        appId = properties?.getProperty('TELEGRAM_APP_ID') ?: System.getenv('TELEGRAM_APP_ID') ?: appId
-        appHash = properties?.getProperty('TELEGRAM_APP_HASH') ?: System.getenv('TELEGRAM_APP_HASH') ?: appHash
-        mapsKey = properties?.getProperty('MAPS_API_KEY') ?: System.getenv('MAPS_API_KEY') ?: mapsKey
+        if (properties != null) {
+            appId = properties.getProperty('TELEGRAM_APP_ID') ?: System.getenv('TELEGRAM_APP_ID') ?: appId
+            appHash = properties.getProperty('TELEGRAM_APP_HASH') ?: System.getenv('TELEGRAM_APP_HASH') ?: appHash
+            mapsKey = properties.getProperty('MAPS_API_KEY') ?: System.getenv('MAPS_API_KEY') ?: mapsKey
+            glyphKey = properties.getProperty('GLYPH_API_KEY') ?: System.getenv('GLYPH_API_KEY') ?: glyphKey
+        } else {
+            appId = System.getenv('TELEGRAM_APP_ID') ?: appId
+            appHash = System.getenv('TELEGRAM_APP_HASH') ?: appHash
+            mapsKey = System.getenv('MAPS_API_KEY') ?: mapsKey
+            glyphKey = System.getenv('GLYPH_API_KEY') ?: glyphKey
+        }
 
-        manifestPlaceholders += [MAPS_API_KEY: mapsKey]
+        manifestPlaceholders += [MAPS_API_KEY: mapsKey, GLYPH_API_KEY: glyphKey]
 
-        buildConfigField 'String', 'BUILD_VERSION_STRING', '"' + verName + '"'
+        buildConfigField 'String', 'BUILD_VERSION_STRING', '"' + APP_VERSION_NAME + '"'
+        buildConfigField 'String', 'BUILD_COMMIT_ID', '"' + shortCommit + '"'
         buildConfigField 'String', 'OFFICIAL_VERSION', '"' + officialVer + '"'
         buildConfigField 'int', 'OFFICIAL_VERSION_CODE', officialCode + ''
         buildConfigField 'int', 'APP_ID', appId
@@ -303,7 +316,7 @@ dependencies {
     // official
     implementation 'androidx.core:core-ktx:1.19.0'
     implementation 'androidx.palette:palette-ktx:1.0.0'
-    implementation 'com.google.android.material:material:1.13.0'
+    implementation 'com.google.android.material:material:1.14.0'
     implementation 'androidx.exifinterface:exifinterface:1.4.2'
     implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
     implementation 'androidx.mediarouter:mediarouter:1.8.1'
@@ -314,11 +327,11 @@ dependencies {
     implementation 'androidx.car.app:app:1.7.0'
     implementation 'androidx.car.app:app-projected:1.7.0'
     // CameraX для круглых видеосообщений (app.exteraless.camera.CameraXSession).
-    // Версия 1.6.1 — как в exteraGram 12.9.0: раньше 1.5 нет SessionConfig,
-    // setPreviewStabilizationEnabled и параллельной привязки двух камер.
-    implementation 'androidx.camera:camera-core:1.6.1'
-    implementation 'androidx.camera:camera-camera2:1.6.1'
-    implementation 'androidx.camera:camera-lifecycle:1.6.1'
+    // Не ниже 1.6: в 1.5 нет SessionConfig, setPreviewStabilizationEnabled
+    // и параллельной привязки двух камер. 1.6.2 чинит краш записи на Android 16.
+    implementation 'androidx.camera:camera-core:1.6.2'
+    implementation 'androidx.camera:camera-camera2:1.6.2'
+    implementation 'androidx.camera:camera-lifecycle:1.6.2'
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
     compileOnly 'org.checkerframework:checker-qual:2.5.2'
     compileOnly 'org.checkerframework:checker-compat-qual:2.5.0'
@@ -395,5 +408,7 @@ dependencies {
     testImplementation 'org.json:json:20240303'
 
     compileOnly fileTree('libs')
+    // Nothing Glyph SDK (Glyph Interface + Glyph Matrix), локальный AAR
+    implementation files('libs/glyph-matrix-sdk-2.0.aar')
 }
 

@@ -5,9 +5,6 @@ package app.exteraless.drawer;
  * в {@code DialogsActivity} и боковой шторкой {@link DrawerContainer}.
  *
  * Значения id хранятся в настройках, поэтому менять их нельзя.
- *
- * {@code PLUGINS(102)} пока нет в списке, хотя движок плагинов уже есть:
- * пункт в боковом меню не заведён, вход только через настройки.
  */
 public enum MainMenuItem {
 
@@ -24,6 +21,7 @@ public enum MainMenuItem {
     SAVED(11),
     SETTINGS(8),
     BROWSER(101),
+    PLUGINS(102),
     QR(17),
     FEED(106),
     /** Пункт наш, а не из exteraGram, поэтому id взят выше их диапазона. */

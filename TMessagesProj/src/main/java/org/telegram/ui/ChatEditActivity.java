@@ -718,7 +718,10 @@ public class ChatEditActivity extends BaseFragment implements ImageUpdater.Image
                 super.invalidate(l, t, r, b);
             }
         };
-        avatarImage.setRoundRadius(forum ? dp(16) : dp(32));
+        avatarImage.setRoundRadius(app.exteraless.appearance.AppearanceConfig.getAvatarCorners(
+                dp(64), forum ? app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_FORUM
+                             : app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_DEFAULT));
+        avatarImage.getImageReceiver().setAvatarCornersApplied(true);
 
         if (canEditBotInfo() || currentUser == null && ChatObject.canChangeChatInfo(currentChat)) {
             frameLayout.addView(avatarImage, LayoutHelper.createFrame(64, 64, Gravity.TOP | (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT), LocaleController.isRTL ? 0 : 16, 12, LocaleController.isRTL ? 16 : 0, 8));

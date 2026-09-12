@@ -21,7 +21,11 @@ ROOT = "com.exteragram.messenger"
 _EXACT = {
     "com.exteragram.messenger.utils.chats.ChatUtils":
         "com.exteragram.messenger.utils.chats.ChatUtils",
+    "com.exteragram.messenger.utils.ChatUtils":
+        "com.exteragram.messenger.utils.chats.ChatUtils",
     "com.exteragram.messenger.utils.text.LocaleUtils":
+        "com.exteragram.messenger.utils.text.LocaleUtils",
+    "com.exteragram.messenger.utils.LocaleUtils":
         "com.exteragram.messenger.utils.text.LocaleUtils",
     "com.exteragram.messenger.utils.AppUtils":
         "com.exteragram.messenger.utils.AppUtils",
@@ -29,6 +33,40 @@ _EXACT = {
         "org.telegram.messenger.R",
     "com.exteragram.messenger.utils.system.VibratorUtils":
         "com.exteragram.messenger.utils.system.VibratorUtils",
+    "com.exteragram.messenger.ai.AiConfig":
+        "app.exteraless.ai.AiConfig",
+    "com.exteragram.messenger.ai.AiController":
+        "com.exteragram.messenger.ai.AiController",
+    "com.exteragram.messenger.ai.ui.ResponseAlert":
+        "com.exteragram.messenger.ai.ui.ResponseAlert",
+    "com.exteragram.messenger.ai.ui.GenerateFromMessageBottomSheet":
+        "com.exteragram.messenger.ai.ui.GenerateFromMessageBottomSheet",
+    "com.exteragram.messenger.plugins.ui.components.InstallPluginBottomSheet":
+        "com.exteragram.messenger.plugins.ui.components.InstallPluginBottomSheet",
+    "com.exteragram.messenger.utils.system.SystemUtils":
+        "com.exteragram.messenger.utils.system.SystemUtils",
+    "com.exteragram.messenger.utils.SystemUtils":
+        "com.exteragram.messenger.utils.system.SystemUtils",
+    "com.exteragram.messenger.preferences.MainPreferencesActivity":
+        "app.exteraless.settings.OpenExteraSettingsActivity",
+    "com.exteragram.messenger.preferences.GeneralPreferencesActivity":
+        "app.exteraless.settings.OpenExteraGeneralActivity",
+    "com.exteragram.messenger.preferences.AppearancePreferencesActivity":
+        "app.exteraless.settings.OpenExteraAppearanceActivity",
+    "com.exteragram.messenger.preferences.ChatsPreferencesActivity":
+        "app.exteraless.settings.OpenExteraChatsActivity",
+    "com.exteragram.messenger.preferences.OtherPreferencesActivity":
+        "app.exteraless.settings.OpenExteraOtherActivity",
+    "com.exteragram.messenger.preferences.AppNavigationPreferencesActivity":
+        "app.exteraless.settings.OpenExteraAppNavigationActivity",
+    "com.exteragram.messenger.preferences.BasePreferencesActivity":
+        "com.exteragram.messenger.preferences.BasePreferencesActivity",
+    "com.exteragram.messenger.utils.chats.MainMenuHelper":
+        "app.exteraless.drawer.MainMenuHelper",
+    "com.exteragram.messenger.icons.ui.IconPacksActivity":
+        "app.exteraless.icons.IconPacksActivity",
+    "com.exteragram.messenger.pillstack.ui.pills.crypto.utils.ColoredBackground":
+        "app.exteraless.pillstack.pills.ColoredBackground",
     "com.exteragram.messenger.pillstack.ui.pills.weather.WeatherPill":
         "app.exteraless.pillstack.pills.WeatherPill",
     "com.exteragram.messenger.pillstack.ui.PillStackPreferencesActivity":
@@ -40,6 +78,8 @@ _EXACT = {
 }
 
 _PREFIXES = (
+    ("com.exteragram.messenger.ai.data.", "app.exteraless.ai.data."),
+    ("com.exteragram.messenger.ai.network.", "app.exteraless.ai.network."),
     ("com.exteragram.messenger.pillstack.core.", "app.exteraless.pillstack."),
     ("com.exteragram.messenger.pillstack.ui.pills.", "app.exteraless.pillstack.pills."),
     ("com.exteragram.messenger.pillstack.ui.", "app.exteraless.pillstack."),
@@ -74,15 +114,185 @@ def resolve(name):
 
 _FIELD_SHAPED = {
     "com.exteragram.messenger.ExteraConfig": {
-        "pluginsSafeMode": "pluginsSafeMode",
-        "iconPack": "iconPack",
-        "inAppVibration": "inAppVibration",
+        "translationProvider": ("getTranslationProvider", "setTranslationProvider"),
+        "translationFormality": ("getTranslationFormality", "setTranslationFormality"),
+        "disableNumberRounding": ("getDisableNumberRounding", "setDisableNumberRounding"),
+        "formatTimeWithSeconds": ("getFormatTimeWithSeconds", "setFormatTimeWithSeconds"),
+        "relativeLastSeen": ("getRelativeLastSeen", "setRelativeLastSeen"),
+        "inAppVibration": ("getInAppVibration", "setInAppVibration"),
+        "filterZalgo": ("getFilterZalgo", "setFilterZalgo"),
+        "useYandexMaps": ("getUseYandexMaps", "setUseYandexMaps"),
+        "downloadSpeedBoost": ("getDownloadSpeedBoost", "setDownloadSpeedBoost"),
+        "uploadSpeedBoost": ("getUploadSpeedBoost", "setUploadSpeedBoost"),
+        "hidePhoneNumber": ("getHidePhoneNumber", "setHidePhoneNumber"),
+        "showIdAndDc": ("getShowIdAndDc", "setShowIdAndDc"),
+        "hideArchiveFolder": ("getHideArchiveFolder", "setHideArchiveFolder"),
+        "archiveOnPull": ("getArchiveOnPull", "setArchiveOnPull"),
+        "disableUnarchiveSwipe": ("getDisableUnarchiveSwipe", "setDisableUnarchiveSwipe"),
+        "doNotUseProxy": ("getDoNotUseProxy", "setDoNotUseProxy"),
+        "customSavePath": ("getCustomSavePath", "setCustomSavePath"),
+        "iconPack": ("getIconPack", "setIconPack"),
+        "editingIconPackId": ("getEditingIconPackId", "setEditingIconPackId"),
+        "avatarCorners": ("getAvatarCorners", "setAvatarCorners"),
+        "singleCornerRadius": ("getSingleCornerRadius", "setSingleCornerRadius"),
+        "dividerStyle": ("getDividerStyle", "setDividerStyle"),
+        "forceSnow": ("getForceSnow", "setForceSnow"),
+        "hideActionBarStatus": ("getHideActionBarStatus", "setHideActionBarStatus"),
+        "centerTitle": ("getCenterTitle", "setCenterTitle"),
+        "hideStories": ("getHideStories", "setHideStories"),
+        "hideFloatingButton": ("getHideFloatingButton", "setHideFloatingButton"),
+        "hideDialogsSearchBar": ("getHideDialogsSearchBar", "setHideDialogsSearchBar"),
+        "senderMiniAvatars": ("getSenderMiniAvatars", "setSenderMiniAvatars"),
+        "titleText": ("getTitleText", "setTitleText"),
+        "tabIcons": ("getTabIcons", "setTabIcons"),
+        "tabCounter": ("getTabCounter", "setTabCounter"),
+        "hideAllChats": ("getHideAllChats", "setHideAllChats"),
+        "squareFab": ("getSquareFab", "setSquareFab"),
+        "sectionRadius": ("getSectionRadius", "setSectionRadius"),
+        "sectionsSeparatedHeadersPreference": ("getSectionsSeparatedHeadersPreference", "setSectionsSeparatedHeadersPreference"),
+        "newLoadingStyle": ("getNewLoadingStyle", "setNewLoadingStyle"),
+        "newSliderStyle": ("getNewSliderStyle", "setNewSliderStyle"),
+        "newSwitchStyle": ("getNewSwitchStyle", "setNewSwitchStyle"),
+        "newChatHeaderStyle": ("getNewChatHeaderStyle", "setNewChatHeaderStyle"),
+        "newNavigationBarStyle": ("getNewNavigationBarStyle", "setNewNavigationBarStyle"),
+        "tabletMode": ("getTabletMode", "setTabletMode"),
+        "useSystemFonts": ("getUseSystemFonts", "setUseSystemFonts"),
+        "gooeyAvatarAnimation": ("getGooeyAvatarAnimation", "setGooeyAvatarAnimation"),
+        "customThemes": ("getCustomThemes", "setCustomThemes"),
+        "predictiveBackIntensity": ("getPredictiveBackIntensity", "setPredictiveBackIntensity"),
+        "springAnimations": ("getSpringAnimations", "setSpringAnimations"),
+        "glassOutlineStyle": ("getGlassOutlineStyle", "setGlassOutlineStyle"),
+        "glassMessageMenu": ("getGlassMessageMenu", "setGlassMessageMenu"),
+        "forceBlur": ("getForceBlur", "setForceBlur"),
+        "eventType": ("getEventType", "setEventType"),
+        "navigationDrawer": ("getNavigationDrawer", "setNavigationDrawer"),
+        "immersiveDrawerAnimation": ("getImmersiveDrawerAnimation", "setImmersiveDrawerAnimation"),
+        "showFeedTab": ("getShowFeedTab", "setShowFeedTab"),
+        "showFeedUnreadCounter": ("getShowFeedUnreadCounter", "setShowFeedUnreadCounter"),
+        "stickerSize": ("getStickerSize", "setStickerSize"),
+        "hideStickerTime": ("getHideStickerTime", "setHideStickerTime"),
+        "replyColors": ("getReplyColors", "setReplyColors"),
+        "replyEmoji": ("getReplyEmoji", "setReplyEmoji"),
+        "replyBackground": ("getReplyBackground", "setReplyBackground"),
+        "stickerShape": ("getStickerShape", "setStickerShape"),
+        "unlimitedRecentStickers": ("getUnlimitedRecentStickers", "setUnlimitedRecentStickers"),
+        "hideReactionsInPrivateChats": ("getHideReactionsInPrivateChats", "setHideReactionsInPrivateChats"),
+        "hideReactionsInChannels": ("getHideReactionsInChannels", "setHideReactionsInChannels"),
+        "hideReactionsInGroups": ("getHideReactionsInGroups", "setHideReactionsInGroups"),
+        "doubleTapAction": ("getDoubleTapAction", "setDoubleTapAction"),
+        "doubleTapActionOutOwner": ("getDoubleTapActionOutOwner", "setDoubleTapActionOutOwner"),
+        "bottomButton": ("getBottomButton", "setBottomButton"),
+        "widePostsInFeed": ("getWidePostsInFeed", "setWidePostsInFeed"),
+        "widePostsInChannels": ("getWidePostsInChannels", "setWidePostsInChannels"),
+        "telegramAiEditor": ("getTelegramAiEditor", "setTelegramAiEditor"),
+        "telegramAiSummaries": ("getTelegramAiSummaries", "setTelegramAiSummaries"),
+        "quickAdminShortcuts": ("getQuickAdminShortcuts", "setQuickAdminShortcuts"),
+        "quickTransitionForChannels": ("getQuickTransitionForChannels", "setQuickTransitionForChannels"),
+        "quickTransitionForTopics": ("getQuickTransitionForTopics", "setQuickTransitionForTopics"),
+        "disableGreetingSticker": ("getDisableGreetingSticker", "setDisableGreetingSticker"),
+        "hideKeyboardOnScroll": ("getHideKeyboardOnScroll", "setHideKeyboardOnScroll"),
+        "addCommaAfterMention": ("getAddCommaAfterMention", "setAddCommaAfterMention"),
+        "disableMarkdown": ("getDisableMarkdown", "setDisableMarkdown"),
+        "hideSendAsPeer": ("getHideSendAsPeer", "setHideSendAsPeer"),
+        "removeMessageTail": ("getRemoveMessageTail", "setRemoveMessageTail"),
+        "replaceEditedWithIcon": ("getReplaceEditedWithIcon", "setReplaceEditedWithIcon"),
+        "showOnlineStatus": ("getShowOnlineStatus", "setShowOnlineStatus"),
+        "hideShareButton": ("getHideShareButton", "setHideShareButton"),
+        "showResultsBeforeVoting": ("getShowResultsBeforeVoting", "setShowResultsBeforeVoting"),
+        "showCopyPhotoButton": ("getShowCopyPhotoButton", "setShowCopyPhotoButton"),
+        "showSaveMessageButton": ("getShowSaveMessageButton", "setShowSaveMessageButton"),
+        "showRepeatMessageButton": ("getShowRepeatMessageButton", "setShowRepeatMessageButton"),
+        "showClearButton": ("getShowClearButton", "setShowClearButton"),
+        "showHistoryButton": ("getShowHistoryButton", "setShowHistoryButton"),
+        "showReportButton": ("getShowReportButton", "setShowReportButton"),
+        "showGenerateButton": ("getShowGenerateButton", "setShowGenerateButton"),
+        "showDetailsButton": ("getShowDetailsButton", "setShowDetailsButton"),
+        "groupMessageMenu": ("getGroupMessageMenu", "setGroupMessageMenu"),
+        "recognitionLanguage": ("getRecognitionLanguage", "setRecognitionLanguage"),
+        "postprocessingWithAi": ("getPostprocessingWithAi", "setPostprocessingWithAi"),
+        "cameraType": ("getCameraType", "setCameraType"),
+        "extendedFramesPerSecond": ("getExtendedFramesPerSecond", "setExtendedFramesPerSecond"),
+        "cameraStabilization": ("getCameraStabilization", "setCameraStabilization"),
+        "cameraMirrorMode": ("getCameraMirrorMode", "setCameraMirrorMode"),
+        "videoMessagesCamera": ("getVideoMessagesCamera", "setVideoMessagesCamera"),
+        "rememberLastUsedCamera": ("getRememberLastUsedCamera", "setRememberLastUsedCamera"),
+        "startWithWideAngleCamera": ("getStartWithWideAngleCamera", "setStartWithWideAngleCamera"),
+        "zoomSlider": ("getZoomSlider", "setZoomSlider"),
+        "staticZoom": ("getStaticZoom", "setStaticZoom"),
+        "alwaysSendInHD": ("getAlwaysSendInHD", "setAlwaysSendInHD"),
+        "hideCameraTile": ("getHideCameraTile", "setHideCameraTile"),
+        "doubleTapSeekDuration": ("getDoubleTapSeekDuration", "setDoubleTapSeekDuration"),
+        "preferOriginalQuality": ("getPreferOriginalQuality", "setPreferOriginalQuality"),
+        "swipeToPip": ("getSwipeToPip", "setSwipeToPip"),
+        "unmuteWithVolumeButtons": ("getUnmuteWithVolumeButtons", "setUnmuteWithVolumeButtons"),
+        "pauseOnMinimizeVideo": ("getPauseOnMinimizeVideo", "setPauseOnMinimizeVideo"),
+        "pauseOnMinimizeVoice": ("getPauseOnMinimizeVoice", "setPauseOnMinimizeVoice"),
+        "pauseOnMinimizeRound": ("getPauseOnMinimizeRound", "setPauseOnMinimizeRound"),
+        "useGoogleCrashlytics": ("getUseGoogleCrashlytics", "setUseGoogleCrashlytics"),
+        "useGoogleAnalytics": ("getUseGoogleAnalytics", "setUseGoogleAnalytics"),
+        "enableAdBlock": ("getEnableAdBlock", "setEnableAdBlock"),
+        "updateScheduleTimestamp": ("getUpdateScheduleTimestamp", "setUpdateScheduleTimestamp"),
+        "sdkUpdateScheduleTimestamp": ("getSdkUpdateScheduleTimestamp", "setSdkUpdateScheduleTimestamp"),
+        "targetLang": ("getTargetLang", "setTargetLang"),
+        "flashWarmth": ("getFlashWarmth", "setFlashWarmth"),
+        "flashIntensity": ("getFlashIntensity", "setFlashIntensity"),
+        "pluginsDevMode": ("getPluginsDevMode", "setPluginsDevMode"),
+        "pluginsSafeMode": ("getPluginsSafeMode", "setPluginsSafeMode"),
+        "pluginsCompactView": ("getPluginsCompactView", "setPluginsCompactView"),
+        "pluginsPySdkAutoUpdate": ("getPluginsPySdkAutoUpdate", "setPluginsPySdkAutoUpdate"),
+        "pluginsPySdkBetaVersions": ("getPluginsPySdkBetaVersions", "setPluginsPySdkBetaVersions"),
+        "pluginsDisableArtOpts": ("getPluginsDisableArtOpts", "setPluginsDisableArtOpts"),
+        "pinnedPlugins": ("getPinnedPlugins", "setPinnedPlugins"),
+        "useSystemIconShape": ("getUseSystemIconShape", "setUseSystemIconShape"),
         "editor": "getEditor",
-        "pluginsEngine": "getPluginsEngine",
-        "centerTitle": "getCenterTitle",
+        "preferences": "getPreferences",
+        "GSON": "getGSON",
+        "pluginsEngine": ("getPluginsEngine", "setPluginsEngine"),
+        "avatarSquareness": "getAvatarSquareness",
+        "sectionRadiusDp": "getSectionRadiusDp",
+        "sectionsSeparatedHeaders": ("getSectionsSeparatedHeaders", "setSectionsSeparatedHeaders"),
+        "logging": ("getLogging", "setLogging"),
+        "mainMenuLayout": "getMainMenuLayout",
+        "mainMenuHiddenItems": "getMainMenuHiddenItems",
+        "defaultMainMenuLayout": "getDefaultMainMenuLayout",
+        "iconPacksLayout": "getIconPacksLayout",
+        "iconPacksHidden": "getIconPacksHidden",
+        "doNotMarkAsNew": "getDoNotMarkAsNew",
+        "newFeaturesShowedAt": "getNewFeaturesShowedAt",
+        "yandexSearchEngine": "getYandexSearchEngine",
+        "currentLangName": "getCurrentLangName",
+        "apiBotInfo": "getApiBotInfo",
+        "backupKeys": "getBackupKeys",
+        "onlineDotInnerRadius": "getOnlineDotInnerRadius",
+        "onlineDotOuterRadius": "getOnlineDotOuterRadius",
     },
     "com.exteragram.messenger.plugins.PluginsController": {
         "engines": "getEngines",
+        "plugins": "getPlugins",
+        "pluginsDir": "getPluginsDir",
+        "preferences": "getPreferences",
+        "initialized": "getInitialized",
+        "settings": "getSettings",
+        "watchdog": "getWatchdog",
+    },
+    "com.exteragram.messenger.pillstack.core.PillStackConfig": {
+        "activePills": "getActivePills",
+        "hiddenPills": "getHiddenPills",
+        "configLoaded": "isConfigLoaded",
+    },
+    "com.exteragram.messenger.ai.AiConfig": {
+        "saveHistory": ("getSaveHistory", "setSaveHistory"),
+        "responseStreaming": ("getResponseStreaming", "setResponseStreaming"),
+        "temperature": ("getTemperature", "setTemperature"),
+        "showResponseOnly": ("getShowResponseOnly", "setShowResponseOnly"),
+        "insertAsQuote": ("getInsertAsQuote", "setInsertAsQuote"),
+        "selectedServiceId": ("getSelectedServiceId", "setSelectedServiceId"),
+        "selectedRole": ("getSelectedRole", "setSelectedRole"),
+        "preferences": "getPreferences",
+        "services": "getServices",
+        "roles": "getRoles",
+        "conversationHistory": "getConversationHistory",
+        "selectedService": "getSelectedService",
     },
 }
 
@@ -98,8 +308,18 @@ class _FieldShapedClass:
     """
 
     def __init__(self, java_class, fields):
+        getters = {}
+        setters = {}
+        for field, target in fields.items():
+            if isinstance(target, (tuple, list)):
+                getters[field] = target[0]
+                if len(target) > 1 and target[1]:
+                    setters[field] = target[1]
+            else:
+                getters[field] = target
         object.__setattr__(self, "_exteraless_java", java_class)
-        object.__setattr__(self, "_exteraless_fields", dict(fields))
+        object.__setattr__(self, "_exteraless_fields", getters)
+        object.__setattr__(self, "_exteraless_setters", setters)
 
     def __getattr__(self, attr):
         target = object.__getattribute__(self, "_exteraless_java")
@@ -107,6 +327,14 @@ class _FieldShapedClass:
         if method is not None:
             return getattr(target, method)()
         return getattr(target, attr)
+
+    def __setattr__(self, attr, value):
+        target = object.__getattribute__(self, "_exteraless_java")
+        method = object.__getattribute__(self, "_exteraless_setters").get(attr)
+        if method is not None:
+            getattr(target, method)(value)
+            return
+        setattr(target, attr, value)
 
     def __repr__(self):
         return repr(object.__getattribute__(self, "_exteraless_java"))
@@ -133,6 +361,9 @@ def adapt(name, obj):
     """Обёртка над классом, форма которого у нас разошлась с эталоном."""
     if obj is None or isinstance(obj, _FieldShapedClass):
         return obj
+    replacement = substitute(name)
+    if replacement is not None:
+        return replacement
     fields = _field_shape(name)
     if fields is None:
         return obj
@@ -140,6 +371,30 @@ def adapt(name, obj):
         return _FieldShapedClass(obj, fields)
     except Exception:
         return obj
+
+
+_PYTHON_SUBSTITUTES = {
+    "com.exteragram.messenger.plugins.models.PluginItemFactory":
+        ("ui.settings", "SimpleSettingFactory"),
+}
+
+
+def substitute(name):
+    if not isinstance(name, str):
+        return None
+    target = _PYTHON_SUBSTITUTES.get(name)
+    if target is None:
+        for source, value in _PYTHON_SUBSTITUTES.items():
+            if resolve(source) == name:
+                target = value
+                break
+    if target is None:
+        return None
+    module, attr = target
+    try:
+        return getattr(_importlib.import_module(module), attr, None)
+    except Exception:
+        return None
 
 
 def is_alias(name):
@@ -162,6 +417,9 @@ class _AliasModule(_types.ModuleType):
         if attr.startswith("__"):
             raise AttributeError(attr)
         full = self.__name__ + "." + attr
+        replacement = substitute(full)
+        if replacement is not None:
+            return replacement
         found = _find_class(full)
         if found is not None:
             return found

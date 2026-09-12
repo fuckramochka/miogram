@@ -20,11 +20,14 @@ import androidx.core.graphics.ColorUtils;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
+import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.CheckBox2;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.LinkSpanDrawable;
+import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.Stories.recorder.ButtonWithCounterView;
 
 import java.io.File;
@@ -32,9 +35,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import app.exteraless.ai.AiController;
+import app.exteraless.ai.ui.AiSettingsActivity;
 import app.exteraless.plugins.Plugin;
 import app.exteraless.plugins.PluginCapabilityScan;
 import app.exteraless.plugins.PluginPermissions;
+import app.exteraless.plugins.ui.components.PluginAiReview;
+import app.exteraless.plugins.ui.components.PluginFileViewer;
 
 /**
  * Лист установки плагина.
@@ -159,9 +166,73 @@ public class PluginInstallSheet extends BottomSheet {
                 LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
                         Gravity.CENTER_HORIZONTAL, 0, 0, 0, 16));
 
+        if (PluginAiReview.canReview(file)) {
+            content.addView(createAiReview(context, file, plugin, capabilities),
+                    LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT,
+                            LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 16));
+        }
+
         ScrollView scroll = new ScrollView(context);
         scroll.addView(content);
-        setCustomView(scroll);
+
+        FrameLayout root = new FrameLayout(context);
+        root.addView(scroll, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT,
+                LayoutHelper.WRAP_CONTENT));
+        if (PluginFileViewer.canOpen(file)) {
+            root.addView(createSourceButton(context, file, plugin),
+                    LayoutHelper.createFrame(40, 40, Gravity.RIGHT | Gravity.TOP, 0, 10, 10, 0));
+        }
+        setCustomView(root);
+    }
+
+    private android.view.View createAiReview(Context context, File file, Plugin plugin,
+                                             Map<String, List<String>> capabilities) {
+        TextView view = new TextView(context);
+        view.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        view.setTypeface(AndroidUtilities.bold());
+        view.setTextColor(Theme.getColor(Theme.key_dialogTextBlue));
+        view.setGravity(Gravity.CENTER);
+        view.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(7),
+                AndroidUtilities.dp(14), AndroidUtilities.dp(7));
+        view.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14),
+                Theme.multAlpha(Theme.getColor(Theme.key_dialogTextBlue), 0.10f)));
+        view.setText("\u2726  " + getString(R.string.PluginsAiReview));
+        view.setOnClickListener(v -> {
+            if (!AiController.canUseAI() && !PluginAiReview.isCached(file)) {
+                BulletinFactory.of(container, resourcesProvider).createSimpleBulletin(
+                        R.raw.chats_infotip, getString(R.string.OEAiNotConfigured),
+                        getString(R.string.Settings), this::openAiSettings).show();
+                return;
+            }
+            PluginAiReview.review(context, resourcesProvider, file, plugin, capabilities);
+        });
+        return view;
+    }
+
+    private void openAiSettings() {
+        dismiss();
+        BaseFragment fragment = LaunchActivity.getLastFragment();
+        if (fragment != null) {
+            fragment.presentFragment(new AiSettingsActivity());
+        }
+    }
+
+    private android.view.View createSourceButton(Context context, File file, Plugin plugin) {
+        ImageView button = new ImageView(context);
+        button.setScaleType(ImageView.ScaleType.CENTER);
+        button.setImageResource(R.drawable.msg_view_file);
+        button.setColorFilter(new PorterDuffColorFilter(
+                Theme.getColor(Theme.key_dialogTextGray2), PorterDuff.Mode.SRC_IN));
+        button.setBackground(Theme.createSelectorDrawable(
+                Theme.getColor(Theme.key_listSelector), 1));
+        button.setContentDescription(getString(R.string.PluginsViewSource));
+        button.setOnClickListener(v -> {
+            BaseFragment fragment = LaunchActivity.getLastFragment();
+            if (fragment != null) {
+                PluginFileViewer.open(fragment, file, plugin == null ? null : plugin.name);
+            }
+        });
+        return button;
     }
 
     /**
@@ -171,6 +242,15 @@ public class PluginInstallSheet extends BottomSheet {
      * перечисляет то, что нашлось, а здесь речь о том, что искать бесполезно.
      */
     public static android.view.View createObfuscationWarning(Context context, List<String> evidence) {
+        return createWarningBox(context, getString(R.string.PluginsObfuscated),
+                getString(R.string.PluginsObfuscatedInfo),
+                evidence == null || evidence.isEmpty() ? null
+                        : LocaleController.formatString(R.string.PluginsObfuscatedEvidence,
+                                TextUtils.join(", ", evidence)));
+    }
+
+    public static android.view.View createWarningBox(Context context, CharSequence titleText,
+                                                     CharSequence infoText, CharSequence footText) {
         LinearLayout box = new LinearLayout(context);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10),
@@ -182,23 +262,22 @@ public class PluginInstallSheet extends BottomSheet {
         title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         title.setTypeface(AndroidUtilities.bold());
         title.setTextColor(Theme.getColor(Theme.key_text_RedBold));
-        title.setText(getString(R.string.PluginsObfuscated));
+        title.setText(titleText);
         box.addView(title, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT,
                 LayoutHelper.WRAP_CONTENT));
 
         TextView info = new TextView(context);
         info.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         info.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
-        info.setText(getString(R.string.PluginsObfuscatedInfo));
+        info.setText(infoText);
         box.addView(info, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT,
                 LayoutHelper.WRAP_CONTENT, 0, 4, 0, 0));
 
-        if (evidence != null && !evidence.isEmpty()) {
+        if (!TextUtils.isEmpty(footText)) {
             TextView signs = new TextView(context);
             signs.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
             signs.setTextColor(Theme.getColor(Theme.key_dialogTextGray2));
-            signs.setText(LocaleController.formatString(R.string.PluginsObfuscatedEvidence,
-                    TextUtils.join(", ", evidence)));
+            signs.setText(footText);
             box.addView(signs, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT,
                     LayoutHelper.WRAP_CONTENT, 0, 4, 0, 0));
         }

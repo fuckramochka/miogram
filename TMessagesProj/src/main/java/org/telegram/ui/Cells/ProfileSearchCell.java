@@ -867,7 +867,19 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
             avatarImage.setImage(null, null, avatarDrawable, null, null, 0);
         }
 
-        avatarImage.setRoundRadius(ChatObject.isCommunity(chat) ? DrawableUtils.getCommunityCardDrawableRadius(dp(46)) : chat != null && chat.monoforum ? 0 : rectangularAvatar ? dp(10) : chat != null && chat.forum ? dp(16) : dp(23));
+        final int avatarSize = dp(rectangularAvatar ? 42 : 46);
+        final int radius;
+        if (ChatObject.isCommunity(chat)) {
+            radius = app.exteraless.appearance.AppearanceConfig.getAvatarCorners(avatarSize, app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_COMMUNITY);
+        } else if (chat != null && chat.monoforum) {
+            radius = 0;
+        } else if (chat != null && chat.forum) {
+            radius = app.exteraless.appearance.AppearanceConfig.getAvatarCorners(avatarSize, app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_FORUM);
+        } else {
+            radius = app.exteraless.appearance.AppearanceConfig.getAvatarCorners(avatarSize);
+        }
+        avatarImage.setAvatarCornersApplied(chat == null || !chat.monoforum);
+        avatarImage.setRoundRadius(radius);
         if (mask != 0) {
             boolean continueUpdate = false;
             if ((mask & MessagesController.UPDATE_MASK_AVATAR) != 0 && user != null || (mask & MessagesController.UPDATE_MASK_CHAT_AVATAR) != 0 && chat != null) {

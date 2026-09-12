@@ -153,15 +153,15 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private int getPositionCallsOrSettings() {
-        return hasContactsOrFeedTab() ? POSITION_CALLS_OR_SETTINGS : POSITION_CALLS_OR_SETTINGS - 1;
+        return MainTabsHelper.getCallsOrSettingsPosition();
     }
 
     private int getPositionProfile() {
-        return hasContactsOrFeedTab() ? POSITION_PROFILE : POSITION_PROFILE - 1;
+        return MainTabsHelper.getProfilePosition();
     }
 
     private int getTabsCount() {
-        return hasContactsOrFeedTab() ? TABS_COUNT : TABS_COUNT - 1;
+        return MainTabsHelper.getFragmentsCount();
     }
 
     private static final int ANIMATOR_ID_TABS_VISIBLE = 0;
@@ -178,6 +178,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private BlurredBackgroundDrawable tabsViewBackground;
     private View fadeView;
     private boolean lastHideContacts = NaConfig.INSTANCE.getMainTabsHideContacts().Bool();
+    private boolean lastHideCallsSettings = MainTabsHelper.isCallsOrSettingsTabHidden();
+    private boolean lastHideProfile = MainTabsHelper.isProfileTabHidden();
 
     public MainTabsActivity() {
         super();
@@ -533,13 +535,14 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                             : app.miogram.bridge.MiogramLocale.get("Контакти повернуто", "Контакты возвращены", "Contacts restored")
             ).show();
         });
-        o.add(R.drawable.msg_disable, app.miogram.bridge.MiogramLocale.get("Сховати вкладку", "Скрыть вкладку", "Hide Tab"), () -> {
+        o.add(R.drawable.msg_archive_hide, getString(R.string.MainTabsHideContacts), () -> {
             NaConfig.INSTANCE.getMainTabsHideContacts().setConfigBool(true);
             NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.mainUserInfoChanged);
             if (fragmentView != null) {
                 checkUi_contactsOrFeedTabVisible(true);
             }
-            BulletinFactory.of(this).createSimpleBulletin(R.drawable.msg_disable, app.miogram.bridge.MiogramLocale.get("Вкладку контактів приховано", "Вкладка контактов скрыта", "Contacts tab hidden")).show();
+            AndroidUtilities.runOnUIThread(this::rebuildContactsSlot);
+            BulletinFactory.of(this).createSimpleBulletin(R.drawable.msg_archive_hide, getString(R.string.MainTabsHideContacts)).show();
         });
         o.setBlur(true);
         o.translate(0, -dp(4));
@@ -879,11 +882,12 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         if (viewPager != null) {
             final int currentPosition = viewPager.getCurrentPosition();
-            if (currentPosition != getPositionCallsOrSettings() && dropCallsFragmentAfterPageScroll) {
+            if (getPositionCallsOrSettings() >= 0 && currentPosition != getPositionCallsOrSettings()
+                    && dropCallsFragmentAfterPageScroll) {
                 dropFragmentAtPosition(getPositionCallsOrSettings());
                 dropCallsFragmentAfterPageScroll = false;
             }
-            if (currentPosition != getPositionProfile()) {
+            if (getPositionProfile() >= 0 && currentPosition != getPositionProfile()) {
                 dropFragmentAtPosition(getPositionProfile());
             }
             if (pendingFolderId != null && currentPosition == POSITION_CHATS && dialogsActivity != null) {
@@ -1004,7 +1008,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     @Override
     public void clearViews() {
         final boolean hideContacts = MainTabsHelper.isContactsTabHidden();
-        if (hideContacts != lastHideContacts) {
+        final boolean hideCallsSettings = MainTabsHelper.isCallsOrSettingsTabHidden();
+        final boolean hideProfile = MainTabsHelper.isProfileTabHidden();
+        if (hideContacts != lastHideContacts || hideCallsSettings != lastHideCallsSettings
+                || hideProfile != lastHideProfile) {
             if (viewPager != null) {
                 // Ensure ViewPagerFixed is not left with an out-of-range position on rebuild.
                 viewPager.setPosition(getStartPosition());
@@ -1017,6 +1024,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
             dropCallsFragmentAfterPageScroll = false;
             lastHideContacts = hideContacts;
+            lastHideCallsSettings = hideCallsSettings;
+            lastHideProfile = hideProfile;
         }
 
         super.clearViews();
@@ -1203,7 +1212,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 viewPager.scrollToPosition(getPositionChats());
                 selectTab(getPositionChats(), true);
                 dropCallsFragmentAfterPageScroll = true;
-            } else {
+            } else if (getPositionCallsOrSettings() >= 0) {
                 dropFragmentAtPosition(getPositionCallsOrSettings());
             }
         } else if (id == NotificationCenter.mainUserInfoChanged) {
@@ -1211,7 +1220,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 tabs[INDEX_PROFILE].updateUserAvatar(currentAccount);
             }
         } else if (id == NotificationCenter.feedTabVisibleToggled) {
-            rebuildAfterFeedTabToggle();
+            rebuildContactsSlot();
         } else if (id == NotificationCenter.contactsPermissionBadgeCheck) {
             checkContactsTabBadge();
         }
@@ -1307,8 +1316,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     private void checkUi_callTabVisible(boolean callTabsVisible, boolean animated) {
         if (tabsView != null) {
-            tabsView.setViewVisible(tabs[INDEX_SETTINGS], !callTabsVisible, animated);
-            tabsView.setViewVisible(tabs[INDEX_CALLS], callTabsVisible, animated);
+            final boolean hidden = MainTabsHelper.isCallsOrSettingsTabHidden();
+            tabsView.setViewVisible(tabs[INDEX_SETTINGS], !hidden && !callTabsVisible, animated);
+            tabsView.setViewVisible(tabs[INDEX_CALLS], !hidden && callTabsVisible, animated);
+            tabsView.setViewVisible(tabs[INDEX_PROFILE], !MainTabsHelper.isProfileTabHidden(), animated);
         }
     }
 
@@ -1320,7 +1331,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         }
     }
 
-    private void rebuildAfterFeedTabToggle() {
+    private void rebuildContactsSlot() {
         checkUi_contactsOrFeedTabVisible(true);
         checkUnreadCount(false);
         if (viewPager == null) {

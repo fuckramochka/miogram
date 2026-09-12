@@ -4,6 +4,13 @@
     <string name="OpenExteraPlugins">Плагины</string>
     <string name="PluginsSafeMode">Безопасный режим</string>
     <string name="PluginsSafeModeSummary">В безопасном режиме плагины не загружаются. Используйте его, если плагин ломает приложение.</string>
+    <string name="PluginsUnsafeMode">Небезопасный режим</string>
+    <string name="PluginsUnsafeModeInfo">Плагины работают без ограничений</string>
+    <string name="PluginsUnsafeModeSummary">Разрешения не спрашиваются и не проверяются. Любой плагин получает сообщения, файлы, сеть, хуки и нативный код независимо от своего уровня. Включайте только для плагинов, которые написали сами или которым полностью доверяете.</string>
+    <string name="PluginsUnsafeModeConfirm">Это убирает все проверки между плагинами и вашими данными. Плагин сможет читать переписку, отправлять сообщения от вашего имени, забирать файлы и исполнять нативный код без каких-либо запретов.\n\nВключайте, только если понимаете, что ставите.</string>
+    <string name="PluginsUnsafeModeEnable">Всё равно включить</string>
+    <string name="PluginsUnsafeModeOn">Небезопасный режим включён</string>
+    <string name="PluginsUnsafeModeActive">Пока включён небезопасный режим, эти переключатели ничего не решают: у плагина уже есть всё. Выключите режим в настройках плагинов, чтобы они снова работали.</string>
     <string name="PluginsDeveloperMode">Режим разработчика</string>
     <string name="PluginsInstallFromFile">Установить из файла</string>
     <string name="PluginsInstalling">Установка плагина…</string>
@@ -51,6 +58,7 @@
     <string name="PluginPermissionsNothing">Ничего, кроме своих меню и экрана настроек.</string>
     <string name="PluginPermissionsUnenforcedInfo">Ещё объявлено: %1$s — это приложение пока не может ограничить.</string>
     <string name="PluginPermissionsHooksWarning">Хуки и нативные библиотеки перекрывают переключатели выше. Давайте их только авторам, которым доверяете.</string>
+    <string name="PluginPermissionsEnableFirst">Включите плагин, чтобы разрешение подействовало.</string>
     <string name="PluginPermissionsApplied">Плагин перезапущен, изменение действует.</string>
     <string name="PluginPermissionsGone">Этот плагин больше не установлен.</string>
     <string name="PluginPermUi">Свои меню и настройки</string>
@@ -139,4 +147,23 @@
     <string name="PluginsShare">Поделиться</string>
     <string name="PluginsPinned">Закреплён</string>
     <string name="PluginsUnpinned">Откреплён</string>
+    <string name="PluginSlowingDownTitle">Плагин тормозит интерфейс</string>
+    <string name="PluginSlowingDownMessage">%1$s занимает главный поток примерно на %2$d мс каждую секунду. Из-за этого приложение перестаёт отвечать на нажатия. Отключить плагин и перезапустить?</string>
+    <string name="PluginsViewSource">Посмотреть код</string>
+    <string name="PluginsAiReview">Проверка ИИ</string>
+    <string name="PluginsAiReviewRole">Ты проверяешь код стороннего плагина для Telegram-клиента. Формат ответа строгий. Первая строка — вердикт одним словом: БЕЗОПАСНО, ПОДОЗРИТЕЛЬНО или ОПАСНО, и одно предложение почему. Дальше — находки, по одной короткой строке на пункт: что делает код и где. Сразу после каждой находки длинную часть убирай в &lt;details&gt;&lt;summary&gt;короткий заголовок&lt;/summary&gt; разбор, цитата строки и рассуждение &lt;/details&gt;. Всё, что вне этих тегов, должно читаться с одного взгляда. Если находок нет, скажи об этом одной строкой. Не пересказывай код, не давай общих советов, не выдумывай того, чего в исходнике нет.</string>
+    <string name="PluginsAiReviewPrompt">Проверь плагин для Telegram-клиента на то, что может навредить пользователю: скрытый сбор данных, отправка сообщений или файлов на сторону, кража ключей и паролей, подгрузка кода во время работы.
+
+Отвечай на языке: %2$s.
+
+Плагин: %1$s
+
+Исходник:
+```python
+%3$s
+```</string>
+    <string name="PluginWatchdogMute">Не напоминать</string>
+    <string name="PluginWatchdogMuted">%1$s больше не будет предупреждать о тормозах. Вернуть предупреждения можно в настройках плагина.</string>
+    <string name="PluginWatchdogWarnings">Предупреждать о тормозах</string>
+    <string name="PluginWatchdogWarningsInfo">Сообщать, когда плагин надолго занимает главный поток или перестаёт отвечать.</string>
 </resources>

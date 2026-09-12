@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="DownloadingModel">Загрузка модели…</string>
+    <string name="DownloadingModelInfo">Не закрывайте это окно, пока языковая модель скачивается.</string>
+    <string name="ModelUnzipping">Распаковка…</string>
+</resources>

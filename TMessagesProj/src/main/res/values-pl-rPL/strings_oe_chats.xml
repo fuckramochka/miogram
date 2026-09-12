@@ -37,11 +37,14 @@
     <string name="OEChatsDoubleTap">Podwójne dotknięcie</string>
     <string name="OEChatsMessages">Wiadomości</string>
     <string name="OEChatsVideos">Filmy</string>
-    <string name="OEChatsUnlimitedRecentStickers">Nieograniczone ostatnie naklejki</string>
+    <string name="OEChatsUnlimited">Nieograniczone</string>
+    <string name="OEChatsUnlimitedStickers">Naklejki</string>
+    <string name="OEChatsUnlimitedGifs">GIF-y</string>
     <string name="OEChatsAdminShortcuts">Szybkie skróty administratora</string>
     <string name="OEChatsDisableGreetingSticker">Wyłącz naklejkę powitalną</string>
     <string name="OEChatsHideSendAsPeer">Ukryj przycisk „Wyślij jako…”</string>
     <string name="OEChatsHideSendAsPeerInfo">Menu „Wyślij jako…” nadal otworzysz, przytrzymując przycisk emoji/naklejek/GIF-ów.</string>
+    <string name="OEChatsDisableGlobalSearch">Wyłącz wyszukiwanie globalne</string>
     <string name="OEChatsTapToSwitchRecord">Dotknięcie przełącza głos i wideo</string>
     <string name="OEChatsKeepAttachButton">Zachowaj przycisk załącznika podczas pisania</string>
     <string name="OEChatsRemoveMessageTail">Usuń ogonek dymka</string>
@@ -79,6 +82,12 @@
     <string name="OEChatsChatSettingsInfo">Ustawienia mediów, ikona aplikacji i inne</string>
     <string name="OEStickerSizeSmall">Małe</string>
     <string name="OEStickerSizeLarge">Duże</string>
+    <string name="OEChatsChannelPosts">Posty na kanałach</string>
+    <string name="OEChatsWideChannelPosts">Szerokie posty</string>
+    <string name="OEChatsWideFeedPosts">Szerokie posty w kanale</string>
+    <string name="OEChatsWideChannelPostsPreviewText">Wiadomości, zdjęcia i filmy</string>
+    <string name="OEChatsWideChannelPostsPreviewReply">Przekazany post z kanału</string>
+    <string name="OEChatsWideChannelPostsFooter">Posty i przekazania używają dostępnej szerokości.</string>
     <string name="OEDetailsDate">Data</string>
     <string name="OEDetailsForwardedDate">Data przesłania dalej</string>
     <string name="OEDetailsEditedDate">Data edycji</string>
@@ -92,4 +101,12 @@
     <string name="OEDetailsBitrateValue">%1$d kb/s</string>
     <string name="OEDetailsDuration">Czas trwania</string>
     <string name="OEDetailsDatacenter">Centrum danych</string>
+    <string name="ReplyToDeletedAsQuote">Odpowiedź na usunięte jako cytat</string>
+    <string name="ReplyToDeletedAsQuoteInfo">Gdy wiadomość została już usunięta, jej tekst trafi do twojej wiadomości jako cytat — zwykła odpowiedź przepadnie.</string>
+    <string name="SaveDeletedInPrivateChats">Zapisuj usunięte w czatach prywatnych</string>
+    <string name="SaveDeletedInGroups">Zapisuj usunięte w grupach</string>
+    <string name="SaveDeletedInChannels">Zapisuj usunięte w kanałach</string>
+    <string name="ForwardProtectedAsCopy">Przekazywanie z chronionych czatów</string>
+    <string name="ForwardProtectedAsCopyInfo">Wysyła kopię zamiast przekazania. Media muszą być już pobrane, a kopia nie zawiera autora.</string>
+    <string name="OEChatsLeftButtonActionHint">Możesz to też zmienić, przytrzymując przycisk na czacie.</string>
 </resources>

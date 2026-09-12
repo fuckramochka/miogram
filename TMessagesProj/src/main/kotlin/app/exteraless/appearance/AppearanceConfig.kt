@@ -7,6 +7,7 @@ import org.telegram.messenger.FileLog
 import org.telegram.ui.Components.blur3.GlassOutlineStyle
 import tw.nekomimi.nekogram.NekoConfig
 import tw.nekomimi.nekogram.config.ConfigItem
+import xyz.nextalone.nagram.NaConfig
 
 /**
  * Настройки экрана «Appearance», перенесённые из exteraGram.
@@ -229,6 +230,27 @@ object AppearanceConfig {
     fun newNavigationBarStyle(): Boolean {
         ensureLoaded()
         return newNavigationBarStyle.Bool()
+    }
+
+    /** Широкая нижняя панель как в Telegram iOS. Уступает M3-панели, если включены обе. */
+    @JvmField
+    val iosNavigationBarStyle =
+        addConfig("OEAppearanceIosNavigationBarStyle", ConfigItem.configTypeBool, false)
+
+    @JvmStatic
+    fun iosNavigationBarStyle(): Boolean {
+        ensureLoaded()
+        return iosNavigationBarStyle.Bool()
+    }
+
+    @JvmField
+    val iosFirstFolderOnTabTap =
+        addConfig("OEAppearanceIosFirstFolderOnTabTap", ConfigItem.configTypeBool, false)
+
+    @JvmStatic
+    fun iosFirstFolderOnTabTap(): Boolean {
+        ensureLoaded()
+        return iosFirstFolderOnTabTap.Bool()
     }
 
     // ---- AI-функции Telegram ----
@@ -530,6 +552,16 @@ object AppearanceConfig {
                 }
             }
             configLoaded = true
+        }
+        migrateLegacyKeys()
+    }
+
+    private fun migrateLegacyKeys() {
+        val legacyHidden = getPreferences().getBoolean("HideDividers", false)
+        if (legacyHidden && dividerStyle.Int() != DIVIDER_HIDDEN) {
+            dividerStyle.setConfigInt(DIVIDER_HIDDEN)
+        } else if (!legacyHidden && dividerStyle.Int() == DIVIDER_HIDDEN) {
+            NaConfig.hideDividers.setConfigBool(true)
         }
     }
 

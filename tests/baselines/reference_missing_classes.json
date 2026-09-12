@@ -1,26 +1,3 @@
 {
-  "known": [
-    "com.exteragram.messenger.ai.AiConfig|com.exteragram.messenger.ai.AiConfig",
-    "com.exteragram.messenger.ai.AiController|com.exteragram.messenger.ai.AiController",
-    "com.exteragram.messenger.ai.data.Role|com.exteragram.messenger.ai.data.Role",
-    "com.exteragram.messenger.ai.network.Client|com.exteragram.messenger.ai.network.Client",
-    "com.exteragram.messenger.ai.ui.GenerateFromMessageBottomSheet|com.exteragram.messenger.ai.ui.GenerateFromMessageBottomSheet",
-    "com.exteragram.messenger.ai.ui.ResponseAlert|com.exteragram.messenger.ai.ui.ResponseAlert",
-    "com.exteragram.messenger.api.dto.BadgeDTO|com.exteragram.messenger.api.dto.BadgeDTO",
-    "com.exteragram.messenger.badges.BadgesController|com.exteragram.messenger.badges.BadgesController",
-    "com.exteragram.messenger.plugins.models.DividerSetting|app.exteraless.plugins.models.DividerSetting",
-    "com.exteragram.messenger.plugins.models.EditTextSetting|app.exteraless.plugins.models.EditTextSetting",
-    "com.exteragram.messenger.plugins.models.InputSetting|app.exteraless.plugins.models.InputSetting",
-    "com.exteragram.messenger.plugins.models.SelectorSetting|app.exteraless.plugins.models.SelectorSetting",
-    "com.exteragram.messenger.plugins.models.SwitchSetting|app.exteraless.plugins.models.SwitchSetting",
-    "com.exteragram.messenger.plugins.models.TextSetting|app.exteraless.plugins.models.TextSetting",
-    "com.exteragram.messenger.plugins.ui.components.InstallPluginBottomSheet|app.exteraless.plugins.ui.components.InstallPluginBottomSheet",
-    "com.exteragram.messenger.plugins.ui.components.SafeModeBottomSheet|app.exteraless.plugins.ui.components.SafeModeBottomSheet",
-    "com.exteragram.messenger.preferences.MainPreferencesActivity|app.exteraless.settings.MainPreferencesActivity",
-    "com.exteragram.messenger.preferences.utils.SettingsRegistry|app.exteraless.settings.utils.SettingsRegistry",
-    "com.exteragram.messenger.speech.ui.LoadingModelView|com.exteragram.messenger.speech.ui.LoadingModelView",
-    "com.exteragram.messenger.utils.ChatUtils|app.exteraless.utils.ChatUtils",
-    "com.exteragram.messenger.utils.SystemUtils|app.exteraless.utils.SystemUtils",
-    "com.exteragram.messenger.utils.system.SystemUtils|app.exteraless.utils.system.SystemUtils"
-  ]
+  "known": []
 }

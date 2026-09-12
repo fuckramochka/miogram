@@ -4,16 +4,28 @@ import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.LocaleController.getString;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
+import androidx.core.app.NotificationManagerCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.PushListenerController;
+import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.UserConfig;
+import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -105,6 +117,16 @@ public class OpenExteraGeneralActivity extends BaseNekoSettingsActivity {
     private int disableUnarchiveSwipeRow;
     private int archiveDividerRow;
 
+    private int mapsHeaderRow;
+    private int mapProviderRow;
+    private int mapDriftingFixRow;
+    private int mapPreviewRow;
+    private int mapsDividerRow;
+    private int notificationsHeaderRow;
+    private int pushStatusRow;
+    private int batteryOptimizationRow;
+    private int notificationsDividerRow;
+
     /** Момент «пять минут назад» для живого примера в строке Relative Last Seen. */
     private int fiveMinutesAgo;
 
@@ -161,11 +183,37 @@ public class OpenExteraGeneralActivity extends BaseNekoSettingsActivity {
         archiveOnPullRow = NaConfig.INSTANCE.getHideArchive().Bool() ? -1 : addRow("archiveOnPull");
         disableUnarchiveSwipeRow = addRow("disableUnarchiveSwipe");
         archiveDividerRow = addRow();
+
+        mapsHeaderRow = addRow("mapsHeader");
+        mapProviderRow = addRow("mapProvider");
+        mapDriftingFixRow = NekoConfig.useOSMDroidMap.Bool() ? -1 : addRow("mapDriftingFix");
+        mapPreviewRow = addRow("mapPreview");
+        mapsDividerRow = addRow();
+
+        notificationsHeaderRow = addRow("notificationsHeader");
+        pushStatusRow = addRow("pushStatus");
+        batteryOptimizationRow = addRow("batteryOptimization");
+        notificationsDividerRow = addRow();
     }
 
     @Override
     protected String getActionBarTitle() {
         return getString(R.string.OEGeneralTitle);
+    }
+
+    @Override
+    public int getSearchGuid() {
+        return 20000;
+    }
+
+    @Override
+    public int getSearchIcon() {
+        return R.drawable.msg_media;
+    }
+
+    @Override
+    public String getSearchPrefix() {
+        return "OEGeneral";
     }
 
     @Override
@@ -187,6 +235,35 @@ public class OpenExteraGeneralActivity extends BaseNekoSettingsActivity {
 
     @Override
     protected void onItemClick(View view, int position, float x, float y) {
+        if (position == pushStatusRow) {
+            copyPushStatus();
+            return;
+        }
+
+        if (position == mapProviderRow) {
+            showMapProviderSelector();
+            return;
+        }
+
+        if (position == mapDriftingFixRow) {
+            boolean value = !NekoConfig.mapDriftingFixForGoogleMaps.Bool();
+            NekoConfig.mapDriftingFixForGoogleMaps.setConfigBool(value);
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(value);
+            }
+            return;
+        }
+
+        if (position == mapPreviewRow) {
+            showMapPreviewSelector();
+            return;
+        }
+
+        if (position == batteryOptimizationRow) {
+            openBatteryOptimizationSettings();
+            return;
+        }
+
         if (position == translationProviderRow) {
             Translator.showProviderSelect(view, provider -> {
                 NekoConfig.translationProvider.setConfigInt(provider);
@@ -317,6 +394,51 @@ public class OpenExteraGeneralActivity extends BaseNekoSettingsActivity {
 
     private CharSequence[] idOptions() {
         return new CharSequence[]{getString(R.string.Hide), "Telegram API", "Bot API"};
+    }
+
+    private CharSequence[] mapProviderOptions() {
+        return new CharSequence[]{"Google Maps", "OpenStreetMap"};
+    }
+
+    private CharSequence[] mapPreviewOptions() {
+        return new CharSequence[]{
+                getString(R.string.MapPreviewProviderTelegram),
+                getString(R.string.MapPreviewProviderYandexNax),
+                getString(R.string.MapPreviewProviderNobody)};
+    }
+
+    private void showMapProviderSelector() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(getString(R.string.OEGeneralMapProvider));
+        builder.setItems(mapProviderOptions(), (dialog, which) -> {
+            NekoConfig.useOSMDroidMap.setConfigBool(which == 1);
+            ApplicationLoader.resetMapsProvider();
+            updateRows();
+            if (listAdapter != null) {
+                listAdapter.notifyDataSetChanged();
+            }
+        });
+        builder.setNegativeButton(getString(R.string.Cancel), null);
+        showDialog(builder.create());
+    }
+
+    private void showMapPreviewSelector() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(getString(R.string.OEGeneralMapPreview));
+        builder.setItems(mapPreviewOptions(), (dialog, which) -> {
+            NekoConfig.mapPreviewProvider.setConfigInt(which);
+            if (listAdapter != null) {
+                listAdapter.notifyItemChanged(mapPreviewRow);
+            }
+        });
+        builder.setNegativeButton(getString(R.string.Cancel), null);
+        showDialog(builder.create());
     }
 
     private void showIdAndDcSelector() {
@@ -563,6 +685,121 @@ public class OpenExteraGeneralActivity extends BaseNekoSettingsActivity {
                 : LocaleController.formatString(R.string.OEGeneralSavePathInfoFolder, path);
     }
 
+    private boolean osNotificationsEnabled() {
+        try {
+            return NotificationManagerCompat.from(ApplicationLoader.applicationContext).areNotificationsEnabled();
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    private boolean batteryUnrestricted() {
+        try {
+            PowerManager pm = (PowerManager) ApplicationLoader.applicationContext.getSystemService(Context.POWER_SERVICE);
+            return pm == null || pm.isIgnoringBatteryOptimizations(ApplicationLoader.applicationContext.getPackageName());
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    private String standbyBucket() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return "n/a";
+        }
+        try {
+            android.app.usage.UsageStatsManager usm = (android.app.usage.UsageStatsManager)
+                    ApplicationLoader.applicationContext.getSystemService(Context.USAGE_STATS_SERVICE);
+            if (usm == null) {
+                return "n/a";
+            }
+            int bucket = usm.getAppStandbyBucket();
+            if (bucket <= 10) return "exempted";
+            if (bucket <= 20) return "active";
+            if (bucket <= 30) return "working_set";
+            if (bucket <= 40) return "frequent";
+            if (bucket <= 45) return "rare";
+            return "restricted";
+        } catch (Exception e) {
+            return "n/a";
+        }
+    }
+
+    private String formatPushStatus() {
+        final int type = NaConfig.INSTANCE.getPushServiceType().Int();
+        final String name = type == 0 ? "In-App" : type == 2 ? "UnifiedPush" : "FCM";
+        if (!osNotificationsEnabled()) {
+            return name + " \u00b7 " + getString(R.string.OEGeneralPushStatusBlocked);
+        }
+        if (TextUtils.isEmpty(SharedConfig.pushString)) {
+            return name + " \u00b7 " + getString(R.string.OEGeneralPushStatusNoToken);
+        }
+        if (!UserConfig.getInstance(UserConfig.selectedAccount).registeredForPush) {
+            return name + " \u00b7 " + getString(R.string.OEGeneralPushStatusNotRegistered);
+        }
+        if (SharedConfig.pushLastReceivedTime <= 0) {
+            return name + " \u00b7 " + getString(R.string.OEGeneralPushStatusNothing);
+        }
+        return name + " \u00b7 " + LocaleController.formatDateTime(
+                SharedConfig.pushLastReceivedTime / 1000L, true);
+    }
+
+    private void copyPushStatus() {
+        final StringBuilder text = new StringBuilder();
+        final boolean hasToken = !TextUtils.isEmpty(SharedConfig.pushString);
+        text.append("push type: ").append(NaConfig.INSTANCE.getPushServiceType().Int()).append('\n');
+        text.append("token: ").append(hasToken
+                ? SharedConfig.pushString.length() + " chars" : "none").append('\n');
+        if (!hasToken) {
+            text.append("token status: ").append(SharedConfig.pushStringStatus).append('\n');
+        }
+        text.append("token fetch ms: ").append(
+                SharedConfig.pushStringGetTimeEnd - SharedConfig.pushStringGetTimeStart).append('\n');
+        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
+            UserConfig config = UserConfig.getInstance(a);
+            if (config.getClientUserId() != 0) {
+                text.append("account ").append(a).append(" registered: ")
+                        .append(config.registeredForPush).append('\n');
+            }
+        }
+        text.append("last push: ").append(SharedConfig.pushLastReceivedTime <= 0 ? "never"
+                : LocaleController.formatDateTime(SharedConfig.pushLastReceivedTime / 1000L, true)).append('\n');
+        text.append("play services: ")
+                .append(PushListenerController.getProvider().hasServices()).append('\n');
+        text.append("keep alive: ").append(MessagesController
+                .getNotificationsSettings(UserConfig.selectedAccount)
+                .getBoolean("pushService", false)).append('\n');
+        text.append("push connection: ").append(ConnectionsManager
+                .getInstance(UserConfig.selectedAccount).isPushConnectionEnabled()).append('\n');
+        text.append("os notifications: ").append(osNotificationsEnabled()).append('\n');
+        text.append("battery unrestricted: ").append(batteryUnrestricted()).append('\n');
+        text.append("standby bucket: ").append(standbyBucket());
+        AndroidUtilities.addToClipboard(text.toString());
+        BulletinFactory.of(this).createCopyBulletin(getString(R.string.TextCopied)).show();
+    }
+
+    private void openBatteryOptimizationSettings() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        final String pkg = ApplicationLoader.applicationContext.getPackageName();
+        if (!batteryUnrestricted()) {
+            try {
+                getParentActivity().startActivity(new Intent(
+                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:" + pkg)));
+                return;
+            } catch (Exception ignored) {
+            }
+        }
+        try {
+            getParentActivity().startActivity(
+                    new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+        } catch (Exception e) {
+            BulletinFactory.of(this).createErrorBulletin(
+                    getString(R.string.OEGeneralBatteryOptimizationUnavailable)).show();
+        }
+    }
+
     private class ListAdapter extends BaseListAdapter {
 
         public ListAdapter(Context context) {
@@ -586,7 +823,11 @@ public class OpenExteraGeneralActivity extends BaseNekoSettingsActivity {
             switch (holder.getItemViewType()) {
                 case TYPE_HEADER: {
                     HeaderCell cell = (HeaderCell) holder.itemView;
-                    if (position == translateHeaderRow) {
+                    if (position == mapsHeaderRow) {
+                        cell.setText(getString(R.string.OEGeneralMapsHeader));
+                    } else if (position == notificationsHeaderRow) {
+                        cell.setText(getString(R.string.OEGeneralNotificationsHeader));
+                    } else if (position == translateHeaderRow) {
                         cell.setText(getString(R.string.OEGeneralTranslateHeader));
                     } else if (position == generalHeaderRow) {
                         cell.setText(getString(R.string.OEGeneralSectionHeader));
@@ -612,7 +853,10 @@ public class OpenExteraGeneralActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_CHECK: {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
-                    if (position == translateButtonRow) {
+                    if (position == mapDriftingFixRow) {
+                        cell.setTextAndCheck(getString(R.string.OEGeneralMapDriftingFix),
+                                NekoConfig.mapDriftingFixForGoogleMaps.Bool(), true);
+                    } else if (position == translateButtonRow) {
                         cell.setTextAndCheck(getString(R.string.OEGeneralTranslateButton),
                                 NekoConfig.showTranslate.Bool(), true);
                     } else if (position == translateChatButtonRow) {
@@ -657,7 +901,15 @@ public class OpenExteraGeneralActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_SETTINGS: {
                     TextSettingsCell cell = (TextSettingsCell) holder.itemView;
-                    if (position == translationProviderRow) {
+                    if (position == pushStatusRow) {
+                        cell.setTextAndValue(getString(R.string.OEGeneralPushStatus),
+                                formatPushStatus(), true);
+                    } else if (position == batteryOptimizationRow) {
+                        cell.setTextAndValue(getString(R.string.OEGeneralBatteryOptimization),
+                                getString(batteryUnrestricted()
+                                        ? R.string.OEGeneralBatteryOptimizationOff
+                                        : R.string.OEGeneralBatteryOptimizationOn), false);
+                    } else if (position == translationProviderRow) {
                         cell.setTextAndValue(getString(R.string.OEGeneralTranslationProvider),
                                 getProviderName(NekoConfig.translationProvider.Int()), true);
                     } else if (position == translateToLangRow) {
@@ -676,6 +928,14 @@ public class OpenExteraGeneralActivity extends BaseNekoSettingsActivity {
                                         ? getString(R.string.OEGeneralSavePathDefault)
                                         : path,
                                 false);
+                    } else if (position == mapProviderRow) {
+                        cell.setTextAndValue(getString(R.string.OEGeneralMapProvider),
+                                mapProviderOptions()[NekoConfig.useOSMDroidMap.Bool() ? 1 : 0], true);
+                    } else if (position == mapPreviewRow) {
+                        CharSequence[] previews = mapPreviewOptions();
+                        int preview = NekoConfig.mapPreviewProvider.Int();
+                        cell.setTextAndValue(getString(R.string.OEGeneralMapPreview),
+                                previews[preview < 0 || preview >= previews.length ? 0 : preview], false);
                     } else if (position == showIdAndDcRow) {
                         // Выбор из трёх режимов, а не переключатель: Bot API отличается
                         // от Telegram API префиксом -100 у чатов и каналов.
@@ -693,8 +953,12 @@ public class OpenExteraGeneralActivity extends BaseNekoSettingsActivity {
                 }
                 case TYPE_INFO_PRIVACY: {
                     TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
-                    boolean bottom = position == archiveDividerRow;
-                    if (position == translateDividerRow) {
+                    boolean bottom = position == notificationsDividerRow;
+                    if (position == mapsDividerRow) {
+                        cell.setText(getString(R.string.OEGeneralUseOsmMapInfo));
+                    } else if (position == notificationsDividerRow) {
+                        cell.setText(getString(R.string.OEGeneralNotificationsInfo));
+                    } else if (position == translateDividerRow) {
                         cell.setText(getString(R.string.OEGeneralTranslateInfo));
                     } else if (position == generalDividerRow) {
                         cell.setText(LocaleController.formatString(R.string.OEGeneralFilterZalgoInfo,
@@ -718,19 +982,25 @@ public class OpenExteraGeneralActivity extends BaseNekoSettingsActivity {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == translateHeaderRow || position == generalHeaderRow
+            if (position == mapsHeaderRow || position == notificationsHeaderRow
+                    || position == translateHeaderRow
+                    || position == generalHeaderRow
                     || position == speedHeaderRow
                     || position == storageHeaderRow || position == profileHeaderRow
                     || position == archiveHeaderRow) {
                 return TYPE_HEADER;
-            } else if (position == translateDividerRow || position == generalDividerRow
+            } else if (position == mapsDividerRow
+                    || position == notificationsDividerRow || position == translateDividerRow
+                    || position == generalDividerRow
                     || position == speedDividerRow
                     || position == storageDividerRow || position == profileDividerRow
                     || position == archiveDividerRow) {
                 return TYPE_INFO_PRIVACY;
             } else if (position == downloadSpeedRow) {
                 return TYPE_SLIDE;
-            } else if (position == translationProviderRow || position == translateToLangRow
+            } else if (position == mapProviderRow || position == mapPreviewRow
+                    || position == pushStatusRow || position == batteryOptimizationRow
+                    || position == translationProviderRow || position == translateToLangRow
                     || position == doNotTranslateRow || position == savePathRow
                     || position == showIdAndDcRow || position == lastfmRow) {
                 return TYPE_SETTINGS;

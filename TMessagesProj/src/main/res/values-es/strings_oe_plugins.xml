@@ -3,6 +3,13 @@
     <string name="OpenExteraPlugins">Plugins</string>
     <string name="PluginsSafeMode">Modo seguro</string>
     <string name="PluginsSafeModeSummary">Con el modo seguro activado no se carga ningún plugin. Úsalo si un plugin rompe la app.</string>
+    <string name="PluginsUnsafeMode">Modo inseguro</string>
+    <string name="PluginsUnsafeModeInfo">Los plugins funcionan sin restricciones</string>
+    <string name="PluginsUnsafeModeSummary">Los permisos no se piden ni se comprueban. Cualquier plugin obtiene mensajes, archivos, red, hooks y código nativo sin importar su nivel. Actívalo solo para plugins que hayas escrito tú o en los que confíes por completo.</string>
+    <string name="PluginsUnsafeModeConfirm">Esto elimina todas las comprobaciones entre los plugins y tus datos. Un plugin podrá leer tus chats, enviar mensajes en tu nombre, llevarse tus archivos y ejecutar código nativo sin restricción alguna.\n\nActívalo solo si entiendes lo que estás instalando.</string>
+    <string name="PluginsUnsafeModeEnable">Activar de todos modos</string>
+    <string name="PluginsUnsafeModeOn">El modo inseguro está activado</string>
+    <string name="PluginsUnsafeModeActive">Mientras el modo inseguro esté activado, estos interruptores no deciden nada: el plugin ya lo tiene todo. Desactiva el modo en los ajustes de plugins para recuperarlos.</string>
     <string name="PluginsDeveloperMode">Modo desarrollador</string>
     <string name="PluginsInstallFromFile">Instalar desde un archivo</string>
     <string name="PluginsInstalling">Instalando el plugin…</string>
@@ -50,6 +57,7 @@
     <string name="PluginPermissionsNothing">Nada más allá de sus propios menús y su pantalla de ajustes.</string>
     <string name="PluginPermissionsUnenforcedInfo">También declara: %1$s; la app todavía no puede hacerlo cumplir.</string>
     <string name="PluginPermissionsHooksWarning">Los hooks y las bibliotecas nativas se saltan los interruptores de arriba. Concédelos solo a autores en los que confíes.</string>
+    <string name="PluginPermissionsEnableFirst">Activa el plugin para que el permiso surta efecto.</string>
     <string name="PluginPermissionsApplied">El plugin se reinició; el cambio ya está activo.</string>
     <string name="PluginPermissionsGone">Este plugin ya no está instalado.</string>
     <string name="PluginPermUi">Menús y ajustes propios</string>
@@ -136,4 +144,23 @@
     <string name="PluginsShare">Compartir</string>
     <string name="PluginsPinned">Fijado</string>
     <string name="PluginsUnpinned">Dejado de fijar</string>
+    <string name="PluginSlowingDownTitle">El plugin ralentiza la interfaz</string>
+    <string name="PluginSlowingDownMessage">%1$s ocupa el hilo principal unos %2$d ms cada segundo. Por eso la aplicación deja de responder a los toques. ¿Desactivar el plugin y reiniciar?</string>
+    <string name="PluginsViewSource">Ver el código</string>
+    <string name="PluginsAiReview">Revisión de IA</string>
+    <string name="PluginsAiReviewRole">Revisas el código de un complemento de terceros para un cliente de Telegram. El formato de la respuesta es estricto. Primera línea: el veredicto en una palabra — SEGURO, SOSPECHOSO o PELIGROSO — y una frase explicando por qué. Después, los hallazgos, una línea corta por punto: qué hace el código y dónde. Justo después de cada hallazgo pon la parte larga dentro de &lt;details&gt;&lt;summary&gt;título corto&lt;/summary&gt; la explicación, la línea citada y el razonamiento &lt;/details&gt;. Todo lo que quede fuera de esas etiquetas debe leerse de un vistazo. Si no hay ninguno, dilo en una sola línea. No resumas el código, no des consejos generales, no inventes lo que no está en la fuente.</string>
+    <string name="PluginsAiReviewPrompt">Revisa este complemento de un cliente de Telegram por lo que pueda dañar al usuario: recolección oculta de datos, envío de mensajes o archivos a terceros, robo de claves y contraseñas, código descargado en tiempo de ejecución.
+
+Responde en %2$s.
+
+Complemento: %1$s
+
+Código:
+```python
+%3$s
+```</string>
+    <string name="PluginWatchdogMute">No recordar</string>
+    <string name="PluginWatchdogMuted">%1$s ya no avisará sobre ralentizaciones. Puedes restaurar los avisos en los ajustes del complemento.</string>
+    <string name="PluginWatchdogWarnings">Avisos de ralentización</string>
+    <string name="PluginWatchdogWarningsInfo">Avisar cuando el complemento ocupe el hilo principal demasiado tiempo o deje de responder.</string>
 </resources>

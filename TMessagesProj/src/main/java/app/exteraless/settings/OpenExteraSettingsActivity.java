@@ -133,6 +133,21 @@ public class OpenExteraSettingsActivity extends BaseNekoSettingsActivity {
     }
 
     @Override
+    public int getSearchGuid() {
+        return 24000;
+    }
+
+    @Override
+    public int getSearchIcon() {
+        return R.drawable.msg_settings_old;
+    }
+
+    @Override
+    public String getSearchPrefix() {
+        return "OpenExtera";
+    }
+
+    @Override
     protected String getKey() {
         return "exteraless";
     }

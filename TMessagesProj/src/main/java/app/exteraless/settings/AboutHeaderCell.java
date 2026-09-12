@@ -2,6 +2,7 @@ package app.exteraless.settings;
 
 import android.content.Context;
 import android.content.pm.PackageInfo;
+import android.text.TextUtils;
 import android.graphics.Canvas;
 import android.graphics.Path;
 import android.view.HapticFeedbackConstants;
@@ -107,6 +108,9 @@ public class AboutHeaderCell extends LinearLayout {
                 sb.append(" (").append(info.versionCode).append(")");
             }
         } catch (Exception ignore) {
+        }
+        if (!TextUtils.isEmpty(BuildVars.BUILD_COMMIT_ID)) {
+            sb.append(" · ").append(BuildVars.BUILD_COMMIT_ID);
         }
         return sb.toString();
     }

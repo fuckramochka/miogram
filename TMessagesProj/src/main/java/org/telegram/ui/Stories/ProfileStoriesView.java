@@ -907,8 +907,14 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
     }
 
     private float avatarCornersRingRadius(RectF oval, boolean isForum) {
-        return app.exteraless.appearance.AppearanceConfig.getAvatarCorners(oval.height() + dp(4),
-                isForum ? app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_FORUM : app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_DEFAULT);
+        float avatarWidth = rect1.width();
+        float avatarRadius = app.exteraless.appearance.AppearanceConfig.getAvatarCorners(
+                avatarWidth,
+                isForum ? app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_FORUM : app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_DEFAULT,
+                true
+        );
+        float gap = (oval.width() - avatarWidth) / 2f;
+        return avatarRadius + gap;
     }
 
     private void drawArc(Canvas canvas, RectF oval, float startAngle, float sweepAngle, boolean useCenter, Paint paint) {

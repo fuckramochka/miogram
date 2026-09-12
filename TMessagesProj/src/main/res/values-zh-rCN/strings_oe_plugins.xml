@@ -3,6 +3,13 @@
     <string name="OpenExteraPlugins">插件</string>
     <string name="PluginsSafeMode">安全模式</string>
     <string name="PluginsSafeModeSummary">开启安全模式后不会加载任何插件。当某个插件导致应用异常时可以使用。</string>
+    <string name="PluginsUnsafeMode">不安全模式</string>
+    <string name="PluginsUnsafeModeInfo">插件不受任何限制</string>
+    <string name="PluginsUnsafeModeSummary">不再询问也不再校验权限。无论等级如何，任何插件都能获得消息、文件、网络、钩子和原生代码。只对自己编写或完全信任的插件开启。</string>
+    <string name="PluginsUnsafeModeConfirm">这会移除插件与你的数据之间的全部检查。插件将能读取聊天记录、以你的名义发送消息、取走文件并执行原生代码，不受任何限制。\n\n只有在清楚自己安装的是什么时才开启。</string>
+    <string name="PluginsUnsafeModeEnable">仍然开启</string>
+    <string name="PluginsUnsafeModeOn">不安全模式已开启</string>
+    <string name="PluginsUnsafeModeActive">在不安全模式开启期间，这些开关不起任何作用：插件已经拥有全部权限。在插件设置中关闭该模式即可恢复。</string>
     <string name="PluginsDeveloperMode">开发者模式</string>
     <string name="PluginsInstallFromFile">从文件安装</string>
     <string name="PluginsInstalling">正在安装插件…</string>
@@ -50,6 +57,7 @@
     <string name="PluginPermissionsNothing">除了自己的菜单和设置界面，什么都做不了。</string>
     <string name="PluginPermissionsUnenforcedInfo">还声明了：%1$s —— 应用目前还无法对其加以限制。</string>
     <string name="PluginPermissionsHooksWarning">挂钩和原生库会绕过上面的开关。只把它们授予你信任的作者。</string>
+    <string name="PluginPermissionsEnableFirst">启用插件后权限才会生效。</string>
     <string name="PluginPermissionsApplied">插件已重启，更改已生效。</string>
     <string name="PluginPermissionsGone">该插件已不再安装。</string>
     <string name="PluginPermUi">自有菜单和设置</string>
@@ -136,4 +144,23 @@
     <string name="PluginsShare">分享</string>
     <string name="PluginsPinned">已置顶</string>
     <string name="PluginsUnpinned">已取消置顶</string>
+    <string name="PluginSlowingDownTitle">插件正在拖慢界面</string>
+    <string name="PluginSlowingDownMessage">%1$s 每秒占用主线程约 %2$d 毫秒，导致应用无法响应触摸。是否禁用该插件并重启？</string>
+    <string name="PluginsViewSource">查看源码</string>
+    <string name="PluginsAiReview">AI 检查</string>
+    <string name="PluginsAiReviewRole">你在审查第三方 Telegram 客户端插件的代码。回答格式固定。第一行：用一个词给出结论——安全、可疑或危险——并用一句话说明原因。然后逐条列出发现，每条只用一行短句：代码做了什么，在哪里。每条发现之后，把详细内容放进 &lt;details&gt;&lt;summary&gt;简短标题&lt;/summary&gt; 解释、引用的代码行和推理 &lt;/details&gt;。标签之外的内容都要一眼能读完。如果没有发现，用一行说明。不要复述代码，不要给泛泛的建议，不要编造源码中没有的内容。</string>
+    <string name="PluginsAiReviewPrompt">请检查这个 Telegram 客户端插件中可能危害用户的地方：隐蔽的数据收集、把消息或文件发往第三方、窃取密钥和密码、运行时下载代码。
+
+请用 %2$s 回答。
+
+插件：%1$s
+
+源码：
+```python
+%3$s
+```</string>
+    <string name="PluginWatchdogMute">不再提醒</string>
+    <string name="PluginWatchdogMuted">%1$s 将不再提示卡顿。可以在插件设置中恢复提示。</string>
+    <string name="PluginWatchdogWarnings">卡顿提示</string>
+    <string name="PluginWatchdogWarningsInfo">当插件长时间占用主线程或停止响应时提示。</string>
 </resources>

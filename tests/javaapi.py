@@ -239,10 +239,22 @@ def _declared_type(head, package, stack, path):
                     set(m.group("mods").split()), extends, implements, path)
 
 
+_ENUM_CONSTANT = re.compile(r"^[A-Za-z_]\w*$")
+
+
+def _absorb_enum_constants(owner, body):
+    for part in split_params(body.split(";", 1)[0]):
+        name = part.strip().split("(", 1)[0].split("{", 1)[0].strip()
+        if _ENUM_CONSTANT.match(name):
+            owner.fields.setdefault(name, owner.fqcn)
+
+
 def _absorb(owner, body, cut=False):
     if owner is None or not body.strip():
         return
     body = _SPACES.sub(" ", body)
+    if owner.kind == "enum" and not owner.fields and not owner.methods:
+        _absorb_enum_constants(owner, body)
     if cut:
         matches = list(_TYPE_DECL.finditer(body))
         if matches:
@@ -311,6 +323,74 @@ def type_of(fqcn):
         if found is not None:
             return found
     return None
+
+
+_KT_TYPE = re.compile(r"\b(?:object|interface|(?:data\s+|sealed\s+|enum\s+|abstract\s+|open\s+)*class)\s+(?P<name>\w+)")
+_KT_FUN = re.compile(r"\bfun\s+(?:<[^>]*>\s*)?(?P<name>\w+)\s*\((?P<params>[^()]*)\)")
+_KT_PROP = re.compile(r"\b(?:val|var)\s+(?P<name>\w+)\s*[:=]")
+
+
+def _kt_params(raw):
+    raw = raw.strip()
+    if not raw:
+        return []
+    out = []
+    depth = 0
+    current = ""
+    for ch in raw:
+        if ch in "<([":
+            depth += 1
+        elif ch in ">)]":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append(current)
+            current = ""
+        else:
+            current += ch
+    out.append(current)
+    return [item for item in out if item.strip()]
+
+
+def _parse_kotlin(path, package):
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        text = strip_noise(fh.read())
+    m = re.search(r"^\s*package\s+([\w.]+)", text, re.M)
+    if m:
+        package = m.group(1)
+    spans = [(hit.start(), hit.group("name")) for hit in _KT_TYPE.finditer(text)]
+    types = {}
+    for index, (start, name) in enumerate(spans):
+        end = spans[index + 1][0] if index + 1 < len(spans) else len(text)
+        fqcn = f"{package}.{name}" if package else name
+        jtype = JavaType(fqcn, "class", set(), None, [], path)
+        body = text[start:end]
+        for hit in _KT_FUN.finditer(body):
+            jtype.methods.setdefault(hit.group("name"), []).append(
+                _kt_params(hit.group("params")))
+        for hit in _KT_PROP.finditer(body):
+            jtype.fields[hit.group("name")] = "?"
+        types[fqcn] = jtype
+    return types
+
+
+@functools.lru_cache(maxsize=2048)
+def kotlin_type_of(fqcn):
+    if not fqcn or not os.path.isdir(KOTLIN_ROOT):
+        return None
+    outer = fqcn.split("$", 1)[0]
+    parts = outer.split(".")
+    for cut in range(len(parts), 0, -1):
+        path = os.path.join(KOTLIN_ROOT, *parts[:cut]) + ".kt"
+        if not os.path.isfile(path):
+            continue
+        found = _match(_parse_kotlin(path, ".".join(parts[:cut - 1])), fqcn)
+        if found is not None:
+            return found
+    return None
+
+
+def any_type_of(fqcn):
+    return type_of(fqcn) or kotlin_type_of(fqcn)
 
 
 def _match(types, fqcn):

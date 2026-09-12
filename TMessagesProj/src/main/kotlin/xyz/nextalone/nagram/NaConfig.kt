@@ -160,7 +160,7 @@ object NaConfig {
         addConfig(
             "DoubleTapActionOut",
             ConfigItem.configTypeInt,
-            8
+            1
         )
     val showCopyPhoto =
         addConfig(
@@ -1395,6 +1395,54 @@ object NaConfig {
             ConfigItem.configTypeBool,
             false
         )
+    val forwardProtectedAsCopy =
+        addConfig(
+            "ForwardProtectedAsCopy",
+            ConfigItem.configTypeBool,
+            false
+        )
+    val disableGlobalSearch =
+        addConfig(
+            "DisableGlobalSearch",
+            ConfigItem.configTypeBool,
+            false
+        )
+    val unlimitedSavedGifs =
+        addConfig(
+            "UnlimitedSavedGifs",
+            ConfigItem.configTypeBool,
+            false
+        )
+    val saveDeletedInPrivateChats =
+        addConfig(
+            "SaveDeletedInPrivateChats",
+            ConfigItem.configTypeBool,
+            true
+        )
+    val saveDeletedInGroups =
+        addConfig(
+            "SaveDeletedInGroups",
+            ConfigItem.configTypeBool,
+            true
+        )
+    val saveDeletedInChannels =
+        addConfig(
+            "SaveDeletedInChannels",
+            ConfigItem.configTypeBool,
+            true
+        )
+    val mainTabsHideCallsSettings =
+        addConfig(
+            "MainTabsHideCallsSettings",
+            ConfigItem.configTypeBool,
+            false
+        )
+    val mainTabsHideProfile =
+        addConfig(
+            "MainTabsHideProfile",
+            ConfigItem.configTypeBool,
+            false
+        )
     val mainTabsHideContacts =
         addConfig(
             "MainTabsHideContacts",
@@ -1445,6 +1493,13 @@ object NaConfig {
             "DeepLFormality",
             ConfigItem.configTypeInt,
             0
+        )
+
+    val replyToDeletedAsQuote =
+        addConfig(
+            "ReplyToDeletedAsQuote",
+            ConfigItem.configTypeBool,
+            true
         )
 
     val preferredTranslateTargetLangList = ArrayList<String>()

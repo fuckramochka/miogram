@@ -78,15 +78,32 @@ public class TextCheckCell2 extends FrameLayout {
             checkBoxClickArea.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2));
             addView(checkBoxClickArea, LayoutHelper.createFrame(76, LayoutHelper.MATCH_PARENT, LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT));
         }
+        collapseViewContainer.setVisibility(View.VISIBLE);
+        checkBoxClickArea.setVisibility(View.VISIBLE);
         animatedTextView.setText(text);
         collapsedArrow.animate().cancel();
         collapsedArrow.animate().rotation(collapsed ? 0 : 180).setDuration(340).setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT).start();
         checkBoxClickArea.setOnClickListener(v -> onCheckClick.run());
     }
 
+    public void setCollapsed(boolean collapsed) {
+        if (collapsedArrow == null) {
+            return;
+        }
+        collapsedArrow.animate().cancel();
+        collapsedArrow.animate().rotation(collapsed ? 0 : 180).setDuration(340).setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT).start();
+    }
+
+    public View getCollapseContainer() {
+        return collapseViewContainer;
+    }
+
     public void hideCollapseArrow() {
         if (collapseViewContainer != null) {
             collapseViewContainer.setVisibility(View.GONE);
+        }
+        if (checkBoxClickArea != null) {
+            checkBoxClickArea.setVisibility(View.GONE);
         }
     }
 

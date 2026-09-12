@@ -133,6 +133,30 @@ public class PagePreviewRulesHelper extends BaseRemoteHelper {
             } catch (RuntimeException ignored) {}
             data.cleanup();
         }
+        if (domains.isEmpty()) {
+            applyBuiltInRules();
+        }
+    }
+
+    private void applyBuiltInRules() {
+        addBuiltInRule("x.com", "fixupx.com");
+        addBuiltInRule("twitter.com", "fxtwitter.com");
+        addBuiltInRule("coolapk.com", "coolapk1s.com");
+        addBuiltInRule("www.instagram.com", "kkinstagram.com");
+        addBuiltInRule("vm.tiktok.com", "vm.kktiktok.com");
+        addBuiltInRule("vt.tiktok.com", "vt.kktiktok.com");
+        addBuiltInRule("www.tiktok.com", "www.kktiktok.com");
+        addBuiltInRule("www.reddit.com", "www.rxddit.com");
+        addBuiltInRule("bsky.app", "fxbsky.app");
+        addBuiltInRule("www.pixiv.net", "www.phixiv.net");
+    }
+
+    private void addBuiltInRule(String domain, String replace) {
+        ArrayList<DomainRule> rules = new ArrayList<>();
+        rules.add(new DomainRule(domain, replace));
+        DomainInfo info = new DomainInfo(domain, rules, false);
+        domains.add(info);
+        domainsMap.put(domain, info);
     }
 
     public void savePagePreviewRules() {
@@ -173,6 +197,9 @@ public class PagePreviewRulesHelper extends BaseRemoteHelper {
     }
 
     public String doRegex(CharSequence textToCheck) {
+        if (domains.isEmpty()) {
+            loadPagePreviewRules();
+        }
         String oldUrl;
         if (textToCheck instanceof String) {
             oldUrl = (String) textToCheck;

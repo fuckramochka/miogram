@@ -3,6 +3,13 @@
     <string name="OpenExteraPlugins">Wtyczki</string>
     <string name="PluginsSafeMode">Tryb awaryjny</string>
     <string name="PluginsSafeModeSummary">Przy włączonym trybie awaryjnym żadne wtyczki nie są ładowane. Użyj go, jeśli wtyczka psuje aplikację.</string>
+    <string name="PluginsUnsafeMode">Tryb bez zabezpieczeń</string>
+    <string name="PluginsUnsafeModeInfo">Wtyczki działają bez ograniczeń</string>
+    <string name="PluginsUnsafeModeSummary">Uprawnienia nie są pytane ani egzekwowane. Każda wtyczka dostaje wiadomości, pliki, sieć, hooki i kod natywny niezależnie od swojego poziomu. Włączaj tylko dla wtyczek, które sam napisałeś lub którym w pełni ufasz.</string>
+    <string name="PluginsUnsafeModeConfirm">To usuwa wszystkie kontrole między wtyczkami a Twoimi danymi. Wtyczka będzie mogła czytać rozmowy, wysyłać wiadomości w Twoim imieniu, zabrać pliki i uruchomić kod natywny bez jakichkolwiek ograniczeń.\n\nWłącz tylko, jeśli rozumiesz, co instalujesz.</string>
+    <string name="PluginsUnsafeModeEnable">Włącz mimo to</string>
+    <string name="PluginsUnsafeModeOn">Tryb bez zabezpieczeń jest włączony</string>
+    <string name="PluginsUnsafeModeActive">Dopóki tryb bez zabezpieczeń jest włączony, te przełączniki niczego nie decydują: wtyczka i tak ma wszystko. Wyłącz ten tryb w ustawieniach wtyczek, aby znów działały.</string>
     <string name="PluginsDeveloperMode">Tryb dewelopera</string>
     <string name="PluginsInstallFromFile">Zainstaluj z pliku</string>
     <string name="PluginsInstalling">Instalowanie wtyczki…</string>
@@ -50,6 +57,7 @@
     <string name="PluginPermissionsNothing">Nic poza własnymi menu i ekranem ustawień.</string>
     <string name="PluginPermissionsUnenforcedInfo">Zadeklarowano również: %1$s — aplikacja nie potrafi tego jeszcze wyegzekwować.</string>
     <string name="PluginPermissionsHooksWarning">Hooki i biblioteki natywne omijają powyższe przełączniki. Przyznawaj je tylko autorom, którym ufasz.</string>
+    <string name="PluginPermissionsEnableFirst">Włącz wtyczkę, aby uprawnienie zaczęło działać.</string>
     <string name="PluginPermissionsApplied">Wtyczka została uruchomiona ponownie, zmiana obowiązuje.</string>
     <string name="PluginPermissionsGone">Ta wtyczka nie jest już zainstalowana.</string>
     <string name="PluginPermUi">Własne menu i ustawienia</string>
@@ -136,4 +144,23 @@
     <string name="PluginsShare">Udostępnij</string>
     <string name="PluginsPinned">Przypięto</string>
     <string name="PluginsUnpinned">Odpięto</string>
+    <string name="PluginSlowingDownTitle">Wtyczka spowalnia interfejs</string>
+    <string name="PluginSlowingDownMessage">%1$s zajmuje główny wątek na około %2$d ms na sekundę. Przez to aplikacja przestaje reagować na dotknięcia. Wyłączyć wtyczkę i uruchomić ponownie?</string>
+    <string name="PluginsViewSource">Zobacz kod</string>
+    <string name="PluginsAiReview">Sprawdzenie AI</string>
+    <string name="PluginsAiReviewRole">Sprawdzasz kod wtyczki innej firmy dla klienta Telegrama. Format odpowiedzi jest ścisły. Pierwsza linia: werdykt jednym słowem — BEZPIECZNE, PODEJRZANE albo NIEBEZPIECZNE — i jedno zdanie dlaczego. Dalej znaleziska, po jednej krótkiej linii na punkt: co robi kod i gdzie. Zaraz po każdym znalezisku dłuższą część schowaj w &lt;details&gt;&lt;summary&gt;krótki tytuł&lt;/summary&gt; wyjaśnienie, cytat linii i uzasadnienie &lt;/details&gt;. Wszystko poza tymi znacznikami ma dać się przeczytać jednym spojrzeniem. Jeśli nic nie ma, napisz to jedną linią. Nie streszczaj kodu, nie dawaj ogólnych rad, nie zmyślaj tego, czego nie ma w źródle.</string>
+    <string name="PluginsAiReviewPrompt">Sprawdź tę wtyczkę klienta Telegrama pod kątem tego, co może zaszkodzić użytkownikowi: ukryte zbieranie danych, wysyłanie wiadomości lub plików na zewnątrz, kradzież kluczy i haseł, pobieranie kodu w trakcie działania.
+
+Odpowiedz w języku: %2$s.
+
+Wtyczka: %1$s
+
+Źródło:
+```python
+%3$s
+```</string>
+    <string name="PluginWatchdogMute">Nie przypominaj</string>
+    <string name="PluginWatchdogMuted">%1$s nie będzie już ostrzegać o spowolnieniach. Ostrzeżenia można przywrócić w ustawieniach wtyczki.</string>
+    <string name="PluginWatchdogWarnings">Ostrzeżenia o spowolnieniach</string>
+    <string name="PluginWatchdogWarningsInfo">Ostrzegaj, gdy wtyczka zbyt długo blokuje główny wątek lub przestaje odpowiadać.</string>
 </resources>

@@ -90,4 +90,24 @@
     <string name="OEGeneralLastFmNoFile">Could not download the track</string>
     <string name="OEGeneralLastFmNoUpload">Upload timed out</string>
     <string name="OEGeneralLastFmAbout">This feature is built on top of profile music: it writes hidden bytes with your Last.fm username into your latest profile track. Once you set a username, that track is re-uploaded with the change.\n\nWhen you turn the feature off, the track is restored to its original state.</string>
+    <string name="OEGeneralNotificationsHeader">Notifications</string>
+    <string name="OEGeneralPushStatus">Push status</string>
+    <string name="OEGeneralPushStatusBlocked">blocked by system</string>
+    <string name="OEGeneralPushStatusNoToken">no token</string>
+    <string name="OEGeneralPushStatusNotRegistered">not registered</string>
+    <string name="OEGeneralPushStatusNothing">nothing received</string>
+    <string name="OEGeneralBatteryOptimization">Battery optimization</string>
+    <string name="OEGeneralBatteryOptimizationOn">Enabled — pushes may be delayed</string>
+    <string name="OEGeneralBatteryOptimizationOff">Disabled</string>
+    <string name="OEGeneralBatteryOptimizationUnavailable">Battery settings are unavailable on this device</string>
+    <string name="OEGeneralNotificationsInfo">Tap the push status to copy diagnostics to the clipboard — attach it when reporting a notification problem. If battery optimization is enabled, Android may delay or drop pushes while the app is in the background.</string>
+    <string name="OEGeneralGoogleHeader">Google</string>
+    <string name="OEGeneralCrashReports">Crash reports</string>
+    <string name="OEGeneralCrashReportsInfo">Sends crash stack traces to Firebase Crashlytics so failures can be fixed without a manual report. Off by default; nothing leaves the device while it is off.</string>
+    <string name="OEGeneralMapsHeader">Maps</string>
+    <string name="OEGeneralUseOsmMapInfo">Draws the location picker and live locations with OpenStreetMap tiles instead of Google Maps. Location previews inside messages still come from Telegram servers.</string>
+    <string name="OEGeneralMapProvider">Map provider</string>
+    <string name="OEGeneralMapPreview">Location previews</string>
+    <string name="OEGeneralMapDriftingFix">Fix map drifting</string>
+    <string name="OECrashTitle">exteraless crashed</string>
 </resources>

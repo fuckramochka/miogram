@@ -42,6 +42,7 @@ import org.telegram.ui.GroupCreateActivity;
 import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.ProfileActivity;
 import org.telegram.ui.SettingsActivity;
+import app.exteraless.plugins.ui.PluginsActivity;
 
 import org.telegram.ui.WebAppDisclaimerAlert;
 import org.telegram.ui.bots.BotWebViewSheet;
@@ -54,9 +55,7 @@ import tw.nekomimi.nekogram.settings.GhostModeActivity;
  * Резолвер пунктов главного меню: id из {@link MainMenuLayout} → иконка, подпись и действие.
  *
  * exteraGram: {@code com/exteragram/messenger/utils/chats/MainMenuHelper.java} (12.9.0, 819 строк).
- * Не переносится ветка {@code PLUGINS}: движок есть, а пункта меню под него не
- * заведено (см. {@link MainMenuItem}). Из {@code MenuContext} убран
- * {@code pluginContextData} — он нужен как раз ветке PLUGINS.
+ * Из {@code MenuContext} убран {@code pluginContextData}.
  */
 public final class MainMenuHelper {
 
@@ -259,6 +258,9 @@ public final class MainMenuHelper {
             case BROWSER:
                 return new MenuItemInfo(R.drawable.msg2_language, LocaleController.getString(R.string.BrowserSettingsTitle),
                         () -> openBrowserHomepage(fragment), null);
+            case PLUGINS:
+                return new MenuItemInfo(R.drawable.msg_plugins, LocaleController.getString(R.string.OpenExteraPlugins),
+                        () -> fragment.presentFragment(new PluginsActivity()), null);
             case QR:
                 return new MenuItemInfo(R.drawable.msg_qrcode, LocaleController.getString(R.string.AuthAnotherClient),
                         () -> openQrScanner(fragment), null);
@@ -383,6 +385,7 @@ public final class MainMenuHelper {
             case FEED -> new MenuItemInfo(R.drawable.ic_feed, LocaleController.getString(R.string.Feed), null, null);
             case SETTINGS -> new MenuItemInfo(R.drawable.msg_settings, LocaleController.getString(R.string.Settings), null, null);
             case BROWSER -> new MenuItemInfo(R.drawable.msg2_language, LocaleController.getString(R.string.BrowserSettingsTitle), null, null);
+            case PLUGINS -> new MenuItemInfo(R.drawable.msg_plugins, LocaleController.getString(R.string.OpenExteraPlugins), null, null);
             case QR -> new MenuItemInfo(R.drawable.msg_qrcode, LocaleController.getString(R.string.AuthAnotherClient), null, null);
             case GHOST_MODE -> new MenuItemInfo(R.drawable.ayu_ghost, ghostModeTitle(), null, null);
             default -> null;

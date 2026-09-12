@@ -494,6 +494,9 @@ def _check(event, args, loader):
     if plugin_id is None:
         return  # код SDK или приложения — гейтить нечего
 
+    if loader.unsafe_mode():
+        return
+
     if event in ("compile", "exec"):
         victim = _foreign_code_owner(event, args, plugin_id, loader)
         if victim is not None:

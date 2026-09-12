@@ -1,5 +1,7 @@
 package app.exteraless.plugins.xposed;
 
+import android.content.SharedPreferences;
+
 import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
 
@@ -12,6 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import app.exteraless.plugins.PluginsConstants;
 import app.exteraless.plugins.PluginsController;
 import app.exteraless.plugins.PluginsWatchdog;
 import de.robv.android.xposed.XC_MethodHook;
@@ -55,6 +58,12 @@ public final class XposedHooks {
         return ensureInitialized();
     }
 
+    public static boolean isNativeHooksBroken() {
+        SharedPreferences preferences = PluginsController.getInstance().getPreferences();
+        return preferences != null
+                && preferences.getBoolean(PluginsConstants.KEY_NATIVE_HOOKS_BROKEN, false);
+    }
+
     private static boolean ensureInitialized() {
         if (initAttempted) {
             return initOk;
@@ -64,22 +73,42 @@ public final class XposedHooks {
                 return initOk;
             }
             initAttempted = true;
+            SharedPreferences preferences = PluginsController.getInstance().getPreferences();
+            if (preferences != null) {
+                if (preferences.getBoolean(PluginsConstants.KEY_NATIVE_HOOKS_BROKEN, false)) {
+                    FileLog.w("XposedHooks: native hooks disabled after an earlier process death");
+                    return false;
+                }
+                if (preferences.getBoolean(PluginsConstants.KEY_NATIVE_HOOKS_PENDING, false)) {
+                    preferences.edit()
+                            .remove(PluginsConstants.KEY_NATIVE_HOOKS_PENDING)
+                            .putBoolean(PluginsConstants.KEY_NATIVE_HOOKS_BROKEN, true)
+                            .commit();
+                    FileLog.e("XposedHooks: Aliuhook killed the process last time, hooks are off");
+                    return false;
+                }
+                preferences.edit()
+                        .putBoolean(PluginsConstants.KEY_NATIVE_HOOKS_PENDING, true)
+                        .commit();
+            }
             try {
                 if (!XposedBridge.disableHiddenApiRestrictions()) {
                     // Не фатально: для методов самого приложения restrictions не мешают.
                     FileLog.e("XposedHooks: disableHiddenApiRestrictions() returned false");
                 }
-                // Режим совместимости: ART Profile Saver со временем
-                // перекомпилирует методы и сбивает уже поставленные хуки.
-                // exteraGram гасит его при инициализации движка, за флагом.
-                if (PluginsController.getInstance().isCompatibilityMode()) {
-                    boolean ok = XposedBridge.disableProfileSaver();
-                    FileLog.d("XposedHooks: disableProfileSaver() -> " + ok);
-                }
+                // ART Profile Saver со временем перекомпилирует методы и сбивает
+                // уже поставленные хуки. Гасим всегда: сюда попадают только те
+                // запуски, где плагин действительно загружается, а хук, который
+                // отваливается через несколько минут, неотличим от сломанного.
+                boolean profileSaverOff = XposedBridge.disableProfileSaver();
+                FileLog.d("XposedHooks: disableProfileSaver() -> " + profileSaverOff);
                 initOk = true;
             } catch (Throwable t) {
                 initOk = false;
                 FileLog.e("XposedHooks: Aliuhook init failed, method hooks disabled", t);
+            }
+            if (preferences != null) {
+                preferences.edit().remove(PluginsConstants.KEY_NATIVE_HOOKS_PENDING).commit();
             }
             return initOk;
         }

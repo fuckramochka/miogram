@@ -21,6 +21,7 @@
     <string name="OEAppearanceTitleTextName">Imię</string>
     <string name="OEAppearanceChatListInfo">Gdy dla folderów włączone jest „Tylko ikony”, główny tytuł pokazuje nazwę folderu.</string>
     <string name="OEAppearanceFolders">Foldery</string>
+    <string name="OEAppearanceInterface">Interfejs</string>
     <string name="OEAppearanceTabTitleStyle">Tytuł folderu</string>
     <string name="OEAppearanceTabTitleStyleTextOnly">Tylko nazwy</string>
     <string name="OEAppearanceTabTitleStyleIconsOnly">Tylko ikony</string>
@@ -38,6 +39,7 @@
     <string name="OEAppearanceForceBlur">Wymuś rozmycie</string>
     <string name="OEAppearanceDisableAvatarBlur">Wyłącz rozmycie awatarów</string>
     <string name="OEAppearanceBlurInfo">Efekty rozmycia zostaną zastosowane we wszystkich motywach, nadpisując ich domyślne ustawienia.</string>
+    <string name="OEAppearanceRestartNow">Uruchom ponownie</string>
     <string name="OEAppearanceNeedRestart">Uruchom aplikację ponownie, aby zastosować to ustawienie.</string>
     <string name="OEAppearanceGooeyAvatar">Animacja „kleistego” awatara</string>
     <string name="OEAppearanceCustomThemes">Własne motywy w czatach</string>
@@ -76,6 +78,7 @@
     <string name="OEBackAnimationClassic">Klasyczna</string>
     <string name="OEBackAnimationSpring">Sprężysta</string>
     <string name="OEBackAnimationPredictive">Przewidywane cofanie</string>
+    <string name="OEBackAnimationSlide">Przesunięcie</string>
     <string name="OEBackAnimationInfo">Włącza płynniejsze animacje przy przełączaniu ekranów i otwieraniu menu bocznego.</string>
     <string name="OEPredictiveBackIntensity">Siła gestu</string>
     <string name="OEPredictiveBackOff">Wyłączona</string>
@@ -90,9 +93,11 @@
     <string name="OEMainMenuAddDivider">Dodaj separator</string>
     <string name="OEMainMenuDivider">Separator</string>
     <string name="OEMainMenuRemoveSettingsInfo">Nie można ukryć Ustawień, gdy dolny pasek nawigacji jest wyłączony.</string>
-    <string name="OEAppearanceNewLoadingStyle">Styl ładowania</string>
+    <string name="OEAppearanceNewLoadingStyle">Wskaźniki MD3</string>
     <string name="OEAppearanceNewChatHeaderStyle">Nagłówek czatu</string>
     <string name="OEAppearanceNewNavigationBarStyle">Dolny pasek nawigacji</string>
+    <string name="OEAppearanceIosNavigationBarStyle">Dolny pasek nawigacji</string>
+    <string name="OEAppearanceIosFirstFolderOnTabTap">Dotknięcie karty otwiera pierwszy folder</string>
     <string name="OEAppearanceHideAi">Ukryj AI</string>
     <string name="OEAppearanceHideAiEditor">Przycisk edytora AI</string>
     <string name="OEAppearanceHideAiSummary">Przycisk podsumowania wiadomości</string>
@@ -100,4 +105,7 @@
     <string name="MonetStyleHeader">Paleta Monet</string>
     <string name="MonetStyleTelemone">Telemone</string>
     <string name="MonetStyleClassic">Klasyczna</string>
+    <string name="OEAppearanceTabCounterAll">Wszystkie czaty</string>
+    <string name="OEAppearanceTabCounterUnmuted">Bez wyciszonych</string>
+    <string name="OEAppearanceTabCounterOff">Wyłączony</string>
 </resources>

@@ -52,6 +52,7 @@ public class AvatarsDrawable {
 
     private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Paint xRefP = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.RectF rectTmp = new android.graphics.RectF();
 
     Runnable updateDelegate;
     int currentStyle;
@@ -506,12 +507,16 @@ public class AvatarsDrawable {
                     }
                     alpha *= overrideAlpha;
                     float rad = getSize() / 2f + dp(4);
+                    int[] roundRadius = imageReceiver.getRoundRadius();
+                    float avatarRadius = roundRadius != null && roundRadius.length > 0 ? roundRadius[0] : (getSize() / 2f);
+                    float outlineRadius = avatarRadius + dp(4);
+                    rectTmp.set(imageReceiver.getCenterX() - rad, imageReceiver.getCenterY() - rad, imageReceiver.getCenterX() + rad, imageReceiver.getCenterY() + rad);
                     if (storiesTools == null) {
                         storiesTools = new StoriesGradientTools();
                     }
                     storiesTools.setBounds(0, 0, parent.getMeasuredHeight(), dp(40));
                     storiesTools.paint.setAlpha((int) (255 * alpha));
-                    canvas.drawCircle(imageReceiver.getCenterX(), imageReceiver.getCenterY(), rad, storiesTools.paint);
+                    canvas.drawRoundRect(rectTmp, outlineRadius, outlineRadius, storiesTools.paint);
                     if (needRestore) {
                         canvas.restore();
                     }
@@ -575,7 +580,12 @@ public class AvatarsDrawable {
                 float avatarScale = 1f;
                 if (a != states.length - 1 || drawStoriesCircle) {
                     if (currentStyle == 1 || currentStyle == 3 || currentStyle == 5) {
-                        canvas.drawCircle(imageReceiver.getCenterX(), imageReceiver.getCenterY(), dp(13), xRefP);
+                        float rad = dp(13);
+                        int[] roundRadius = imageReceiver.getRoundRadius();
+                        float avatarRadius = roundRadius != null && roundRadius.length > 0 ? roundRadius[0] : (getSize() / 2f);
+                        float badgeRadius = avatarRadius + (rad - getSize() / 2f);
+                        rectTmp.set(imageReceiver.getCenterX() - rad, imageReceiver.getCenterY() - rad, imageReceiver.getCenterX() + rad, imageReceiver.getCenterY() + rad);
+                        canvas.drawRoundRect(rectTmp, badgeRadius, badgeRadius, xRefP);
                         if (states[a].wavesDrawable == null) {
                             if (currentStyle == 5) {
                                 states[a].wavesDrawable = new GroupCallUserCell.AvatarWavesDrawable(dp(14), dp(16));
@@ -603,7 +613,12 @@ public class AvatarsDrawable {
                         }
                         avatarScale = states[a].wavesDrawable.getAvatarScale();
                     } else if (currentStyle == 4 || currentStyle == STYLE_GROUP_CALL_TOOLTIP) {
-                        canvas.drawCircle(imageReceiver.getCenterX(), imageReceiver.getCenterY(), dp(17), xRefP);
+                        float rad = dp(17);
+                        int[] roundRadius = imageReceiver.getRoundRadius();
+                        float avatarRadius = roundRadius != null && roundRadius.length > 0 ? roundRadius[0] : (getSize() / 2f);
+                        float badgeRadius = avatarRadius + (rad - getSize() / 2f);
+                        rectTmp.set(imageReceiver.getCenterX() - rad, imageReceiver.getCenterY() - rad, imageReceiver.getCenterX() + rad, imageReceiver.getCenterY() + rad);
+                        canvas.drawRoundRect(rectTmp, badgeRadius, badgeRadius, xRefP);
                         if (states[a].wavesDrawable == null) {
                             states[a].wavesDrawable = new GroupCallUserCell.AvatarWavesDrawable(dp(17), dp(21));
                         }
@@ -638,14 +653,18 @@ public class AvatarsDrawable {
                         avatarScale = states[a].wavesDrawable.getAvatarScale();
                     } else {
                         float rad = getSize() / 2f + strokeWidth;
+                        int[] roundRadius = imageReceiver.getRoundRadius();
+                        float avatarRadius = roundRadius != null && roundRadius.length > 0 ? roundRadius[0] : (getSize() / 2f);
+                        float badgeRadius = avatarRadius + strokeWidth;
+                        rectTmp.set(imageReceiver.getCenterX() - rad, imageReceiver.getCenterY() - rad, imageReceiver.getCenterX() + rad, imageReceiver.getCenterY() + rad);
                         if (useAlphaLayer) {
-                            canvas.drawCircle(imageReceiver.getCenterX(), imageReceiver.getCenterY(), rad, xRefP);
+                            canvas.drawRoundRect(rectTmp, badgeRadius, badgeRadius, xRefP);
                         } else {
                             int paintAlpha = paint.getAlpha();
                             if (alpha != 1f) {
                                 paint.setAlpha((int) (paintAlpha * alpha));
                             }
-                            canvas.drawCircle(imageReceiver.getCenterX(), imageReceiver.getCenterY(), rad, paint);
+                            canvas.drawRoundRect(rectTmp, badgeRadius, badgeRadius, paint);
                             if (alpha != 1f) {
                                 paint.setAlpha(paintAlpha);
                             }

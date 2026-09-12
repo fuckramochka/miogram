@@ -5,6 +5,7 @@ import org.telegram.messenger.ApplicationLoader
 import org.telegram.messenger.FileLog
 import tw.nekomimi.nekogram.NekoConfig
 import tw.nekomimi.nekogram.config.ConfigItem
+import xyz.nextalone.nagram.NaConfig
 
 /**
  * Настройки экрана «Chats», перенесённые из exteraGram.
@@ -148,13 +149,15 @@ object ChatsConfig {
 
     // ---- Сообщения ----
 
+    @JvmField
+    val wideChannelPosts = addConfig("OEChatsWideChannelPosts", ConfigItem.configTypeBool, false)
+
+    @JvmField
+    val wideFeedPosts = addConfig("OEChatsWideFeedPosts", ConfigItem.configTypeBool, false)
+
     /** Убрать «хвостик» пузыря (только UI). */
     @JvmField
     val removeMessageTail = addConfig("OEChatsRemoveMessageTail", ConfigItem.configTypeBool, true)
-
-    /** Заменять «edited» иконкой (только UI). */
-    @JvmField
-    val replaceEditedWithIcon = addConfig("OEChatsReplaceEditedWithIcon", ConfigItem.configTypeBool, true)
 
     /** Показывать результаты опроса до голосования (только UI). */
     @JvmField
@@ -241,6 +244,18 @@ object ChatsConfig {
     }
 
     @JvmStatic
+    fun wideChannelPosts(): Boolean {
+        ensureLoaded()
+        return wideChannelPosts.Bool()
+    }
+
+    @JvmStatic
+    fun wideFeedPosts(): Boolean {
+        ensureLoaded()
+        return wideFeedPosts.Bool()
+    }
+
+    @JvmStatic
     fun seekDurationSeconds(): Int {
         ensureLoaded()
         val index = doubleTapSeekDuration.Int()
@@ -294,6 +309,16 @@ object ChatsConfig {
                 }
             }
             configLoaded = true
+        }
+        migrateLegacyKeys()
+    }
+
+    private fun migrateLegacyKeys() {
+        val legacyHidden = getPreferences().getBoolean("DisableChannelMuteButton", false)
+        if (legacyHidden && bottomButton.Int() != BOTTOM_BUTTON_HIDE) {
+            bottomButton.setConfigInt(BOTTOM_BUTTON_HIDE)
+        } else if (!legacyHidden && bottomButton.Int() == BOTTOM_BUTTON_HIDE) {
+            NaConfig.disableChannelMuteButton.setConfigBool(true)
         }
     }
 

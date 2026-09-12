@@ -1183,7 +1183,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                 final WindowInsets insets = getRootWindowInsets();
                 if (insets != null) {
                     AndroidUtilities.rectTmp.set(translationX, 0, translationX + getWidth(), getHeight());
-                    if (newBackTransitions()) {
+                    if (newBackTransitions() && NaConfig.INSTANCE.getBackAnimationStyle().Int() != BACK_ANIMATION_SLIDE) {
                         final float scale;
                         if (predictiveBackInProgress) {
                             scale = lerp(1.00f, lerp(0.90f, 0.85f, 1.0f - containerView.getAlpha()), clamp01(translationX / dpf2(56)));
@@ -1813,7 +1813,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
         predictiveInput = true;
         predictiveBackLeft = touchX < AndroidUtilities.displaySize.x / 2f;
         predictiveBackY = touchY;
-        m3PredictiveBack = !isSheet;
+        m3PredictiveBack = !isSheet && NaConfig.INSTANCE.getBackAnimationStyle().Int() == BACK_ANIMATION_PREDICTIVE;
         if (m3PredictiveBack) {
             predictiveBackAnimation.start(
                     containerView.getMeasuredWidth(),
@@ -1844,6 +1844,13 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
         // Чувствительность применяется только к живому жесту; докат и откат зовут
         // applyPredictiveBackProgress напрямую, иначе множитель наложился бы дважды
         t = app.exteraless.utils.UtilsConfig.adjustPredictiveBackProgress(t);
+        if (NaConfig.INSTANCE.getBackAnimationStyle().Int() == BACK_ANIMATION_SLIDE) {
+            final float dx = dp(180) * CubicBezierInterpolator.StandardDecelerate.getInterpolation(t);
+            predictiveBackHasProgress = t > 0;
+            containerView.setTranslationX(dx);
+            setInnerTranslationX(dx);
+            return;
+        }
         if (m3PredictiveBack) {
             applyPredictiveBackProgress(t, touchY);
             return;
@@ -1916,7 +1923,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                 if (USE_ACTIONBAR_CROSSFADE) {
                     swipeProgress = progress;
                 }
-                if (!m3PredictiveBack) {
+                if (!m3PredictiveBack && !predictiveBackInProgress) {
                     if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())
                             || app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
                         containerView.setScaleX(1.0f);
@@ -2300,6 +2307,9 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                 }
             });
             currentSpringAnimation.addEndListener((animation, canceled, value, velocity) -> {
+                if (animation != currentSpringAnimation) {
+                    return;
+                }
                 springRouteBackgroundDrawable = null;
                 containerView.setScaleX(1f);
                 containerView.setScaleY(1f);
@@ -3115,6 +3125,13 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
         }
         if (delegate != null && !delegate.needCloseLastFragment(this) || checkTransitionAnimation() || fragmentsStack.isEmpty()) {
             return;
+        }
+        if (transitionAnimationPreviewMode && transitionAnimationInProgress) {
+            final boolean alreadyClosing = onCloseAnimationEndRunnable != null;
+            onAnimationEndCheck(true);
+            if (alreadyClosing) {
+                return;
+            }
         }
         if (parentActivity.getCurrentFocus() != null) {
             AndroidUtilities.hideKeyboard(parentActivity.getCurrentFocus());
@@ -4174,6 +4191,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
     // public static final int BACK_ANIMATION_CLASSIC = 0;
     public static final int BACK_ANIMATION_SPRING = 1;
     public static final int BACK_ANIMATION_PREDICTIVE = 2;
+    public static final int BACK_ANIMATION_SLIDE = 3;
     private static final boolean USE_SPRING_ANIMATION = NaConfig.INSTANCE.getBackAnimationStyle().Int() == BACK_ANIMATION_SPRING;
     private static final boolean USE_ACTIONBAR_CROSSFADE = USE_SPRING_ANIMATION && NaConfig.INSTANCE.getSpringAnimationCrossfade().Bool();
     private static final float SPRING_STIFFNESS = 900f;

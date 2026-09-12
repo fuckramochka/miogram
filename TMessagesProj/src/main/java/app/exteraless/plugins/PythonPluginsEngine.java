@@ -1,6 +1,7 @@
 package app.exteraless.plugins;
 
 import android.content.Context;
+import android.view.View;
 
 import com.chaquo.python.PyException;
 import com.chaquo.python.PyObject;
@@ -8,6 +9,9 @@ import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 
 import org.telegram.messenger.FileLog;
+import org.telegram.ui.Components.UItem;
+
+import app.exteraless.plugins.models.CustomSetting;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -109,13 +113,6 @@ public class PythonPluginsEngine extends com.exteragram.messenger.plugins.Python
                 }
                 loader = Python.getInstance().getModule("extera_utils.plugin_loader");
                 started = true;
-                // Гейт на Java-стоках. Ставится после старта интерпретатора и
-                // до загрузки плагинов: хуки должны стоять раньше их кода.
-                try {
-                    PluginSinkGate.install();
-                } catch (Throwable t) {
-                    FileLog.e("PluginsEngine: sink gate install failed", t);
-                }
                 // Dev-сервер (порт 42690) — только в developer mode; реализован в plugin_loader.
                 if (PluginsController.getInstance().isDeveloperMode()) {
                     try {
@@ -147,6 +144,17 @@ public class PythonPluginsEngine extends com.exteragram.messenger.plugins.Python
         } catch (Throwable t) {
             FileLog.e("PluginsEngine: capability scan failed", t);
             return null;
+        }
+    }
+
+    public void setUnsafeMode(boolean value) {
+        if (!started) {
+            return;
+        }
+        try {
+            loader.callAttr("set_unsafe_mode", value);
+        } catch (Throwable t) {
+            FileLog.e("PluginsEngine: cannot push unsafe mode", t);
         }
     }
 
@@ -215,6 +223,11 @@ public class PythonPluginsEngine extends com.exteragram.messenger.plugins.Python
     public String loadPlugin(Plugin plugin) {
         if (!started) {
             return "{\"ok\":false,\"error\":\"engine not started\"}";
+        }
+        try {
+            PluginSinkGate.install();
+        } catch (Throwable t) {
+            FileLog.e("PluginsEngine: sink gate install failed", t);
         }
         PluginsWatchdog watchdog = PluginsController.getInstance().getWatchdog();
         // Загрузка — единственный заход, который пишется в маркер сразу.
@@ -304,27 +317,27 @@ public class PythonPluginsEngine extends com.exteragram.messenger.plugins.Python
 
     public HookResult callSendMessageHook(String pluginId, int account, Object params) {
         PyObject result = callHook(pluginId, "call_send_message_hook", account, params);
-        return new HookResult(HookResult.Strategy.fromString(strategyOf(result)));
+        return resultOf(result);
     }
 
     public HookResult callPreRequestHook(String pluginId, int account, String requestName, Object request) {
         PyObject result = callHook(pluginId, "call_pre_request_hook", account, requestName, request);
-        return new HookResult(HookResult.Strategy.fromString(strategyOf(result)));
+        return resultOf(result);
     }
 
     public HookResult callPostRequestHook(String pluginId, int account, String requestName, Object response, Object error) {
         PyObject result = callHook(pluginId, "call_post_request_hook", account, requestName, response, error);
-        return new HookResult(HookResult.Strategy.fromString(strategyOf(result)));
+        return resultOf(result);
     }
 
     public HookResult callUpdateHook(String pluginId, int account, String updateName, Object update) {
         PyObject result = callHook(pluginId, "call_update_hook", account, updateName, update);
-        return new HookResult(HookResult.Strategy.fromString(strategyOf(result)));
+        return resultOf(result);
     }
 
     public HookResult callUpdatesHook(String pluginId, int account, String containerName, Object updates) {
         PyObject result = callHook(pluginId, "call_updates_hook", account, containerName, updates);
-        return new HookResult(HookResult.Strategy.fromString(strategyOf(result)));
+        return resultOf(result);
     }
 
     // ---------- экран настроек плагина ----------
@@ -346,15 +359,14 @@ public class PythonPluginsEngine extends com.exteragram.messenger.plugins.Python
         }
     }
 
-    /**
-     * Вьюха строки {@code {"type": "custom"}}: её собирает сам плагин на Python,
-     * Java получает готовый {@link android.view.View} через Chaquopy.
-     *
-     * @return null, если плагин ничего не вернул или вернул не вьюху — строка
-     *         тогда просто не рисуется, а экран остаётся живым.
-     */
     public android.view.View getSettingsCustomView(String pluginId, String viewId,
                                                    android.content.Context context) {
+        Object content = getSettingsCustomContent(pluginId, viewId, context);
+        return content instanceof android.view.View ? (android.view.View) content : null;
+    }
+
+    public Object getSettingsCustomContent(String pluginId, String viewId,
+                                           android.content.Context context) {
         if (!started) {
             return null;
         }
@@ -362,13 +374,53 @@ public class PythonPluginsEngine extends com.exteragram.messenger.plugins.Python
         watchdog.notePluginEnter(pluginId);
         try {
             PyObject result = loader.callAttr("get_custom_setting_view", pluginId, viewId, context);
-            return result == null ? null : result.toJava(android.view.View.class);
+            Object content = result == null ? null : result.toJava(Object.class);
+            if (content instanceof CustomSetting) {
+                CustomSetting setting = (CustomSetting) content;
+                CustomSetting.Factory<?> factory = setting.getFactory();
+                if (factory == null) {
+                    return setting.getItem();
+                }
+                UItem.UItemFactory.setup(factory);
+                UItem item = factory.create(PluginsController.getInstance().getPlugin(pluginId),
+                        setting, setting.getFactoryArgs());
+                if (item != null) {
+                    item.settingItem = setting;
+                }
+                return item;
+            }
+            return content;
         } catch (Throwable t) {
-            FileLog.e("PluginsEngine: getSettingsCustomView failed for " + pluginId, t);
+            FileLog.e("PluginsEngine: getSettingsCustomContent failed for " + pluginId, t);
             return null;
         } finally {
             watchdog.notePluginExit(pluginId);
         }
+    }
+
+    public boolean dispatchSettingsCustomClick(String pluginId, UItem item, View view, boolean longClick) {
+        if (!started || item == null || !(item.settingItem instanceof CustomSetting)) {
+            return false;
+        }
+        CustomSetting.Factory<?> factory = ((CustomSetting) item.settingItem).getFactory();
+        Plugin plugin = PluginsController.getInstance().getPlugin(pluginId);
+        if (factory == null || plugin == null) {
+            return false;
+        }
+        PluginsWatchdog watchdog = PluginsController.getInstance().getWatchdog();
+        watchdog.notePluginEnter(pluginId);
+        try {
+            if (longClick) {
+                factory.onLongClick(plugin, item, view);
+            } else {
+                factory.onClick(plugin, item, view);
+            }
+        } catch (Throwable t) {
+            FileLog.e("PluginsEngine: custom setting click failed for " + pluginId, t);
+        } finally {
+            watchdog.notePluginExit(pluginId);
+        }
+        return true;
     }
 
     public void notifySettingChanged(String pluginId, String key, String jsonValue) {
@@ -404,15 +456,23 @@ public class PythonPluginsEngine extends com.exteragram.messenger.plugins.Python
         }
     }
 
-    private static String strategyOf(PyObject result) {
+    private static HookResult resultOf(PyObject result) {
         if (result == null) {
-            return null;
+            return HookResult.DEFAULT;
         }
         try {
-            return result.toJava(String.class);
-        } catch (PyException e) {
-            return null;
+            PyObject strategyObject = result.get("strategy");
+            if (strategyObject != null) {
+                HookResult.Strategy strategy = HookResult.Strategy.fromString(strategyObject.toJava(String.class));
+                PyObject value = result.get("value");
+                return new HookResult(strategy, value == null ? null : value.toJava(Object.class));
+            }
+            HookResult.Strategy strategy = HookResult.Strategy.fromString(result.toJava(String.class));
+            return strategy == HookResult.Strategy.DEFAULT ? HookResult.DEFAULT : new HookResult(strategy);
+        } catch (ClassCastException | PyException e) {
+            FileLog.e("PluginsEngine: invalid hook strategy", e);
         }
+        return HookResult.DEFAULT;
     }
 
     private static String quote(String s) {

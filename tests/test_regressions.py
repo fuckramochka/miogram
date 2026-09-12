@@ -45,12 +45,12 @@ class FakeExteraConfig:
     calls = 0
 
     @classmethod
-    def pluginsSafeMode(cls):
+    def getPluginsSafeMode(cls):
         cls.calls += 1
         return False
 
     @classmethod
-    def iconPack(cls):
+    def getIconPack(cls):
         return "solar"
 
     @classmethod
@@ -111,11 +111,17 @@ def test_adapt_leaves_unlisted_classes_alone(aliases, fake_config):
     assert aliases.adapt(EXTERA_CONFIG, None) is None
 
 
+def _shape_pair(target):
+    if isinstance(target, (tuple, list)):
+        return target[0], (target[1] if len(target) > 1 else None)
+    return target, None
+
+
 def test_adapt_wraps_by_the_name_find_class_really_passes(aliases):
     for source, fields in aliases._FIELD_SHAPED.items():
         fake = type("FakeJavaClass", (), {
-            method: staticmethod(lambda: "read as a field")
-            for method in fields.values()})
+            _shape_pair(target)[0]: staticmethod(lambda: "read as a field")
+            for target in fields.values()})
         for name in (source, aliases.resolve(source)):
             wrapped = aliases.adapt(name, fake)
             assert aliases.unwrap(wrapped) is fake
@@ -128,20 +134,25 @@ def test_field_shaped_attributes_point_at_a_real_java_method(aliases):
     assert aliases._FIELD_SHAPED
     for source, fields in aliases._FIELD_SHAPED.items():
         target = aliases.resolve(source)
-        jtype = javaapi.type_of(target)
+        jtype = javaapi.any_type_of(target)
         assert jtype is not None, f"{source} resolves to a missing class {target}"
         assert fields
-        for attr, method in fields.items():
+        for attr, shape in fields.items():
+            method, setter = _shape_pair(shape)
             assert jtype.method_arities(method), \
                 f"{target}.{method}() is gone, so {source}.{attr} reads as nothing"
             assert 0 in jtype.method_arities(method), \
                 f"{target}.{method}() needs arguments, so it cannot read as a field"
+            if setter is None:
+                continue
+            assert 1 in jtype.method_arities(setter), \
+                f"{target}.{setter}() cannot take the value written to {source}.{attr}"
 
 
 def test_alias_targets_declare_what_plugins_call(aliases):
     for source, member in PLUGIN_ENTRY_POINTS:
         target = aliases.resolve(source)
-        jtype = javaapi.type_of(target)
+        jtype = javaapi.any_type_of(target)
         assert jtype is not None, f"{source} resolves to a missing class {target}"
         assert jtype.method_arities(member), \
             f"{source} resolves to {target}, which has no {member}()"

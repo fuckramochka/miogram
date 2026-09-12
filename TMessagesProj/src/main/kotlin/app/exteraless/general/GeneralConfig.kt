@@ -25,12 +25,6 @@ object GeneralConfig {
     @JvmStatic
     fun getPreferences(): SharedPreferences = NekoConfig.getPreferences()
 
-    /**
-     * «Download Speed Boost» — трёхпозиционный выбор (0: обычный, 1: быстрый,
-     * 2: максимальный). Применяется в FileLoadOperation.updateParams: уровень 2
-     * берёт куски по мегабайту и двенадцать параллельных запросов, уровень 1
-     * совпадает со штатным enhancedFileLoader.
-     */
     @JvmField
     val lastfmNick = addConfig("OEGeneralLastFmNick", ConfigItem.configTypeString, "")
 
@@ -40,6 +34,12 @@ object GeneralConfig {
     @JvmStatic
     fun lastfmNick(): String = lastfmNick.String() ?: ""
 
+    /**
+     * «Download Speed Boost» — трёхпозиционный выбор (0: обычный, 1: быстрый,
+     * 2: максимальный). Применяется в FileLoadOperation.updateParams: уровень 2
+     * берёт куски по мегабайту и двенадцать параллельных запросов, уровень 1 —
+     * по полмегабайта и восемь.
+     */
     @JvmField
     val downloadSpeedBoost = addConfig("OEGeneralDownloadSpeedBoost", ConfigItem.configTypeInt, 0)
 
@@ -96,6 +96,15 @@ object GeneralConfig {
         return showAyuMoments.Bool()
     }
 
+    @JvmField
+    val crashReports = addConfig("OEGeneralCrashReports", ConfigItem.configTypeBool, false)
+
+    @JvmStatic
+    fun crashReports(): Boolean {
+        loadConfig(false)
+        return crashReports.Bool()
+    }
+
     private fun addConfig(key: String, type: Int, defaultValue: Any?): ConfigItem {
         val item = ConfigItem(key, type, defaultValue)
         configs.add(item)
@@ -136,6 +145,16 @@ object GeneralConfig {
                 }
             }
             configLoaded = true
+        }
+        migrateLegacyKeys()
+    }
+
+    private fun migrateLegacyKeys() {
+        if (getPreferences().getBoolean("enhancedFileLoader", false)) {
+            NekoConfig.enhancedFileLoader.setConfigBool(false)
+            if (downloadSpeedBoost.Int() == 0) {
+                downloadSpeedBoost.setConfigInt(1)
+            }
         }
     }
 

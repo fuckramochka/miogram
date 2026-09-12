@@ -111,6 +111,9 @@ public final class PluginTrustLevel {
         if (PluginPermissions.UI.equals(perm)) {
             return true;
         }
+        if (PluginPermissions.isUnsafeMode()) {
+            return true;
+        }
         if (level == ISOLATED) {
             return false;
         }

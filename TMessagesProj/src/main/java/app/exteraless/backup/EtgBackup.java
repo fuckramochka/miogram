@@ -323,7 +323,7 @@ public final class EtgBackup {
         bool(list, "singleCornerRadius", AppearanceConfig.singleCornerRadius);
         bool(list, "hideActionBarStatus", AppearanceConfig.hideActionBarStatus);
         bool(list, "centerTitle", AppearanceConfig.centerTitle);
-        bool(list, "hideStories", NaConfig.INSTANCE.getDisableStories());
+        bool(list, "hideStories", NaConfig.INSTANCE.getHideStoriesFromHeader());
         bool(list, "hideFloatingButton", NaConfig.INSTANCE.getDisableDialogsFloatingButton());
         bool(list, "hideDialogsSearchBar", NaConfig.INSTANCE.getHideDialogsSearchField());
         bool(list, "senderMiniAvatars", AppearanceConfig.senderMiniAvatars);
@@ -333,6 +333,8 @@ public final class EtgBackup {
         bool(list, "newLoadingStyle", AppearanceConfig.newLoadingStyle);
         bool(list, "newChatHeaderStyle", AppearanceConfig.newChatHeaderStyle);
         bool(list, "newNavigationBarStyle", AppearanceConfig.newNavigationBarStyle);
+        bool(list, "iosNavigationBarStyle", AppearanceConfig.iosNavigationBarStyle);
+        bool(list, "iosFirstFolderOnTabTap", AppearanceConfig.iosFirstFolderOnTabTap);
         bool(list, "useSystemFonts", NekoConfig.typeface);
         bool(list, "gooeyAvatarAnimation", AppearanceConfig.gooeyAvatarAnimation);
         bool(list, "customThemes", AppearanceConfig.customThemes);
@@ -355,6 +357,8 @@ public final class EtgBackup {
         bool(list, "replaceEditedWithIcon", NaConfig.INSTANCE.getUseEditedIcon());
         bool(list, "showOnlineStatus", NaConfig.INSTANCE.getShowOnlineStatus());
         bool(list, "hideShareButton", NaConfig.INSTANCE.getHideShareButtonInChannel());
+        bool(list, "wideChannelPosts", ChatsConfig.wideChannelPosts);
+        bool(list, "wideFeedPosts", ChatsConfig.wideFeedPosts);
         bool(list, "showResultsBeforeVoting", ChatsConfig.showResultsBeforeVoting);
         bool(list, "showCopyPhotoButton", NaConfig.INSTANCE.getShowCopyPhoto());
         bool(list, "showSaveMessageButton", NekoConfig.showAddToSavedMessages);
@@ -381,10 +385,17 @@ public final class EtgBackup {
         bool(list, "useSystemIconShape", IconPacksConfig.useSystemIconShape);
         bool(list, "infiniteScrolling", PillStackConfig.infiniteScrolling);
 
+        bool(list, "useGoogleCrashlytics", GeneralConfig.crashReports);
+
         // Инверсия: у exteraGram тумблер «включено», у NagramX — «выключено».
         boolInverted(list, "inAppVibration", NekoConfig.disableVibration);
-        boolInverted(list, "tabCounter", NaConfig.INSTANCE.getIgnoreUnreadCount());
-        boolInverted(list, "useGoogleCrashlytics", NaConfig.INSTANCE.getDisableCrashlyticsCollection());
+
+        list.add(new Entry(SECTION_EXTERA, "tabCounter", KIND_BOOL, 0, 0, null,
+                () -> new JsonPrimitive(NaConfig.INSTANCE.getIgnoreUnreadCount().Int()
+                        != NekoConfig.DIALOG_FILTER_EXCLUDE_ALL),
+                value -> NaConfig.INSTANCE.getIgnoreUnreadCount().setConfigInt(value.getAsBoolean()
+                        ? NekoConfig.DIALOG_FILTER_EXCLUDE_NONE
+                        : NekoConfig.DIALOG_FILTER_EXCLUDE_ALL)));
 
         integer(list, "titleText", AppearanceConfig.titleText, 0, 3);
         integer(list, "downloadSpeedBoost", GeneralConfig.downloadSpeedBoost, 0, 2);
@@ -422,6 +433,9 @@ public final class EtgBackup {
         text(list, SECTION_EXTERA, "gramTargetCurrency", PillStackConfig.gramTargetCurrency, EtgBackup::isCurrency);
         text(list, SECTION_EXTERA, "btcTargetCurrency", PillStackConfig.btcTargetCurrency, EtgBackup::isCurrency);
         text(list, SECTION_EXTERA, "usdTargetCurrency", PillStackConfig.usdTargetCurrency, EtgBackup::isCurrency);
+        text(list, SECTION_EXTERA, "ethTargetCurrency", PillStackConfig.ethTargetCurrency, EtgBackup::isCurrency);
+        text(list, SECTION_EXTERA, "eurTargetCurrency", PillStackConfig.eurTargetCurrency, EtgBackup::isCurrency);
+        text(list, SECTION_EXTERA, "goldTargetCurrency", PillStackConfig.goldTargetCurrency, EtgBackup::isCurrency);
         text(list, SECTION_PILLS, "activePills", PillStackConfig.activePillsRaw, EtgBackup::isPillsLayout);
         text(list, SECTION_PILLS, "hiddenPills", PillStackConfig.hiddenPillsRaw, EtgBackup::isPillsLayout);
 
@@ -449,8 +463,8 @@ public final class EtgBackup {
     private static void addCompositeEntries(List<Entry> list) {
         // showIdAndDc: 0 скрыть, 1 Telegram API, 2 Bot API. У нас только тумблер.
         list.add(new Entry(SECTION_EXTERA, "showIdAndDc", KIND_INT, 0, 2, null,
-                () -> new JsonPrimitive(NekoConfig.showIdAndDc.Bool() ? 1 : 0),
-                value -> NekoConfig.showIdAndDc.setConfigBool(value.getAsInt() != 0)));
+                () -> new JsonPrimitive(NaConfig.INSTANCE.getIdDcType().Int()),
+                value -> NaConfig.INSTANCE.getIdDcType().setConfigInt(value.getAsInt())));
 
         // springAnimations у нас стало стилем анимации «назад»: 1 — пружина.
         list.add(new Entry(SECTION_EXTERA, "springAnimations", KIND_BOOL, 0, 0, null,
@@ -492,14 +506,9 @@ public final class EtgBackup {
 
         // Безлимит недавних стикеров — один тумблер поверх двух ключей NagramX.
         list.add(new Entry(SECTION_EXTERA, "unlimitedRecentStickers", KIND_BOOL, 0, 0, null,
-                () -> new JsonPrimitive(NekoConfig.maxRecentStickerCount.Int() > RECENT_STICKERS_DEFAULT
-                        || NekoConfig.unlimitedFavedStickers.Bool()),
-                value -> {
-                    boolean enabled = value.getAsBoolean();
-                    NekoConfig.maxRecentStickerCount.setConfigInt(
-                            enabled ? RECENT_STICKERS_MAX : RECENT_STICKERS_DEFAULT);
-                    NekoConfig.unlimitedFavedStickers.setConfigBool(enabled);
-                }));
+                () -> new JsonPrimitive(NekoConfig.maxRecentStickerCount.Int() > RECENT_STICKERS_DEFAULT),
+                value -> NekoConfig.maxRecentStickerCount.setConfigInt(
+                        value.getAsBoolean() ? RECENT_STICKERS_MAX : RECENT_STICKERS_DEFAULT)));
 
         // Быстрые действия администратора — поверх пяти пунктов меню чата и пункта меню сообщения.
         list.add(new Entry(SECTION_EXTERA, "quickAdminShortcuts", KIND_BOOL, 0, 0, null,

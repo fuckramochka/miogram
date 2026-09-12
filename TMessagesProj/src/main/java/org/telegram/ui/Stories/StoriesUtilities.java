@@ -677,18 +677,27 @@ public class StoriesUtilities {
      * Радиус кольца сторис. exteraGram рисует кольцо по форме аватарки, а не всегда кругом
      * (StoriesUtilities.java:805-819). Форумы с дефолтным слайдером сохраняют прежний dp(18).
      */
-    private static float storyRingCorners(float size, boolean isForum) {
+    private static float storyRingCorners(RectF outlineRect, AvatarStoryParams params, boolean isForum) {
         if (isForum && app.exteraless.appearance.AppearanceConfig.avatarCornersDefault()) {
             return dp(18);
         }
-        return app.exteraless.appearance.AppearanceConfig.getAvatarCorners(size);
+        float avatarWidth = params != null && params.originalAvatarRect != null && params.originalAvatarRect.width() > 0
+                ? params.originalAvatarRect.width()
+                : outlineRect.width() - dp(8);
+        float avatarRadius = app.exteraless.appearance.AppearanceConfig.getAvatarCorners(
+                avatarWidth,
+                isForum ? app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_FORUM : app.exteraless.appearance.AppearanceConfig.CORNER_TYPE_DEFAULT,
+                false
+        );
+        float gap = (outlineRect.width() - avatarWidth) / 2f;
+        return avatarRadius + gap;
     }
 
     private static void drawCircleInternal(Canvas canvas, View view, AvatarStoryParams params, Paint paint, boolean isForum) {
         if (isForum || !app.exteraless.appearance.AppearanceConfig.avatarCornersDefault()) {
             forumRect.set(rectTmp);
             forumRect.inset(dp(0.5f), dp(0.5f));
-            final float r = storyRingCorners(forumRect.width(), isForum);
+            final float r = storyRingCorners(forumRect, params, isForum);
             canvas.drawRoundRect(forumRect, r, r, paint);
             return;
         }
@@ -709,7 +718,7 @@ public class StoriesUtilities {
             // Сегментированное кольцо тоже идёт по форме аватарки.
             float r = isForum && app.exteraless.appearance.AppearanceConfig.avatarCornersDefault()
                     ? rectTmp.height() * 0.32f
-                    : storyRingCorners(rectTmp.height(), isForum);
+                    : storyRingCorners(rectTmp, params, isForum);
             float rotateAngle = (((int)(startAngle)) / 90) * 90 + 90;
             float pathAngleStart = -199 + rotateAngle;
             float percentFrom = (startAngle - pathAngleStart) / 360;

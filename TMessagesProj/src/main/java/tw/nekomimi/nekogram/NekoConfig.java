@@ -95,15 +95,15 @@ public class NekoConfig {
     public static ConfigItem forceFontWeightFallback = addConfig("forceFontWeightFallback", configTypeBool, false);
     public static ConfigItem nameOrder = addConfig("NameOrder", configTypeInt, 1);
     public static ConfigItem mapPreviewProvider = addConfig("MapPreviewProvider", configTypeInt, 0);
-    public static ConfigItem showAddToSavedMessages = addConfig("showAddToSavedMessages", configTypeBool, true);
+    public static ConfigItem showAddToSavedMessages = addConfig("showAddToSavedMessages", configTypeBool, false);
     public static ConfigItem showReport = addConfig("showReport", configTypeBool, false);
-    public static ConfigItem showViewHistory = addConfig("showViewHistory", configTypeBool, true);
-    public static ConfigItem showAdminActions = addConfig("showAdminActions", configTypeBool, true);
-    public static ConfigItem showChangePermissions = addConfig("showChangePermissions", configTypeBool, true);
+    public static ConfigItem showViewHistory = addConfig("showViewHistory", configTypeBool, false);
+    public static ConfigItem showAdminActions = addConfig("showAdminActions", configTypeBool, false);
+    public static ConfigItem showChangePermissions = addConfig("showChangePermissions", configTypeBool, false);
     public static ConfigItem showDeleteDownloadedFile = addConfig("showDeleteDownloadedFile", configTypeBool, true);
-    public static ConfigItem showMessageDetails = addConfig("showMessageDetails", configTypeBool, true);
-    public static ConfigItem showTranslate = addConfig("showTranslate", configTypeBool, true);
-    public static ConfigItem showRepeat = addConfig("showRepeat", configTypeBool, true);
+    public static ConfigItem showMessageDetails = addConfig("showMessageDetails", configTypeBool, false);
+    public static ConfigItem showTranslate = addConfig("showTranslate", configTypeBool, false);
+    public static ConfigItem showRepeat = addConfig("showRepeat", configTypeBool, false);
     public static ConfigItem showShareMessages = addConfig("showShareMessages", configTypeBool, false);
     public static ConfigItem showMessageHide = addConfig("showMessageHide", configTypeBool, false);
 
@@ -156,7 +156,7 @@ public class NekoConfig {
     public static ConfigItem disableProximityEvents = addConfig("DisableProximityEvents", configTypeBool, false);
 
     public static ConfigItem ignoreContentRestrictions = addConfig("ignoreContentRestrictions", configTypeBool, true);
-    public static ConfigItem useChatAttachMediaMenu = addConfig("UseChatAttachEnterMenu", configTypeBool, true);
+    public static ConfigItem useChatAttachMediaMenu = addConfig("UseChatAttachEnterMenu", configTypeBool, false);
     public static ConfigItem disableLinkPreviewByDefault = addConfig("DisableLinkPreviewByDefault", configTypeBool, false);
     public static ConfigItem sendCommentAfterForward = addConfig("SendCommentAfterForward", configTypeBool, true);
     public static ConfigItem disableTrending = addConfig("DisableTrending", configTypeBool, true);
@@ -228,6 +228,7 @@ public class NekoConfig {
             if (ApplicationLoader.applicationContext == null) {
                 return;
             }
+            app.exteraless.config.LegacyDefaults.pin(getPreferences());
             for (int i = 0; i < configs.size(); i++) {
                 ConfigItem o = configs.get(i);
 

@@ -131,6 +131,36 @@ public final class ClassProxyFactory {
         }
     }
 
+    public static boolean needsHooks(String specJson) {
+        try {
+            JSONObject spec = new JSONObject(specJson);
+            ClassLoader loader = sharedGeneratedClassLoader != null
+                    ? sharedGeneratedClassLoader : appClassLoader();
+            return needsHooks(resolveTypeName(optString(spec, "superclass", "java.lang.Object"), loader));
+        } catch (Throwable t) {
+            return true;
+        }
+    }
+
+    public static boolean classNeedsHooks(String classKey) {
+        ClassRecord rec = CLASSES.get(classKey);
+        return rec == null || needsHooks(rec.clazz.getSuperclass());
+    }
+
+    private static boolean needsHooks(Class<?> superclass) {
+        if (superclass == null || superclass == Object.class) {
+            return false;
+        }
+        String name = superclass.getName();
+        if (name.startsWith("android.") || name.startsWith("androidx.")) {
+            return false;
+        }
+        if (android.view.View.class.isAssignableFrom(superclass)) {
+            return false;
+        }
+        return !org.telegram.ui.Components.UItem.UItemFactory.class.isAssignableFrom(superclass);
+    }
+
     public static Object newProxyInstance(String pluginId, String classKey, String ctorSig,
                                           Object[] args, PyObject peer) {
         ClassRecord rec = CLASSES.get(classKey);

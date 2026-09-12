@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
@@ -118,13 +119,57 @@ public class AyuFilter {
             }
         }
         CharSequence buttonsText = getInlineKeyboardText(selectedObject.messageOwner);
-        if (TextUtils.isEmpty(messageText)) {
-            return buttonsText;
+        CharSequence linkUrls = getLinkUrls(selectedObject, selectedObjectGroup);
+        StringBuilder result = new StringBuilder();
+        appendPart(result, messageText);
+        appendPart(result, buttonsText);
+        appendPart(result, linkUrls);
+        return result.length() == 0 ? null : result;
+    }
+
+    private static void appendPart(StringBuilder builder, CharSequence part) {
+        if (TextUtils.isEmpty(part)) {
+            return;
         }
-        if (TextUtils.isEmpty(buttonsText)) {
-            return messageText;
+        if (builder.length() > 0) {
+            builder.append('\n');
         }
-        return new StringBuilder(messageText).append('\n').append(buttonsText);
+        builder.append(part);
+    }
+
+    private static CharSequence getLinkUrls(MessageObject selectedObject,
+                                            MessageObject.GroupedMessages selectedObjectGroup) {
+        LinkedHashSet<String> urls = new LinkedHashSet<>();
+        if (selectedObjectGroup != null && selectedObjectGroup.messages != null) {
+            for (MessageObject grouped : selectedObjectGroup.messages) {
+                collectLinkUrls(grouped, urls);
+            }
+        }
+        collectLinkUrls(selectedObject, urls);
+        return urls.isEmpty() ? null : TextUtils.join("\n", urls);
+    }
+
+    private static void collectLinkUrls(MessageObject messageObject, LinkedHashSet<String> out) {
+        if (messageObject == null || messageObject.messageOwner == null) {
+            return;
+        }
+        if (messageObject.messageOwner.entities != null) {
+            for (TLRPC.MessageEntity entity : messageObject.messageOwner.entities) {
+                if (entity instanceof TLRPC.TL_messageEntityTextUrl) {
+                    String url = ((TLRPC.TL_messageEntityTextUrl) entity).url;
+                    if (!TextUtils.isEmpty(url)) {
+                        out.add(url);
+                    }
+                }
+            }
+        }
+        TLRPC.MessageMedia media = MessageObject.getMedia(messageObject.messageOwner);
+        if (media instanceof TLRPC.TL_messageMediaWebPage) {
+            TLRPC.WebPage webPage = ((TLRPC.TL_messageMediaWebPage) media).webpage;
+            if (webPage != null && !TextUtils.isEmpty(webPage.url)) {
+                out.add(webPage.url);
+            }
+        }
     }
 
     private static CharSequence getInlineKeyboardText(TLRPC.Message message) {

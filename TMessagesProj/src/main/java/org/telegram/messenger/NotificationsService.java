@@ -26,40 +26,53 @@ import xyz.nextalone.nagram.NaConfig;
 
 public class NotificationsService extends Service {
 
+    private static final String CHANNEL_ID = "push_service_channel";
+    private static final String CHANNEL_ID_QUIET = "push_service_channel_min";
+
     @Override
     public void onCreate() {
         super.onCreate();
         ApplicationLoader.postInitApplication();
-        if (NaConfig.INSTANCE.getPushServiceTypeInAppDialog().Bool()) {
-            String CHANNEL_ID = "push_service_channel";
-            NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, LocaleController.getString(R.string.NagramXPushService), NotificationManager.IMPORTANCE_DEFAULT);
-            notificationManager.createNotificationChannel(channel);
-//            Intent explainIntent = new Intent("android.intent.action.VIEW");
-//            explainIntent.setData(Uri.parse("https://github.com/Telegram-FOSS-Team/Telegram-FOSS/blob/master/Notifications.md"));
-//            PendingIntent explainPendingIntent = PendingIntent.getActivity(this, 0, explainIntent, 0);
-            Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-//                    .setContentIntent(explainPendingIntent)
-                    .setShowWhen(false)
-                    .setOngoing(true)
-                    .setSmallIcon(R.drawable.exteraless_notification)
-                    .setContentText(LocaleController.getString(R.string.NagramXPushService))
-                    .build();
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    startForeground(9999, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING);
-                } else {
-                    startForeground(9999, notification);
-                }
-            } catch (Throwable e) {
-                Log.e("TFOSS", "Failed to start push service");
+        goForeground();
+    }
+
+    private void goForeground() {
+        final boolean visible = NaConfig.INSTANCE.getPushServiceTypeInAppDialog().Bool();
+        final String channelId = visible ? CHANNEL_ID : CHANNEL_ID_QUIET;
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationChannel channel = new NotificationChannel(channelId,
+                LocaleController.getString(R.string.NagramXPushService),
+                visible ? NotificationManager.IMPORTANCE_DEFAULT : NotificationManager.IMPORTANCE_MIN);
+        channel.setShowBadge(false);
+        notificationManager.createNotificationChannel(channel);
+        Notification notification = new NotificationCompat.Builder(this, channelId)
+                .setShowWhen(false)
+                .setOngoing(true)
+                .setPriority(visible ? NotificationCompat.PRIORITY_DEFAULT : NotificationCompat.PRIORITY_MIN)
+                .setSmallIcon(R.drawable.exteraless_notification)
+                .setContentText(LocaleController.getString(R.string.NagramXPushService))
+                .build();
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(9999, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING);
+            } else {
+                startForeground(9999, notification);
             }
+        } catch (Throwable e) {
+            Log.e("TFOSS", "Failed to start push service");
         }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        goForeground();
         return START_STICKY;
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+        requestRestart();
     }
 
     @Override
@@ -73,7 +86,14 @@ public class NotificationsService extends Service {
             stopForeground(true);
         } catch (Throwable ignore) {
         }
-        SharedPreferences preferences = MessagesController.getGlobalNotificationsSettings();
+        requestRestart();
+    }
+
+    private void requestRestart() {
+        SharedPreferences preferences = MessagesController.getNotificationsSettings(UserConfig.selectedAccount);
+        if (!preferences.contains("pushService")) {
+            preferences = MessagesController.getGlobalNotificationsSettings();
+        }
         if (preferences.getBoolean("pushService", true)) {
             Intent intent = new Intent("org.telegram.start");
             intent.setPackage(getPackageName());

@@ -4,6 +4,13 @@
     <string name="OpenExteraPlugins">Plugins</string>
     <string name="PluginsSafeMode">Safe mode</string>
     <string name="PluginsSafeModeSummary">When safe mode is on, no plugins are loaded. Use it if a plugin breaks the app.</string>
+    <string name="PluginsUnsafeMode">Unsafe mode</string>
+    <string name="PluginsUnsafeModeInfo">Plugins run with no restrictions</string>
+    <string name="PluginsUnsafeModeSummary">Permissions are not asked for and not enforced. Every plugin gets messages, files, network, hooks and native code, whatever its level says. Turn this on only for plugins you wrote or fully trust.</string>
+    <string name="PluginsUnsafeModeConfirm">This removes every check between plugins and your data. A plugin will be able to read your chats, send messages as you, take your files and run native code with no restrictions whatsoever.\n\nTurn it on only if you understand what you are installing.</string>
+    <string name="PluginsUnsafeModeEnable">Turn on anyway</string>
+    <string name="PluginsUnsafeModeOn">Unsafe mode is on</string>
+    <string name="PluginsUnsafeModeActive">These switches decide nothing while unsafe mode is on: the plugin already has everything. Turn unsafe mode off in the plugin settings to get them back.</string>
     <string name="PluginsDeveloperMode">Developer mode</string>
     <string name="PluginsInstallFromFile">Install from file</string>
     <string name="PluginsInstalling">Installing plugin…</string>
@@ -53,6 +60,7 @@
     <string name="PluginPermissionsNothing">Nothing beyond its own menus and settings screen.</string>
     <string name="PluginPermissionsUnenforcedInfo">Also declared: %1$s — the app cannot enforce that yet.</string>
     <string name="PluginPermissionsHooksWarning">Hooks and native libraries override the switches above. Grant them only to authors you trust.</string>
+    <string name="PluginPermissionsEnableFirst">Turn the plugin on so the permission takes effect.</string>
     <string name="PluginPermissionsApplied">Plugin restarted, the change is in effect.</string>
     <string name="PluginPermissionsGone">This plugin is no longer installed.</string>
 
@@ -144,4 +152,23 @@
     <string name="PluginsShare">Share</string>
     <string name="PluginsPinned">Pinned</string>
     <string name="PluginsUnpinned">Unpinned</string>
+    <string name="PluginSlowingDownTitle">Plugin is slowing down the interface</string>
+    <string name="PluginSlowingDownMessage">%1$s is holding the main thread for about %2$d ms every second. The app stops responding to taps because of it. Disable the plugin and restart?</string>
+    <string name="PluginsViewSource">View the source</string>
+    <string name="PluginsAiReview">AI review</string>
+    <string name="PluginsAiReviewRole">You review third-party plugin code for a Telegram client. Keep the answer in this shape. First line: the verdict in one word — SAFE, SUSPICIOUS or DANGEROUS — and one sentence saying why. Then the findings, one per item: a single short line each — what the code does and where. Right after each finding put the long part inside &lt;details&gt;&lt;summary&gt;short title&lt;/summary&gt; the explanation, the quoted line and the reasoning &lt;/details&gt;. Keep everything outside those tags short enough to read at a glance. If there are no findings, say so in a single line. Do not retell the code, do not give general advice, do not invent what is not in the source.</string>
+    <string name="PluginsAiReviewPrompt">Review this Telegram client plugin for anything that could harm the user: hidden data collection, sending messages or files to third parties, credential theft, code downloaded at runtime.
+
+Write the answer in %2$s.
+
+Plugin: %1$s
+
+Source:
+```python
+%3$s
+```</string>
+    <string name="PluginWatchdogMute">Don\'t remind</string>
+    <string name="PluginWatchdogMuted">%1$s will no longer warn about slowdowns. You can bring the warnings back in the plugin settings.</string>
+    <string name="PluginWatchdogWarnings">Slowdown warnings</string>
+    <string name="PluginWatchdogWarningsInfo">Warn when this plugin holds the main thread for too long or stops responding.</string>
 </resources>

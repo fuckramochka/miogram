@@ -21,6 +21,7 @@
     <string name="OEAppearanceTitleTextName">Nombre</string>
     <string name="OEAppearanceChatListInfo">Cuando las carpetas usan «Solo iconos», el título principal muestra el nombre de la carpeta.</string>
     <string name="OEAppearanceFolders">Carpetas</string>
+    <string name="OEAppearanceInterface">Interfaz</string>
     <string name="OEAppearanceTabTitleStyle">Título de la carpeta</string>
     <string name="OEAppearanceTabTitleStyleTextOnly">Solo nombres</string>
     <string name="OEAppearanceTabTitleStyleIconsOnly">Solo iconos</string>
@@ -38,6 +39,7 @@
     <string name="OEAppearanceForceBlur">Forzar el desenfoque</string>
     <string name="OEAppearanceDisableAvatarBlur">Desactivar el desenfoque de los avatares</string>
     <string name="OEAppearanceBlurInfo">Los efectos de desenfoque se aplicarán a todos los temas y anularán sus ajustes predeterminados.</string>
+    <string name="OEAppearanceRestartNow">Reiniciar</string>
     <string name="OEAppearanceNeedRestart">Reinicia la app para aplicar este ajuste.</string>
     <string name="OEAppearanceGooeyAvatar">Animación «gelatinosa» del avatar</string>
     <string name="OEAppearanceCustomThemes">Temas propios en los chats</string>
@@ -76,6 +78,7 @@
     <string name="OEBackAnimationClassic">Clásica</string>
     <string name="OEBackAnimationSpring">Elástica</string>
     <string name="OEBackAnimationPredictive">Retroceso predictivo</string>
+    <string name="OEBackAnimationSlide">Deslizar</string>
     <string name="OEBackAnimationInfo">Activa animaciones más suaves al cambiar de pantalla y al abrir el menú lateral.</string>
     <string name="OEPredictiveBackIntensity">Intensidad del gesto</string>
     <string name="OEPredictiveBackOff">Desactivada</string>
@@ -90,9 +93,11 @@
     <string name="OEMainMenuAddDivider">Añadir separador</string>
     <string name="OEMainMenuDivider">Separador</string>
     <string name="OEMainMenuRemoveSettingsInfo">No se pueden ocultar los Ajustes mientras la barra de navegación inferior está desactivada.</string>
-    <string name="OEAppearanceNewLoadingStyle">Estilo de carga</string>
+    <string name="OEAppearanceNewLoadingStyle">Cargadores MD3</string>
     <string name="OEAppearanceNewChatHeaderStyle">Encabezado del chat</string>
     <string name="OEAppearanceNewNavigationBarStyle">Barra de navegación inferior</string>
+    <string name="OEAppearanceIosNavigationBarStyle">Barra de navegación inferior</string>
+    <string name="OEAppearanceIosFirstFolderOnTabTap">Tocar la pestaña abre la primera carpeta</string>
     <string name="OEAppearanceHideAi">Ocultar la IA</string>
     <string name="OEAppearanceHideAiEditor">Botón del editor con IA</string>
     <string name="OEAppearanceHideAiSummary">Botón de resumen del mensaje</string>
@@ -100,4 +105,7 @@
     <string name="MonetStyleHeader">Paleta Monet</string>
     <string name="MonetStyleTelemone">Telemone</string>
     <string name="MonetStyleClassic">Clásica</string>
+    <string name="OEAppearanceTabCounterAll">Todos los chats</string>
+    <string name="OEAppearanceTabCounterUnmuted">Excepto silenciados</string>
+    <string name="OEAppearanceTabCounterOff">Desactivado</string>
 </resources>

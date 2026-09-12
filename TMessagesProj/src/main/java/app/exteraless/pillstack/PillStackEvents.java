@@ -37,6 +37,8 @@ public class PillStackEvents {
 
     public static void notifyLayoutChanged() {
         AndroidUtilities.runOnUIThread(() -> {
+            org.telegram.messenger.NotificationCenter.getGlobalInstance().postNotificationName(
+                    org.telegram.messenger.NotificationCenter.pillStackLayoutChanged);
             for (Listener listener : new ArrayList<>(listeners)) {
                 listener.onPillStackLayoutChanged();
             }

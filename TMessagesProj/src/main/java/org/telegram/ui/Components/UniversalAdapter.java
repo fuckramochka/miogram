@@ -1082,11 +1082,13 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                 switchCell.id = item.id;
                 switchCell.setIcon(item.locked ? R.drawable.permission_locked : 0);
                 if (viewType == VIEW_TYPE_EXPANDABLE_SWITCH) {
-                    if (TextUtils.isEmpty(item.animatedText)) {
+                    final View.OnClickListener onSwitchClick = item.exteraExpandableSwitch
+                        ? item.switchClickCallback : item.clickCallback;
+                    if (TextUtils.isEmpty(item.animatedText) || onSwitchClick == null) {
                         switchCell.hideCollapseArrow();
                     } else {
                         switchCell.setCollapseArrow(item.animatedText.toString(), item.collapsed, () -> {
-                            item.clickCallback.onClick(switchCell);
+                            onSwitchClick.onClick(switchCell);
                         });
                     }
                 }
