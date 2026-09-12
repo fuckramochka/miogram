@@ -41,6 +41,14 @@ public class MiogramPlayerBackdropPicker extends BaseFragment {
 
     private static final int REQ_PICK = 1407;
 
+    public MiogramPlayerBackdropPicker() {
+        super();
+    }
+
+    public MiogramPlayerBackdropPicker(Bundle args) {
+        super(args);
+    }
+
     private String mode = "photo";
     private ImageView previewImage;
     private android.widget.VideoView previewVideo;
@@ -72,8 +80,11 @@ public class MiogramPlayerBackdropPicker extends BaseFragment {
                 mode.equals("video") ? "Фон-відео" : "Фон-фото",
                 mode.equals("video") ? "Фон-видео" : "Фон-фото",
                 mode.equals("video") ? "Background video" : "Background photo"));
-        actionBar.setActionBarMenuOnItemClick(id -> {
-            if (id == -1) finishFragment();
+        actionBar.setActionBarMenuOnItemClick(new org.telegram.ui.ActionBar.ActionBar.ActionBarMenuOnItemClick() {
+            @Override
+            public void onItemClick(int id) {
+                if (id == -1) finishFragment();
+            }
         });
 
         FrameLayout root = new FrameLayout(context);
@@ -256,7 +267,7 @@ public class MiogramPlayerBackdropPicker extends BaseFragment {
             Uri uri = data.getData();
             try {
                 Context ctx = getParentActivity();
-                if (ctx == null) ctx = AndroidUtilities.applicationContext;
+                if (ctx == null) ctx = org.telegram.messenger.ApplicationLoader.applicationContext;
                 try {
                     ctx.getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 } catch (Throwable ignore) {}

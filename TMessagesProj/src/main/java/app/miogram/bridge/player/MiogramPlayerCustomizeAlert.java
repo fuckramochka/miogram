@@ -586,8 +586,7 @@ public class MiogramPlayerCustomizeAlert extends BottomSheet {
             if (frag != null) {
                 android.os.Bundle args = new android.os.Bundle();
                 args.putString(MiogramPlayerBackdropPicker.ARG_MODE, isVideo ? "video" : "photo");
-                MiogramPlayerBackdropPicker picker = new MiogramPlayerBackdropPicker();
-                picker.setArguments(args);
+                MiogramPlayerBackdropPicker picker = new MiogramPlayerBackdropPicker(args);
                 // Close sheet so user returns straight to player with live result (no stale buttons).
                 try {
                     dismiss();

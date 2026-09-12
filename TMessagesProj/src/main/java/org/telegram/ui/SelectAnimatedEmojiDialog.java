@@ -2625,7 +2625,7 @@ public class SelectAnimatedEmojiDialog extends FrameLayout implements Notificati
                     }
                     boolean lock = false;
                     if (type != TYPE_SET_REPLY_ICON && type != TYPE_SET_REPLY_ICON_BOTTOM && type != TYPE_CHAT_REACTIONS) {
-                        lock = !pack.free && !UserConfig.getInstance(currentAccount).isPremium() && type != TYPE_DEFAULT && type != TYPE_KEYBOARD;
+                        lock = !pack.free && !UserConfig.getInstance(currentAccount).isPremium();
                     }
                     header.setText(pack.set.title, lock);
                 } else {
@@ -2741,8 +2741,8 @@ public class SelectAnimatedEmojiDialog extends FrameLayout implements Notificati
                 if (packIndex >= 0 && packIndex < packs.size()) {
                     EmojiView.EmojiPack pack = packs.get(packIndex);
                     if (pack != null) {
-                        button.set(pack.set.title, !pack.free && !UserConfig.getInstance(currentAccount).isPremium() && type != TYPE_DEFAULT && type != TYPE_KEYBOARD, pack.installed, e -> {
-                            if (!pack.free && !UserConfig.getInstance(currentAccount).isPremium() && type != TYPE_DEFAULT && type != TYPE_KEYBOARD) {
+                        button.set(pack.set.title, !pack.free && !UserConfig.getInstance(currentAccount).isPremium(), pack.installed, e -> {
+                            if (!pack.free && !UserConfig.getInstance(currentAccount).isPremium()) {
                                 BaseFragment fragment = LaunchActivity.getLastFragment();
                                 if (fragment != null) {
                                     fragment.showDialog(new PremiumFeatureBottomSheet(baseFragment, getContext(), currentAccount, PremiumPreviewFragment.PREMIUM_FEATURE_ANIMATED_EMOJI, false));

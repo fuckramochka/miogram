@@ -769,7 +769,7 @@ public class MiogramCompanionToolbox {
                             readParams.put("chat_query", chatQuery);
                             readParams.put("chat_id", specificChatId);
                             readParams.put("limit", p.optInt("limit", 15));
-                            ActionRequest readReq = new ActionRequest("read_messages", readParams);
+                            ActionRequest readReq = new ActionRequest("read_messages", readParams, false);
                             executeTool(account, readReq, callback);
                             return;
                         }
