@@ -245,7 +245,7 @@ public class MiogramHerokuBotSetupDialog extends BottomSheet {
                 dismiss();
             }
         } catch (Throwable t) {
-            Toast.makeText(context, "Напишіть @BotFather у пошуку", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, MiogramLocale.get("Напишіть @BotFather у пошуку", "Напишите @BotFather в поиске", "Search for @BotFather"), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -273,7 +273,7 @@ public class MiogramHerokuBotSetupDialog extends BottomSheet {
                 statusText.setTextColor(0xFF43A047);
                 String msg = "✅ " + MiogramLocale.get("Успішно підключено!", "Успешно подключено!", "Connected successfully!") +
                         " @" + username + " (" + name + ")" +
-                        (supportsInline ? " [Inline: OK]" : " [Inline: Не активовано]");
+                        (supportsInline ? " [Inline: OK]" : (" [Inline: " + MiogramLocale.get("Не активовано", "Не активировано", "Not activated") + "]"));
                 statusText.setText(msg);
 
                 Toast.makeText(getContext(), msg, Toast.LENGTH_LONG).show();
@@ -285,7 +285,7 @@ public class MiogramHerokuBotSetupDialog extends BottomSheet {
                 AndroidUtilities.runOnUIThread(this::dismiss, 1200);
             } else {
                 statusText.setTextColor(0xFFE53935);
-                statusText.setText("❌ " + (error != null ? error : "Невірний токен"));
+                statusText.setText("❌ " + (error != null ? error : MiogramLocale.get("Невірний токен", "Неверный токен", "Invalid token")));
             }
         });
     }

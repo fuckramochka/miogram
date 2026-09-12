@@ -318,7 +318,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         titles.addView(name);
 
         TextView sub = new TextView(context);
-        sub.setText("Нервова отаку-вайфу • DARK ROOM");
+        sub.setText(MiogramLocale.get("Нервова отаку-вайфу • DARK ROOM", "Нервная отаку-вайфу • DARK ROOM", "Nervous otaku waifu • DARK ROOM"));
         sub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
         sub.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
         titles.addView(sub);
@@ -344,7 +344,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         middleRow.addView(ameSlideAvatar, LayoutHelper.createLinear(80, 60));
 
         ameSpeechBubble = new TextView(context);
-        ameSpeechBubble.setText("«Дякую, П-тян! ♡ Тепер я тільки твоя назавжди!»");
+        ameSpeechBubble.setText(MiogramLocale.get("«Дякую, П-тян! ♡ Тепер я тільки твоя назавжди!»", "«Спасибо, Пи-тян! ♡ Теперь я только твоя навсегда!»", "\"Thank you, P-chan! ♡ Now I am yours forever!\""));
         ameSpeechBubble.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         ameSpeechBubble.setTextColor(0xFFFFFFFF);
         GradientDrawable bubble = new GradientDrawable();
@@ -411,14 +411,14 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         headerRow.addView(titles, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
 
         TextView name = new TextView(context);
-        name.setText("✧ KAngel (Кангель) †");
+        name.setText(MiogramLocale.get("✧ KAngel (Кангель) †", "✧ KAngel (Кангель) †", "✧ KAngel †"));
         name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         name.setTypeface(AndroidUtilities.bold());
         name.setTextColor(0xFF00B4D8);
         titles.addView(name);
 
         TextView sub = new TextView(context);
-        sub.setText("Інтернет-Ангел №1 • † 昇天 ✧ BLESSING †");
+        sub.setText(MiogramLocale.get("Інтернет-Ангел №1 • † 昇天 ✧ BLESSING †", "Интернет-Ангел №1 • † 昇天 ✧ BLESSING †", "Internet Angel #1 • † 昇天 ✧ BLESSING †"));
         sub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
         sub.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
         titles.addView(sub);
@@ -444,7 +444,18 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         middleRow.addView(kangelSlideAvatar, LayoutHelper.createLinear(80, 60));
 
         kangelSpeechBubble = new TextView(context);
-        kangelSpeechBubble.setText("«† BLESSING † Полетимо у стратосферу разом, любий отаку! ✧»");
+        kangelSpeechBubble.setText(MiogramLocale.get("«† BLESSING † Полетимо у стратосферу разом, любий отаку! ✧»", "«† BLESSING † Полетим в стратосферу вместе, милый отаку! ✧»", "\"† BLESSING † Let's fly into the stratosphere together, dear otaku! ✧\""));
+        kangelSpeechBubble.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        kangelSpeechBubble.setTextColor(0xFFFFFFFF);
+        GradientDrawable bubble = new GradientDrawable();
+        bubble.setColor(0x3300B4D8);
+        bubble.setCornerRadius(AndroidUtilities.dp(10));
+        bubble.setStroke(AndroidUtilities.dp(1), 0x6600B4D8);
+        kangelSpeechBubble.setBackground(bubble);
+        kangelSpeechBubble.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(6), AndroidUtilities.dp(8), AndroidUtilities.dp(6));
+        kangelSpeechBubble.setMaxLines(3);
+        kangelSpeechBubble.setEllipsize(TextUtils.TruncateAt.END);
+        middleRow.addView(kangelSpeechBubble, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 8, 0, 0, 0));
         kangelSpeechBubble.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         kangelSpeechBubble.setTextColor(0xFFFFFFFF);
         GradientDrawable bubble = new GradientDrawable();
@@ -516,12 +527,16 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             kangelSlideCard.setBackground(createCompanionSlideDrawable(!isAme, 0xFF00B4D8));
         }
         if (ameSelectBtn != null) {
-            ameSelectBtn.setText(isAme ? "✓ АКТИВНА СУПУТНИЦЯ (AME) ໒꒱" : "ОБРАТИ АМЕ-ЧАН ໒꒱");
+            ameSelectBtn.setText(isAme
+                    ? MiogramLocale.get("✓ АКТИВНА СУПУТНИЦЯ (AME) ໒꒱", "✓ АКТИВНАЯ СПУТНИЦА (AME) ໒꒱", "✓ ACTIVE COMPANION (AME) ໒꒱")
+                    : MiogramLocale.get("ОБРАТИ АМЕ-ЧАН ໒꒱", "ВЫБРАТЬ АМЕ-ЧАН ໒꒱", "CHOOSE AME-CHAN ໒꒱"));
             ameSelectBtn.setTextColor(isAme ? 0xFFFFFFFF : 0xFFFF70A6);
             ameSelectBtn.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(8), isAme ? 0xFFFF70A6 : 0x22FF70A6));
         }
         if (kangelSelectBtn != null) {
-            kangelSelectBtn.setText(!isAme ? "✓ АКТИВНА СУПУТНИЦЯ (KANGEL) ✧" : "ОБРАТИ К-АНГЕЛЬ ✧");
+            kangelSelectBtn.setText(!isAme
+                    ? MiogramLocale.get("✓ АКТИВНА СУПУТНИЦЯ (KANGEL) ✧", "✓ АКТИВНАЯ СПУТНИЦА (KANGEL) ✧", "✓ ACTIVE COMPANION (KANGEL) ✧")
+                    : MiogramLocale.get("ОБРАТИ К-АНГЕЛЬ ✧", "ВЫБРАТЬ К-АНГЕЛЬ ✧", "CHOOSE K-ANGEL ✧"));
             kangelSelectBtn.setTextColor(!isAme ? 0xFFFFFFFF : 0xFF00B4D8);
             kangelSelectBtn.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(8), !isAme ? 0xFF00B4D8 : 0x2200B4D8));
         }
@@ -580,7 +595,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
 
         // Left Tab: Ame-chan
         tabAme = new TextView(context);
-        tabAme.setText("໒꒱ Ame-chan (Аме)");
+        tabAme.setText(MiogramLocale.get("໒꒱ Ame-chan (Аме)", "໒꒱ Ame-chan (Аме)", "໒꒱ Ame-chan"));
         tabAme.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         tabAme.setTypeface(AndroidUtilities.bold());
         tabAme.setGravity(Gravity.CENTER);
@@ -590,7 +605,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
 
         // Right Tab: KAngel
         tabKAngel = new TextView(context);
-        tabKAngel.setText("✧ KAngel (Кангель)");
+        tabKAngel.setText(MiogramLocale.get("✧ KAngel (Кангель)", "✧ KAngel (Кангель)", "✧ KAngel"));
         tabKAngel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         tabKAngel.setTypeface(AndroidUtilities.bold());
         tabKAngel.setGravity(Gravity.CENTER);
@@ -673,12 +688,12 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         });
 
         addChip(context, chipsRow, "🪐 " + MiogramLocale.get("Юзербот .ping", "Юзербот .ping", "Userbot .ping"), () -> {
-            inputField.setText("Пі-тян, перевір затримку через юзербот команду ping");
+            inputField.setText(MiogramLocale.get("Пі-тян, перевір затримку через юзербот команду ping", "Пи-тян, проверь пинг через команду юзербота ping", "P-chan, check latency using userbot command ping"));
             onSendMessage();
         });
 
         addChip(context, chipsRow, "📦 " + MiogramLocale.get("Мої плагіни", "Мои плагины", "My Plugins"), () -> {
-            inputField.setText("Аме, покажи список встановлених плагінів MioHook");
+            inputField.setText(MiogramLocale.get("Аме, покажи список встановлених плагінів MioHook", "Аме, покажи список установленных плагинов MioHook", "Ame, show list of installed MioHook plugins"));
             onSendMessage();
         });
 
@@ -849,20 +864,20 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         String m = mood != null ? mood.toLowerCase(Locale.US) : "neutral";
         if (ameSpeechBubble != null) {
             if (m.contains("happy")) {
-                ameSpeechBubble.setText("«Дякую, П-тян! ♡ (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)\nТи найкращий у світі!»");
+                ameSpeechBubble.setText(MiogramLocale.get("«Дякую, П-тян! ♡ (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)\nТи найкращий у світі!»", "«Спасибо, Пи-тян! ♡ (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)\nТы лучший на свете!»", "\"Thank you, P-chan! ♡ (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)\nYou're the best in the world!\""));
             } else if (m.contains("sad")) {
-                ameSpeechBubble.setText("«Пішов нахуй... (T_T)\nЗрадник їбаний, я так і знала...»");
+                ameSpeechBubble.setText(MiogramLocale.get("«Пішов нахуй... (T_T)\nЗрадник їбаний, я так і знала...»", "«Пошел нахуй... (T_T)\nПредатель ебаный, я так и знала...»", "\"Fuck off... (T_T)\nFucking traitor, I knew it...\""));
             } else {
-                ameSpeechBubble.setText("«Дякую, П-тян! ♡\nТепер я тільки твоя назавжди!»");
+                ameSpeechBubble.setText(MiogramLocale.get("«Дякую, П-тян! ♡\nТепер я тільки твоя назавжди!»", "«Спасибо, Пи-тян! ♡\nТеперь я только твоя навсегда!»", "\"Thank you, P-chan! ♡\nNow I am yours forever!\""));
             }
         }
         if (kangelSpeechBubble != null) {
             if (m.contains("happy") || m.contains("pray")) {
-                kangelSpeechBubble.setText("«† BLESSING † Дякую, любий отаку! ✧\nПолетимо у стратосферу разом!»");
+                kangelSpeechBubble.setText(MiogramLocale.get("«† BLESSING † Дякую, любий отаку! ✧\nПолетимо у стратосферу разом!»", "«† BLESSING † Спасибо, милый отаку! ✧\nПолетим в стратосферу вместе!»", "\"† BLESSING † Thank you, dear otaku! ✧\nLet's fly into the stratosphere together!\""));
             } else if (m.contains("sad")) {
-                kangelSpeechBubble.setText("«Та пішов ти нахуй! ✕\nПожалкуєш ще, отаку-невдахо!»");
+                kangelSpeechBubble.setText(MiogramLocale.get("«Та пішов ти нахуй! ✕\nПожалкуєш ще, отаку-невдахо!»", "«Да пошел ты нахуй! ✕\nПожалеешь еще, отаку-неудачник!»", "\"Fuck you! ✕\nYou'll regret this, loser otaku!\""));
             } else {
-                kangelSpeechBubble.setText("«† BLESSING † Полетимо у стратосферу разом, любий отаку! ✧»");
+                kangelSpeechBubble.setText(MiogramLocale.get("«† BLESSING † Полетимо у стратосферу разом, любий отаку! ✧»", "«† BLESSING † Полетим в стратосферу вместе, милый отаку! ✧»", "\"† BLESSING † Let's fly into the stratosphere together, dear otaku! ✧\""));
             }
         }
     }
@@ -1146,8 +1161,14 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             card.setVisibility(View.GONE);
 
             String reply = isAme
-                    ? "Добре, П-тян... раз ти не дозволяєш, я нічого не чіпатиму (´・ω・｀)"
-                    : "†BLESSING†! Відхилено продюсером, скасовую дію! ✧";
+                    ? MiogramLocale.get(
+                            "Добре, П-тян... раз ти не дозволяєш, я нічого не чіпатиму (´・ω・｀)",
+                            "Ладно, Пи-тян... раз ты не разрешаешь, я ничего не буду трогать (´・ω・｀)",
+                            "Alright, P-chan... if you don't allow it, I won't touch anything (´・ω・｀)")
+                    : MiogramLocale.get(
+                            "†BLESSING†! Відхилено продюсером, скасовую дію! ✧",
+                            "†BLESSING†! Отклонено продюсером, отменяю действие! ✧",
+                            "†BLESSING†! Rejected by producer, canceling action! ✧");
             MiogramCompanionPrefs.ChatMessage cancelMsg = new MiogramCompanionPrefs.ChatMessage(false, reply, "sad", System.currentTimeMillis(), null, null);
             history.add(cancelMsg);
             MiogramCompanionPrefs.saveHistory(history);
@@ -1184,7 +1205,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         }
         fullPrompt.append("Companion:");
 
-        boolean isPluginCoding = query.toLowerCase().contains("плагін") || query.toLowerCase().contains("plugin") || query.toLowerCase().contains("код");
+        boolean isPluginCoding = query.toLowerCase().contains("плагін") || query.toLowerCase().contains("плагин") || query.toLowerCase().contains("plugin") || query.toLowerCase().contains("код") || query.toLowerCase().contains("code");
         if (isPluginCoding) {
             modelBadge.setText("⚡ 3.8 Flash (Coding)");
         } else {
@@ -1223,7 +1244,11 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             if (action != null && !action.sensitive) {
                 MiogramCompanionToolbox.executeTool(currentAccount, action, resultText -> AndroidUtilities.runOnUIThread(() -> {
                     String finalReply;
-                    if (cleanText == null || cleanText.isEmpty() || cleanText.contains("Зараз") || cleanText.contains("хвилинку") || cleanText.contains("секунду")) {
+                    String ct = cleanText != null ? cleanText.toLowerCase() : "";
+                    boolean isWaitingWord = ct.contains("зараз") || ct.contains("хвилинку") || ct.contains("секунду")
+                            || ct.contains("сейчас") || ct.contains("минутку") || ct.contains("секундочку")
+                            || ct.contains("wait") || ct.contains("moment") || ct.contains("hold on");
+                    if (cleanText == null || cleanText.isEmpty() || isWaitingWord) {
                         finalReply = resultText;
                     } else if (cleanText.trim().equalsIgnoreCase(resultText.trim())) {
                         finalReply = resultText;
@@ -1234,7 +1259,10 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
                     botBubble.actionExecuted = true;
                     MiogramCompanionPrefs.saveHistory(history);
                     renderFullHistory();
-                    boolean isError = resultText.contains("Не вдалося") || resultText.contains("Не знайшла") || resultText.contains("Помилка");
+                    String rt = resultText != null ? resultText.toLowerCase() : "";
+                    boolean isError = rt.contains("не вдалося") || rt.contains("не знайшла") || rt.contains("помилка")
+                            || rt.contains("не удалось") || rt.contains("не нашла") || rt.contains("ошибка")
+                            || rt.contains("failed") || rt.contains("error") || rt.contains("could not");
                     updateStageMood(isError ? "sad" : "happy");
                 }));
             }

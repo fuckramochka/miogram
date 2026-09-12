@@ -466,16 +466,24 @@ public class MiogramPluginForgeActivity extends BaseFragment {
         if ("python".equalsIgnoreCase(lang)) {
             boolean ok = app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().installModuleFromCode(lastResult.name, lastResult.code);
             statusView.setText(ok
-                    ? "✓ ВСТАНОВЛЕНО ТА АКТИВОВАНО!\nМодуль Heroku Userbot запущено нативно на пристрої."
-                    : "Помилка встановлення Python модуля.");
+                    ? MiogramLocale.get("✓ ВСТАНОВЛЕНО ТА АКТИВОВАНО!\nМодуль Heroku Userbot запущено нативно на пристрої.",
+                                        "✓ УСТАНОВЛЕНО И АКТИВИРОВАНО!\nМодуль Heroku Userbot запущен нативно на устройстве.",
+                                        "✓ INSTALLED AND ACTIVATED!\nHeroku Userbot module running natively on device.")
+                    : MiogramLocale.get("Помилка встановлення Python модуля.",
+                                        "Ошибка установки Python модуля.",
+                                        "Failed to install Python module."));
             MiogramHaptic.success(statusView);
             Toast.makeText(getParentActivity(), MiogramLocale.get("Модуль успішно активовано!", "Модуль успешно активирован!", "Module activated!"), Toast.LENGTH_SHORT).show();
             return;
         } else if ("lua".equalsIgnoreCase(lang)) {
             boolean ok = app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().installLuaPlugin(lastResult.name, lastResult.code);
             statusView.setText(ok
-                    ? "✓ ВСТАНОВЛЕНО ТА АКТИВОВАНО!\nСкрипт Lua зареєстровано в системі, він уже активний."
-                    : "Помилка встановлення Lua скрипта.");
+                    ? MiogramLocale.get("✓ ВСТАНОВЛЕНО ТА АКТИВОВАНО!\nСкрипт Lua зареєстровано в системі, він уже активний.",
+                                        "✓ УСТАНОВЛЕНО И АКТИВИРОВАНО!\nСкрипт Lua зарегистрирован в системе, он уже активен.",
+                                        "✓ INSTALLED AND ACTIVATED!\nLua script registered in system, already active.")
+                    : MiogramLocale.get("Помилка встановлення Lua скрипта.",
+                                        "Ошибка установки Lua скрипта.",
+                                        "Failed to install Lua script."));
             MiogramHaptic.success(statusView);
             Toast.makeText(getParentActivity(), MiogramLocale.get("Lua скрипт успішно активовано!", "Lua скрипт успешно активирован!", "Lua script activated!"), Toast.LENGTH_SHORT).show();
             return;

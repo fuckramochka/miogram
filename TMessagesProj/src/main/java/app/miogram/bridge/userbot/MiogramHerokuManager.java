@@ -423,15 +423,15 @@ public class MiogramHerokuManager {
 
     private void registerBuiltinModules() {
         // 1. Core Module (ping, help, info, id)
-        UserbotModuleInfo core = new UserbotModuleInfo("Core", "Базові системні команди Heroku", "2.0.0", "Miogram Team", true);
+        UserbotModuleInfo core = new UserbotModuleInfo("Core", MiogramLocale.get("Базові системні команди Heroku", "Базовые системные команды Heroku", "Heroku base system commands"), "2.0.0", "Miogram Team", true);
         registerCommand(core, "ping", ctx -> {
             long start = SystemClock.elapsedRealtime();
             // Calculate roundtrip ping
             long elapsed = Math.max(1, SystemClock.elapsedRealtime() - start);
             String response = "🏓 **Pong!**\n" +
-                    "⏱️ Затримка: `" + elapsed + " ms`\n" +
-                    "🪐 Двигун: **Heroku Native (Miogram)**\n" +
-                    "🤖 Helper Bot: " + (hasConfiguredBot() ? "@" + getBotUsername() : "_не налаштовано_");
+                    MiogramLocale.get("⏱️ Затримка: `", "⏱️ Задержка: `", "⏱️ Latency: `") + elapsed + " ms`\n" +
+                    MiogramLocale.get("🪐 Двигун: **Heroku Native (Miogram)**\n", "🪐 Движок: **Heroku Native (Miogram)**\n", "🪐 Engine: **Heroku Native (Miogram)**\n") +
+                    "🤖 Helper Bot: " + (hasConfiguredBot() ? "@" + getBotUsername() : MiogramLocale.get("_не налаштовано_", "_не настроен_", "_not configured_"));
             ctx.answer(response);
         });
 
@@ -440,16 +440,16 @@ public class MiogramHerokuManager {
                 String target = ctx.rawArgs.toLowerCase(Locale.ROOT).replace(getPrefix(), "");
                 CommandHandler h = commandHandlers.get(target);
                 if (h != null) {
-                    ctx.answer("ℹ️ **Довідка по команді:** `" + getPrefix() + target + "`\n" +
-                            "Префікс: `" + getPrefix() + "`\n" +
-                            "Модуль: " + findModuleForCommand(target));
+                    ctx.answer("ℹ️ " + MiogramLocale.get("**Довідка по команді:** `", "**Справка по команде:** `", "**Help for command:** `") + getPrefix() + target + "`\n" +
+                            MiogramLocale.get("Префікс: `", "Префикс: `", "Prefix: `") + getPrefix() + "`\n" +
+                            MiogramLocale.get("Модуль: ", "Модуль: ", "Module: ") + findModuleForCommand(target));
                     return;
                 }
             }
 
             StringBuilder sb = new StringBuilder();
             sb.append("🪐 **Heroku Userbot for Miogram**\n");
-            sb.append("Префікс команд: `").append(getPrefix()).append("`\n\n");
+            sb.append(MiogramLocale.get("Префікс команд: `", "Префикс команд: `", "Command prefix: `")).append(getPrefix()).append("`\n\n");
             for (UserbotModuleInfo m : modules.values()) {
                 if (!m.isEnabled) continue;
                 sb.append("📦 **").append(m.name).append("** (v").append(m.version).append("):\n");
@@ -457,7 +457,7 @@ public class MiogramHerokuManager {
                     sb.append("  • `").append(getPrefix()).append(c).append("`\n");
                 }
             }
-            sb.append("\n💡 _Напишіть `").append(getPrefix()).append("help <команда>` для деталей._");
+            sb.append("\n💡 ").append(MiogramLocale.get("_Напишіть `", "_Напишите `", "_Type `")).append(getPrefix()).append(MiogramLocale.get("help <команда>` для деталей._", "help <команда>` для деталей._", "help <command>` for details._"));
             ctx.answer(sb.toString());
         });
 
@@ -465,12 +465,12 @@ public class MiogramHerokuManager {
             int modulesCount = modules.size();
             int commandsCount = commandHandlers.size();
             String res = "🪐 **Heroku Userbot Status**\n\n" +
-                    "• Клієнт: **Miogram " + BuildVars.BUILD_VERSION_STRING + "**\n" +
-                    "• Пристрій: " + Build.MANUFACTURER + " " + Build.MODEL + " (Android " + Build.VERSION.RELEASE + ")\n" +
-                    "• Префікс: `" + getPrefix() + "`\n" +
-                    "• Модулів: `" + modulesCount + "` | Команд: `" + commandsCount + "`\n" +
-                    "• Helper Bot: " + (hasConfiguredBot() ? ("@" + getBotUsername() + (isInlineCapable() ? " [Inline OK]" : "")) : "❌ Відсутній") + "\n" +
-                    "• MioHook: **Активний ໒꒱**";
+                    "• " + MiogramLocale.get("Клієнт: **Miogram ", "Клиент: **Miogram ", "Client: **Miogram ") + BuildVars.BUILD_VERSION_STRING + "**\n" +
+                    "• " + MiogramLocale.get("Пристрій: ", "Устройство: ", "Device: ") + Build.MANUFACTURER + " " + Build.MODEL + " (Android " + Build.VERSION.RELEASE + ")\n" +
+                    "• " + MiogramLocale.get("Префікс: `", "Префикс: `", "Prefix: `") + getPrefix() + "`\n" +
+                    "• " + MiogramLocale.get("Модулів: `", "Модулей: `", "Modules: `") + modulesCount + "` | " + MiogramLocale.get("Команд: `", "Команд: `", "Commands: `") + commandsCount + "`\n" +
+                    "• Helper Bot: " + (hasConfiguredBot() ? ("@" + getBotUsername() + (isInlineCapable() ? " [Inline OK]" : "")) : MiogramLocale.get("❌ Відсутній", "❌ Отсутствует", "❌ Missing")) + "\n" +
+                    "• MioHook: " + MiogramLocale.get("**Активний ໒꒱**", "**Активен ໒꒱**", "**Active ໒꒱**");
             ctx.answer(res);
         });
 
@@ -479,11 +479,11 @@ public class MiogramHerokuManager {
             long myId = UserConfig.getInstance(ctx.account).getClientUserId();
             StringBuilder sb = new StringBuilder();
             sb.append("🆔 **Telegram Identifiers:**\n\n");
-            sb.append("• **Чат ID:** `").append(peer).append("`\n");
-            sb.append("• **Мій ID:** `").append(myId).append("`\n");
+            sb.append("• ").append(MiogramLocale.get("**Чат ID:** `", "**Чат ID:** `", "**Chat ID:** `")).append(peer).append("`\n");
+            sb.append("• ").append(MiogramLocale.get("**Мій ID:** `", "**Мой ID:** `", "**My ID:** `")).append(myId).append("`\n");
             if (ctx.replyMessage != null) {
-                sb.append("• **Повідомлення ID:** `").append(ctx.replyMessage.getId()).append("`\n");
-                sb.append("• **Відправник ID:** `").append(ctx.replyMessage.getFromChatId()).append("`\n");
+                sb.append("• ").append(MiogramLocale.get("**Повідомлення ID:** `", "**Сообщение ID:** `", "**Message ID:** `")).append(ctx.replyMessage.getId()).append("`\n");
+                sb.append("• ").append(MiogramLocale.get("**Відправник ID:** `", "**Отправитель ID:** `", "**Sender ID:** `")).append(ctx.replyMessage.getFromChatId()).append("`\n");
             }
             ctx.answer(sb.toString());
         });
@@ -491,19 +491,19 @@ public class MiogramHerokuManager {
         modules.put(core.name, core);
 
         // 2. Utils Module (calc, tr, eval)
-        UserbotModuleInfo utils = new UserbotModuleInfo("Utilities", "Корисні утиліти, перекладач та калькулятор", "1.0.0", "Miogram Team", true);
+        UserbotModuleInfo utils = new UserbotModuleInfo("Utilities", MiogramLocale.get("Корисні утиліти, перекладач та калькулятор", "Полезные утилиты, переводчик и калькулятор", "Useful utilities, translator and calculator"), "1.0.0", "Miogram Team", true);
 
         registerCommand(utils, "calc", ctx -> {
             if (TextUtils.isEmpty(ctx.rawArgs)) {
-                ctx.answer("⚠️ Вкажіть вираз для обчислення. Наприклад: `" + getPrefix() + "calc 25 * 4 + 10`");
+                ctx.answer("⚠️ " + MiogramLocale.get("Вкажіть вираз для обчислення. Наприклад: `", "Укажите выражение для вычисления. Например: `", "Specify expression to calculate. Example: `") + getPrefix() + "calc 25 * 4 + 10`");
                 return;
             }
             try {
                 double result = evaluateMathExpression(ctx.rawArgs);
                 String formatted = (result == (long) result) ? String.format(Locale.US, "%d", (long) result) : String.format(Locale.US, "%s", result);
-                ctx.answer("🔢 **Результат:**\n`" + ctx.rawArgs + "` = **" + formatted + "**");
+                ctx.answer("🔢 " + MiogramLocale.get("**Результат:**\n`", "**Результат:**\n`", "**Result:**\n`") + ctx.rawArgs + "` = **" + formatted + "**");
             } catch (Throwable t) {
-                ctx.answer("❌ Помилка в математичному виразі: " + t.getMessage());
+                ctx.answer("❌ " + MiogramLocale.get("Помилка в математичному виразі: ", "Ошибка в математическом выражении: ", "Error in math expression: ") + t.getMessage());
             }
         });
 
@@ -514,7 +514,7 @@ public class MiogramHerokuManager {
                 text = ctx.replyMessage.messageOwner.message;
             }
             if (TextUtils.isEmpty(text)) {
-                ctx.answer("⚠️ Вкажіть текст або відповідайте на повідомлення: `" + getPrefix() + "tr [uk/en] текст`");
+                ctx.answer("⚠️ " + MiogramLocale.get("Вкажіть текст або відповідайте на повідомлення: `", "Укажите текст или ответьте на сообщение: `", "Provide text or reply to a message: `") + getPrefix() + "tr [uk/en] текст`");
                 return;
             }
             String[] parts = text.split("\\s+", 2);
@@ -526,20 +526,20 @@ public class MiogramHerokuManager {
             final String fText = text;
             translateTextAsync(fText, fLang, result -> {
                 if (result != null) {
-                    ctx.answer("🌐 **Переклад (" + fLang.toUpperCase(Locale.ROOT) + "):**\n" + result);
+                    ctx.answer("🌐 " + MiogramLocale.get("**Переклад (", "**Перевод (", "**Translation (") + fLang.toUpperCase(Locale.ROOT) + "):**\n" + result);
                 } else {
-                    ctx.answer("❌ Не вдалося перекласти текст.");
+                    ctx.answer("❌ " + MiogramLocale.get("Не вдалося перекласти текст.", "Не удалось перевести текст.", "Failed to translate text."));
                 }
             });
         });
 
         registerCommand(utils, "eval", ctx -> {
             if (TextUtils.isEmpty(ctx.rawArgs)) {
-                ctx.answer("⚠️ Вкажіть Python вираз для виконання: `" + getPrefix() + "eval 2 + 2`");
+                ctx.answer("⚠️ " + MiogramLocale.get("Вкажіть Python вираз для виконання: `", "Укажите Python выражение для выполнения: `", "Provide Python expression to execute: `") + getPrefix() + "eval 2 + 2`");
                 return;
             }
             executePythonEval(ctx.rawArgs, output -> {
-                ctx.answer("🐍 **Python Eval:**\n**Вхід:**\n```python\n" + ctx.rawArgs + "\n```\n**Вихід:**\n```\n" + output + "\n```");
+                ctx.answer("🐍 **Python Eval:**\n" + MiogramLocale.get("**Вхід:**\n```python\n", "**Вход:**\n```python\n", "**Input:**\n```python\n") + ctx.rawArgs + "\n```\n" + MiogramLocale.get("**Вихід:**\n```\n", "**Выход:**\n```\n", "**Output:**\n```\n") + output + "\n```");
             });
         });
 
@@ -578,7 +578,7 @@ public class MiogramHerokuManager {
     public boolean loadExternalPythonModule(File file) {
         if (file == null || !file.exists()) return false;
         String modName = file.getName().replace(".py", "");
-        UserbotModuleInfo mod = new UserbotModuleInfo(modName, "Зовнішній Heroku модуль (" + file.getName() + ")", "1.0.0", "External", false);
+        UserbotModuleInfo mod = new UserbotModuleInfo(modName, MiogramLocale.get("Зовнішній Heroku модуль (", "Внешний Heroku модуль (", "External Heroku module (") + file.getName() + ")", "1.0.0", "External", false);
 
         // Register placeholder command based on module name
         registerCommand(mod, modName.toLowerCase(Locale.ROOT), ctx -> {
@@ -592,13 +592,13 @@ public class MiogramHerokuManager {
     private void executePythonModuleFile(File file, CommandContext ctx) {
         if (PythonPluginsEngine.getInstance().isStarted()) {
             try {
-                String res = "🪐 Виконано модуль Heroku " + file.getName() + " з аргументами: `" + ctx.rawArgs + "`";
+                String res = "🪐 " + MiogramLocale.get("Виконано модуль Heroku ", "Выполнен модуль Heroku ", "Executed Heroku module ") + file.getName() + MiogramLocale.get(" з аргументами: `", " с аргументами: `", " with arguments: `") + ctx.rawArgs + "`";
                 ctx.answer(res);
             } catch (Throwable t) {
-                ctx.answer("❌ Помилка запуску Python модуля: " + t.getMessage());
+                ctx.answer("❌ " + MiogramLocale.get("Помилка запуску Python модуля: ", "Ошибка запуска Python модуля: ", "Error running Python module: ") + t.getMessage());
             }
         } else {
-            ctx.answer("🪐 Модуль " + file.getName() + " завантажено. Аргументи: `" + ctx.rawArgs + "`");
+            ctx.answer("🪐 " + MiogramLocale.get("Модуль ", "Модуль ", "Module ") + file.getName() + MiogramLocale.get(" завантажено. Аргументи: `", " загружен. Аргументы: `", " loaded. Arguments: `") + ctx.rawArgs + "`");
         }
     }
 

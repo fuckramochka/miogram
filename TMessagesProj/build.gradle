@@ -23,9 +23,10 @@ idea {
 }
 
 def buildTimestamp = System.getenv('BUILD_TIMESTAMP') ?: '0'
-def shortCommit = commitId?.take(7) ?: ''
+def commitId = System.getenv('COMMIT_ID') ?: ''
+def shortCommit = commitId ? commitId.take(7) : ''
 def runNumber = System.getenv('RUN_NUMBER')
-def verName = runNumber ? "12.10.${runNumber}" : (commitId ? "12.10.1-${shortCommit}" : APP_VERSION_NAME)
+def verName = runNumber ? "12.10.${runNumber}" : (!commitId.isEmpty() ? "12.10.1-${shortCommit}" : APP_VERSION_NAME)
 def verCode = 1261
 
 def officialVer = APP_VERSION_NAME

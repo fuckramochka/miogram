@@ -246,7 +246,7 @@ public class MiogramHerokuActivity extends BaseNekoSettingsActivity {
             if (getListView() != null && getListView().getAdapter() != null) {
                 getListView().getAdapter().notifyDataSetChanged();
             }
-            Toast.makeText(getParentActivity(), "Токен бота видалено", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Токен бота видалено", "Токен бота удален", "Bot token removed"), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -281,8 +281,8 @@ public class MiogramHerokuActivity extends BaseNekoSettingsActivity {
 
         StringBuilder sb = new StringBuilder();
         sb.append(m.description).append("\n\n");
-        sb.append("👤 Автор: ").append(m.author).append("\n");
-        sb.append("⚡ Команди:\n");
+        sb.append(MiogramLocale.get("👤 Автор: ", "👤 Автор: ", "👤 Author: ")).append(m.author).append("\n");
+        sb.append(MiogramLocale.get("⚡ Команди:\n", "⚡ Команды:\n", "⚡ Commands:\n"));
         for (String c : m.commands) {
             sb.append("  • `").append(MiogramHerokuManager.getInstance().getPrefix()).append(c).append("`\n");
         }
@@ -319,7 +319,7 @@ public class MiogramHerokuActivity extends BaseNekoSettingsActivity {
             intent.setType("*/*");
             startActivityForResult(intent, REQUEST_CODE_PICK_MODULE);
         } catch (Throwable t) {
-            Toast.makeText(getParentActivity(), "Не вдалося відкрити файловий менеджер", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Не вдалося відкрити файловий менеджер", "Не удалось открыть файловый менеджер", "Failed to open file manager"), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -349,16 +349,16 @@ public class MiogramHerokuActivity extends BaseNekoSettingsActivity {
 
             boolean ok = MiogramHerokuManager.getInstance().loadExternalPythonModule(target);
             if (ok) {
-                Toast.makeText(ctx, "✅ Модуль успішно встановлено: " + fileName, Toast.LENGTH_SHORT).show();
+                Toast.makeText(ctx, MiogramLocale.get("✅ Модуль успішно встановлено: ", "✅ Модуль успешно установлен: ", "✅ Module installed successfully: ") + fileName, Toast.LENGTH_SHORT).show();
                 updateRows();
                 if (getListView() != null && getListView().getAdapter() != null) {
                     getListView().getAdapter().notifyDataSetChanged();
                 }
             } else {
-                Toast.makeText(ctx, "❌ Помилка завантаження модуля", Toast.LENGTH_SHORT).show();
+                Toast.makeText(ctx, MiogramLocale.get("❌ Помилка завантаження модуля", "❌ Ошибка загрузки модуля", "❌ Failed to load module"), Toast.LENGTH_SHORT).show();
             }
         } catch (Throwable t) {
-            Toast.makeText(getParentActivity(), "Помилка встановлення: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Помилка встановлення: ", "Ошибка установки: ", "Installation error: ") + t.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 }
