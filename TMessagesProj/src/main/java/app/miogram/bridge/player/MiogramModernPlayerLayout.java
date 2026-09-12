@@ -1731,6 +1731,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             attachExtraEditTouch(nextButton, "next", "controls", false);
             attachExtraEditTouch(saveToProfileButton, "profile", "profile", true);
             attachExtraEditTouch(unsaveFromProfileButton, "profile", "profile", true);
+            attachZoneTap(backgroundBlurView, "background");
             attachZoneTap(compactCoverWrapper, "background");
             attachZoneTap(fullscreenCoverHolder, "background");
             attachZoneTap(compactBassVisualizer, "visualizer");
@@ -1766,6 +1767,11 @@ public class MiogramModernPlayerLayout extends FrameLayout {
                         v.setOnTouchListener(null);
                     } catch (Throwable ignore) {}
                 }
+            }
+            if (backgroundBlurView != null) {
+                try {
+                    backgroundBlurView.setOnClickListener(null);
+                } catch (Throwable ignore) {}
             }
             if (compactCoverWrapper != null) {
                 compactCoverWrapper.setOnClickListener(v -> {

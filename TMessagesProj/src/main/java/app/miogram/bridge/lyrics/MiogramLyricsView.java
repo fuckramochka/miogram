@@ -401,44 +401,70 @@ public class MiogramLyricsView extends FrameLayout {
 
     private Runnable onSourceChangedListener;
     private Runnable editTapListener;
-    private float editDownX;
-    private float editDownY;
+    private RecyclerView.OnItemTouchListener editItemInterceptor;
 
     public void setOnSourceChangedListener(Runnable listener) {
         this.onSourceChangedListener = listener;
     }
 
     /**
-     * Player edit (jiggle) mode: while set, every touch on the lyrics list is
-     * consumed here — tap opens the lyrics panel, scroll/seek are suspended.
-     * Pass null to restore normal behavior.
+     * Player edit (jiggle) mode: while set, an item-touch interceptor consumes
+     * EVERYTHING (rows, empty space) before children — tap opens the lyrics
+     * panel, scroll/seek are suspended. Pass null to restore normal behavior.
+     * (A plain OnTouchListener does NOT work: clickable row children consume
+     * the gesture first and the parent listener never fires.)
      */
     public void setEditTapListener(Runnable onTap) {
         this.editTapListener = onTap;
         if (recyclerView == null) return;
-        if (onTap == null) {
-            recyclerView.setOnTouchListener(null);
-            return;
+        if (editItemInterceptor != null) {
+            try {
+                recyclerView.removeOnItemTouchListener(editItemInterceptor);
+            } catch (Throwable ignore) {}
+            editItemInterceptor = null;
         }
-        recyclerView.setOnTouchListener((v, e) -> {
-            int action = e.getActionMasked();
-            if (action == android.view.MotionEvent.ACTION_DOWN) {
-                editDownX = e.getRawX();
-                editDownY = e.getRawY();
-                return true;
-            } else if (action == android.view.MotionEvent.ACTION_UP) {
-                float dx = e.getRawX() - editDownX;
-                float dy = e.getRawY() - editDownY;
-                float slop = (float) AndroidUtilities.dp(10);
-                if (dx * dx + dy * dy <= slop * slop && editTapListener != null) {
-                    editTapListener.run();
+        try {
+            recyclerView.setOnTouchListener(null);
+        } catch (Throwable ignore) {}
+        if (onTap == null) return;
+        editItemInterceptor = new RecyclerView.OnItemTouchListener() {
+            float downX;
+            float downY;
+            boolean tracking;
+
+            @Override
+            public boolean onInterceptTouchEvent(RecyclerView rv, android.view.MotionEvent e) {
+                int action = e.getActionMasked();
+                if (action == android.view.MotionEvent.ACTION_DOWN) {
+                    downX = e.getRawX();
+                    downY = e.getRawY();
+                    tracking = true;
+                    return true;
                 }
-                return true;
-            } else if (action == android.view.MotionEvent.ACTION_CANCEL) {
-                return true;
+                return tracking;
             }
-            return true;
-        });
+
+            @Override
+            public void onTouchEvent(RecyclerView rv, android.view.MotionEvent e) {
+                int action = e.getActionMasked();
+                if (action == android.view.MotionEvent.ACTION_UP && tracking) {
+                    tracking = false;
+                    float dx = e.getRawX() - downX;
+                    float dy = e.getRawY() - downY;
+                    float slop = (float) AndroidUtilities.dp(10);
+                    if (dx * dx + dy * dy <= slop * slop && editTapListener != null) {
+                        editTapListener.run();
+                    }
+                } else if (action == android.view.MotionEvent.ACTION_CANCEL) {
+                    tracking = false;
+                }
+            }
+
+            @Override
+            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
+            }
+        };
+        recyclerView.addOnItemTouchListener(editItemInterceptor);
     }
 
     private void notifySourceChanged() {

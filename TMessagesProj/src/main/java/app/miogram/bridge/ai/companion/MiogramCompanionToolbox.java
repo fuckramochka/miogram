@@ -593,6 +593,21 @@ public class MiogramCompanionToolbox {
         if (isNext(low)) {
             return new PickResolution("NEXT_PAGE", null, pending.resumeAction, pending.resumeParams);
         }
+        // Standalone digit in a short reply ("беру 2", "давай 2-й", "2й варіант").
+        // Word-count guard so "зустрінемось о 2" doesn't hijack a pick.
+        try {
+            if (low.split("\\s+").length <= 3) {
+                java.util.regex.Matcher dm = java.util.regex.Pattern.compile("(?:^|\\s)(\\d{1,2})(?:\\s|[.\\)\\-,:;!?»\"']|$|й|th|st|nd|rd)").matcher(low);
+                while (dm.find()) {
+                    int n = Integer.parseInt(dm.group(1));
+                    if (n >= 1 && n <= pending.candidates.size()) {
+                        FoundChat fc = pending.candidates.get(n - 1);
+                        clearPendingPick(account);
+                        return new PickResolution("RESOLVED", fc, pending.resumeAction, pending.resumeParams);
+                    }
+                }
+            }
+        } catch (Throwable ignore) {}
         // Number or ordinal: "2", "другий", "2.", "№2"
         for (int i = 0; i < pending.candidates.size(); i++) {
             if (isOrdinal(low, i + 1)) {
@@ -626,6 +641,25 @@ public class MiogramCompanionToolbox {
                 }
             }
         }
+        // Last resort: fresh search, accept only near-exact hits (repeated
+        // name or exact @username). Kills "choose again forever" when the user
+        // just repeats what they want instead of answering with a number.
+        try {
+            List<FoundChat> fresh = searchChats(account, userText);
+            FoundChat best = null;
+            int bestScore = 0;
+            for (FoundChat fc : fresh) {
+                int s = calculateMatchScore(userText, fc.name, fc.username, null, null);
+                if (s > bestScore) {
+                    bestScore = s;
+                    best = fc;
+                }
+            }
+            if (best != null && bestScore >= 90) {
+                clearPendingPick(account);
+                return new PickResolution("RESOLVED", best, pending.resumeAction, pending.resumeParams);
+            }
+        } catch (Throwable ignore) {}
         return new PickResolution("NONE", null, null, null);
     }
 
