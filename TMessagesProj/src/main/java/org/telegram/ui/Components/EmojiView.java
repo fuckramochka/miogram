@@ -315,7 +315,7 @@ public class EmojiView extends FrameLayout implements
         }
     }
 
-    private boolean allowEmojisForNonPremium;
+    private boolean allowEmojisForNonPremium = true;
     public void allowEmojisForNonPremium(boolean allow) {
         allowEmojisForNonPremium = allow;
     }
@@ -7612,7 +7612,7 @@ public class EmojiView extends FrameLayout implements
                         pack.free = false;
                         pack.installed = mediaDataController.isStickerPackInstalled(set.set.id);
                         pack.featured = false;
-                        pack.expanded = expandedEmojiSets.contains(pack.set.id);
+                        pack.expanded = true;
                         emojipacksProcessed.add(pack);
                     }
                 }

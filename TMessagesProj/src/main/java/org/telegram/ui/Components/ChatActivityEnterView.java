@@ -2665,6 +2665,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.beforeAudioDidSent);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.audioRouteChanged);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingDidReset);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingDidStart);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.featuredStickersDidLoad);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messageReceivedByServer2);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.sendingMessagesChanged);
@@ -2673,6 +2676,10 @@ public class ChatActivityEnterView extends FrameLayout implements
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.didUpdatePremiumGiftFieldIcon);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.currentUserPremiumStatusChanged);
         NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.emojiLoaded);
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.messagePlayingDidReset);
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.messagePlayingDidStart);
 
         parentActivity = context;
         parentFragment = fragment;
@@ -7489,6 +7496,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.beforeAudioDidSent);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.audioRouteChanged);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidReset);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidStart);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.featuredStickersDidLoad);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messageReceivedByServer2);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.sendingMessagesChanged);
@@ -7497,6 +7507,10 @@ public class ChatActivityEnterView extends FrameLayout implements
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.didUpdatePremiumGiftFieldIcon);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.currentUserPremiumStatusChanged);
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.emojiLoaded);
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.messagePlayingDidReset);
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.messagePlayingDidStart);
         if (emojiView != null) {
             emojiView.onDestroy();
         }
@@ -7676,6 +7690,9 @@ public class ChatActivityEnterView extends FrameLayout implements
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.beforeAudioDidSent);
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.audioRouteChanged);
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
+            NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+            NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidReset);
+            NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidStart);
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.featuredStickersDidLoad);
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messageReceivedByServer2);
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.sendingMessagesChanged);
@@ -7692,6 +7709,9 @@ public class ChatActivityEnterView extends FrameLayout implements
             NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.beforeAudioDidSent);
             NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.audioRouteChanged);
             NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
+            NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+            NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingDidReset);
+            NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingDidStart);
             NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.featuredStickersDidLoad);
             NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messageReceivedByServer2);
             NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.sendingMessagesChanged);
@@ -7787,6 +7807,40 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     public final ColoredImageSpan[] spans = new ColoredImageSpan[1];
+
+    private CharSequence getActiveSongLyricsHint() {
+        try {
+            // 1. Spotify playback bridge
+            if (app.miogram.bridge.spotify.MiogramSpotifyManager.getInstance().isPlaying()) {
+                String line = app.miogram.bridge.spotify.MiogramSpotifyManager.getInstance().getCurrentLyricsLine();
+                if (!TextUtils.isEmpty(line)) {
+                    return "🎵 " + line;
+                }
+            }
+            // 2. Telegram in-app music player
+            MessageObject playingMsg = MediaController.getInstance().getPlayingMessageObject();
+            if (playingMsg != null && playingMsg.isMusic() && !MediaController.getInstance().isMessagePaused()) {
+                app.miogram.bridge.lyrics.MiogramLrcModel.LrcSong song = app.miogram.bridge.lyrics.MiogramLyricsEngine.getInstance().getCachedSong(playingMsg);
+                if (song != null && !song.lines.isEmpty()) {
+                    long currentMs = (long) (playingMsg.audioProgressSec * 1000L);
+                    int idx = song.findLineIndex(currentMs);
+                    if (idx >= 0 && idx < song.lines.size()) {
+                        String line = song.lines.get(idx).text;
+                        if (!TextUtils.isEmpty(line)) {
+                            return "🎵 " + line;
+                        }
+                    }
+                }
+                String title = playingMsg.getMusicTitle();
+                String author = playingMsg.getMusicAuthor();
+                if (!TextUtils.isEmpty(title)) {
+                    return "🎵 " + (!TextUtils.isEmpty(author) ? (title + " — " + author) : title);
+                }
+            }
+        } catch (Throwable ignore) {}
+        return null;
+    }
+
     public void updateFieldHint(boolean animated) {
         if (messageEditText == null) {
             return;
@@ -7858,7 +7912,8 @@ public class ChatActivityEnterView extends FrameLayout implements
                 final TLRPC.TL_forumTopic topic = MessagesController.getInstance(currentAccount).getTopicsController().findTopic(parentFragment.getCurrentChat().id, 1);
                 topicTitle = (topic != null && topic.title != null) ? topic.title : null;
             }
-            SpannableStringBuilder hintText = new SpannableStringBuilder(topicTitle != null ? LocaleController.formatString(R.string.TypeMessageIn, topicTitle) : getString(R.string.TypeMessage));
+            CharSequence musicHint = getActiveSongLyricsHint();
+            SpannableStringBuilder hintText = new SpannableStringBuilder(musicHint != null ? musicHint : (topicTitle != null ? LocaleController.formatString(R.string.TypeMessageIn, topicTitle) : getString(R.string.TypeMessage)));
             maybeAppendSendAsUnderMessageHint(hintText);
             messageEditText.setHintText(hintText, animated);
         } else {
@@ -7889,31 +7944,37 @@ public class ChatActivityEnterView extends FrameLayout implements
                         messageEditText.setHintText(getString(R.string.ChannelBroadcast), animated);
                     }
                 } else {
-                    SpannableStringBuilder messageEditTextText = SpannableStringBuilder.valueOf(getString(R.string.TypeMessage));
-                    if (NaConfig.INSTANCE.getTypeMessageHintUseGroupName().Bool()) {
-                        TLRPC.Chat c = accountInstance.getMessagesController().getChat(-dialog_id);
-                        TLRPC.User u = accountInstance.getMessagesController().getUser(dialog_id);
-                        if (c != null) {
-                            messageEditTextText = SpannableStringBuilder.valueOf(c.title);
-                        } else if (u != null && u != accountInstance.getUserConfig().getCurrentUser()) {
-                            messageEditTextText = SpannableStringBuilder.valueOf((user.first_name != null ? user.first_name : "") + " " + (user.last_name != null ? user.last_name : ""));
+                    CharSequence musicHint = getActiveSongLyricsHint();
+                    SpannableStringBuilder messageEditTextText;
+                    if (!TextUtils.isEmpty(musicHint)) {
+                        messageEditTextText = SpannableStringBuilder.valueOf(musicHint);
+                    } else {
+                        messageEditTextText = SpannableStringBuilder.valueOf(getString(R.string.TypeMessage));
+                        if (NaConfig.INSTANCE.getTypeMessageHintUseGroupName().Bool()) {
+                            TLRPC.Chat c = accountInstance.getMessagesController().getChat(-dialog_id);
+                            TLRPC.User u = accountInstance.getMessagesController().getUser(dialog_id);
+                            if (c != null) {
+                                messageEditTextText = SpannableStringBuilder.valueOf(c.title);
+                            } else if (u != null && u != accountInstance.getUserConfig().getCurrentUser()) {
+                                messageEditTextText = SpannableStringBuilder.valueOf((user.first_name != null ? user.first_name : "") + " " + (user.last_name != null ? user.last_name : ""));
+                            }
                         }
-                    }
-                    if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
-                        TLRPC.Chat dc = accountInstance.getMessagesController().getChat(-dialog_id);
-                        TLRPC.User du = accountInstance.getMessagesController().getUser(dialog_id);
-                        String target = "";
-                        if (dc != null && dc.title != null) {
-                            target = "#" + dc.title;
-                        } else if (du != null && du.first_name != null) {
-                            target = "@" + du.first_name;
-                        }
-                        if (!target.isEmpty()) {
-                            messageEditTextText = SpannableStringBuilder.valueOf(app.miogram.bridge.MiogramLocale.get(
-                                    "Повідомлення " + target,
-                                    "Сообщение " + target,
-                                    "Message " + target
-                            ));
+                        if (app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()) {
+                            TLRPC.Chat dc = accountInstance.getMessagesController().getChat(-dialog_id);
+                            TLRPC.User du = accountInstance.getMessagesController().getUser(dialog_id);
+                            String target = "";
+                            if (dc != null && dc.title != null) {
+                                target = "#" + dc.title;
+                            } else if (du != null && du.first_name != null) {
+                                target = "@" + du.first_name;
+                            }
+                            if (!target.isEmpty()) {
+                                messageEditTextText = SpannableStringBuilder.valueOf(app.miogram.bridge.MiogramLocale.get(
+                                        "Повідомлення " + target,
+                                        "Сообщение " + target,
+                                        "Message " + target
+                                ));
+                            }
                         }
                     }
                     maybeAppendSendAsUnderMessageHint(messageEditTextText);
@@ -13167,6 +13228,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             emojiView.updateColors();
         }
         emojiView.setAllow(allowStickers, allowGifs, true);
+        emojiView.allowEmojisForNonPremium(true);
         emojiView.setVisibility(GONE);
         emojiView.setShowing(false);
         if (windowInsetsInAppController != null) {
@@ -14919,7 +14981,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 parentActivity.setVolumeControlStream(frontSpeaker ? AudioManager.STREAM_VOICE_CALL : AudioManager.USE_DEFAULT_STREAM_TYPE);
             }
         } else if (id == NotificationCenter.messagePlayingProgressDidChanged) {
-            Integer mid = (Integer) args[0];
+            Integer mid = args.length > 0 && args[0] instanceof Integer ? (Integer) args[0] : 0;
             if (audioToSendMessageObject != null && MediaController.getInstance().isPlayingMessage(audioToSendMessageObject)) {
                 MessageObject player = MediaController.getInstance().getPlayingMessageObject();
                 audioToSendMessageObject.audioProgress = player.audioProgress;
@@ -14927,6 +14989,13 @@ public class ChatActivityEnterView extends FrameLayout implements
 //                if (!recordedAudioSeekBar.isDragging()) {
 //                    recordedAudioSeekBar.setProgress(audioToSendMessageObject.audioProgress);
 //                }
+            }
+            if (messageEditText != null && TextUtils.isEmpty(messageEditText.getText())) {
+                updateFieldHint(false);
+            }
+        } else if (id == NotificationCenter.messagePlayingPlayStateChanged || id == NotificationCenter.messagePlayingDidReset || id == NotificationCenter.messagePlayingDidStart) {
+            if (messageEditText != null && TextUtils.isEmpty(messageEditText.getText())) {
+                updateFieldHint(false);
             }
         } else if (id == NotificationCenter.featuredStickersDidLoad) {
             if (emojiButton != null) {

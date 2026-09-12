@@ -505,7 +505,7 @@ public class EmojiTabsStrip extends ScrollableHorizontalScrollView {
     }
 
     protected boolean allowEmojisForNonPremium() {
-        return false;
+        return true;
     }
 
     boolean first = true;

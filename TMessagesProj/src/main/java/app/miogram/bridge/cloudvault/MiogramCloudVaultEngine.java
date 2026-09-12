@@ -251,10 +251,7 @@ public class MiogramCloudVaultEngine {
         long chunkSize = DEFAULT_CHUNK_SIZE;
         int totalChunks = (int) Math.max(1, Math.ceil((double) plainSize / chunkSize));
 
-        File cacheDir = new File(context.getCacheDir(), "vault_temp");
-        if (!cacheDir.exists()) {
-            cacheDir.mkdirs();
-        }
+        File cacheDir = getVaultTempDir(context);
 
         byte[] buffer = new byte[1024 * 1024]; // 1MB buffer
         long totalBytesRead = 0;
@@ -386,13 +383,11 @@ public class MiogramCloudVaultEngine {
                 }
 
                 registerFile(vaultFile);
-                cleanupTempFiles(context);
 
                 if (onComplete != null) {
                     AndroidUtilities.runOnUIThread(() -> onComplete.run(vaultFile));
                 }
             } catch (Exception e) {
-                cleanupTempFiles(ApplicationLoader.applicationContext);
                 FileLog.e(e);
                 if (onError != null) {
                     AndroidUtilities.runOnUIThread(() -> onError.run(e.getMessage()));
@@ -583,16 +578,28 @@ public class MiogramCloudVaultEngine {
         pendingParts.clear();
     }
 
+    public static File getVaultTempDir(Context context) {
+        File dir = new File(AndroidUtilities.getSharingDirectory(), "vault_temp");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        return dir;
+    }
+
     public static void cleanupTempFiles(Context context) {
         if (context == null) return;
         try {
-            File cacheDir = new File(context.getCacheDir(), "vault_temp");
+            File cacheDir = getVaultTempDir(context);
             if (cacheDir.exists() && cacheDir.isDirectory()) {
                 File[] files = cacheDir.listFiles();
                 if (files != null) {
+                    long now = System.currentTimeMillis();
                     for (File f : files) {
                         try {
-                            f.delete();
+                            // Only delete files older than 3 hours to avoid interfering with uploads
+                            if (now - f.lastModified() > 3L * 3600L * 1000L) {
+                                f.delete();
+                            }
                         } catch (Throwable ignored) {}
                     }
                 }
@@ -616,9 +623,21 @@ public class MiogramCloudVaultEngine {
             if (respHistory instanceof TLRPC.messages_Messages) {
                 processSyncMessages(currentAccount, ((TLRPC.messages_Messages) respHistory).messages);
             }
-            AndroidUtilities.runOnUIThread(() -> {
-                saveCache(currentAccount);
-                if (callback != null) callback.onSyncComplete(getFilesForTopic(0));
+
+            // Also search across all forum topics for #MVLT manifests
+            TLRPC.TL_messages_search reqSearch = new TLRPC.TL_messages_search();
+            reqSearch.peer = MessagesController.getInstance(currentAccount).getInputPeer(dialogId);
+            reqSearch.q = MANIFEST_PREFIX;
+            reqSearch.filter = new TLRPC.TL_inputMessagesFilterEmpty();
+            reqSearch.limit = 100;
+            ConnectionsManager.getInstance(currentAccount).sendRequest(reqSearch, (respSearch, errSearch) -> {
+                if (respSearch instanceof TLRPC.messages_Messages) {
+                    processSyncMessages(currentAccount, ((TLRPC.messages_Messages) respSearch).messages);
+                }
+                AndroidUtilities.runOnUIThread(() -> {
+                    saveCache(currentAccount);
+                    if (callback != null) callback.onSyncComplete(getFilesForTopic(0));
+                });
             });
         });
     }

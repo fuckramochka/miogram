@@ -116,9 +116,74 @@ public class MiogramLyricsEngine {
         return null;
     }
 
+    public MiogramLrcModel.LrcSong getCachedSongByMeta(String rawArtist, String rawTitle) {
+        if (TextUtils.isEmpty(rawTitle)) return null;
+        String title = cleanTitle(rawTitle);
+        String artist = cleanArtist(rawArtist != null ? rawArtist : "");
+        String baseKey = getCacheKey(artist, title);
+
+        MiogramLrcModel.LrcSong song = memoryCache.get(baseKey);
+        if (song != null && !song.isEmpty()) return song;
+
+        song = loadFromPersistentDisk(baseKey);
+        if (song != null && !song.isEmpty()) {
+            memoryCache.put(baseKey, song);
+            return song;
+        }
+
+        song = loadFromDisk(baseKey);
+        if (song != null && !song.isEmpty()) {
+            memoryCache.put(baseKey, song);
+            return song;
+        }
+
+        return null;
+    }
+
+    public void fetchLyricsByMeta(String rawArtist, String rawTitle, int durationSec, LyricsCallback callback) {
+        if (TextUtils.isEmpty(rawTitle)) {
+            postError(callback, "Empty title");
+            return;
+        }
+        String title = cleanTitle(rawTitle);
+        String artist = cleanArtist(rawArtist != null ? rawArtist : "");
+        String baseKey = getCacheKey(artist, title);
+
+        executor.execute(() -> {
+            MiogramLrcModel.LrcSong cached = getCachedSongByMeta(artist, title);
+            if (cached != null && !cached.isEmpty()) {
+                postSuccess(callback, cached);
+                return;
+            }
+
+            // 1. Try LRCLib
+            MiogramLrcModel.LrcSong song = queryLrcLib(title, artist, durationSec);
+            if (song != null && !song.isEmpty()) {
+                completeAndSave(baseKey, song, callback);
+                return;
+            }
+
+            // 2. Try NetEase
+            song = queryNetEase(title, artist, durationSec);
+            if (song != null && !song.isEmpty()) {
+                completeAndSave(baseKey, song, callback);
+                return;
+            }
+
+            // 3. Try Genius
+            song = queryGenius(title, artist);
+            if (song != null && !song.isEmpty()) {
+                completeAndSave(baseKey, song, callback);
+                return;
+            }
+
+            postError(callback, "Lyrics not found");
+        });
+    }
+
     public interface LyricsCallback {
         void onLyricsLoaded(MiogramLrcModel.LrcSong song);
-        void onError(String message);
+        default void onError(String message) {}
     }
 
     private final ExecutorService executor = Executors.newFixedThreadPool(4);

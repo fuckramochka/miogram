@@ -809,11 +809,17 @@ public class MiogramCloudVaultActivity extends BaseFragment {
 
                     MessageObject replyToTopMsg = null;
                     if (vaultFile.topicId > 0 && !MiogramCloudVaultEngine.isSavedMessagesVault(currentAccount, vaultChatId)) {
-                        TLRPC.TL_message dummyMsg = new TLRPC.TL_message();
-                        dummyMsg.id = (int) vaultFile.topicId;
-                        dummyMsg.dialog_id = targetDialogId;
-                        replyToTopMsg = new MessageObject(currentAccount, dummyMsg, false, false);
-                        replyToTopMsg.isTopicMainMessage = true;
+                        TLRPC.TL_forumTopic topic = getMessagesController().getTopicsController().findTopic(-targetDialogId, vaultFile.topicId);
+                        if (topic != null && topic.topicStartMessage != null) {
+                            replyToTopMsg = new MessageObject(currentAccount, topic.topicStartMessage, false, false);
+                            replyToTopMsg.isTopicMainMessage = true;
+                        } else {
+                            TLRPC.TL_message dummyMsg = new TLRPC.TL_message();
+                            dummyMsg.id = (int) vaultFile.topicId;
+                            dummyMsg.dialog_id = targetDialogId;
+                            replyToTopMsg = new MessageObject(currentAccount, dummyMsg, false, false);
+                            replyToTopMsg.isTopicMainMessage = true;
+                        }
                     }
 
                     for (int i = 0; i < chunkFiles.size(); i++) {

@@ -132,6 +132,12 @@ public class PluginsController extends com.exteragram.messenger.plugins.PluginsC
             if (ok) {
                 rescanAndLoadEnabled();
                 executeOnAppEvent(PluginsConstants.EVENT_APP_START);
+                // User-granted "mioplugin" folder: dropped files auto-join the catalog.
+                try {
+                    MiogramMiopluginWatcher.scanAndImport(appContext, null);
+                } catch (Throwable t) {
+                    FileLog.e("PluginsController: mioplugin scan failed", t);
+                }
             }
         });
     }

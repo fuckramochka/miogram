@@ -48,5 +48,7 @@ dist/
 CustomProfile_java_src/
 *.mp4
 !TMessagesProj/src/main/assets/musordrop.mp4
+!TMessagesProj/src/main/assets/plugins/
+!TMessagesProj/src/main/assets/plugins/**
 !assets/musordrop.mp4
 
