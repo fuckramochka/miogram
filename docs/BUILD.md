@@ -75,11 +75,11 @@ ndk.dir=/path/to/Android/Sdk/ndk/27.2.12479018
 
 ## 4. Website Build (GitHub Pages)
 
-The project includes a modern Vite + React static landing website located in `website/`:
+The project includes a modern Vite + React static landing website located in `miosite/`:
 
 ```bash
-cd website
+cd miosite
 npm install
 npm run build
 ```
-Build artifacts are placed in `website/dist` and automatically deployed by `.github/workflows/website.yml`.
+Build artifacts are placed in `miosite/dist` and automatically deployed by `.github/workflows/website.yml`.

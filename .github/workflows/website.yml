@@ -1,15 +1,13 @@
 name: Website Build & Deploy
 
-# Builds the Vite site from website/ and deploys static dist/ to GitHub Pages.
-# REQUIRED repo setting: Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
-# NOTE: release.yml ignores website/** so site pushes never trigger APK builds.
+# Builds the Vite site directly from miosite/ and deploys static dist/ to GitHub Pages via GitHub Actions.
+# NOTE: release.yml ignores miosite/** so site pushes never trigger APK builds.
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'website/**'
       - 'miosite/**'
       - '.github/workflows/website.yml'
   workflow_dispatch:
@@ -29,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: website
+        working-directory: miosite
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,14 +38,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: website/package-lock.json
-      - name: Sync miosite to website
-        run: |
-          if [ -d "../miosite" ]; then
-            cp -rf ../miosite/src/* ./src/ || true
-            cp -f ../miosite/index.html . || true
-            cp -f ../miosite/vite.config.ts . || true
-          fi
+          cache-dependency-path: miosite/package-lock.json
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
       - name: Typecheck + Build
@@ -59,7 +50,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: website/dist
+          path: miosite/dist
 
   deploy:
     name: Deploy to GitHub Pages
