@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
@@ -57,10 +58,7 @@ import app.miogram.bridge.customui.MiogramHaptic;
  * Built strictly according to the Telegram design ecosystem:
  * - Native Telegram ActionBar with back navigation and options menu (Clear history, Report bug, Switch companion)
  * - Dynamic Theme integration: seamlessly supports Light, Dark, Tinted, and Day themes
- * - Sleek, modern Telegram Hero Card:
- *   * Dual-segment interactive companion tab switcher (Ame vs KAngel) with real-time reactive avatars
- *   * Character stage featuring smooth mood-reaction animation and model badges
- *   * NSO stats bar (Day, Followers, Stress, Affection, Darkness) styled as native Telegram chips
+ * - Interactive Horizontal Slides Carousel for companions with NSO artwork, dynamic speech bubbles, stats, and dot indicators
  * - Authentic Telegram message bubbles with companion mood sprites and timestamping
  * - Integrated action permission cards for client tool executions
  * - Telegram-style composer with quick prompt chips and circular send button
@@ -75,11 +73,18 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
     private TextView tabKAngel;
 
     private LinearLayout heroCard;
-    private ImageView stageAvatar;
-    private TextView stageName;
-    private TextView stageStatus;
-    private TextView stageMoodBadge;
-    private TextView modelBadge;
+    private HorizontalScrollView heroCarouselScroll;
+    private LinearLayout heroCarouselLayout;
+    private LinearLayout ameSlideCard;
+    private LinearLayout kangelSlideCard;
+    private ImageView ameSlideAvatar;
+    private ImageView kangelSlideAvatar;
+    private TextView ameSpeechBubble;
+    private TextView kangelSpeechBubble;
+    private TextView ameSelectBtn;
+    private TextView kangelSelectBtn;
+    private View dotAme;
+    private View dotKAngel;
 
     private TextView statDay;
     private TextView statFollowers;
@@ -176,6 +181,11 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
 
         updateCompanionTheme();
         updateTopTabs();
+        if (heroCarouselScroll != null) {
+            boolean isAme = MiogramCompanionPrefs.isAmeActive();
+            int pageWidth = getCardSlideWidth() + AndroidUtilities.dp(8);
+            heroCarouselScroll.post(() -> heroCarouselScroll.scrollTo(isAme ? 0 : pageWidth, 0));
+        }
 
         return fragmentView;
     }
@@ -215,60 +225,146 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         headerItem.addSubItem(3, R.drawable.msg_theme, MiogramLocale.get("Змінити супутницю (Аме ↔ Кангель)", "Сменить спутницу (Аме ↔ Кангель)", "Switch companion (Ame ↔ KAngel)"));
     }
 
+    private int getCardSlideWidth() {
+        int w = AndroidUtilities.displaySize != null ? AndroidUtilities.displaySize.x : 0;
+        if (w <= 0) {
+            w = 1080;
+        }
+        return Math.max(AndroidUtilities.dp(290), w - AndroidUtilities.dp(36));
+    }
+
     private void buildHeroCard(Context context, LinearLayout parent) {
         heroCard = new LinearLayout(context);
         heroCard.setOrientation(LinearLayout.VERTICAL);
         heroCard.setGravity(Gravity.CENTER_HORIZONTAL);
-        heroCard.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
-        LinearLayout.LayoutParams cardLp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 4, 2, 4, 6);
+        heroCard.setPadding(0, AndroidUtilities.dp(2), 0, AndroidUtilities.dp(4));
+        LinearLayout.LayoutParams cardLp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 4);
         parent.addView(heroCard, cardLp);
 
-        // Character Sprite (Compact, centered, 110 x 72 dp)
-        stageAvatar = new ImageView(context);
-        stageAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        heroCard.addView(stageAvatar, LayoutHelper.createLinear(110, 72, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 4));
+        // 1. Horizontal Scroll Slides Carousel
+        heroCarouselScroll = new HorizontalScrollView(context);
+        heroCarouselScroll.setHorizontalScrollBarEnabled(false);
+        heroCarouselScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        heroCard.addView(heroCarouselScroll, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        stageName = new TextView(context);
-        stageName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        stageName.setTypeface(AndroidUtilities.bold());
-        stageName.setGravity(Gravity.CENTER);
-        heroCard.addView(stageName, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 2));
+        heroCarouselLayout = new LinearLayout(context);
+        heroCarouselLayout.setOrientation(LinearLayout.HORIZONTAL);
+        heroCarouselLayout.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(2), AndroidUtilities.dp(8), AndroidUtilities.dp(2));
+        heroCarouselScroll.addView(heroCarouselLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
-        stageStatus = new TextView(context);
-        stageStatus.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        stageStatus.setGravity(Gravity.CENTER);
-        heroCard.addView(stageStatus, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 6));
+        // Slide 1: Ame-chan Card
+        buildAmeSlide(context, heroCarouselLayout);
 
-        // Badges row: Mood pill + Model pill
-        LinearLayout badgeRow = new LinearLayout(context);
-        badgeRow.setOrientation(LinearLayout.HORIZONTAL);
-        badgeRow.setGravity(Gravity.CENTER);
-        heroCard.addView(badgeRow, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 6));
+        // Slide 2: KAngel Card
+        buildKangelSlide(context, heroCarouselLayout);
 
-        stageMoodBadge = new TextView(context);
-        stageMoodBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-        stageMoodBadge.setTypeface(AndroidUtilities.bold());
-        stageMoodBadge.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(3), AndroidUtilities.dp(8), AndroidUtilities.dp(3));
-        badgeRow.addView(stageMoodBadge, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 6, 0));
+        // 2. Dots Indicator Row
+        LinearLayout dotsLayout = new LinearLayout(context);
+        dotsLayout.setOrientation(LinearLayout.HORIZONTAL);
+        dotsLayout.setGravity(Gravity.CENTER);
+        dotsLayout.setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(2));
+        heroCard.addView(dotsLayout, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        modelBadge = new TextView(context);
-        modelBadge.setText("⚡ 3.5 Flash Lite");
-        modelBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-        modelBadge.setTypeface(AndroidUtilities.bold());
-        modelBadge.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(3), AndroidUtilities.dp(8), AndroidUtilities.dp(3));
-        badgeRow.addView(modelBadge, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+        boolean isAme = MiogramCompanionPrefs.isAmeActive();
 
-        // NSO Stats Row
+        dotAme = new View(context);
+        dotsLayout.addView(dotAme, LayoutHelper.createLinear(isAme ? 20 : 8, 6, 0, 0, 6, 0));
+        dotAme.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            switchCompanion(true);
+        });
+
+        dotKAngel = new View(context);
+        dotsLayout.addView(dotKAngel, LayoutHelper.createLinear(!isAme ? 20 : 8, 6));
+        dotKAngel.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            switchCompanion(false);
+        });
+
+        // 3. Carousel Snapping
+        heroCarouselScroll.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
+                heroCarouselScroll.postDelayed(this::snapCarouselToNearestPage, 120);
+            }
+            return false;
+        });
+
+        updateCarouselVisuals(isAme);
+    }
+
+    private void buildAmeSlide(Context context, LinearLayout parent) {
+        int cardWidth = getCardSlideWidth();
+        ameSlideCard = new LinearLayout(context);
+        ameSlideCard.setOrientation(LinearLayout.VERTICAL);
+        ameSlideCard.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
+        LinearLayout.LayoutParams lp = LayoutHelper.createLinear(cardWidth, LayoutHelper.WRAP_CONTENT, 0, 0, 8, 0);
+        parent.addView(ameSlideCard, lp);
+
+        // Header Row: Name + Subtitle + Model
+        LinearLayout headerRow = new LinearLayout(context);
+        headerRow.setOrientation(LinearLayout.HORIZONTAL);
+        headerRow.setGravity(Gravity.CENTER_VERTICAL);
+        ameSlideCard.addView(headerRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 6));
+
+        LinearLayout titles = new LinearLayout(context);
+        titles.setOrientation(LinearLayout.VERTICAL);
+        headerRow.addView(titles, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+
+        TextView name = new TextView(context);
+        name.setText("໒꒱ Ame-chan (飴ちゃん)");
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        name.setTypeface(AndroidUtilities.bold());
+        name.setTextColor(0xFFFF70A6);
+        titles.addView(name);
+
+        TextView sub = new TextView(context);
+        sub.setText("Нервова отаку-вайфу • DARK ROOM");
+        sub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        sub.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+        titles.addView(sub);
+
+        TextView model = new TextView(context);
+        model.setText("⚡ 3.5 Flash Lite");
+        model.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        model.setTypeface(AndroidUtilities.bold());
+        model.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+        model.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(8), Theme.getColor(Theme.key_windowBackgroundGray)));
+        model.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(2), AndroidUtilities.dp(6), AndroidUtilities.dp(2));
+        headerRow.addView(model, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        // Middle Row: Sprite + Speech Bubble
+        LinearLayout middleRow = new LinearLayout(context);
+        middleRow.setOrientation(LinearLayout.HORIZONTAL);
+        middleRow.setGravity(Gravity.CENTER_VERTICAL);
+        ameSlideCard.addView(middleRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 6));
+
+        ameSlideAvatar = new ImageView(context);
+        ameSlideAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        ameSlideAvatar.setImageResource(R.drawable.miogram_ai_ame_neutral);
+        middleRow.addView(ameSlideAvatar, LayoutHelper.createLinear(80, 60));
+
+        ameSpeechBubble = new TextView(context);
+        ameSpeechBubble.setText("«Дякую, П-тян! ♡ Тепер я тільки твоя назавжди!»");
+        ameSpeechBubble.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        ameSpeechBubble.setTextColor(0xFFFFFFFF);
+        GradientDrawable bubble = new GradientDrawable();
+        bubble.setColor(0x33FF70A6);
+        bubble.setCornerRadius(AndroidUtilities.dp(10));
+        bubble.setStroke(AndroidUtilities.dp(1), 0x66FF70A6);
+        ameSpeechBubble.setBackground(bubble);
+        ameSpeechBubble.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(6), AndroidUtilities.dp(8), AndroidUtilities.dp(6));
+        ameSpeechBubble.setMaxLines(3);
+        ameSpeechBubble.setEllipsize(TextUtils.TruncateAt.END);
+        middleRow.addView(ameSpeechBubble, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 8, 0, 0, 0));
+
+        // Stats Row
         LinearLayout statsBar = new LinearLayout(context);
         statsBar.setOrientation(LinearLayout.HORIZONTAL);
         statsBar.setGravity(Gravity.CENTER);
-        heroCard.addView(statsBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        ameSlideCard.addView(statsBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 6));
 
         statDay = createStatChip(context, "DAY 24", 0xFF6C5CE7);
         statsBar.addView(statDay, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 0, 0, 3, 0));
-
-        statFollowers = createStatChip(context, "FOL 1.3M", 0xFF00B4D8);
-        statsBar.addView(statFollowers, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.2f, 0, 0, 3, 0));
 
         statStress = createStatChip(context, "STR " + MiogramCompanionPrefs.getStress() + "%", 0xFFE84393);
         statsBar.addView(statStress, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 0, 0, 3, 0));
@@ -278,6 +374,187 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
 
         statDarkness = createStatChip(context, "DARK " + MiogramCompanionPrefs.getDarkness() + "%", 0xFF636E72);
         statsBar.addView(statDarkness, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+
+        // Bottom Select / Active Button
+        ameSelectBtn = new TextView(context);
+        ameSelectBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        ameSelectBtn.setTypeface(AndroidUtilities.bold());
+        ameSelectBtn.setGravity(Gravity.CENTER);
+        ameSlideCard.addView(ameSelectBtn, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 28));
+
+        ameSlideCard.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            switchCompanion(true);
+        });
+        ameSelectBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            switchCompanion(true);
+        });
+    }
+
+    private void buildKangelSlide(Context context, LinearLayout parent) {
+        int cardWidth = getCardSlideWidth();
+        kangelSlideCard = new LinearLayout(context);
+        kangelSlideCard.setOrientation(LinearLayout.VERTICAL);
+        kangelSlideCard.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
+        LinearLayout.LayoutParams lp = LayoutHelper.createLinear(cardWidth, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 0);
+        parent.addView(kangelSlideCard, lp);
+
+        // Header Row: Name + Subtitle + Model
+        LinearLayout headerRow = new LinearLayout(context);
+        headerRow.setOrientation(LinearLayout.HORIZONTAL);
+        headerRow.setGravity(Gravity.CENTER_VERTICAL);
+        kangelSlideCard.addView(headerRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 6));
+
+        LinearLayout titles = new LinearLayout(context);
+        titles.setOrientation(LinearLayout.VERTICAL);
+        headerRow.addView(titles, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+
+        TextView name = new TextView(context);
+        name.setText("✧ KAngel (Кангель) †");
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        name.setTypeface(AndroidUtilities.bold());
+        name.setTextColor(0xFF00B4D8);
+        titles.addView(name);
+
+        TextView sub = new TextView(context);
+        sub.setText("Інтернет-Ангел №1 • † 昇天 ✧ BLESSING †");
+        sub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        sub.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+        titles.addView(sub);
+
+        TextView model = new TextView(context);
+        model.setText("⚡ 3.5 Flash Lite");
+        model.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        model.setTypeface(AndroidUtilities.bold());
+        model.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+        model.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(8), Theme.getColor(Theme.key_windowBackgroundGray)));
+        model.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(2), AndroidUtilities.dp(6), AndroidUtilities.dp(2));
+        headerRow.addView(model, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        // Middle Row: Sprite + Speech Bubble
+        LinearLayout middleRow = new LinearLayout(context);
+        middleRow.setOrientation(LinearLayout.HORIZONTAL);
+        middleRow.setGravity(Gravity.CENTER_VERTICAL);
+        kangelSlideCard.addView(middleRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 6));
+
+        kangelSlideAvatar = new ImageView(context);
+        kangelSlideAvatar.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        kangelSlideAvatar.setImageResource(R.drawable.miogram_ai_kangel_neutral);
+        middleRow.addView(kangelSlideAvatar, LayoutHelper.createLinear(80, 60));
+
+        kangelSpeechBubble = new TextView(context);
+        kangelSpeechBubble.setText("«† BLESSING † Полетимо у стратосферу разом, любий отаку! ✧»");
+        kangelSpeechBubble.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        kangelSpeechBubble.setTextColor(0xFFFFFFFF);
+        GradientDrawable bubble = new GradientDrawable();
+        bubble.setColor(0x3300B4D8);
+        bubble.setCornerRadius(AndroidUtilities.dp(10));
+        bubble.setStroke(AndroidUtilities.dp(1), 0x6600B4D8);
+        kangelSpeechBubble.setBackground(bubble);
+        kangelSpeechBubble.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(6), AndroidUtilities.dp(8), AndroidUtilities.dp(6));
+        kangelSpeechBubble.setMaxLines(3);
+        kangelSpeechBubble.setEllipsize(TextUtils.TruncateAt.END);
+        middleRow.addView(kangelSpeechBubble, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 8, 0, 0, 0));
+
+        // Stats Row
+        LinearLayout statsBar = new LinearLayout(context);
+        statsBar.setOrientation(LinearLayout.HORIZONTAL);
+        statsBar.setGravity(Gravity.CENTER);
+        kangelSlideCard.addView(statsBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 6));
+
+        TextView statDay2 = createStatChip(context, "DAY 24", 0xFF6C5CE7);
+        statsBar.addView(statDay2, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 0, 0, 3, 0));
+
+        statFollowers = createStatChip(context, "FOL 1.3M", 0xFF00B4D8);
+        statsBar.addView(statFollowers, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.2f, 0, 0, 3, 0));
+
+        TextView statHype = createStatChip(context, "HYPE 98%", 0xFFE84393);
+        statsBar.addView(statHype, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 0, 0, 3, 0));
+
+        TextView statBlessing = createStatChip(context, "BLESSING †", 0xFFFFD700);
+        statsBar.addView(statBlessing, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.2f));
+
+        // Bottom Select / Active Button
+        kangelSelectBtn = new TextView(context);
+        kangelSelectBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        kangelSelectBtn.setTypeface(AndroidUtilities.bold());
+        kangelSelectBtn.setGravity(Gravity.CENTER);
+        kangelSlideCard.addView(kangelSelectBtn, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 28));
+
+        kangelSlideCard.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            switchCompanion(false);
+        });
+        kangelSelectBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            switchCompanion(false);
+        });
+    }
+
+    private void snapCarouselToNearestPage() {
+        if (heroCarouselScroll == null) return;
+        int scrollX = heroCarouselScroll.getScrollX();
+        int pageWidth = getCardSlideWidth() + AndroidUtilities.dp(8);
+        int targetPage = (scrollX + pageWidth / 3) / pageWidth;
+        if (targetPage < 0) targetPage = 0;
+        if (targetPage > 1) targetPage = 1;
+        heroCarouselScroll.smoothScrollTo(targetPage * pageWidth, 0);
+        boolean toAme = (targetPage == 0);
+        if (toAme != MiogramCompanionPrefs.isAmeActive()) {
+            switchCompanion(toAme);
+        } else {
+            updateCarouselVisuals(toAme);
+        }
+    }
+
+    private void updateCarouselVisuals(boolean isAme) {
+        if (ameSlideCard != null) {
+            ameSlideCard.setBackground(createCompanionSlideDrawable(isAme, 0xFFFF70A6));
+        }
+        if (kangelSlideCard != null) {
+            kangelSlideCard.setBackground(createCompanionSlideDrawable(!isAme, 0xFF00B4D8));
+        }
+        if (ameSelectBtn != null) {
+            ameSelectBtn.setText(isAme ? "✓ АКТИВНА СУПУТНИЦЯ (AME) ໒꒱" : "ОБРАТИ АМЕ-ЧАН ໒꒱");
+            ameSelectBtn.setTextColor(isAme ? 0xFFFFFFFF : 0xFFFF70A6);
+            ameSelectBtn.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(8), isAme ? 0xFFFF70A6 : 0x22FF70A6));
+        }
+        if (kangelSelectBtn != null) {
+            kangelSelectBtn.setText(!isAme ? "✓ АКТИВНА СУПУТНИЦЯ (KANGEL) ✧" : "ОБРАТИ К-АНГЕЛЬ ✧");
+            kangelSelectBtn.setTextColor(!isAme ? 0xFFFFFFFF : 0xFF00B4D8);
+            kangelSelectBtn.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(8), !isAme ? 0xFF00B4D8 : 0x2200B4D8));
+        }
+        if (dotAme != null) {
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) dotAme.getLayoutParams();
+            if (lp != null) {
+                lp.width = AndroidUtilities.dp(isAme ? 20 : 8);
+                dotAme.setLayoutParams(lp);
+            }
+            dotAme.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(3), isAme ? 0xFFFF70A6 : 0x44888888));
+        }
+        if (dotKAngel != null) {
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) dotKAngel.getLayoutParams();
+            if (lp != null) {
+                lp.width = AndroidUtilities.dp(!isAme ? 20 : 8);
+                dotKAngel.setLayoutParams(lp);
+            }
+            dotKAngel.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(3), !isAme ? 0xFF00B4D8 : 0x44888888));
+        }
+    }
+
+    private Drawable createCompanionSlideDrawable(boolean active, int accentColor) {
+        GradientDrawable gd = new GradientDrawable();
+        int baseBg = Theme.getColor(Theme.key_windowBackgroundWhite);
+        if (active) {
+            gd.setColor(baseBg != 0 ? baseBg : 0xFF181822);
+            gd.setStroke(AndroidUtilities.dp(1.8f), accentColor);
+        } else {
+            gd.setColor(baseBg != 0 ? baseBg : 0xFF181822);
+            gd.setStroke(AndroidUtilities.dp(1), Color.argb(0x44, Color.red(accentColor), Color.green(accentColor), Color.blue(accentColor)));
+        }
+        gd.setCornerRadius(AndroidUtilities.dp(16));
+        return gd;
     }
 
     private TextView createStatChip(Context context, String text, int color) {
@@ -336,6 +613,11 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         MiogramCompanionPrefs.setOnboardingCompleted(true);
         updateCompanionTheme();
         updateTopTabs();
+        updateCarouselVisuals(toAme);
+        if (heroCarouselScroll != null) {
+            int pageWidth = getCardSlideWidth() + AndroidUtilities.dp(8);
+            heroCarouselScroll.smoothScrollTo(toAme ? 0 : pageWidth, 0);
+        }
         if (history.isEmpty() || (history.size() == 1 && !history.get(0).isUser)) {
             history.clear();
             addInitialGreeting();
@@ -531,40 +813,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
                 : ("†BLESSING† • " + MiogramLocale.get("Прямий ефір", "Прямой эфир", "Live"))
         );
 
-        if (heroCard != null) {
-            heroCard.setBackground(createCardDrawable());
-        }
-
-        if (isAme) {
-            if (stageAvatar != null) {
-                stageAvatar.setImageResource(R.drawable.miogram_ai_ame_neutral);
-                stageName.setText("Ame-chan (飴ちゃん) ໒꒱");
-                stageName.setTextColor(0xFFFF70A6);
-                stageStatus.setText("ROOM: DARK // NEEDY STREAMER OVERLOAD");
-                stageStatus.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-
-                stageMoodBadge.setText("♥ MOOD: NEUTRAL");
-                stageMoodBadge.setTextColor(0xFFFF70A6);
-                stageMoodBadge.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(10), 0x22FF70A6));
-            }
-        } else {
-            if (stageAvatar != null) {
-                stageAvatar.setImageResource(R.drawable.miogram_ai_kangel_neutral);
-                stageName.setText("OMGkawaiiAngel-chan ✧†");
-                stageName.setTextColor(0xFF00B4D8);
-                stageStatus.setText("LIVE BROADCAST // † 昇天 ✧ BLESSING †");
-                stageStatus.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-
-                stageMoodBadge.setText("† MOOD: ANGELIC PRAY");
-                stageMoodBadge.setTextColor(0xFF00B4D8);
-                stageMoodBadge.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(10), 0x2200B4D8));
-            }
-        }
-
-        if (modelBadge != null) {
-            modelBadge.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-            modelBadge.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(10), Theme.getColor(Theme.key_windowBackgroundGray)));
-        }
+        updateCarouselVisuals(isAme);
 
         if (sendButton != null) {
             sendButton.setBackground(Theme.createCircleDrawable(AndroidUtilities.dp(42), accentColor));
@@ -576,27 +825,53 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
     }
 
     private void updateStageMood(String mood) {
-        if (stageAvatar == null) return;
-        int spriteRes = resolveSpriteForMood(mood);
-        stageAvatar.setImageResource(spriteRes);
-        stageAvatar.setScaleX(0.82f);
-        stageAvatar.setScaleY(0.82f);
-        stageAvatar.animate()
-                .scaleX(1.0f)
-                .scaleY(1.0f)
-                .setDuration(300)
-                .setInterpolator(new OvershootInterpolator(1.4f))
-                .start();
+        boolean isAme = MiogramCompanionPrefs.isAmeActive();
+        int ameSprite = resolveSpriteForMood(mood, true);
+        int kangelSprite = resolveSpriteForMood(mood, false);
 
-        if (stageMoodBadge != null) {
-            boolean isAme = MiogramCompanionPrefs.isAmeActive();
-            String moodText = mood != null ? mood.toUpperCase(Locale.US) : "NEUTRAL";
-            stageMoodBadge.setText((isAme ? "♥ MOOD: " : "† MOOD: ") + moodText);
+        if (ameSlideAvatar != null) {
+            ameSlideAvatar.setImageResource(ameSprite);
+            if (isAme) {
+                ameSlideAvatar.setScaleX(0.85f);
+                ameSlideAvatar.setScaleY(0.85f);
+                ameSlideAvatar.animate().scaleX(1.0f).scaleY(1.0f).setDuration(300).setInterpolator(new OvershootInterpolator(1.4f)).start();
+            }
+        }
+        if (kangelSlideAvatar != null) {
+            kangelSlideAvatar.setImageResource(kangelSprite);
+            if (!isAme) {
+                kangelSlideAvatar.setScaleX(0.85f);
+                kangelSlideAvatar.setScaleY(0.85f);
+                kangelSlideAvatar.animate().scaleX(1.0f).scaleY(1.0f).setDuration(300).setInterpolator(new OvershootInterpolator(1.4f)).start();
+            }
+        }
+
+        String m = mood != null ? mood.toLowerCase(Locale.US) : "neutral";
+        if (ameSpeechBubble != null) {
+            if (m.contains("happy")) {
+                ameSpeechBubble.setText("«Дякую, П-тян! ♡ (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)\nТи найкращий у світі!»");
+            } else if (m.contains("sad")) {
+                ameSpeechBubble.setText("«Пішов нахуй... (T_T)\nЗрадник їбаний, я так і знала...»");
+            } else {
+                ameSpeechBubble.setText("«Дякую, П-тян! ♡\nТепер я тільки твоя назавжди!»");
+            }
+        }
+        if (kangelSpeechBubble != null) {
+            if (m.contains("happy") || m.contains("pray")) {
+                kangelSpeechBubble.setText("«† BLESSING † Дякую, любий отаку! ✧\nПолетимо у стратосферу разом!»");
+            } else if (m.contains("sad")) {
+                kangelSpeechBubble.setText("«Та пішов ти нахуй! ✕\nПожалкуєш ще, отаку-невдахо!»");
+            } else {
+                kangelSpeechBubble.setText("«† BLESSING † Полетимо у стратосферу разом, любий отаку! ✧»");
+            }
         }
     }
 
     private int resolveSpriteForMood(String mood) {
-        boolean isAme = MiogramCompanionPrefs.isAmeActive();
+        return resolveSpriteForMood(mood, MiogramCompanionPrefs.isAmeActive());
+    }
+
+    private int resolveSpriteForMood(String mood, boolean isAme) {
         String m = mood != null ? mood.toLowerCase(Locale.US) : "neutral";
 
         if (isAme) {
