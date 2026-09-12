@@ -131,9 +131,7 @@ public class MiogramSpotifyManager {
 
                 // Prefetch lyrics via MiogramLyricsEngine
                 if (!TextUtils.isEmpty(currentTrack)) {
-                    MiogramLyricsEngine.getInstance().fetchLyricsByMeta(currentArtist, currentTrack, (int) (durationMs / 1000), song -> {
-                        AndroidUtilities.runOnUIThread(this::notifyTrackChanged);
-                    });
+                    MiogramLyricsEngine.getInstance().fetchLyricsByMeta(currentArtist, currentTrack, (int) (durationMs / 1000), song -> notifyTrackChanged());
                 }
 
                 notifyTrackChanged();

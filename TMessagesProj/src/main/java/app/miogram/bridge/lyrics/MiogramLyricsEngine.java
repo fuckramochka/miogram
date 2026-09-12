@@ -171,7 +171,7 @@ public class MiogramLyricsEngine {
             }
 
             // 3. Try Genius
-            song = queryGenius(title, artist);
+            song = queryGenius(title, artist, durationSec);
             if (song != null && !song.isEmpty()) {
                 completeAndSave(baseKey, song, callback);
                 return;
