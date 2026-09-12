@@ -5177,6 +5177,20 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
 
                 newMsg.message = pair.getFirst();
                 if (entities != null && !entities.isEmpty()) {
+                    if (!UserConfig.getInstance(currentAccount).isPremium()) {
+                        for (int a = 0; a < entities.size(); a++) {
+                            TLRPC.MessageEntity entity = entities.get(a);
+                            if (entity instanceof TLRPC.TL_messageEntityCustomEmoji) {
+                                long docId = ((TLRPC.TL_messageEntityCustomEmoji) entity).document_id;
+                                if (docId == 0) continue;
+                                TLRPC.TL_messageEntityTextUrl urlEntity = new TLRPC.TL_messageEntityTextUrl();
+                                urlEntity.offset = entity.offset;
+                                urlEntity.length = entity.length;
+                                urlEntity.url = "tg://emoji?id=" + docId;
+                                entities.set(a, urlEntity);
+                            }
+                        }
+                    }
                     newMsg.entities = entities;
                 }
             }

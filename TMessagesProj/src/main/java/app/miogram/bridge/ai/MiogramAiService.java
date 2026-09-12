@@ -403,6 +403,36 @@ public class MiogramAiService {
      */
     public static void transcribeAudio(File audioFile, String mimeType, String title, String artist,
                                        int durationSeconds, Utilities.Callback2<String, String> callback) {
+        String prompt = "Transcribe the lyrics in this audio track. Return only standard LRC lines "
+                + "in the exact format [mm:ss.xx] lyric text, one line per timestamp. "
+                + "Do not use Markdown, headings, translations, descriptions, or invented words. "
+                + "If there are no confidently intelligible lyrics, return exactly [00:00.00] [Instrumental]. "
+                + "Track metadata: title=" + (title == null ? "" : title)
+                + ", artist=" + (artist == null ? "" : artist)
+                + ", duration=" + Math.max(0, durationSeconds) + " seconds.";
+        transcribeAudioWithPrompt(audioFile, mimeType, prompt, callback);
+    }
+
+    /**
+     * Enhanced transcription: per-WORD start timings, one word per timestamped
+     * line, so every word gets its own beginning (and inferred end).
+     */
+    public static void transcribeAudioWordTimed(File audioFile, String mimeType, String title, String artist,
+                                                int durationSeconds, Utilities.Callback2<String, String> callback) {
+        String prompt = "Transcribe the lyrics in this audio track with a timestamp for EVERY single word. "
+                + "Return only lines in the exact format [mm:ss.ms] word — one word per line, in order, "
+                + "e.g. [00:12.400] hello. Keep original language and spelling. "
+                + "Do not group words into sentences, do not use Markdown, headings, translations, "
+                + "descriptions, or invented words. Repeat words exactly as sung. "
+                + "If there are no confidently intelligible lyrics, return exactly [00:00.00] [Instrumental]. "
+                + "Track metadata: title=" + (title == null ? "" : title)
+                + ", artist=" + (artist == null ? "" : artist)
+                + ", duration=" + Math.max(0, durationSeconds) + " seconds.";
+        transcribeAudioWithPrompt(audioFile, mimeType, prompt, callback);
+    }
+
+    private static void transcribeAudioWithPrompt(File audioFile, String mimeType, String prompt,
+                                                  Utilities.Callback2<String, String> callback) {
         if (audioFile == null || !audioFile.isFile() || audioFile.length() <= 0) {
             callback.run(null, "Audio file is not downloaded yet");
             return;
@@ -431,14 +461,6 @@ public class MiogramAiService {
                     callback.run(null, "Could not read the complete audio file");
                     return;
                 }
-
-                String prompt = "Transcribe the lyrics in this audio track. Return only standard LRC lines "
-                        + "in the exact format [mm:ss.xx] lyric text, one line per timestamp. "
-                        + "Do not use Markdown, headings, translations, descriptions, or invented words. "
-                        + "If there are no confidently intelligible lyrics, return exactly [00:00.00] [Instrumental]. "
-                        + "Track metadata: title=" + (title == null ? "" : title)
-                        + ", artist=" + (artist == null ? "" : artist)
-                        + ", duration=" + Math.max(0, durationSeconds) + " seconds.";
 
                 JsonObject root = new JsonObject();
                 JsonArray contents = new JsonArray();

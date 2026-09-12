@@ -41,6 +41,7 @@ import okhttp3.Response;
  * 5. SOURCE_GENIUS: Genius web search
  * 6. SOURCE_YOUTUBE: YouTube track info
  * 7. SOURCE_AI: AI Audio Transcription
+ * 8. SOURCE_AI_WORD: Enhanced AI transcription with per-word timings
  */
 public class MiogramLyricsEngine {
 
@@ -52,6 +53,7 @@ public class MiogramLyricsEngine {
     public static final int SOURCE_GENIUS = 5;
     public static final int SOURCE_YOUTUBE = 6;
     public static final int SOURCE_AI = 7;
+    public static final int SOURCE_AI_WORD = 8;
 
     private static volatile MiogramLyricsEngine Instance;
 
@@ -86,7 +88,7 @@ public class MiogramLyricsEngine {
         MiogramLrcModel.LrcSong song = memoryCache.get(baseKey);
         if (song != null && !song.isEmpty()) return song;
 
-        for (int src = 0; src <= 6; src++) {
+        for (int src = 0; src <= 8; src++) {
             song = memoryCache.get(baseKey + "_src" + src);
             if (song != null && !song.isEmpty()) return song;
         }
@@ -103,7 +105,7 @@ public class MiogramLyricsEngine {
             return song;
         }
 
-        for (int src = 0; src <= 6; src++) {
+        for (int src = 0; src <= 8; src++) {
             song = loadFromPersistentDisk(baseKey + "_src" + src);
             if (song != null && !song.isEmpty()) {
                 memoryCache.put(baseKey, song);
@@ -213,6 +215,11 @@ public class MiogramLyricsEngine {
 
                 if (preferredSource == SOURCE_AI) {
                     transcribeAudioWithAi(messageObject, callback);
+                    return;
+                }
+
+                if (preferredSource == SOURCE_AI_WORD) {
+                    transcribeAudioWithAiWordTimed(messageObject, callback);
                     return;
                 }
 
@@ -355,6 +362,72 @@ public class MiogramLyricsEngine {
                         (lrc, error) -> {
                             if (!TextUtils.isEmpty(lrc)) {
                                 MiogramLrcModel.LrcSong aiSong = MiogramLrcModel.parseLrc(stripCodeFence(lrc), title, artist, "✨ Gemini AI");
+                                if (aiSong != null && !aiSong.isEmpty()) {
+                                    completeAndSave(cacheKey, aiSong, callback);
+                                    return;
+                                }
+                                postError(callback, app.miogram.bridge.MiogramLocale.get(
+                                        "ШІ не зміг розпізнати розбірливий текст пісні.",
+                                        "ИИ не смог распознать разборчивый текст песни.",
+                                        "AI could not extract recognizable lyrics from audio."));
+                                return;
+                            }
+                            postError(callback, TextUtils.isEmpty(error) ? "AI transcription failed." : error);
+                        });
+            } catch (Throwable e) {
+                FileLog.e(e);
+                postError(callback, "AI error: " + e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Enhanced transcription: every word gets its own start (and inferred end)
+     * timing. Result lines carry per-word timings for precise karaoke.
+     */
+    public void transcribeAudioWithAiWordTimed(final MessageObject messageObject, final LyricsCallback callback) {
+        if (messageObject == null) {
+            if (callback != null) callback.onError("No track to transcribe");
+            return;
+        }
+
+        final String title = cleanTitle(messageObject.getMusicTitle());
+        final String artist = cleanArtist(messageObject.getMusicAuthor());
+        final int durationSec = (int) Math.round(messageObject.getDuration());
+        final String cacheKey = getCacheKey(artist, title) + "_ai_word";
+
+        executor.execute(() -> {
+            try {
+                MiogramLrcModel.LrcSong cached = memoryCache.get(cacheKey);
+                if (cached != null) {
+                    postSuccess(callback, cached);
+                    return;
+                }
+
+                File audioFile = resolveAudioFile(messageObject);
+                if (audioFile == null) {
+                    if (messageObject.getDocument() != null) {
+                        FileLoader.getInstance(messageObject.currentAccount).loadFile(messageObject.getDocument(), messageObject, FileLoader.PRIORITY_HIGH, 0);
+                    }
+                    postError(callback, app.miogram.bridge.MiogramLocale.get(
+                            "Завантаження аудіофайлу... Зачекайте пару секунд і спробуйте знову.",
+                            "Загрузка аудиофайла... Подождите пару секунд и попробуйте снова.",
+                            "Downloading audio file... Please wait a few seconds and try again."));
+                    return;
+                }
+
+                if (!app.miogram.bridge.ai.MiogramAiService.hasApiKey()) {
+                    postError(callback, app.miogram.bridge.MiogramLocale.get(
+                            "Вкажіть Gemini API ключ у Налаштуваннях Miogram -> ШІ.",
+                            "Укажите Gemini API ключ в Настройках Miogram -> ИИ.",
+                            "Configure Gemini API key in Miogram Settings -> AI."));
+                    return;
+                }
+
+                app.miogram.bridge.ai.MiogramAiService.transcribeAudioWordTimed(audioFile, resolveAudioMimeType(messageObject, audioFile), title, artist, durationSec,
+                        (lrc, error) -> {
+                            if (!TextUtils.isEmpty(lrc)) {
+                                MiogramLrcModel.LrcSong aiSong = MiogramLrcModel.parseWordTimed(stripCodeFence(lrc), title, artist, "✨ Gemini AI+");
                                 if (aiSong != null && !aiSong.isEmpty()) {
                                     completeAndSave(cacheKey, aiSong, callback);
                                     return;

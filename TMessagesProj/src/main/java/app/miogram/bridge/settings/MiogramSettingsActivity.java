@@ -189,7 +189,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     TextCheckCell cell = (TextCheckCell) holder.itemView;
                     if (position == telemetryRow) {
                         cell.setTextAndCheck(
-                                MiogramLocale.get("Хмарна синхронізація бейджів", "Облачная синхронизация бейджей", "Cloud Badge Synchronization"),
+                                MiogramLocale.get("Хмарна синхронізація та аналітика", "Облачная синхронизация и аналитика", "Cloud Sync & Analytics"),
                                 MiogramSupabaseBridge.isTelemetryEnabled(),
                                 true
                         );
@@ -215,140 +215,118 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                     TextCell cell = (TextCell) holder.itemView;
                     // Section 1
                     if (position == visualsRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Візуальні стилі та пресети", "Визуальные стили и пресеты", "Visual Styles & Presets"),
-                                MiogramLocale.get("iOS, Discord, MD3, Анімації", "iOS, Discord, MD3, Анимации", "iOS, Discord, MD3, FX"),
                                 R.drawable.msg_theme,
                                 true
                         );
                     } else if (position == iconPacksRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Паки іконок", "Паки иконок", "Icon Packs"),
-                                MiogramLocale.get("Miogram, Cyber, Retro", "Miogram, Cyber, Retro", "Miogram, Cyber, Retro"),
                                 R.drawable.msg_customize,
                                 true
                         );
                     } else if (position == navigationRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Навігація та панель вкладок", "Навигация и панель вкладок", "Navigation & Tab Bar"),
-                                MiogramLocale.get("Стиль панелі, жести, pills", "Стиль панели, жесты, pills", "Bar style, gestures, pills"),
                                 R.drawable.msg_folders,
                                 true
                         );
                     } else if (position == subfoldersRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Підпапки чатів", "Подпапки чатов", "Chat Subfolders"),
-                                MiogramLocale.get("Вкладені теки діалогів", "Вложенные папки диалогов", "Nested chat folders"),
-                                R.drawable.msg_folders,
+                                R.drawable.msg_archive,
                                 true
                         );
                     } else if (position == badgeStudioRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Студія бейджів спільноти", "Студия бейджей сообщества", "Community Badge Studio"),
-                                MiogramLocale.get("3D / Анімовані бейджі", "3D / Анимированные бейджи", "3D / Animated badges"),
-                                R.drawable.baseline_stars_24,
+                                R.drawable.msg_fave,
                                 false
                         );
                     }
                     // Section 2
                     else if (position == multichatRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Мультичат (Split Screen)", "Мультичат (Split Screen)", "Multichat (Split Screen)"),
-                                MiogramLocale.get("Два чати поруч", "Два чата рядом", "Two chats side-by-side"),
                                 R.drawable.msg_openin,
                                 true
                         );
                     } else if (position == chatsRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Налаштування чатів", "Настройки чатов", "Chat Settings"),
-                                MiogramLocale.get("Бабли, відео-кружки, жести", "Бабблы, видео-кружки, жесты", "Bubbles, video circles, gestures"),
                                 R.drawable.msg_message,
                                 true
                         );
                     } else if (position == cloudVaultRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Miogram Cloud Vault", "Miogram Cloud Vault", "Miogram Cloud Vault"),
-                                MiogramLocale.get("Приватне подвійне сховище", "Приватное двойное хранилище", "Private dual storage"),
                                 R.drawable.msg_saved,
                                 true
                         );
                     } else if (position == privacyRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Приватність та Ghost Mode", "Приватность и Ghost Mode", "Privacy & Ghost Mode"),
-                                MiogramLocale.get("Прихований онлайн, статус прочитання", "Скрытый онлайн, статус прочтения", "Hidden online, read status"),
                                 R.drawable.msg_secret,
                                 true
                         );
                     } else if (position == translatorRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Вбудований перекладач", "Встроенный переводчик", "Built-in Translator"),
-                                MiogramLocale.get("Google, DeepL, Telegram", "Google, DeepL, Telegram", "Google, DeepL, Telegram"),
                                 R.drawable.msg2_language,
                                 true
                         );
                     } else if (position == localizerRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Локалізатор застосунку", "Локализатор приложения", "App Localizer"),
-                                MiogramLocale.get("Користувацькі переклади", "Пользовательские переводы", "Custom translations"),
                                 R.drawable.msg_language,
                                 false
                         );
                     }
                     // Section 3
                     else if (position == companionRow) {
-                        String companionName = MiogramCompanionPrefs.isAmeActive() ? "Ame-chan (飴ちゃん)" : "KAngel (超てんちゃん)";
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("ШІ Супутник ໒꒱", "ИИ Спутник ໒꒱", "AI Companion ໒꒱"),
-                                companionName,
                                 R.drawable.baseline_stars_24,
                                 true
                         );
                     } else if (position == aiEngineRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Налаштування ШІ та Ключі", "Настройки ИИ и Ключи", "AI Engine & Keyring"),
-                                MiogramLocale.get("Gemini 3.5, Keyring, Голос у текст", "Gemini 3.5, Keyring, Голос в текст", "Gemini 3.5, Keyring, Voice to text"),
                                 R.drawable.msg_bot,
                                 false
                         );
                     }
                     // Section 4
                     else if (position == userbotHubRow) {
-                        boolean ubOn = MiogramHerokuManager.getInstance().isEnabled();
-                        boolean hasBot = MiogramHerokuManager.getInstance().hasConfiguredBot();
-                        String ubStatus = !ubOn ? "Вимкнено" : (hasBot ? "@" + MiogramHerokuManager.getInstance().getBotUsername() : "Префікс: " + MiogramHerokuManager.getInstance().getPrefix());
-                        cell.setTextAndValueAndIcon(
-                                MiogramLocale.get("Heroku Userbot Менеджер", "Heroku Userbot Менеджер", "Heroku Userbot Manager"),
-                                ubStatus,
-                                R.drawable.msg_bot,
+                        cell.setTextAndIcon(
+                                MiogramLocale.get("Userbot та автоматизація", "Юзербот и автоматизация", "Userbot & Automation"),
+                                R.drawable.msg_contacts,
                                 false
                         );
                     }
                     // Section 5
                     else if (position == pluginsRow) {
-                        cell.setTextAndValueAndIcon(
-                                MiogramLocale.get("Плагіни MioHook та exteraGram", "Плагины MioHook и exteraGram", "MioHook & exteraGram Plugins"),
-                                MiogramLocale.get("Каталог Python та WASM модулів", "Каталог Python и WASM модулей", "Python & WASM modules catalog"),
+                        cell.setTextAndIcon(
+                                MiogramLocale.get("Плагіни та модулі", "Плагины и модули", "Plugins & Modules"),
                                 R.drawable.msg_plugins,
                                 true
                         );
                     } else if (position == performanceRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Продуктивність та оптимізація", "Производительность и оптимизация", "Performance & Optimization"),
-                                MiogramLocale.get("Кеш, GPU прискорення, RAM", "Кэш, GPU ускорение, RAM", "Cache, GPU acceleration, RAM"),
                                 R.drawable.msg_speed_solar,
                                 true
                         );
                     } else if (position == generalRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Розширені налаштування клієнта", "Расширенные настройки клиента", "Advanced Client Settings"),
-                                MiogramLocale.get("Діагностика, пуші, пам'ять", "Диагностика, пуши, память", "Diagnostics, push, storage"),
                                 R.drawable.msg_settings,
                                 true
                         );
                     } else if (position == updaterRow) {
-                        cell.setTextAndValueAndIcon(
+                        cell.setTextAndIcon(
                                 MiogramLocale.get("Перевірити оновлення", "Проверить обновления", "Check for Updates"),
-                                "v" + org.telegram.messenger.BuildVars.BUILD_VERSION_STRING,
                                 R.drawable.msg_download_solar,
                                 false
                         );

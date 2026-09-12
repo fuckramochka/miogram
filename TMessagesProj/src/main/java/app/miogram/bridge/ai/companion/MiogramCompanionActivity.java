@@ -68,10 +68,6 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
     private long scopedDialogId = 0;
     private Utilities.Callback<String> onDraftInsertCallback;
 
-    private LinearLayout topCompanionBar;
-    private TextView tabAme;
-    private TextView tabKAngel;
-
     private LinearLayout heroCard;
     private HorizontalScrollView heroCarouselScroll;
     private LinearLayout heroCarouselLayout;
@@ -152,9 +148,6 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         mainColumn.setOrientation(LinearLayout.VERTICAL);
         root.addView(mainColumn, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
-        // 1. Sleek Top Companion Selector (Ame vs KAngel, directly under ActionBar, never blocks chat!)
-        buildTopCompanionSelector(context, mainColumn);
-
         // 2. Scrollable Chat History Layout
         chatScrollView = new ScrollView(context);
         chatScrollView.setFillViewport(true);
@@ -180,7 +173,6 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         }
 
         updateCompanionTheme();
-        updateTopTabs();
         if (heroCarouselScroll != null) {
             boolean isAme = MiogramCompanionPrefs.isAmeActive();
             int pageWidth = getCardSlideWidth() + AndroidUtilities.dp(8);
@@ -574,49 +566,10 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         return chip;
     }
 
-    private void buildTopCompanionSelector(Context context, LinearLayout parent) {
-        topCompanionBar = new LinearLayout(context);
-        topCompanionBar.setOrientation(LinearLayout.HORIZONTAL);
-        topCompanionBar.setGravity(Gravity.CENTER_VERTICAL);
-        topCompanionBar.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(6), AndroidUtilities.dp(10), AndroidUtilities.dp(6));
-        topCompanionBar.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefault));
-        parent.addView(topCompanionBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 46));
-
-        // Left Tab: Ame-chan
-        tabAme = new TextView(context);
-        tabAme.setText(MiogramLocale.get("໒꒱ Ame-chan (Аме)", "໒꒱ Ame-chan (Аме)", "໒꒱ Ame-chan"));
-        tabAme.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        tabAme.setTypeface(AndroidUtilities.bold());
-        tabAme.setGravity(Gravity.CENTER);
-        tabAme.setClickable(true);
-        tabAme.setFocusable(true);
-        topCompanionBar.addView(tabAme, LayoutHelper.createLinear(0, 34, 1.0f, 0, 0, 4, 0));
-
-        // Right Tab: KAngel
-        tabKAngel = new TextView(context);
-        tabKAngel.setText(MiogramLocale.get("✧ KAngel (Кангель)", "✧ KAngel (Кангель)", "✧ KAngel"));
-        tabKAngel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        tabKAngel.setTypeface(AndroidUtilities.bold());
-        tabKAngel.setGravity(Gravity.CENTER);
-        tabKAngel.setClickable(true);
-        tabKAngel.setFocusable(true);
-        topCompanionBar.addView(tabKAngel, LayoutHelper.createLinear(0, 34, 1.0f, 4, 0, 0, 0));
-
-        tabAme.setOnClickListener(v -> {
-            MiogramHaptic.select(v);
-            switchCompanion(true);
-        });
-        tabKAngel.setOnClickListener(v -> {
-            MiogramHaptic.select(v);
-            switchCompanion(false);
-        });
-    }
-
     private void switchCompanion(boolean toAme) {
         MiogramCompanionPrefs.setActiveCompanion(toAme ? MiogramCompanionPrefs.COMPANION_AME : MiogramCompanionPrefs.COMPANION_KANGEL);
         MiogramCompanionPrefs.setOnboardingCompleted(true);
         updateCompanionTheme();
-        updateTopTabs();
         updateCarouselVisuals(toAme);
         if (heroCarouselScroll != null) {
             int pageWidth = getCardSlideWidth() + AndroidUtilities.dp(8);
@@ -627,21 +580,6 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             addInitialGreeting();
         } else {
             renderFullHistory();
-        }
-    }
-
-    private void updateTopTabs() {
-        boolean isAme = MiogramCompanionPrefs.isAmeActive();
-        if (topCompanionBar != null) {
-            topCompanionBar.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefault));
-        }
-        if (tabAme != null) {
-            tabAme.setTextColor(isAme ? 0xFFFFFFFF : Theme.getColor(Theme.key_actionBarDefaultSubtitle));
-            tabAme.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(10), isAme ? 0xFFFF70A6 : 0x22FFFFFF));
-        }
-        if (tabKAngel != null) {
-            tabKAngel.setTextColor(!isAme ? 0xFFFFFFFF : Theme.getColor(Theme.key_actionBarDefaultSubtitle));
-            tabKAngel.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(10), !isAme ? 0xFF00B4D8 : 0x22FFFFFF));
         }
     }
 
@@ -855,7 +793,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             if (m.contains("happy")) {
                 ameSpeechBubble.setText(MiogramLocale.get("«Дякую, П-тян! ♡ (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)\nТи найкращий у світі!»", "«Спасибо, Пи-тян! ♡ (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)\nТы лучший на свете!»", "\"Thank you, P-chan! ♡ (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)\nYou're the best in the world!\""));
             } else if (m.contains("sad")) {
-                ameSpeechBubble.setText(MiogramLocale.get("«Пішов нахуй... (T_T)\nЗрадник їбаний, я так і знала...»", "«Пошел нахуй... (T_T)\nПредатель ебаный, я так и знала...»", "\"Fuck off... (T_T)\nFucking traitor, I knew it...\""));
+                ameSpeechBubble.setText(MiogramLocale.get("«Ех… (T_T)\nНе йди, П-тян, мені без тебе сумно…»", "«Эх… (T_T)\nНе уходи, Пи-тян, мне без тебя грустно…»", "\"Sigh… (T_T)\nDon't go, P-chan, I'm sad without you…\""));
             } else {
                 ameSpeechBubble.setText(MiogramLocale.get("«Дякую, П-тян! ♡\nТепер я тільки твоя назавжди!»", "«Спасибо, Пи-тян! ♡\nТеперь я только твоя навсегда!»", "\"Thank you, P-chan! ♡\nNow I am yours forever!\""));
             }
@@ -864,7 +802,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             if (m.contains("happy") || m.contains("pray")) {
                 kangelSpeechBubble.setText(MiogramLocale.get("«† BLESSING † Дякую, любий отаку! ✧\nПолетимо у стратосферу разом!»", "«† BLESSING † Спасибо, милый отаку! ✧\nПолетим в стратосферу вместе!»", "\"† BLESSING † Thank you, dear otaku! ✧\nLet's fly into the stratosphere together!\""));
             } else if (m.contains("sad")) {
-                kangelSpeechBubble.setText(MiogramLocale.get("«Та пішов ти нахуй! ✕\nПожалкуєш ще, отаку-невдахо!»", "«Да пошел ты нахуй! ✕\nПожалеешь еще, отаку-неудачник!»", "\"Fuck you! ✕\nYou'll regret this, loser otaku!\""));
+                kangelSpeechBubble.setText(MiogramLocale.get("«Ех… ✕\nНе зникай так, отаку…»", "«Эх… ✕\nНе исчезай так, отаку…»", "\"Sigh… ✕\nDon't disappear like that, otaku…\""));
             } else {
                 kangelSpeechBubble.setText(MiogramLocale.get("«† BLESSING † Полетимо у стратосферу разом, любий отаку! ✧»", "«† BLESSING † Полетим в стратосферу вместе, милый отаку! ✧»", "\"† BLESSING † Let's fly into the stratosphere together, dear otaku! ✧\""));
             }
@@ -1093,8 +1031,14 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         card.addView(title);
 
         TextView details = new TextView(ctx);
-        details.setText(MiogramLocale.get("Дія: ", "Действие: ", "Action: ") + msg.toolAction + "\n" + MiogramLocale.get("Параметри: ", "Параметры: ", "Params: ") + msg.toolParams);
-        details.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        String humanDesc = msg.toolAction;
+        try {
+            JSONObject dbg = null;
+            if (msg.toolParams != null) dbg = new JSONObject(msg.toolParams);
+            humanDesc = MiogramCompanionToolbox.describeTool(msg.toolAction, dbg);
+        } catch (Throwable ignore) {}
+        details.setText(humanDesc);
+        details.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         details.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         card.addView(details, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 8));
 
@@ -1201,7 +1145,8 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             sendButton.setAlpha(1.0f);
 
             if (err != null && (rawReply == null || rawReply.isEmpty())) {
-                String errorNotice = MiogramLocale.get("Ой... сталася помилка з'єднання: ", "Ой... возникла ошибка соединения: ", "Oops... connection error: ") + err;
+                String errorNotice = MiogramLocale.get("Ой... сталася помилка з'єднання: ", "Ой... возникла ошибка соединения: ", "Oops... connection error: ") + err
+                        + MiogramLocale.get("\n\nНатисни «Надіслати» ще раз щоб повторити.", "\n\nНажми «Отправить» ещё раз чтобы повторить.", "\n\nTap Send again to retry.");
                 MiogramCompanionPrefs.ChatMessage errBubble = new MiogramCompanionPrefs.ChatMessage(false, errorNotice, "sad", System.currentTimeMillis(), null, null);
                 history.add(errBubble);
                 MiogramCompanionPrefs.saveHistory(history);
@@ -1224,18 +1169,24 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             updateStageMood(mood);
 
             if (action != null && !action.sensitive) {
+                String working = MiogramLocale.get("⏳ Працюю над «", "⏳ Работаю над «", "⏳ Working on \"")
+                        + MiogramCompanionToolbox.describeTool(action.name, action.params) + "»…";
+                botBubble.text = (cleanText == null || cleanText.isEmpty() ? "" : cleanText + "\n\n") + working;
+                MiogramCompanionPrefs.saveHistory(history);
+                renderFullHistory();
+                final String cleanFinal = cleanText;
                 MiogramCompanionToolbox.executeTool(currentAccount, action, resultText -> AndroidUtilities.runOnUIThread(() -> {
                     String finalReply;
-                    String ct = cleanText != null ? cleanText.toLowerCase() : "";
+                    String ct = cleanFinal != null ? cleanFinal.toLowerCase() : "";
                     boolean isWaitingWord = ct.contains("зараз") || ct.contains("хвилинку") || ct.contains("секунду")
                             || ct.contains("сейчас") || ct.contains("минутку") || ct.contains("секундочку")
                             || ct.contains("wait") || ct.contains("moment") || ct.contains("hold on");
-                    if (cleanText == null || cleanText.isEmpty() || isWaitingWord) {
+                    if (cleanFinal == null || cleanFinal.isEmpty() || isWaitingWord) {
                         finalReply = resultText;
-                    } else if (cleanText.trim().equalsIgnoreCase(resultText.trim())) {
+                    } else if (cleanFinal.trim().equalsIgnoreCase(resultText.trim())) {
                         finalReply = resultText;
                     } else {
-                        finalReply = cleanText + "\n\n" + resultText;
+                        finalReply = cleanFinal + "\n\n" + resultText;
                     }
                     botBubble.text = finalReply;
                     botBubble.actionExecuted = true;

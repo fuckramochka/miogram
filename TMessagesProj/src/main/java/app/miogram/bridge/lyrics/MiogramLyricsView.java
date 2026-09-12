@@ -42,6 +42,7 @@ import java.util.List;
 
 import app.miogram.bridge.MiogramLocale;
 import app.miogram.bridge.customui.MiogramHaptic;
+import app.miogram.bridge.player.MiogramPlayerPrefs;
 
 /**
  * Modern High-Fidelity Synced Lyrics View with:
@@ -80,6 +81,7 @@ public class MiogramLyricsView extends FrameLayout {
     private final TextView emptySubtitle;
     private final LinearLayout emptyButtonsRow;
     private final TextView aiActionButton;
+    private final TextView aiWordActionButton;
     private final TextView changeSourceButton;
 
     // Floating Pill Toast
@@ -214,6 +216,22 @@ public class MiogramLyricsView extends FrameLayout {
         });
         emptyButtonsRow.addView(aiActionButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
 
+        aiWordActionButton = new TextView(context);
+        aiWordActionButton.setText(MiogramLocale.get("✨ Точна розшифровка (по словах)", "✨ Точная расшифровка (по словам)", "✨ Enhanced transcription (word timings)"));
+        aiWordActionButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        aiWordActionButton.setTypeface(AndroidUtilities.bold());
+        aiWordActionButton.setTextColor(0xFFFFFFFF);
+        aiWordActionButton.setGravity(Gravity.CENTER);
+        aiWordActionButton.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(10), AndroidUtilities.dp(20), AndroidUtilities.dp(10));
+        aiWordActionButton.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(20), ColorUtils.setAlphaComponent(accent, 70)));
+        aiWordActionButton.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            if (currentMessageObject != null) {
+                transcribeWithAiWordTimed(currentMessageObject);
+            }
+        });
+        emptyButtonsRow.addView(aiWordActionButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
+
         changeSourceButton = new TextView(context);
         changeSourceButton.setText(MiogramLocale.get("Змінити джерело пошуку", "Изменить источник поиска", "Change search source"));
         changeSourceButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
@@ -280,6 +298,7 @@ public class MiogramLyricsView extends FrameLayout {
         options.add(R.drawable.player_new_order, "Genius", () -> selectSource(MiogramLyricsEngine.SOURCE_GENIUS));
         options.add(R.drawable.player_new_order, MiogramLocale.get("YouTube (Опис)", "YouTube (Описание)", "YouTube (Description)"), () -> selectSource(MiogramLyricsEngine.SOURCE_YOUTUBE));
         options.add(R.drawable.msg_bot, MiogramLocale.get("ШІ зі звуку (Gemini)", "ИИ со слуха (Gemini)", "AI by ear (Gemini)"), () -> selectSource(MiogramLyricsEngine.SOURCE_AI));
+        options.add(R.drawable.msg_bot, MiogramLocale.get("✨ Точна розшифровка (по словах)", "✨ Точная расшифровка (по словам)", "✨ Enhanced transcription (word timings)"), () -> selectSource(MiogramLyricsEngine.SOURCE_AI_WORD));
 
         options.show();
     }
@@ -292,6 +311,8 @@ public class MiogramLyricsView extends FrameLayout {
         if (currentMessageObject != null) {
             if (sourceId == MiogramLyricsEngine.SOURCE_AI) {
                 transcribeWithAi(currentMessageObject);
+            } else if (sourceId == MiogramLyricsEngine.SOURCE_AI_WORD) {
+                transcribeWithAiWordTimed(currentMessageObject);
             } else {
                 loadLyrics(currentMessageObject, sourceId);
             }
@@ -392,6 +413,9 @@ public class MiogramLyricsView extends FrameLayout {
                 if ("✨ Gemini AI".equals(cached.source)) {
                     currentSourceId = MiogramLyricsEngine.SOURCE_AI;
                     savedSourceId = currentSourceId;
+                } else if ("✨ Gemini AI+".equals(cached.source)) {
+                    currentSourceId = MiogramLyricsEngine.SOURCE_AI_WORD;
+                    savedSourceId = currentSourceId;
                 }
                 updateSourcePillText();
                 showLoading(false);
@@ -460,6 +484,33 @@ public class MiogramLyricsView extends FrameLayout {
         });
     }
 
+    private void transcribeWithAiWordTimed(final MessageObject messageObject) {
+        final long reqGen = ++lyricsRequestGeneration;
+        showLoading(true);
+        emptyTitle.setText(MiogramLocale.get("ШІ розставляє таймінги слів...", "ИИ расставляет тайминги слов...", "AI is timing every word..."));
+        emptySubtitle.setText(MiogramLocale.get("Кожне слово отримає початок і кінець — це займе 15-30 секунд", "Каждое слово получит начало и конец — это займёт 15-30 секунд", "Each word gets start and end — takes 15-30 seconds"));
+
+        MiogramLyricsEngine.getInstance().transcribeAudioWithAiWordTimed(messageObject, new MiogramLyricsEngine.LyricsCallback() {
+            @Override
+            public void onLyricsLoaded(MiogramLrcModel.LrcSong song) {
+                if (reqGen != lyricsRequestGeneration) return;
+                currentSong = song;
+                currentSourceId = MiogramLyricsEngine.SOURCE_AI_WORD;
+                updateSourcePillText();
+                showLoading(false);
+                adapter.setLines(song.lines);
+                updateTranslationButton();
+                showToastPill(MiogramLocale.get("Точна розшифровка готова! ✓", "Точная расшифровка готова! ✓", "Enhanced transcription ready! ✓"));
+            }
+
+            @Override
+            public void onError(String message) {
+                if (reqGen != lyricsRequestGeneration) return;
+                showEmptyState(true, message);
+            }
+        });
+    }
+
     public void updateTime(long currentPositionMs) {
         if (currentSong == null || currentSong.lines.isEmpty()) {
             if (onActiveLineChangeListener != null) {
@@ -490,6 +541,11 @@ public class MiogramLyricsView extends FrameLayout {
             LyricsViewHolder holder = (LyricsViewHolder) recyclerView.findViewHolderForAdapterPosition(activePosition);
             if (holder != null) {
                 MiogramLrcModel.LrcLine line = currentSong.lines.get(activePosition);
+                float wordFraction = line.wordFraction(currentPositionMs);
+                if (wordFraction >= 0f) {
+                    holder.updateKaraokeProgress(wordFraction);
+                    return;
+                }
                 long nextTime = (activePosition + 1 < currentSong.lines.size())
                         ? currentSong.lines.get(activePosition + 1).timeMs
                         : (line.timeMs + 4000L);
@@ -550,10 +606,23 @@ public class MiogramLyricsView extends FrameLayout {
         recyclerView.setVisibility(View.GONE);
         emptyButtonsRow.setVisibility(View.VISIBLE);
 
-        emptyTitle.setText(MiogramLocale.get("Текст не знайдено", "Текст не найден", "Lyrics not found"));
-        emptySubtitle.setText(TextUtils.isEmpty(message)
-                ? MiogramLocale.get("Спробуйте розпізнати через ШІ або змінити джерело", "Попробуйте распознать через ИИ или сменить источник", "Try AI transcription or change source")
-                : message);
+        String msg = message != null ? message.toLowerCase() : "";
+        boolean isNetwork = error && (msg.contains("network") || msg.contains("timeout") || msg.contains("connect")
+                || msg.contains("мереж") || msg.contains("сети") || msg.contains("інтернет") || msg.contains("internet"));
+        if (isNetwork) {
+            emptyTitle.setText(MiogramLocale.get("Немає зʼєднання", "Нет соединения", "No connection"));
+            emptySubtitle.setText(MiogramLocale.get("Перевір інтернет і спробуй ще раз або зміни джерело", "Проверь интернет и попробуй снова или смени источник", "Check connection and retry or change source"));
+        } else if (error) {
+            emptyTitle.setText(MiogramLocale.get("Не вдалося завантажити текст", "Не удалось загрузить текст", "Could not load lyrics"));
+            emptySubtitle.setText(TextUtils.isEmpty(message)
+                    ? MiogramLocale.get("Спробуй ще раз, зміни джерело або розпізнай через ШІ", "Попробуй снова, смени источник или распознай через ИИ", "Retry, change source or try AI transcription")
+                    : message);
+        } else {
+            emptyTitle.setText(MiogramLocale.get("Текст не знайдено", "Текст не найден", "Lyrics not found"));
+            emptySubtitle.setText(TextUtils.isEmpty(message)
+                    ? MiogramLocale.get("Спробуйте розпізнати через ШІ або змінити джерело", "Попробуйте распознать через ИИ или сменить источник", "Try AI transcription or change source")
+                    : message);
+        }
     }
 
     private int getThemedAccent() {
@@ -634,10 +703,19 @@ public class MiogramLyricsView extends FrameLayout {
 
             holder.underline.setBackgroundColor(accent);
 
+            int baseSize = MiogramPlayerPrefs.getLyricsFontSize();
+            boolean glow = MiogramPlayerPrefs.isLyricsActiveGlow();
+            float inactiveOpacity = MiogramPlayerPrefs.getLyricsInactiveOpacity();
+
             if (isActive) {
                 holder.mainText.setTextColor(0xFFFFFFFF);
                 holder.mainText.setAlpha(1.0f);
-                holder.mainText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22);
+                holder.mainText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, baseSize + 3);
+                if (glow) {
+                    holder.mainText.setShadowLayer(AndroidUtilities.dp(8), 0, 0, accent);
+                } else {
+                    holder.mainText.setShadowLayer(0, 0, 0, 0);
+                }
                 holder.underline.setVisibility(View.VISIBLE);
                 holder.transText.setAlpha(0.9f);
                 holder.itemView.setScaleX(1.02f);
@@ -645,12 +723,13 @@ public class MiogramLyricsView extends FrameLayout {
                 holder.bindText(displayText);
                 holder.updateKaraokeProgress(0f);
             } else {
-                holder.mainText.setTextColor(0x60FFFFFF);
-                holder.mainText.setAlpha(1.0f);
-                holder.mainText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
+                holder.mainText.setTextColor(0xFFFFFFFF);
+                holder.mainText.setAlpha(inactiveOpacity);
+                holder.mainText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, Math.max(12, baseSize - 2));
+                holder.mainText.setShadowLayer(0, 0, 0, 0);
                 holder.mainText.setText(displayText);
                 holder.underline.setVisibility(View.GONE);
-                holder.transText.setAlpha(0.28f);
+                holder.transText.setAlpha(inactiveOpacity * 0.5f);
                 holder.itemView.setScaleX(1.0f);
                 holder.itemView.setScaleY(1.0f);
                 holder.bindText("");
@@ -713,4 +792,11 @@ public class MiogramLyricsView extends FrameLayout {
             mainText.setText(span, TextView.BufferType.SPANNABLE);
         }
     }
+
+    public void reloadCustomization() {
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
+    }
 }
+

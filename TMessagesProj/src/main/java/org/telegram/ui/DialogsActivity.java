@@ -541,6 +541,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private boolean storyHintShown;
     private FragmentFloatingButton floatingButton3;
     private FragmentFloatingButton floatingButtonStories;
+    private View iosLargeHeaderView;
+    private androidx.recyclerview.widget.RecyclerView.OnScrollListener iosCollapseListener;
     private ButtonWithCounterView addChatsToCommunityButton;
     private ChatActivityFadeView communityBottomFadeView;
     private ChatAvatarContainer avatarContainer;
@@ -2129,6 +2131,15 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             t -= dp(5 * Math.max(filterTabsVisibility, topPanelsVisibility));
             additionalPadding -= dp(5 * Math.max(filterTabsVisibility, topPanelsVisibility));
 
+            // iOS mode: folders/stories/search are replaced by the collapsible
+            // Large-Title header, so pad the list by its exact measured height
+            // instead of the (now hidden) native top stack. Falls back to the
+            // stock computation on the very first pass before measure.
+            if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext()) && iosLargeHeaderView != null && iosLargeHeaderView.getMeasuredHeight() > 0) {
+                t = iosLargeHeaderView.getMeasuredHeight();
+                additionalPadding = t;
+            }
+
             final int b = calculateListViewPaddingBottom();
             if (t != topPadding || b != getPaddingBottom()) {
                 setTopGlowOffset(t);
@@ -3408,14 +3419,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             downloadsItem.addView(downloadProgressIcon = new DownloadProgressIcon(currentAccount, context));
             downloadsItem.setContentDescription(getString(R.string.DownloadsTabs));
             downloadsItem.setVisibility(View.GONE);
-
-            ActionBarMenuItem companionItem = menu.addItem(1337, R.drawable.baseline_stars_24);
-            companionItem.setContentDescription(app.miogram.bridge.MiogramLocale.get("ШІ Супутник (Ame / KAngel)", "ИИ Спутник (Ame / KAngel)", "AI Companion (Ame / KAngel)"));
-            companionItem.setIconColor(0xFFFF2A85);
-            companionItem.setOnClickListener(v -> {
-                app.miogram.bridge.customui.MiogramHaptic.tap(v);
-                presentFragment(new app.miogram.bridge.ai.companion.MiogramCompanionActivity());
-            });
 
             updateProxyButton(false, false);
         }
@@ -13757,23 +13760,55 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         AndroidUtilities.showKeyboard(fragmentSearchField.editText);
                     }
                 };
-                View iosHeader = app.miogram.bridge.ui.ios.MiogramIosLayout.createIosLargeTitleHeader(
+                // Collapsible Large-Title header (1:1 with NavigationBar.swift +
+                // ChatListControllerNode.swift): large title fades into the inline
+                // title + hairline as the list scrolls. Height is fixed, so the
+                // dialogs list padding below always matches exactly.
+                app.miogram.bridge.ui.ios.MiogramIosLargeHeaderView iosHeader = new app.miogram.bridge.ui.ios.MiogramIosLargeHeaderView(
                         getContext(),
                         LocaleController.getString(R.string.Chats),
-                        v -> openSearch.run(),
-                        v -> openSearch.run(),
-                        v -> openSearch.run());
+                        new app.miogram.bridge.ui.ios.MiogramIosLargeHeaderView.OnHeaderActionListener() {
+                            @Override
+                            public void onEditClick() {
+                                presentFragment(new FiltersSetupActivity());
+                            }
+
+                            @Override
+                            public void onComposeClick() {
+                                openWriteContacts();
+                            }
+
+                            @Override
+                            public void onSearchClick() {
+                                openSearch.run();
+                            }
+                        });
                 if (iosHeader != null) {
                     iosHeader.setTag("miogram_custom_layout");
                     ((ContentView) fragmentView).addView(iosHeader, LayoutHelper.createFrame(
                             LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT));
                 }
+                iosLargeHeaderView = iosHeader;
+                wireIosCollapseScroll();
+                // Second measure pass so the list picks up the exact header
+                // height once it is measured (first pass uses the fallback).
+                if (fragmentView != null) {
+                    fragmentView.post(() -> {
+                        try {
+                            fragmentView.requestLayout();
+                        } catch (Throwable ignore) {}
+                    });
+                }
 
                 View iosTabBar = app.miogram.bridge.ui.ios.MiogramIosLayout.createIosTabBar(getContext(), 2, tabIndex -> {
-                    if (tabIndex == 3) {
+                    if (tabIndex == 0) {
+                        presentFragment(new ContactsActivity(new Bundle()));
+                    } else if (tabIndex == 1) {
+                        presentFragment(new CallLogActivity());
+                    } else if (tabIndex == 3) {
                         presentFragment(new app.miogram.bridge.settings.MiogramSettingsActivity());
-                    } else if (tabIndex != 2) {
-                        openSearch.run();
+                    } else {
+                        scrollToTop(true, true);
                     }
                 });
                 if (iosTabBar != null) {
@@ -14307,6 +14342,47 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         Bundle args = new Bundle();
         args.putBoolean("destroyAfterSelect", true);
         presentFragment(new ContactsActivity(args));
+    }
+
+    /**
+     * Binds every dialogs page to the iOS collapsible header: the large title
+     * cross-fades into the inline title + hairline as the list scrolls, exactly
+     * like ChatListControllerNode.swift. Previous listeners are detached first
+     * (this block re-runs on preset/theme change), so nothing duplicates.
+     */
+    private void wireIosCollapseScroll() {
+        if (!(iosLargeHeaderView instanceof app.miogram.bridge.ui.ios.MiogramIosLargeHeaderView) || viewPages == null) {
+            return;
+        }
+        final app.miogram.bridge.ui.ios.MiogramIosLargeHeaderView header = (app.miogram.bridge.ui.ios.MiogramIosLargeHeaderView) iosLargeHeaderView;
+        if (iosCollapseListener != null) {
+            for (int i = 0; i < viewPages.length; i++) {
+                if (viewPages[i] != null && viewPages[i].listView != null) {
+                    try {
+                        viewPages[i].listView.removeOnScrollListener(iosCollapseListener);
+                    } catch (Throwable ignore) {}
+                }
+            }
+        }
+        iosCollapseListener = new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                try {
+                    header.onScrollOffsetChanged(recyclerView.computeVerticalScrollOffset());
+                } catch (Throwable ignore) {}
+            }
+        };
+        for (int i = 0; i < viewPages.length; i++) {
+            if (viewPages[i] != null && viewPages[i].listView != null) {
+                try {
+                    viewPages[i].listView.addOnScrollListener(iosCollapseListener);
+                } catch (Throwable ignore) {}
+            }
+        }
+        try {
+            header.onScrollOffsetChanged(0);
+        } catch (Throwable ignore) {}
     }
 
     private void openStoriesRecorder() {

@@ -18,10 +18,39 @@ public class MiogramLrcModel {
     private static final Pattern TIME_TAG_PATTERN = Pattern.compile("(?:\\[|<)(\\d{1,2}):(\\d{1,2})(?:[\\.:](\\d{1,3}))?(?:\\]|>)");
     private static final Pattern OFFSET_PATTERN = Pattern.compile("\\[offset:\\s*([+-]?\\d+)\\]", Pattern.CASE_INSENSITIVE);
 
+    /** Single word with start/end timings from enhanced STT. */
+    public static class LrcWord {
+        public final long startMs;
+        public final long endMs;
+        public final String text;
+
+        public LrcWord(long startMs, long endMs, String text) {
+            this.startMs = Math.max(0, startMs);
+            this.endMs = Math.max(this.startMs, endMs);
+            this.text = text != null ? text : "";
+        }
+
+        public JSONObject toJson() {
+            JSONObject obj = new JSONObject();
+            try {
+                obj.put("s", startMs);
+                obj.put("e", endMs);
+                obj.put("w", text);
+            } catch (Throwable ignored) {}
+            return obj;
+        }
+
+        public static LrcWord fromJson(JSONObject obj) {
+            return new LrcWord(obj.optLong("s", 0L), obj.optLong("e", 0L), obj.optString("w", ""));
+        }
+    }
+
     public static class LrcLine implements Comparable<LrcLine> {
         public final long timeMs;
         public String text;
         public String translation;
+        /** Word-level timings (enhanced transcription). Empty for line-level sources. */
+        public final List<LrcWord> words = new ArrayList<>();
 
         public LrcLine(long timeMs, String text) {
             this(timeMs, text, null);
@@ -37,6 +66,40 @@ public class MiogramLrcModel {
             return translation != null && !translation.trim().isEmpty();
         }
 
+        public boolean hasWordTimings() {
+            return !words.isEmpty();
+        }
+
+        /**
+         * Fraction of this line already sung at currentMs, based on real word
+         * start/end timings. Falls back to -1 when no word data.
+         */
+        public float wordFraction(long currentMs) {
+            if (words.isEmpty() || text.isEmpty()) return -1f;
+            if (currentMs < words.get(0).startMs) return 0f;
+            int total = text.length();
+            int sung = 0;
+            int pos = 0;
+            for (int i = 0; i < words.size(); i++) {
+                LrcWord w = words.get(i);
+                String wText = w.text;
+                int at = text.indexOf(wText, pos);
+                int start = at >= 0 ? at : pos;
+                int end = Math.min(total, start + wText.length());
+                if (currentMs >= w.endMs) {
+                    sung = end;
+                } else if (currentMs >= w.startMs && w.endMs > w.startMs) {
+                    float f = (float) (currentMs - w.startMs) / (float) (w.endMs - w.startMs);
+                    sung = start + Math.round((end - start) * Math.max(0f, Math.min(1f, f)));
+                    break;
+                } else {
+                    break;
+                }
+                pos = end;
+            }
+            return Math.max(0f, Math.min(1f, (float) sung / (float) total));
+        }
+
         @Override
         public int compareTo(LrcLine o) {
             return Long.compare(this.timeMs, o.timeMs);
@@ -50,6 +113,11 @@ public class MiogramLrcModel {
                 if (translation != null) {
                     obj.put("tr", translation);
                 }
+                if (!words.isEmpty()) {
+                    JSONArray arr = new JSONArray();
+                    for (LrcWord w : words) arr.put(w.toJson());
+                    obj.put("words", arr);
+                }
             } catch (Throwable ignored) {}
             return obj;
         }
@@ -58,7 +126,15 @@ public class MiogramLrcModel {
             long t = obj.optLong("t", 0L);
             String s = obj.optString("s", "");
             String tr = obj.has("tr") ? obj.optString("tr", null) : null;
-            return new LrcLine(t, s, tr);
+            LrcLine line = new LrcLine(t, s, tr);
+            JSONArray arr = obj.optJSONArray("words");
+            if (arr != null) {
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject wo = arr.optJSONObject(i);
+                    if (wo != null) line.words.add(LrcWord.fromJson(wo));
+                }
+            }
+            return line;
         }
     }
 
@@ -267,6 +343,93 @@ public class MiogramLrcModel {
             }
         }
 
+        return song;
+    }
+
+    /**
+     * Parses word-timed transcription: one word per timestamped line,
+     * e.g. {@code [00:12.40] hello}. Words are grouped into readable lyric
+     * lines (up to 8 words or a sentence break); every word keeps its own
+     * start/end timings for precise karaoke. End = next word start.
+     */
+    public static LrcSong parseWordTimed(String content, String title, String artist, String source) {
+        LrcSong song = new LrcSong(title, artist, source, true);
+        if (content == null || content.trim().isEmpty()) return song;
+
+        List<LrcWord> all = new ArrayList<>();
+        String[] rawLines = content.split("\\r?\\n");
+        for (String raw : rawLines) {
+            String line = raw.trim();
+            if (line.isEmpty()) continue;
+            Matcher matcher = TIME_TAG_PATTERN.matcher(line);
+            List<Long> times = new ArrayList<>();
+            int lastEnd = 0;
+            while (matcher.find()) {
+                try {
+                    int min = Integer.parseInt(matcher.group(1));
+                    int sec = Integer.parseInt(matcher.group(2));
+                    String msStr = matcher.group(3);
+                    long ms = 0;
+                    if (msStr != null && !msStr.isEmpty()) {
+                        ms = Long.parseLong(msStr);
+                        if (msStr.length() == 1) ms *= 100;
+                        else if (msStr.length() == 2) ms *= 10;
+                    }
+                    times.add(min * 60L * 1000L + sec * 1000L + ms);
+                    lastEnd = matcher.end();
+                } catch (Throwable ignored) {}
+            }
+            if (times.isEmpty()) continue;
+            String word = line.substring(lastEnd).trim();
+            if (word.isEmpty() || word.startsWith("[") && word.endsWith("]")) continue;
+            // Skip whole-sentence lines: word mode expects single words.
+            if (word.contains("  ") || word.split("\\s+").length > 4) continue;
+            for (Long t : times) all.add(new LrcWord(t, t, word));
+        }
+        if (all.isEmpty()) return song;
+
+        Collections.sort(all, (a, b) -> Long.compare(a.startMs, b.startMs));
+        // Deduplicate identical timestamps, keep first word.
+        List<LrcWord> dedup = new ArrayList<>();
+        for (LrcWord w : all) {
+            if (!dedup.isEmpty() && dedup.get(dedup.size() - 1).startMs == w.startMs) continue;
+            dedup.add(w);
+        }
+        // End = next word start (clamped to +2.5s so pauses don't stretch words).
+        List<LrcWord> timed = new ArrayList<>();
+        for (int i = 0; i < dedup.size(); i++) {
+            LrcWord w = dedup.get(i);
+            long end = (i + 1 < dedup.size()) ? dedup.get(i + 1).startMs : w.startMs + 1200L;
+            if (end - w.startMs > 2500L) end = w.startMs + 1200L;
+            timed.add(new LrcWord(w.startMs, end, w.text));
+        }
+
+        // Group into readable lines: max 8 words, break on sentence punctuation
+        // or gaps > 2.2s (new phrase).
+        StringBuilder sb = new StringBuilder();
+        List<LrcWord> cur = new ArrayList<>();
+        long lineStart = -1;
+        int wordCount = 0;
+        for (int i = 0; i < timed.size(); i++) {
+            LrcWord w = timed.get(i);
+            if (lineStart < 0) lineStart = w.startMs;
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(w.text);
+            cur.add(w);
+            wordCount++;
+            boolean sentenceEnd = w.text.matches(".*[.!?…]+[\"»\\)]*$");
+            boolean gap = (i + 1 < timed.size()) && (timed.get(i + 1).startMs - w.endMs > 2200L);
+            if (wordCount >= 8 || sentenceEnd || gap || i == timed.size() - 1) {
+                LrcLine line = new LrcLine(lineStart, sb.toString());
+                line.words.addAll(cur);
+                song.lines.add(line);
+                sb.setLength(0);
+                cur.clear();
+                lineStart = -1;
+                wordCount = 0;
+            }
+        }
+        song.isSynced = !song.lines.isEmpty();
         return song;
     }
 

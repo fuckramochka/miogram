@@ -56,8 +56,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
         YOUTUBE_MUSIC("YouTube Music", "YouTube Music", "YouTube Music"),
         DEEZER("Deezer HQ", "Deezer HQ", "Deezer HQ"),
         ITUNES("iTunes Store", "iTunes Store", "iTunes Store"),
-        JAMENDO("Jamendo HQ", "Jamendo HQ", "Jamendo HQ"),
-        DRIVEMUSIC("DriveMusic UA", "DriveMusic UA", "DriveMusic UA");
+        JAMENDO("Jamendo HQ", "Jamendo HQ", "Jamendo HQ");
 
         public final String uk, ru, en;
         SourceFilter(String uk, String ru, String en) {
@@ -96,6 +95,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
     private final List<MiogramMusicTrack> displayTracks = new ArrayList<>();
     private Runnable searchRunnable;
     private boolean isSearching = false;
+    private int searchGeneration = 0;
 
     @Override
     public View createView(Context context) {
@@ -259,31 +259,30 @@ public class MiogramMusicSearchActivity extends BaseFragment {
     }
 
     private void performSearch(String query) {
+        final int gen = ++searchGeneration;
         isSearching = true;
-        emptyView.showProgress();
+        if (emptyView != null) emptyView.showProgress();
 
         MiogramMusicSearchEngine.searchAll(query, currentAccount, new MiogramMusicSearchEngine.SearchCallback() {
             @Override
             public void onResults(List<MiogramMusicTrack> tracks, boolean isFinal) {
+                if (gen != searchGeneration || fragmentView == null) return;
                 if (isFinal) isSearching = false;
                 allTracks.clear();
                 if (tracks != null) {
                     allTracks.addAll(tracks);
                 }
                 filterAndDisplay();
-
-                if (isFinal && allTracks.isEmpty()) {
-                    emptyView.showTextView();
-                    emptyView.setText(MiogramLocale.get("Нічого не знайдено", "Ничего не найдено", "No tracks found"));
-                }
             }
 
             @Override
             public void onError(String error) {
+                if (gen != searchGeneration || fragmentView == null) return;
                 isSearching = false;
-                if (allTracks.isEmpty()) {
+                if (allTracks.isEmpty() && emptyView != null) {
                     emptyView.showTextView();
-                    emptyView.setText(MiogramLocale.get("Помилка пошуку", "Ошибка поиска", "Search error: ") + error);
+                    String msg = error != null ? error : "network";
+                    emptyView.setText(MiogramLocale.get("Помилка пошуку: ", "Ошибка поиска: ", "Search error: ") + msg);
                 }
             }
         });
@@ -292,6 +291,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
     private void filterAndDisplay() {
         displayTracks.clear();
         for (MiogramMusicTrack t : allTracks) {
+            if (t == null) continue;
             if (currentFilter == SourceFilter.ALL) {
                 displayTracks.add(t);
             } else if (currentFilter == SourceFilter.TELEGRAM && t.source == MiogramMusicTrack.Source.TELEGRAM) {
@@ -304,26 +304,56 @@ public class MiogramMusicSearchActivity extends BaseFragment {
                 displayTracks.add(t);
             } else if (currentFilter == SourceFilter.JAMENDO && t.source == MiogramMusicTrack.Source.JAMENDO) {
                 displayTracks.add(t);
-            } else if (currentFilter == SourceFilter.DRIVEMUSIC && t.source == MiogramMusicTrack.Source.DRIVEMUSIC) {
-                displayTracks.add(t);
             }
         }
         if (adapter != null) {
             adapter.notifyDataSetChanged();
+        }
+        if (emptyView != null && !isSearching) {
+            if (displayTracks.isEmpty()) {
+                emptyView.showTextView();
+                if (allTracks.isEmpty()) {
+                    emptyView.setText(MiogramLocale.get("Нічого не знайдено", "Ничего не найдено", "No tracks found"));
+                } else {
+                    emptyView.setText(MiogramLocale.get("У цьому джерелі нічого нема — зміни фільтр", "В этом источнике ничего нет — смени фильтр", "Nothing in this source — change filter"));
+                }
+            }
         }
     }
 
     private static android.media.MediaPlayer activePlayer = null;
     private static MiogramMusicTrack currentlyPlayingTrack = null;
 
+    private void safeToast(String msg) {
+        try {
+            Context ctx = getParentActivity() != null ? getParentActivity() : getContext();
+            if (ctx == null || fragmentView == null) return;
+            Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show();
+        } catch (Throwable ignore) {}
+    }
+
     private void playStreamTrack(MiogramMusicTrack track) {
         if (track == null || track.streamUrl == null || track.streamUrl.isEmpty()) return;
+        // YouTube watch URLs are not direct streams — don't feed them to MediaPlayer.
+        if (track.streamUrl.contains("youtube.com/watch") || track.streamUrl.contains("youtu.be/")) {
+            safeToast(MiogramLocale.get("Це YouTube-посилання — відкриваю в браузері", "Это YouTube-ссылка — открываю в браузере", "YouTube link — opening in browser"));
+            try {
+                org.telegram.messenger.browser.Browser.openUrl(getParentActivity(), track.streamUrl);
+            } catch (Throwable ignore) {}
+            return;
+        }
 
         Context ctx = getParentActivity() != null ? getParentActivity() : getContext();
 
         if (currentlyPlayingTrack == track && activePlayer != null) {
             try {
-                if (activePlayer.isPlaying()) {
+                boolean playing = false;
+                try {
+                    playing = activePlayer.isPlaying();
+                } catch (IllegalStateException ise) {
+                    playing = false;
+                }
+                if (playing) {
                     activePlayer.pause();
                 } else {
                     activePlayer.start();
@@ -343,7 +373,6 @@ public class MiogramMusicSearchActivity extends BaseFragment {
             if (adapter != null) adapter.notifyDataSetChanged();
 
             activePlayer = new android.media.MediaPlayer();
-            activePlayer.setAudioStreamType(android.media.AudioManager.STREAM_MUSIC);
             activePlayer.setDataSource(track.streamUrl);
             activePlayer.setOnPreparedListener(mp -> {
                 try {
@@ -358,11 +387,17 @@ public class MiogramMusicSearchActivity extends BaseFragment {
             activePlayer.setOnErrorListener((mp, what, extra) -> {
                 stopActivePlayer();
                 if (adapter != null) adapter.notifyDataSetChanged();
-                Toast.makeText(ctx, MiogramLocale.get("Помилка відтворення потоку", "Ошибка воспроизведения потока", "Stream playback error"), Toast.LENGTH_SHORT).show();
+                safeToast(MiogramLocale.get("Помилка відтворення потоку", "Ошибка воспроизведения потока", "Stream playback error"));
                 return true;
             });
+            try {
+                activePlayer.setAudioAttributes(new android.media.AudioAttributes.Builder()
+                        .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build());
+            } catch (Throwable ignore) {}
             activePlayer.prepareAsync();
-            Toast.makeText(ctx, "▶ " + (track.getDisplayTitle() != null ? track.getDisplayTitle() : ""), Toast.LENGTH_SHORT).show();
+            safeToast("▶ " + (track.getDisplayTitle() != null ? track.getDisplayTitle() : ""));
         } catch (Throwable t) {
             stopActivePlayer();
             if (adapter != null) adapter.notifyDataSetChanged();

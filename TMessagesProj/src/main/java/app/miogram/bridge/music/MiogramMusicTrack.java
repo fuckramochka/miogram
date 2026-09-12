@@ -13,8 +13,7 @@ public class MiogramMusicTrack {
         DEEZER("Deezer HQ", 0xFFFF0055),
         ITUNES("iTunes / Apple", 0xFFFA2D48),
         JAMENDO("Jamendo HQ", 0xFF9B59B6),
-        AUDIUS("Audius Hi-Fi", 0xFFCC33CC),
-        DRIVEMUSIC("DriveMusic UA", 0xFF00B0FF);
+        AUDIUS("Audius Hi-Fi", 0xFFCC33CC);
 
         public final String label;
         public final int badgeColor;

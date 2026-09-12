@@ -107,7 +107,39 @@ public class MiogramCompanionToolbox {
     public static boolean isSensitiveTool(String name) {
         if (name == null) return false;
         String n = name.toLowerCase(java.util.Locale.US);
-        return n.contains("clear") || n.contains("delete") || n.contains("send") || n.contains("profile") || n.contains("setting");
+        return n.contains("clear") || n.contains("delete") || n.contains("send") || n.contains("profile") || n.contains("setting")
+                || n.contains("create_chat") || n.contains("toggle_plugin") || n.contains("userbot") || n.contains("eval")
+                || n.contains("write_plugin") || n.contains("diagnose") || n.contains("report");
+    }
+
+    public static String describeTool(String name, org.json.JSONObject params) {
+        if (name == null) return "";
+        String n = name.toLowerCase(java.util.Locale.US);
+        try {
+            if (n.equals("read_messages")) {
+                String q = params != null ? params.optString("chat_query", params.optString("chat_name", "")) : "";
+                int limit = params != null ? params.optInt("limit", 15) : 15;
+                return MiogramLocale.get("Прочитає останні ", "Прочитает последние ", "Will read last ") + limit
+                        + MiogramLocale.get(" повідомлень з чату «", " сообщений из чата «", " messages from chat \"") + q + "».";
+            }
+            if (n.equals("search_messages")) {
+                String q = params != null ? params.optString("query", params.optString("text", "")) : "";
+                return MiogramLocale.get("Знайде повідомлення за запитом «", "Найдёт сообщения по запросу «", "Will search messages for \"") + q + "».";
+            }
+            if (n.equals("find_chat")) {
+                String q = params != null ? params.optString("query", params.optString("chat_query", "")) : "";
+                return MiogramLocale.get("Знайде чат «", "Найдёт чат «", "Will find chat \"") + q + "».";
+            }
+            if (n.equals("send_message")) {
+                String q = params != null ? params.optString("chat_query", "") : "";
+                return MiogramLocale.get("Надішле повідомлення в чат «", "Отправит сообщение в чат «", "Will send a message to chat \"") + q + "».";
+            }
+            if (n.equals("clear_chat") || n.equals("delete_chat")) {
+                String q = params != null ? params.optString("chat_query", "") : "";
+                return MiogramLocale.get("⚠️ Очистить/видалить історію чату «", "⚠️ Очистит/удалит историю чата «", "⚠️ Will clear/delete history of chat \"") + q + "».";
+            }
+        } catch (Throwable ignore) {}
+        return MiogramLocale.get("Виконає дію: ", "Выполнит действие: ", "Will perform: ") + name;
     }
 
     public static class FoundChat {
@@ -155,15 +187,92 @@ public class MiogramCompanionToolbox {
         }
     }
 
+    public static String stripGrammaticalEnding(String s) {
+        if (s == null || s.length() <= 3) return s;
+        String[] suffixes = {"ові", "еві", "ями", "ами", "ями", "ком", "чик", "іком", "иком", "ом", "ем", "ам", "ах", "ях", "ою", "ею", "ів", "ев", "ей", "ка", "ку", "ки", "ке", "ко", "а", "я", "у", "ю", "е", "є", "і", "и", "ы"};
+        for (String suf : suffixes) {
+            if (s.endsWith(suf) && s.length() - suf.length() >= 3) {
+                return s.substring(0, s.length() - suf.length());
+            }
+        }
+        return s;
+    }
+
+    // Miogram fix: LLM sometimes passes full user phrase ("знайди в лс з твайсом",
+    // "ну просто почитай лс з твайсом і зроби самарі") instead of clean name.
+    // Strip command verbs / prepositions so fuzzy match sees only the name.
+    public static String sanitizeChatQuery(String raw) {
+        if (raw == null) return "";
+        String q = raw.trim();
+        if (q.startsWith("@")) q = q.substring(1).trim();
+        String low = q.toLowerCase(java.util.Locale.ROOT);
+        String[] prefixes = new String[]{
+                "знайди в лс з", "знайди в лс", "знайди чат з", "знайди чат",
+                "найди в лс с", "найди в лс", "найди чат с", "найди чат",
+                "find chat with", "find chats with", "find with", "find chat", "find",
+                "ну просто почитай лс з", "просто почитай лс з", "почитай лс з", "почитай",
+                "прочитай повідомлення від", "прочитай сообщения от", "прочитай",
+                "прочти", "прочти лс", "покажи лс з", "покажи",
+                "зроби самарі з", "сделай саммари с", "зроби самарі", "самарі з", "самарі",
+                "що пише", "что пишет", "що там у діалозі з", "что там в диалоге с",
+                "переписку з", "переписку с", "повідомлення від", "сообщения от",
+                "в лс з", "в личке с", "в лс", "в личке", "лс з", "лс с",
+                "чат з", "чат с", "чат", "діалог з", "диалог с",
+                "знайди", "найди", "search", "with ", "from ", "з ", "с "
+        };
+        boolean changed = true;
+        int guard = 0;
+        while (changed && guard++ < 4) {
+            changed = false;
+            for (String p : prefixes) {
+                if (low.startsWith(p)) {
+                    int cut = p.length();
+                    // keep word boundary: "з " includes space, single "з"/"с" handled above with space
+                    q = q.substring(Math.min(cut, q.length())).trim();
+                    low = q.toLowerCase(java.util.Locale.ROOT);
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        // trailing junk: "і зроби самарі", "и сделай саммари", punctuation
+        String[] trailing = new String[]{
+                "і зроби самарі", "и сделай саммари", "і зроби саммари", "зроби самарі",
+                "і зроби", "сделай саммари", "зроби", "самарі", "саммари", "summary"
+        };
+        for (String t : trailing) {
+            if (low.endsWith(t)) {
+                q = q.substring(0, q.length() - t.length()).trim();
+                low = q.toLowerCase(java.util.Locale.ROOT);
+            }
+        }
+        q = q.replaceAll("^[\\p{Punct}\\s]+|[\\p{Punct}\\s]+$", "").trim();
+        return q.isEmpty() ? raw.trim() : q;
+    }
+
+    public static int levenshteinDistance(String a, String b) {
+        if (a == null || b == null) return 99;
+        int lenA = a.length(), lenB = b.length();
+        if (lenA == 0) return lenB;
+        if (lenB == 0) return lenA;
+        int[][] dp = new int[lenA + 1][lenB + 1];
+        for (int i = 0; i <= lenA; i++) dp[i][0] = i;
+        for (int j = 0; j <= lenB; j++) dp[0][j] = j;
+        for (int i = 1; i <= lenA; i++) {
+            for (int j = 1; j <= lenB; j++) {
+                int cost = (a.charAt(i - 1) == b.charAt(j - 1)) ? 0 : 1;
+                dp[i][j] = Math.min(Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1), dp[i - 1][j - 1] + cost);
+            }
+        }
+        return dp[lenA][lenB];
+    }
+
     public static List<FoundChat> searchChats(int account, String rawQuery) {
         List<FoundChat> matches = new ArrayList<>();
         if (rawQuery == null || rawQuery.trim().isEmpty()) {
             return matches;
         }
-        String q = rawQuery.trim();
-        if (q.startsWith("@")) {
-            q = q.substring(1).trim();
-        }
+        String q = sanitizeChatQuery(rawQuery);
         if (q.isEmpty()) return matches;
 
         MessagesController mc = MessagesController.getInstance(account);
@@ -188,7 +297,7 @@ public class MiogramCompanionToolbox {
                         String fullName = UserObject.getUserName(u);
                         String uname = u.username != null ? u.username : "";
                         int score = calculateMatchScore(q, fullName, uname, u.first_name, u.last_name);
-                        if (score >= 60) {
+                        if (score >= 55) {
                             dedup.put(did, new ScoredFoundChat(new FoundChat(did, fullName, uname, false, false), score));
                         }
                     }
@@ -200,7 +309,7 @@ public class MiogramCompanionToolbox {
                         boolean isChannel = ChatObject.isChannelAndNotMegaGroup(c);
                         boolean isGroup = !isChannel;
                         int score = calculateMatchScore(q, title, uname, null, null);
-                        if (score >= 60) {
+                        if (score >= 55) {
                             dedup.put(did, new ScoredFoundChat(new FoundChat(did, title, uname, isChannel, isGroup), score));
                         }
                     }
@@ -220,13 +329,75 @@ public class MiogramCompanionToolbox {
                     String fullName = UserObject.getUserName(u);
                     String uname = u.username != null ? u.username : "";
                     int score = calculateMatchScore(q, fullName, uname, u.first_name, u.last_name);
-                    if (score >= 60) {
+                    if (score >= 55) {
                         ScoredFoundChat existing = dedup.get(uid);
                         if (existing == null || score > existing.score) {
                             dedup.put(uid, new ScoredFoundChat(new FoundChat(uid, fullName, uname, false, false), score));
                         }
                     }
                 }
+            }
+        }
+
+        // 3. Scan Cached Users in Memory (All Known Peers)
+        try {
+            for (TLRPC.User u : mc.getUsers().values()) {
+                if (u == null || u.id == 0 || u.id == UserConfig.getInstance(account).getClientUserId()) continue;
+                String fullName = UserObject.getUserName(u);
+                String uname = u.username != null ? u.username : "";
+                int score = calculateMatchScore(q, fullName, uname, u.first_name, u.last_name);
+                if (score >= 55) {
+                    ScoredFoundChat existing = dedup.get(u.id);
+                    if (existing == null || score > existing.score) {
+                        dedup.put(u.id, new ScoredFoundChat(new FoundChat(u.id, fullName, uname, false, false), score));
+                    }
+                }
+            }
+        } catch (Throwable ignore) {}
+
+        // 4. Scan Cached Chats in Memory
+        try {
+            for (TLRPC.Chat c : mc.getChats().values()) {
+                if (c == null || c.id == 0) continue;
+                long did = -c.id;
+                String title = c.title != null ? c.title : "";
+                String uname = c.username != null ? c.username : "";
+                boolean isChannel = ChatObject.isChannelAndNotMegaGroup(c);
+                boolean isGroup = !isChannel;
+                int score = calculateMatchScore(q, title, uname, null, null);
+                if (score >= 55) {
+                    ScoredFoundChat existing = dedup.get(did);
+                    if (existing == null || score > existing.score) {
+                        dedup.put(did, new ScoredFoundChat(new FoundChat(did, title, uname, isChannel, isGroup), score));
+                    }
+                }
+            }
+        } catch (Throwable ignore) {}
+
+        // Fallback: full-sentence query ("ну просто почитай лс з твайсом і зроби самарі")
+        // try each meaningful token separately so one good word still finds the chat.
+        if (dedup.isEmpty() && q.contains(" ")) {
+            String[] qTokens = q.split("[\\s,.;:!?\"]+");
+            for (String tok : qTokens) {
+                if (tok == null) continue;
+                String t = tok.trim().replaceAll("^[\\p{Punct}]+|[\\p{Punct}]+$", "");
+                if (t.length() < 3) continue;
+                String lowT = t.toLowerCase(java.util.Locale.ROOT);
+                if (lowT.equals("просто") || lowT.equals("ну") || lowT.equals("зроби") || lowT.equals("сделай")
+                        || lowT.equals("почитай") || lowT.equals("прочитай") || lowT.equals("знайди") || lowT.equals("найди")
+                        || lowT.equals("самарі") || lowT.equals("саммари") || lowT.equals("лс") || lowT.equals("з") || lowT.equals("с")
+                        || lowT.equals("і") || lowT.equals("и") || lowT.equals("та")) continue;
+                try {
+                    for (TLRPC.User u : mc.getUsers().values()) {
+                        if (u == null || u.id == 0 || u.id == UserConfig.getInstance(account).getClientUserId()) continue;
+                        if (dedup.containsKey(u.id)) continue;
+                        int score = calculateMatchScore(t, UserObject.getUserName(u), u.username != null ? u.username : "", u.first_name, u.last_name);
+                        if (score >= 70) {
+                            dedup.put(u.id, new ScoredFoundChat(new FoundChat(u.id, UserObject.getUserName(u), u.username != null ? u.username : "", false, false), score - 5));
+                        }
+                    }
+                } catch (Throwable ignore) {}
+                if (!dedup.isEmpty()) break;
             }
         }
 
@@ -242,33 +413,62 @@ public class MiogramCompanionToolbox {
     public static int calculateMatchScore(String rawQ, String name, String username, String first, String last) {
         if (rawQ == null || rawQ.trim().isEmpty()) return 0;
         String qLower = rawQ.trim().toLowerCase(java.util.Locale.ROOT);
+        String qStem = stripGrammaticalEnding(qLower);
         String normQ = normalizeText(rawQ);
+        String normStemQ = normalizeText(qStem);
         String colQ = collapseRepeats(normQ);
+        String enQ = transliterateUaToEn(qLower);
 
         int best = 0;
         String[] targets = new String[]{username, name, first, last};
         for (String target : targets) {
             if (target == null || target.trim().isEmpty()) continue;
             String tLower = target.trim().toLowerCase(java.util.Locale.ROOT);
-            if (tLower.equals(qLower)) return 100;
-            if (tLower.contains(qLower)) best = Math.max(best, 92);
+            if (tLower.equals(qLower) || tLower.equals(qStem)) return 100;
+            if (tLower.contains(qLower) || tLower.contains(qStem)) best = Math.max(best, 92);
 
             String normT = normalizeText(target);
             if (normT.isEmpty()) continue;
             String colT = collapseRepeats(normT);
 
-            if (normT.equals(normQ)) return 95;
+            if (normT.equals(normQ) || normT.equals(normStemQ)) return 95;
             if (colT.equals(colQ)) return 90;
 
-            if (normT.contains(normQ) || normQ.contains(normT)) best = Math.max(best, 85);
+            if (normT.contains(normQ) || normQ.contains(normT) || normT.contains(normStemQ) || normStemQ.contains(normT)) best = Math.max(best, 85);
             if (colT.contains(colQ) || colQ.contains(colT)) best = Math.max(best, 80);
 
-            // Stem match (e.g. "безлик" in "безликий" / "6ezzликий")
-            if (colQ.length() >= 4 && colT.length() >= 4) {
-                String stemQ = colQ.substring(0, Math.min(colQ.length(), 5));
-                String stemT = colT.substring(0, Math.min(colT.length(), 5));
-                if (colT.contains(stemQ) || colQ.contains(stemT)) {
-                    best = Math.max(best, 75);
+            // Transliterated English match (e.g. "твайс" -> "twice" matching "Twice")
+            if (!enQ.isEmpty()) {
+                if (tLower.equals(enQ) || tLower.contains(enQ)) best = Math.max(best, 95);
+                String normEnT = normalizeText(enQ);
+                if (normT.equals(normEnT) || normT.contains(normEnT) || normEnT.contains(normT)) best = Math.max(best, 90);
+            }
+
+            // Word token matching: split target into words (e.g. "Twice 🌸", "misha_twice")
+            String[] tokens = tLower.split("[\\s_\\-\\.]+");
+            for (String tok : tokens) {
+                if (tok.isEmpty()) continue;
+                if (tok.equals(qLower) || tok.equals(qStem) || tok.equals(enQ)) best = Math.max(best, 95);
+                if (tok.startsWith(qLower) || tok.startsWith(qStem) || (enQ.length() >= 3 && tok.startsWith(enQ))) best = Math.max(best, 88);
+
+                // Levenshtein fuzzy distance on tokens
+                if (tok.length() >= 4 && (qStem.length() >= 4 || enQ.length() >= 4)) {
+                    int distEn = levenshteinDistance(tok, enQ);
+                    if (distEn <= 1) best = Math.max(best, 92);
+                    else if (distEn <= 2) best = Math.max(best, 82);
+
+                    int distCyr = levenshteinDistance(transliterateEnToUa(tok), qStem);
+                    if (distCyr <= 1) best = Math.max(best, 90);
+                    else if (distCyr <= 2) best = Math.max(best, 80);
+                }
+            }
+
+            // Stem match
+            if (colQ.length() >= 3 && colT.length() >= 3) {
+                String sQ = colQ.substring(0, Math.min(colQ.length(), 4));
+                String sT = colT.substring(0, Math.min(colT.length(), 4));
+                if (colT.contains(sQ) || colQ.contains(sT)) {
+                    best = Math.max(best, 78);
                 }
             }
         }
@@ -278,9 +478,32 @@ public class MiogramCompanionToolbox {
     public static String transliterateEnToUa(String s) {
         if (s == null) return "";
         s = s.toLowerCase(java.util.Locale.ROOT);
-        s = s.replace("shch", "щ").replace("zh", "ж").replace("ch", "ч").replace("sh", "ш")
-                .replace("yu", "ю").replace("ya", "я").replace("ye", "є").replace("yi", "ї")
-                .replace("ts", "ц").replace("kh", "х");
+        s = s.replace("twice", "твайс")
+                .replace("wice", "вайс")
+                .replace("nice", "найс")
+                .replace("vice", "вайс")
+                .replace("ice", "айс")
+                .replace("ight", "айт")
+                .replace("ite", "айт")
+                .replace("ike", "айк")
+                .replace("ide", "айд")
+                .replace("ine", "айн")
+                .replace("ay", "ей")
+                .replace("ey", "ей")
+                .replace("ea", "і")
+                .replace("ee", "і")
+                .replace("oo", "у")
+                .replace("ph", "ф")
+                .replace("th", "т")
+                .replace("shch", "щ")
+                .replace("sh", "ш")
+                .replace("ch", "ч")
+                .replace("zh", "ж")
+                .replace("kh", "х")
+                .replace("ts", "ц")
+                .replace("qu", "кв")
+                .replace("ck", "к")
+                .replace("wh", "в");
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
@@ -307,8 +530,66 @@ public class MiogramCompanionToolbox {
                 case 'u': sb.append('у'); break;
                 case 'f': sb.append('ф'); break;
                 case 'h': sb.append('х'); break;
-                case 'c': sb.append('ц'); break;
+                case 'c':
+                    if (i + 1 < s.length() && (s.charAt(i + 1) == 'e' || s.charAt(i + 1) == 'i' || s.charAt(i + 1) == 'y')) {
+                        sb.append('с');
+                    } else {
+                        sb.append('к');
+                    }
+                    break;
                 case 'x': sb.append("кс"); break;
+                default: sb.append(c); break;
+            }
+        }
+        return sb.toString();
+    }
+
+    public static String transliterateUaToEn(String s) {
+        if (s == null) return "";
+        s = s.toLowerCase(java.util.Locale.ROOT);
+        s = s.replace("твайс", "twice")
+                .replace("вайс", "wice")
+                .replace("найс", "nice")
+                .replace("айс", "ice")
+                .replace("айк", "ike")
+                .replace("айт", "ight")
+                .replace("ей", "ay")
+                .replace("дж", "j")
+                .replace("щ", "shch")
+                .replace("ч", "ch")
+                .replace("ш", "sh")
+                .replace("ж", "zh")
+                .replace("х", "kh")
+                .replace("ц", "ts")
+                .replace("ю", "yu")
+                .replace("я", "ya")
+                .replace("є", "ye")
+                .replace("ї", "yi");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case 'а': sb.append('a'); break;
+                case 'б': sb.append('b'); break;
+                case 'в': sb.append('v'); break;
+                case 'г': case 'ґ': sb.append('g'); break;
+                case 'д': sb.append('d'); break;
+                case 'е': case 'э': sb.append('e'); break;
+                case 'з': sb.append('z'); break;
+                case 'и': case 'ы': sb.append('y'); break;
+                case 'і': sb.append('i'); break;
+                case 'й': sb.append('y'); break;
+                case 'к': sb.append('k'); break;
+                case 'л': sb.append('l'); break;
+                case 'м': sb.append('m'); break;
+                case 'н': sb.append('n'); break;
+                case 'о': sb.append('o'); break;
+                case 'п': sb.append('p'); break;
+                case 'р': sb.append('r'); break;
+                case 'с': sb.append('s'); break;
+                case 'т': sb.append('t'); break;
+                case 'у': sb.append('u'); break;
+                case 'ф': sb.append('f'); break;
                 default: sb.append(c); break;
             }
         }
@@ -478,13 +759,23 @@ public class MiogramCompanionToolbox {
                     String query = p.optString("query", "");
                     if (query.isEmpty()) query = p.optString("text", "");
                     if (query.isEmpty()) query = p.optString("q", "");
-                    if (query.isEmpty()) {
-                        callback.run(MiogramLocale.get("Вкажи текст для пошуку повідомлень.", "Укажи текст для поиска сообщений.", "Specify text to search messages."));
-                        return;
-                    }
                     String chatQuery = p.optString("chat_query", "");
                     if (chatQuery.isEmpty()) chatQuery = p.optString("chat_name", "");
                     long specificChatId = p.optLong("chat_id", 0);
+
+                    if (query.isEmpty()) {
+                        if (!chatQuery.isEmpty() || specificChatId != 0) {
+                            JSONObject readParams = new JSONObject();
+                            readParams.put("chat_query", chatQuery);
+                            readParams.put("chat_id", specificChatId);
+                            readParams.put("limit", p.optInt("limit", 15));
+                            ActionRequest readReq = new ActionRequest("read_messages", readParams);
+                            executeTool(account, readReq, callback);
+                            return;
+                        }
+                        callback.run(MiogramLocale.get("Вкажи текст для пошуку повідомлень або ім'я співрозмовника.", "Укажи текст для поиска сообщений или имя собеседника.", "Specify text to search messages or chat name."));
+                        return;
+                    }
 
                     final String fQuery = query;
                     MessagesController mc = MessagesController.getInstance(account);
@@ -839,7 +1130,7 @@ public class MiogramCompanionToolbox {
                     break;
                 }
                 default:
-                    callback.run(MiogramLocale.get("Команду '", "Команда '", "Command '") + name + MiogramLocale.get("' успішно опрацьовано.", "' успешно обработана.", "' processed successfully."));
+                    callback.run(MiogramLocale.get("Не знаю такої дії «", "Не знаю такого действия «", "Unknown action \"") + name + MiogramLocale.get("». Нічого не виконано — спробуй інакше.", "». Ничего не выполнено — попробуй иначе.", "\". Nothing was done — try differently."));
                     break;
             }
         } catch (Throwable t) {

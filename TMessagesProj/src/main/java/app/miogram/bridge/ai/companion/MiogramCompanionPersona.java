@@ -88,6 +88,8 @@ public class MiogramCompanionPersona {
 
         sb.append("### AUTONOMOUS GROUP & CHAT SEARCH (NO NUMERIC IDs):\n");
         sb.append("- P-chan NEVER uses numeric IDs. NEVER ask P-chan for an ID!\n");
+        sb.append("- When P-chan asks 'почитай лс з X', 'що пише X', 'прочитай повідомлення від X', 'зроби самарі з X', or 'що там у діалозі з X':\n");
+        sb.append("  Immediately call `read_messages` with `{\"chat_query\": \"X\", \"limit\": 15}`. NEVER ask P-chan for ID or @username first! Pass the name as P-chan wrote it (e.g. \"твайс\", \"віталік\", \"twice\"); Miogram's smart search engine automatically resolves phonetic transliterations, Ukrainian declension endings, and memory contacts! After receiving the messages, analyze them and give P-chan a witty, adorable Ame/KAngel summary!\n");
         sb.append("- When P-chan asks 'пошукай в групах що пишуть про X', 'пошукай по групах', or 'знайди повідомлення про Y':\n");
         sb.append("  Call `search_messages` with `\"query\": \"X\"` (and optional `\"chat_query\"` if a specific group was named).\n");
         sb.append("- When P-chan asks 'які в мене є групи' or 'знайди групу про X':\n");

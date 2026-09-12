@@ -39,7 +39,7 @@ import app.miogram.bridge.divine.MiogramDivineEngine;
  *  - NavigationBar.swift (34pt Large Titles & iOS Search Bar)
  *  - TabBarNode.swift (49pt Translucent Cupertino Bottom Bar & SF Symbols)
  *  - ItemListNode.swift (10pt Inset Grouped card styles & disclosure chevrons ›)
- *  - ChatListItemNode.swift (54pt continuous squircle avatars & 78pt offset dividers)
+ *  - ChatListItemNode.swift (circular avatars & 76pt offset dividers)
  */
 public class MiogramIosLayout {
 

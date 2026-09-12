@@ -8275,6 +8275,58 @@ public class MessageObject {
                     spannable.setSpan(span, messageEntity.offset, messageEntity.offset + messageEntity.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     limitCount--;
                 }
+            } else if (messageEntity instanceof TLRPC.TL_messageEntityTextUrl && ((TLRPC.TL_messageEntityTextUrl) messageEntity).url != null && ((TLRPC.TL_messageEntityTextUrl) messageEntity).url.startsWith("tg://emoji")) {
+                long docId = 0;
+                try {
+                    String u = ((TLRPC.TL_messageEntityTextUrl) messageEntity).url;
+                    int idIdx = u.indexOf("id=");
+                    if (idIdx != -1) {
+                        String idStr = u.substring(idIdx + 3);
+                        int amp = idStr.indexOf('&');
+                        if (amp != -1) idStr = idStr.substring(0, amp);
+                        docId = Long.parseLong(idStr.replaceAll("[^0-9]", ""));
+                    }
+                } catch (Throwable ignore) {}
+                if (docId != 0 && messageEntity.offset >= 0 && messageEntity.offset + messageEntity.length <= spannable.length()) {
+                    for (int j = 0; j < emojiSpans.length; ++j) {
+                        Emoji.EmojiSpan span = emojiSpans[j];
+                        if (span != null) {
+                            int start = spannable.getSpanStart(span);
+                            int end = spannable.getSpanEnd(span);
+                            if (AndroidUtilities.intersect1d(messageEntity.offset, messageEntity.offset + messageEntity.length, start, end)) {
+                                spannable.removeSpan(span);
+                                emojiSpans[j] = null;
+                            }
+                        }
+                    }
+                    AnimatedEmojiSpan[] animatedSpans = spannable.getSpans(messageEntity.offset, messageEntity.offset + messageEntity.length, AnimatedEmojiSpan.class);
+                    if (animatedSpans != null && animatedSpans.length > 0) {
+                        for (int j = 0; j < animatedSpans.length; ++j) {
+                            spannable.removeSpan(animatedSpans[j]);
+                        }
+                    }
+                    AnimatedEmojiSpan span = new AnimatedEmojiSpan(docId, scale, fontMetricsInt);
+                    span.top = top;
+                    spannable.setSpan(span, messageEntity.offset, messageEntity.offset + messageEntity.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    limitCount--;
+                }
+            }
+        }
+        if (limitCount > 0 && spannable.toString().contains("tg://emoji")) {
+            java.util.regex.Matcher m = EMOJI_URL_PATTERN.matcher(spannable);
+            while (m.find() && limitCount > 0) {
+                int start = m.start();
+                int end = m.end();
+                try {
+                    long docId = Long.parseLong(m.group(1));
+                    AnimatedEmojiSpan[] existing = spannable.getSpans(start, end, AnimatedEmojiSpan.class);
+                    if (existing == null || existing.length == 0) {
+                        AnimatedEmojiSpan span = new AnimatedEmojiSpan(docId, scale, fontMetricsInt);
+                        span.top = top;
+                        spannable.setSpan(span, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        limitCount--;
+                    }
+                } catch (Throwable ignore) {}
             }
         }
         return spannable;
@@ -8282,6 +8334,7 @@ public class MessageObject {
 
     public static final int ENTITIES_ALL = 0;
     public static final int ENTITIES_ONLY_HASHTAGS = 1;
+    private static final java.util.regex.Pattern EMOJI_URL_PATTERN = java.util.regex.Pattern.compile("tg://emoji\\?id=(\\d+)");
 
     public static boolean addEntitiesToText(CharSequence text, ArrayList<TLRPC.MessageEntity> entities, boolean out, boolean usernames, boolean photoViewer, boolean useManualParse) {
         return addEntitiesToText(text, entities, out, usernames, photoViewer, useManualParse, ENTITIES_ALL);
@@ -8295,6 +8348,8 @@ public class MessageObject {
         Spannable spannable = (Spannable) text;
         URLSpan[] spans = spannable.getSpans(0, text.length(), URLSpan.class);
         boolean hasUrls = spans != null && spans.length > 0;
+        // Miogram sync: do NOT strip tg://emoji links here — vanilla clients keep
+        // emoji + clickable link, Miogram must behave the same (see TextUrl branch below).
         if (entities == null || entities.isEmpty()) {
             return hasUrls;
         }
@@ -8368,6 +8423,21 @@ public class MessageObject {
                 entity instanceof TLRPC.TL_messageEntityPre ||
                 entity instanceof TLRPC.TL_messageEntityDiffReplace
             ) {
+                continue;
+            }
+            // Miogram sync fix: tg://emoji TextUrl must stay clickable (Відкрити /
+            // Копіювати / QR / Поділитися) exactly like vanilla clients, while still
+            // rendering as AnimatedEmojiSpan via replaceAnimatedEmoji above.
+            // Use NoUnderline span so emoji keeps its look but keeps the link menu.
+            if (entity instanceof TLRPC.TL_messageEntityTextUrl && ((TLRPC.TL_messageEntityTextUrl) entity).url != null && ((TLRPC.TL_messageEntityTextUrl) entity).url.startsWith("tg://emoji")) {
+                try {
+                    String emojiUrl = ((TLRPC.TL_messageEntityTextUrl) entity).url;
+                    int s = Math.max(0, entity.offset);
+                    int e = Math.min(spannable.length(), entity.offset + entity.length);
+                    if (s < e) {
+                        spannable.setSpan(new URLSpanNoUnderline(emojiUrl), s, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                } catch (Throwable ignore) {}
                 continue;
             }
 

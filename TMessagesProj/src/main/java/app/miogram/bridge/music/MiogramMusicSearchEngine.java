@@ -61,7 +61,7 @@ public class MiogramMusicSearchEngine {
         final String q = query.trim();
         final List<MiogramMusicTrack> aggregatedResults = Collections.synchronizedList(new ArrayList<>());
         final Set<String> seenSignatures = Collections.synchronizedSet(new HashSet<>());
-        final AtomicInteger pendingEngines = new AtomicInteger(7);
+        final AtomicInteger pendingEngines = new AtomicInteger(6);
 
         // 1. Search Telegram Global Cloud
         searchTelegram(q, currentAccount, new SearchCallback() {
@@ -216,38 +216,7 @@ public class MiogramMusicSearchEngine {
             });
         });
 
-        // 6. Search DriveMusic UA Direct MP3 Catalog
-        Utilities.globalQueue.postRunnable(() -> {
-            searchDriveMusic(q, new SearchCallback() {
-                @Override
-                public void onResults(List<MiogramMusicTrack> tracks, boolean isFinal) {
-                    if (tracks != null) {
-                        for (MiogramMusicTrack t : tracks) {
-                            String sig = normalize(t.artist) + "|" + normalize(t.title);
-                            if (seenSignatures.add(sig)) {
-                                aggregatedResults.add(t);
-                            }
-                        }
-                    }
-                    checkFinal();
-                }
-
-                @Override
-                public void onError(String error) {
-                    checkFinal();
-                }
-
-                private void checkFinal() {
-                    if (pendingEngines.decrementAndGet() == 0) {
-                        AndroidUtilities.runOnUIThread(() -> callback.onResults(new ArrayList<>(aggregatedResults), true));
-                    } else {
-                        AndroidUtilities.runOnUIThread(() -> callback.onResults(new ArrayList<>(aggregatedResults), false));
-                    }
-                }
-            });
-        });
-
-        // 7. Search YouTube Music InnerTube API
+        // 6. Search YouTube Music InnerTube API
         Utilities.globalQueue.postRunnable(() -> {
             searchYouTubeMusic(q, new SearchCallback() {
                 @Override
@@ -558,84 +527,6 @@ public class MiogramMusicSearchEngine {
                 AndroidUtilities.runOnUIThread(() -> callback.onResults(results, true));
             } else {
                 AndroidUtilities.runOnUIThread(() -> callback.onError("Audius HTTP " + code));
-            }
-        } catch (Throwable t) {
-            AndroidUtilities.runOnUIThread(() -> callback.onError(t.getMessage()));
-        } finally {
-            if (conn != null) conn.disconnect();
-        }
-    }
-
-    /**
-     * DriveMusic Direct Search (Full Ukrainian & Eastern European music catalogue with CDN MP3s).
-     */
-    public static void searchDriveMusic(String query, SearchCallback callback) {
-        HttpURLConnection conn = null;
-        try {
-            String urlStr = "https://drivemusic.me/?do=search&subaction=search&story=" + URLEncoder.encode(query, "UTF-8");
-            URL url = new URL(urlStr);
-            conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setConnectTimeout(8000);
-            conn.setReadTimeout(8000);
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-
-            int code = conn.getResponseCode();
-            if (code == 200) {
-                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = br.readLine()) != null) {
-                    sb.append(line);
-                }
-                br.close();
-
-                String html = sb.toString();
-                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("data-url=[\"'](https?://[^\"']+\\.mp3)[\"'][^>]*>.*?<div class=\"popular-play-name\">(.*?)</div>", java.util.regex.Pattern.DOTALL);
-                java.util.regex.Matcher matcher = pattern.matcher(html);
-
-                java.util.regex.Pattern authorPattern = java.util.regex.Pattern.compile("class=[\"']popular-play-author[\"'][^>]*>([^<]+)</a>");
-                java.util.regex.Pattern compPattern = java.util.regex.Pattern.compile("class=[\"']popular-play-composition[\"'][^>]*>\\s*<a[^>]*>([^<]+)</a>");
-
-                List<MiogramMusicTrack> results = new ArrayList<>();
-                int counter = 0;
-                while (matcher.find() && counter < 25) {
-                    String mp3Url = matcher.group(1);
-                    String nameHtml = matcher.group(2);
-
-                    String trackTitle = "";
-                    String artistName = "";
-
-                    java.util.regex.Matcher am = authorPattern.matcher(nameHtml);
-                    if (am.find()) {
-                        trackTitle = am.group(1).trim();
-                    }
-
-                    java.util.regex.Matcher cm = compPattern.matcher(nameHtml);
-                    if (cm.find()) {
-                        artistName = cm.group(1).trim();
-                    }
-
-                    if (trackTitle.isEmpty()) {
-                        trackTitle = query;
-                    }
-                    if (artistName.isEmpty()) {
-                        artistName = "DriveMusic";
-                    }
-
-                    MiogramMusicTrack track = new MiogramMusicTrack();
-                    track.id = "drivemusic_" + Math.abs(mp3Url.hashCode());
-                    track.title = trackTitle;
-                    track.artist = artistName;
-                    track.streamUrl = mp3Url;
-                    track.downloadUrl = mp3Url;
-                    track.source = MiogramMusicTrack.Source.DRIVEMUSIC;
-                    results.add(track);
-                    counter++;
-                }
-                AndroidUtilities.runOnUIThread(() -> callback.onResults(results, true));
-            } else {
-                AndroidUtilities.runOnUIThread(() -> callback.onError("DriveMusic HTTP " + code));
             }
         } catch (Throwable t) {
             AndroidUtilities.runOnUIThread(() -> callback.onError(t.getMessage()));

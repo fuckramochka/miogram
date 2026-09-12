@@ -55,7 +55,8 @@ public class MiogramSourceSelectAlert extends BottomSheet {
                 MiogramLyricsEngine.SOURCE_YANDEX,
                 MiogramLyricsEngine.SOURCE_GENIUS,
                 MiogramLyricsEngine.SOURCE_YOUTUBE,
-                MiogramLyricsEngine.SOURCE_AI
+                MiogramLyricsEngine.SOURCE_AI,
+                MiogramLyricsEngine.SOURCE_AI_WORD
         };
 
         final String[] titles = new String[]{
@@ -66,7 +67,8 @@ public class MiogramSourceSelectAlert extends BottomSheet {
                 MiogramLocale.get("Яндекс Музика", "Яндекс Музыка", "Yandex Music"),
                 "Genius",
                 MiogramLocale.get("YouTube (опис ролика)", "YouTube (описание ролика)", "YouTube (Description)"),
-                MiogramLocale.get("ШІ зі звуку", "ИИ со слуха", "AI by ear")
+                MiogramLocale.get("ШІ зі звуку", "ИИ со слуха", "AI by ear"),
+                MiogramLocale.get("✨ ШІ по словах", "✨ ИИ по словам", "✨ AI word-timed")
         };
 
         radioButtons = new RadioButton[sources.length];
@@ -209,6 +211,8 @@ public class MiogramSourceSelectAlert extends BottomSheet {
                 return MiogramLocale.get("YouTube (опис)", "YouTube (описание)", "YouTube (Description)");
             case MiogramLyricsEngine.SOURCE_AI:
                 return MiogramLocale.get("ШІ зі звуку", "ИИ со слуха", "AI by ear");
+            case MiogramLyricsEngine.SOURCE_AI_WORD:
+                return MiogramLocale.get("✨ ШІ по словах", "✨ ИИ по словам", "✨ AI word-timed");
             case MiogramLyricsEngine.SOURCE_AUTO:
             default:
                 return MiogramLocale.get("Автоматично", "Автоматически", "Automatic");

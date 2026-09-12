@@ -3832,7 +3832,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
             final int avatarRadius;
             if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext())) {
-                avatarRadius = dp(16);
+                // Official iOS Telegram uses circular avatars (AvatarNode, cornerRadius = diameter / 2).
+                avatarRadius = dp(28);
             } else if (drawMonoforumAvatar) {
                 avatarRadius = 1;
             } else if (drawCommunityAvatar) {
@@ -3940,6 +3941,17 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
         }
 
         boolean needInvalidate = false;
+
+        // Official iOS Telegram paints pinned chats with a distinct section
+        // background (ChatListNode.swift). The upstream drawRect calls for the
+        // pinned overlay are commented out in this fork, so fill directly.
+        if (app.miogram.bridge.ui.ios.MiogramIosLayout.isIosPresetActive(getContext()) && getIsPinned() && !drawArchive
+                && !app.miogram.bridge.ui.discord.MiogramDiscordLayout.isDiscordUiEnabled()
+                && !app.miogram.bridge.customui.MiogramCustomUiPrefs.isUiDialogCards()) {
+            canvas.drawColor(Theme.isCurrentThemeDark()
+                    ? app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_PINNED_BG_DARK
+                    : app.miogram.bridge.ui.ios.MiogramIosTheme.CHAT_LIST_PINNED_BG_LIGHT);
+        }
 
         if (drawArchive && (currentDialogFolderId != 0 || isTopic && forumTopic != null && forumTopic.id == 1) && archivedChatsDrawable != null && archivedChatsDrawable.outProgress == 0.0f && translationX == 0.0f) {
             canvas.save();

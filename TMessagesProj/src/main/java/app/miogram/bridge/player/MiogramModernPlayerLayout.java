@@ -76,6 +76,8 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     private final TextView coverModeButton;
     private final TextView queueModeButton;
     private final ImageView expandOrCloseBtn;
+    private ImageView customizeBtn;
+    private ImageView topQueueBtn;
 
     // Center Section: Compact Info vs Full Content
     private final FrameLayout centerContainer;
@@ -99,6 +101,8 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     private ImageView fullscreenFavoriteBtn;
     private MiogramBassVisualizer fullscreenBassVisualizer;
     private MiogramBassVisualizer compactBassVisualizer;
+    private android.widget.VideoView customVideoView;
+    private int photoLoadGen = 0;
 
     // Bottom Controls Section
     private final LinearLayout bottomSection;
@@ -128,19 +132,35 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     private boolean isPlaying = false;
 
     private final float[] ampBuffer = new float[16];
+    private final MiogramPlayerPrefs.OnPrefsChangedListener prefsListener = this::applyCustomization;
     private final Runnable visualizerTicker = new Runnable() {
         @Override
         public void run() {
-            if (isPlaying && !MediaController.getInstance().isMessagePaused()) {
+            removeCallbacks(this);
+            boolean vizOn = false;
+            try {
+                vizOn = MiogramPlayerPrefs.isVisualizerEnabled();
+            } catch (Throwable ignore) {}
+            boolean needViz = vizOn && isPlaying;
+            try {
+                if (needViz && MediaController.getInstance().isMessagePaused()) needViz = false;
+            } catch (Throwable ignore) {
+                needViz = false;
+            }
+            if (needViz) {
                 long t = android.os.SystemClock.elapsedRealtime();
                 for (int i = 0; i < ampBuffer.length; i++) {
                     float wave = 0.5f + 0.5f * (float) Math.sin(i * 0.9 + t * 0.005);
                     float detail = Math.abs((float) Math.sin(t * 0.007 + i * 1.7));
                     ampBuffer[i] = Math.min(1f, 0.12f + 0.30f * wave + 0.38f * detail);
                 }
-                if (compactBassVisualizer != null) compactBassVisualizer.updateAmplitudes(ampBuffer);
-                if (fullscreenBassVisualizer != null) fullscreenBassVisualizer.updateAmplitudes(ampBuffer);
-                postDelayed(this, 32);
+                if (compactBassVisualizer != null && compactBassVisualizer.getVisibility() == View.VISIBLE) {
+                    compactBassVisualizer.updateAmplitudes(ampBuffer);
+                }
+                if (fullscreenBassVisualizer != null && fullscreenBassVisualizer.getVisibility() == View.VISIBLE) {
+                    fullscreenBassVisualizer.updateAmplitudes(ampBuffer);
+                }
+                postDelayed(this, 64);
             } else {
                 if (compactBassVisualizer != null) compactBassVisualizer.decayToIdle();
                 if (fullscreenBassVisualizer != null) fullscreenBassVisualizer.decayToIdle();
@@ -244,6 +264,21 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             }
         });
         topControlsRow.addView(searchBtn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL, 0, 0, 2, 0));
+
+        // Pencil: player customization (visible BOTH in mini and fullscreen)
+        customizeBtn = new ImageView(context);
+        customizeBtn.setImageResource(R.drawable.msg_customize);
+        customizeBtn.setScaleType(ImageView.ScaleType.CENTER);
+        customizeBtn.setColorFilter(new PorterDuffColorFilter(buttonColor, PorterDuff.Mode.SRC_IN));
+        customizeBtn.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, AndroidUtilities.dp(18)));
+        customizeBtn.setContentDescription(MiogramLocale.get("Налаштувати плеєр", "Настроить плеер", "Customize player"));
+        customizeBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            try {
+                new MiogramPlayerCustomizeAlert(getContext(), resourcesProvider, MiogramModernPlayerLayout.this, null).show();
+            } catch (Throwable ignore) {}
+        });
+        topControlsRow.addView(customizeBtn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL, 0, 0, 2, 0));
 
         // Right button: Expand to fullscreen (in compact) or Dismiss 'X' (in fullscreen)
         expandOrCloseBtn = new ImageView(context);
@@ -420,6 +455,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
 
         fullscreenBassVisualizer = new MiogramBassVisualizer(context);
         fullscreenBassVisualizer.setColor(accentColor);
+        fullscreenBassVisualizer.setVisibility(MiogramPlayerPrefs.isVisualizerEnabled() ? View.VISIBLE : View.GONE);
         fullscreenCoverBox.addView(fullscreenBassVisualizer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 20, 0, 8, 0, 0));
 
         fullCoverWrapper.addView(fullscreenCoverBox, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
@@ -443,11 +479,11 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         int bottomTop = ColorUtils.setAlphaComponent(surface, 210);
         bottomSection.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{bottomTop, bottomSolid}));
 
-        // Main Controls Row (Shuffle, Repeat, Prev, Hero Play/Pause, Next, Queue) - ABOVE seekbar
+        // Main Controls Row: left extras | CENTER TRIO (prev/play/next) | right extras
+        // Trio is truly centered via equal-weight side boxes.
         mainControlsRow = new LinearLayout(context);
         mainControlsRow.setOrientation(LinearLayout.HORIZONTAL);
         mainControlsRow.setGravity(Gravity.CENTER_VERTICAL);
-        mainControlsRow.setWeightSum(6);
 
         heroPlayButton = new FrameLayout(context);
         GradientDrawable heroBg = new GradientDrawable(
@@ -482,14 +518,15 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         seekbarContainer.addView(timersRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 0));
         bottomSection.addView(seekbarContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 2));
 
-        // Compact Bass Visualizer in bottom controls
+        // Compact Bass Visualizer in bottom controls (hidden by default — "зайві полоски").
         compactBassVisualizer = new MiogramBassVisualizer(context);
         compactBassVisualizer.setColor(accentColor);
+        compactBassVisualizer.setVisibility(MiogramPlayerPrefs.isVisualizerEnabled() ? View.VISIBLE : View.GONE);
         bottomSection.addView(compactBassVisualizer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 14, 0, 2, 0, 2));
 
-        // Profile Button Container ("+ Додати в профіль")
+        // Profile Button Container ("+ Додати в профіль") — compact centered pill, movable via prefs.
         profileButtonContainer = new FrameLayout(context);
-        bottomSection.addView(profileButtonContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
+        bottomSection.addView(profileButtonContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 2, 0, 0));
 
         // Speed pill (bottom-right): mirrors the classic player's speed toggle,
         // which is otherwise unreachable in the modern layout.
@@ -537,6 +574,134 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         });
         addView(speedPill, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM | Gravity.RIGHT, 0, 0, 14, 160));
         updateModeButtons();
+        // Apply saved customization (visualizer OFF by default, centered trio, compact profile pill).
+        try {
+            MiogramPlayerPrefs.removeListener(prefsListener);
+            MiogramPlayerPrefs.addListener(prefsListener);
+        } catch (Throwable ignore) {}
+        post(this::applyCustomization);
+    }
+
+    // Full player customization: background (cover/gradient/solid/glass/custom),
+    // buttons (opacity/glow), lyrics (size/glow/opacity), visualizer + profile pill.
+    // Called from pencil button (top bar, both mini + fullscreen) via MiogramPlayerCustomizeAlert.
+    public void applyCustomization() {
+        try {
+            int accent = getThemeAccentColor();
+            int mode = MiogramPlayerPrefs.getBackgroundMode();
+            float opacity = MiogramPlayerPrefs.getBgOpacity();
+            float brightness = MiogramPlayerPrefs.getBgBrightness();
+            int alpha = (int) (255 * Math.max(0.1f, Math.min(1f, opacity)));
+
+            GradientDrawable bg = new GradientDrawable();
+            bg.setShape(GradientDrawable.RECTANGLE);
+            if (mode == MiogramPlayerPrefs.BG_MODE_GRADIENT) {
+                stopCustomVideo();
+                photoLoadGen++;
+                int c1 = MiogramPlayerPrefs.getGradientColor1();
+                int c2 = MiogramPlayerPrefs.getGradientColor2();
+                int o = MiogramPlayerPrefs.getGradientOrientation();
+                GradientDrawable.Orientation orient = GradientDrawable.Orientation.TOP_BOTTOM;
+                if (o == 1) orient = GradientDrawable.Orientation.TL_BR;
+                else if (o == 2) orient = GradientDrawable.Orientation.LEFT_RIGHT;
+                bg = new GradientDrawable(orient, new int[]{
+                        ColorUtils.setAlphaComponent(c1, alpha),
+                        ColorUtils.setAlphaComponent(c2, alpha)});
+            } else if (mode == MiogramPlayerPrefs.BG_MODE_SOLID) {
+                stopCustomVideo();
+                photoLoadGen++;
+                bg.setColor(ColorUtils.setAlphaComponent(MiogramPlayerPrefs.getSolidColor(), alpha));
+            } else if (mode == MiogramPlayerPrefs.BG_MODE_TRANSPARENT) {
+                stopCustomVideo();
+                photoLoadGen++;
+                bg.setColor(ColorUtils.setAlphaComponent(0xFF000000, (int) (255 * 0.25f * opacity)));
+            } else if (mode == MiogramPlayerPrefs.BG_MODE_CUSTOM_PHOTO || mode == MiogramPlayerPrefs.BG_MODE_CUSTOM_VIDEO) {
+                String mediaPath = mode == MiogramPlayerPrefs.BG_MODE_CUSTOM_PHOTO
+                        ? MiogramPlayerPrefs.getCustomPhotoPath()
+                        : MiogramPlayerPrefs.getCustomVideoPath();
+                boolean valid = MiogramPlayerPrefs.isCustomMediaValid(mediaPath);
+                int surface = getThemedColor(Theme.key_player_background);
+                if (surface == 0) surface = getThemedColor(Theme.key_windowBackgroundWhite);
+                if (surface == 0) surface = 0xFF13151D;
+                int frosted = ColorUtils.setAlphaComponent(surface, Math.min(255, alpha));
+                int top = ColorUtils.blendARGB(frosted, accent, 0.16f);
+                int bottom = ColorUtils.blendARGB(frosted, 0xFF000000, 0.14f);
+                bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{top, frosted, bottom});
+                if (valid) {
+                    loadCustomBackdropAsync(mediaPath, mode, brightness);
+                } else {
+                    // Missing/deleted file -> graceful fallback to frosted cover, keep pref for retry.
+                    stopCustomVideo();
+                    if (backgroundBlurView != null) {
+                        backgroundBlurView.setAlpha(0.35f * brightness);
+                    }
+                }
+            } else {
+                // COVER_BLUR: frosted glass over cover art.
+                stopCustomVideo();
+                int surface = getThemedColor(Theme.key_player_background);
+                if (surface == 0) surface = getThemedColor(Theme.key_windowBackgroundWhite);
+                if (surface == 0) surface = 0xFF13151D;
+                int frosted = ColorUtils.setAlphaComponent(surface, Math.min(255, alpha));
+                int top = ColorUtils.blendARGB(frosted, accent, 0.16f);
+                int bottom = ColorUtils.blendARGB(frosted, 0xFF000000, 0.14f);
+                bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{top, frosted, bottom});
+                stopCustomVideo();
+            }
+            float radius = AndroidUtilities.dp(24) * (1.0f - fullScreenProgress);
+            bg.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
+            bg.setStroke(AndroidUtilities.dp(1), 0x28FFFFFF);
+            setBackground(bg);
+
+            // Blur strength (RenderEffect API 31+, alpha fallback below) + brightness.
+            try {
+                int blurPx = Math.max(0, Math.min(30, MiogramPlayerPrefs.getBgBlur()));
+                if (android.os.Build.VERSION.SDK_INT >= 31 && backgroundBlurView != null) {
+                    if (blurPx > 0) {
+                        backgroundBlurView.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(blurPx, blurPx, android.graphics.Shader.TileMode.CLAMP));
+                    } else {
+                        backgroundBlurView.setRenderEffect(null);
+                    }
+                }
+            } catch (Throwable ignore) {}
+            if (backgroundBlurView != null && mode != MiogramPlayerPrefs.BG_MODE_CUSTOM_PHOTO && mode != MiogramPlayerPrefs.BG_MODE_CUSTOM_VIDEO) {
+                backgroundBlurView.setAlpha(0.35f * brightness);
+            }
+
+            // Buttons: opacity + neon glow on hero play.
+            float btnOpacity = MiogramPlayerPrefs.getButtonOpacity();
+            boolean glow = MiogramPlayerPrefs.isButtonGlowEnabled();
+            if (shuffleButton != null) shuffleButton.setAlpha(btnOpacity);
+            if (repeatButton != null) repeatButton.setAlpha(btnOpacity);
+            if (prevButton != null) prevButton.setAlpha(btnOpacity);
+            if (nextButton != null) nextButton.setAlpha(btnOpacity);
+            if (queueButton != null) queueButton.setAlpha(btnOpacity);
+            if (heroPlayButton != null) {
+                heroPlayButton.setAlpha(btnOpacity);
+                if (android.os.Build.VERSION.SDK_INT >= 21) {
+                    heroPlayButton.setElevation(glow ? AndroidUtilities.dp(6) : 0);
+                }
+            }
+
+            // Visualizer: user toggle (default OFF — removes "extra jumping stripes").
+            boolean viz = MiogramPlayerPrefs.isVisualizerEnabled();
+            if (compactBassVisualizer != null) {
+                compactBassVisualizer.setVisibility(viz ? View.VISIBLE : View.GONE);
+                if (!viz) compactBassVisualizer.decayToIdle();
+            }
+            if (fullscreenBassVisualizer != null) {
+                fullscreenBassVisualizer.setVisibility(viz && playerMode == PlayerMode.COVER ? View.VISIBLE : View.GONE);
+                if (!viz) fullscreenBassVisualizer.decayToIdle();
+            }
+
+            // Profile pill visibility.
+            if (profileButtonContainer != null) {
+                profileButtonContainer.setVisibility(MiogramPlayerPrefs.isProfileButtonEnabled() ? View.VISIBLE : View.GONE);
+            }
+
+            // Lyrics styling.
+            if (lyricsView != null) lyricsView.reloadCustomization();
+        } catch (Throwable ignore) {}
     }
 
     private TextView createModeButton(String text) {
@@ -659,28 +824,45 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             int buttonColor = getThemedColor(Theme.key_player_button);
             if (buttonColor == 0) buttonColor = 0xFF888888;
             int accentColor = getThemeAccentColor();
+            float btnOpacity = MiogramPlayerPrefs.getButtonOpacity();
 
-            // Slot 0: Shuffle Button
-            FrameLayout slot0 = new FrameLayout(getContext());
+            // Build extra buttons first (shuffle/repeat/queue) — placement follows
+            // controls_order pref: extras before 'play' go left, after go right.
+            // Center trio (prev/play/next) is always locked in the middle.
+            java.util.List<String> order = MiogramPlayerPrefs.getControlsOrderList();
+            int playIdx = order.indexOf("play");
+            if (playIdx < 0) playIdx = 3;
+            java.util.List<String> leftIds = new java.util.ArrayList<>();
+            java.util.List<String> rightIds = new java.util.ArrayList<>();
+            for (int i = 0; i < order.size(); i++) {
+                String id = order.get(i);
+                if (!id.equals("shuffle") && !id.equals("repeat") && !id.equals("queue")) continue;
+                if (MiogramPlayerPrefs.isControlHidden(id)) continue;
+                if (i < playIdx) leftIds.add(id);
+                else rightIds.add(id);
+            }
+
+            LinearLayout leftBox = new LinearLayout(getContext());
+            leftBox.setOrientation(LinearLayout.HORIZONTAL);
+            leftBox.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
+
             shuffleButton = new ImageView(getContext());
             shuffleButton.setImageResource(R.drawable.player_new_shuffle);
             shuffleButton.setScaleType(ImageView.ScaleType.CENTER);
             shuffleButton.setColorFilter(new PorterDuffColorFilter(SharedConfig.shuffleMusic ? accentColor : buttonColor, PorterDuff.Mode.SRC_IN));
             shuffleButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, AndroidUtilities.dp(18)));
             shuffleButton.setContentDescription(MiogramLocale.get("Випадковий порядок", "Случайный порядок", "Shuffle"));
+            shuffleButton.setAlpha(btnOpacity);
             shuffleButton.setOnClickListener(v -> {
                 MiogramHaptic.tap(v);
                 MediaController.getInstance().setPlaybackOrderType(SharedConfig.shuffleMusic ? 0 : 2);
                 updateShuffleButton();
             });
-            slot0.addView(shuffleButton, LayoutHelper.createFrame(42, 42, Gravity.CENTER));
-            mainControlsRow.addView(slot0, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
 
-            // Slot 1: Repeat Button (Tap cycles 0->1->2, Long Press opens menu)
-            FrameLayout slot1 = new FrameLayout(getContext());
             if (repeat != null) {
                 if (repeat.getParent() instanceof ViewGroup) ((ViewGroup) repeat.getParent()).removeView(repeat);
                 repeat.setContentDescription(MiogramLocale.get("Повтор", "Повтор", "Repeat"));
+                repeat.setAlpha(btnOpacity);
                 repeat.setOnClickListener(v -> {
                     MiogramHaptic.tap(v);
                     if (alert != null) {
@@ -699,25 +881,34 @@ public class MiogramModernPlayerLayout extends FrameLayout {
                     }
                     return false;
                 });
-                slot1.addView(repeat, LayoutHelper.createFrame(42, 42, Gravity.CENTER));
             }
-            mainControlsRow.addView(slot1, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
+            // Place extras by order (left side, in order sequence). Queue is built
+            // later but can live left if user moved it before 'play'.
+            // Defer queue add: store flag, add after queueButton init below.
+            boolean queueOnLeft = leftIds.contains("queue");
+            for (String id : leftIds) {
+                if (id.equals("shuffle")) {
+                    leftBox.addView(shuffleButton, LayoutHelper.createLinear(42, 42, Gravity.CENTER_VERTICAL, 0, 0, 4, 0));
+                } else if (id.equals("repeat") && repeat != null) {
+                    leftBox.addView(repeat, LayoutHelper.createLinear(42, 42, Gravity.CENTER_VERTICAL, 0, 0, 4, 0));
+                }
+            }
 
-            // Slot 2: Previous Track
-            FrameLayout slot2 = new FrameLayout(getContext());
+            // CENTER TRIO (wrap, truly centered): prev + hero play + next.
+            LinearLayout centerBox = new LinearLayout(getContext());
+            centerBox.setOrientation(LinearLayout.HORIZONTAL);
+            centerBox.setGravity(Gravity.CENTER);
+
             if (prev != null) {
                 if (prev.getParent() instanceof ViewGroup) ((ViewGroup) prev.getParent()).removeView(prev);
                 prev.setContentDescription(MiogramLocale.get("Попередній трек", "Предыдущий трек", "Previous track"));
+                prev.setAlpha(btnOpacity);
                 prev.setOnClickListener(v -> {
                     MiogramHaptic.tap(v);
                     MediaController.getInstance().playPreviousMessage();
                 });
-                slot2.addView(prev, LayoutHelper.createFrame(46, 46, Gravity.CENTER));
+                centerBox.addView(prev, LayoutHelper.createLinear(46, 46, Gravity.CENTER_VERTICAL, 0, 0, 6, 0));
             }
-            mainControlsRow.addView(slot2, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
-
-            // Slot 3: Hero Play/Pause Button (56dp)
-            FrameLayout slot3 = new FrameLayout(getContext());
             if (play != null) {
                 if (play.getParent() instanceof ViewGroup) ((ViewGroup) play.getParent()).removeView(play);
                 play.setContentDescription(MiogramLocale.get("Відтворити / Пауза", "Играть / Пауза", "Play / Pause"));
@@ -737,30 +928,31 @@ public class MiogramModernPlayerLayout extends FrameLayout {
                 heroPlayButton.removeAllViews();
                 heroPlayButton.addView(play, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
             }
-            slot3.addView(heroPlayButton, LayoutHelper.createFrame(56, 56, Gravity.CENTER));
-            mainControlsRow.addView(slot3, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
+            heroPlayButton.setAlpha(btnOpacity);
+            centerBox.addView(heroPlayButton, LayoutHelper.createLinear(56, 56, Gravity.CENTER_VERTICAL, 0, 0, 6, 0));
 
-            // Slot 4: Next Track
-            FrameLayout slot4 = new FrameLayout(getContext());
             if (next != null) {
                 if (next.getParent() instanceof ViewGroup) ((ViewGroup) next.getParent()).removeView(next);
                 next.setContentDescription(MiogramLocale.get("Наступний трек", "Следующий трек", "Next track"));
+                next.setAlpha(btnOpacity);
                 next.setOnClickListener(v -> {
                     MiogramHaptic.tap(v);
                     MediaController.getInstance().playNextMessage();
                 });
-                slot4.addView(next, LayoutHelper.createFrame(46, 46, Gravity.CENTER));
+                centerBox.addView(next, LayoutHelper.createLinear(46, 46, Gravity.CENTER_VERTICAL));
             }
-            mainControlsRow.addView(slot4, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
 
-            // Slot 5: Queue / Mode Toggle Button
-            FrameLayout slot5 = new FrameLayout(getContext());
+            // RIGHT extras box (weight 1, right-aligned): queue + extras moved right.
+            LinearLayout rightBox = new LinearLayout(getContext());
+            rightBox.setOrientation(LinearLayout.HORIZONTAL);
+            rightBox.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
             queueButton = new ImageView(getContext());
             queueButton.setImageResource(R.drawable.player_new_order);
             queueButton.setScaleType(ImageView.ScaleType.CENTER);
             queueButton.setColorFilter(new PorterDuffColorFilter(playerMode == PlayerMode.QUEUE ? accentColor : buttonColor, PorterDuff.Mode.SRC_IN));
             queueButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, AndroidUtilities.dp(18)));
             queueButton.setContentDescription(MiogramLocale.get("Черга", "Очередь", "Queue"));
+            queueButton.setAlpha(btnOpacity);
             queueButton.setOnClickListener(v -> {
                 MiogramHaptic.tap(v);
                 if (!isFullScreen) {
@@ -770,8 +962,35 @@ public class MiogramModernPlayerLayout extends FrameLayout {
                     toggleQueue();
                 }
             });
-            slot5.addView(queueButton, LayoutHelper.createFrame(42, 42, Gravity.CENTER));
-            mainControlsRow.addView(slot5, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
+            if (queueOnLeft) {
+                // User moved queue before play -> lives in left box in order position.
+                int qPos = leftIds.indexOf("queue");
+                int insertAt = 0;
+                for (int i = 0; i < qPos; i++) {
+                    String before = leftIds.get(i);
+                    if (before.equals("shuffle") || (before.equals("repeat") && repeat != null)) insertAt++;
+                }
+                leftBox.addView(queueButton, Math.min(insertAt, leftBox.getChildCount()), LayoutHelper.createLinear(42, 42, Gravity.CENTER_VERTICAL, 0, 0, 4, 0));
+            }
+            for (String id : rightIds) {
+                if (id.equals("shuffle")) {
+                    if (shuffleButton.getParent() == null) {
+                        rightBox.addView(shuffleButton, LayoutHelper.createLinear(42, 42, Gravity.CENTER_VERTICAL, 4, 0, 0, 0));
+                    }
+                } else if (id.equals("repeat") && repeat != null) {
+                    if (repeat.getParent() == null) {
+                        rightBox.addView(repeat, LayoutHelper.createLinear(42, 42, Gravity.CENTER_VERTICAL, 4, 0, 0, 0));
+                    }
+                } else if (id.equals("queue") && !queueOnLeft) {
+                    rightBox.addView(queueButton, LayoutHelper.createLinear(42, 42, Gravity.CENTER_VERTICAL, 4, 0, 0, 0));
+                }
+            }
+            // Hidden extras stay detached (no force-add) — true hide.
+
+            mainControlsRow.addView(leftBox, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
+            mainControlsRow.addView(centerBox, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
+            mainControlsRow.addView(rightBox, new LinearLayout.LayoutParams(0, LayoutHelper.MATCH_PARENT, 1.0f));
+            applyCustomization();
         }
     }
 
@@ -790,15 +1009,17 @@ public class MiogramModernPlayerLayout extends FrameLayout {
 
         if (profileButtonContainer != null) {
             profileButtonContainer.removeAllViews();
+            // Compact centered pill (not full-width white bar) — movable via prefs.
             if (saveBtn != null) {
                 if (saveBtn.getParent() instanceof ViewGroup) ((ViewGroup) saveBtn.getParent()).removeView(saveBtn);
-                profileButtonContainer.addView(saveBtn, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 42, Gravity.CENTER));
+                profileButtonContainer.addView(saveBtn, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, 36, Gravity.CENTER_HORIZONTAL));
             }
             if (unsaveBtn != null) {
                 if (unsaveBtn.getParent() instanceof ViewGroup) ((ViewGroup) unsaveBtn.getParent()).removeView(unsaveBtn);
-                profileButtonContainer.addView(unsaveBtn, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 42, Gravity.CENTER));
+                profileButtonContainer.addView(unsaveBtn, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, 36, Gravity.CENTER_HORIZONTAL));
             }
             applyFavoriteState();
+            applyCustomization();
         }
     }
 
@@ -811,7 +1032,11 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     public void setFullScreenProgress(float progress) {
         this.fullScreenProgress = Math.max(0f, Math.min(1f, progress));
         this.isFullScreen = this.fullScreenProgress >= 0.5f;
-        updateBackgroundShape(this.fullScreenProgress);
+        if (MiogramPlayerPrefs.getBackgroundMode() == MiogramPlayerPrefs.BG_MODE_COVER_BLUR) {
+            updateBackgroundShape(this.fullScreenProgress);
+        } else {
+            applyCustomization();
+        }
 
         int statusBar = AndroidUtilities.statusBarHeight;
         int topPadding = AndroidUtilities.dp(8) + (int) (statusBar * this.fullScreenProgress);
@@ -984,6 +1209,11 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             queueButton.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
         }
         updateModeButtons();
+        // Refresh fullscreen visualizer (only in COVER mode when enabled).
+        if (fullscreenBassVisualizer != null) {
+            boolean viz = MiogramPlayerPrefs.isVisualizerEnabled();
+            fullscreenBassVisualizer.setVisibility(viz && mode == PlayerMode.COVER ? View.VISIBLE : View.GONE);
+        }
 
         // Target view not attached yet (e.g. lyrics arrive later via setLyricsView,
         // which applies visibility from playerMode) — mode is already stored.
@@ -1144,6 +1374,139 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         removeCallbacks(visualizerTicker);
+        try {
+            MiogramPlayerPrefs.removeListener(prefsListener);
+        } catch (Throwable ignore) {}
+        try {
+            stopCustomVideo();
+        } catch (Throwable ignore) {}
+    }
+
+    private void loadCustomBackdropAsync(String path, int mode, float brightness) {
+        final int gen = ++photoLoadGen;
+        final float bright = Math.max(0.2f, Math.min(1.6f, brightness));
+        if (mode == MiogramPlayerPrefs.BG_MODE_CUSTOM_VIDEO) {
+            try {
+                org.telegram.messenger.Utilities.globalQueue.postRunnable(() -> {
+                    android.graphics.Bitmap frame = null;
+                    try {
+                        android.media.MediaMetadataRetriever mmr = new android.media.MediaMetadataRetriever();
+                        mmr.setDataSource(path);
+                        frame = mmr.getFrameAtTime(500000);
+                        try {
+                            mmr.release();
+                        } catch (Throwable ignore) {}
+                    } catch (Throwable ignore) {}
+                    final android.graphics.Bitmap f = frame;
+                    post(() -> {
+                        if (gen != photoLoadGen) {
+                            if (f != null && !f.isRecycled()) f.recycle();
+                            return;
+                        }
+                        try {
+                            ensureCustomVideoView();
+                            if (f != null) {
+                                backgroundBlurView.setImageBitmap(f);
+                                backgroundBlurView.setAlpha(bright);
+                            }
+                            if (customVideoView != null && MiogramPlayerPrefs.isCustomMediaValid(path)) {
+                                try {
+                                    customVideoView.setVideoPath(path);
+                                    customVideoView.setOnPreparedListener(mp -> {
+                                        try {
+                                            mp.setLooping(true);
+                                            mp.setVolume(0f, 0f);
+                                            customVideoView.setAlpha(Math.min(1f, bright));
+                                            customVideoView.start();
+                                        } catch (Throwable ignore) {}
+                                    });
+                                    customVideoView.setOnErrorListener((mp, what, extra) -> {
+                                        stopCustomVideo();
+                                        return true;
+                                    });
+                                    customVideoView.setVisibility(View.VISIBLE);
+                                    if (backgroundBlurView != null) backgroundBlurView.setAlpha(bright * 0.55f);
+                                } catch (Throwable ignore) {
+                                    stopCustomVideo();
+                                }
+                            }
+                        } catch (Throwable ignore) {}
+                    });
+                });
+            } catch (Throwable ignore) {}
+            return;
+        }
+        stopCustomVideo();
+        try {
+            org.telegram.messenger.Utilities.globalQueue.postRunnable(() -> {
+                android.graphics.Bitmap bmp = null;
+                try {
+                    android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
+                    opts.inJustDecodeBounds = true;
+                    android.graphics.BitmapFactory.decodeFile(path, opts);
+                    int maxDim = Math.max(opts.outWidth, opts.outHeight);
+                    opts.inJustDecodeBounds = false;
+                    opts.inSampleSize = 1;
+                    while (maxDim / opts.inSampleSize > 1280 && opts.inSampleSize < 8) opts.inSampleSize *= 2;
+                    bmp = android.graphics.BitmapFactory.decodeFile(path, opts);
+                } catch (Throwable ignore) {}
+                final android.graphics.Bitmap result = bmp;
+                post(() -> {
+                    if (gen != photoLoadGen) {
+                        if (result != null && !result.isRecycled()) result.recycle();
+                        return;
+                    }
+                    try {
+                        if (result != null && backgroundBlurView != null) {
+                            backgroundBlurView.setImageBitmap(result);
+                            backgroundBlurView.setAlpha(bright);
+                        } else if (backgroundBlurView != null) {
+                            backgroundBlurView.setAlpha(0.35f * bright);
+                        }
+                    } catch (Throwable ignore) {}
+                });
+            });
+        } catch (Throwable ignore) {}
+    }
+
+    private void ensureCustomVideoView() {
+        try {
+            if (customVideoView == null) {
+                customVideoView = new android.widget.VideoView(getContext());
+                addView(customVideoView, 1, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+            } else if (customVideoView.getParent() == null) {
+                addView(customVideoView, 1, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+            }
+        } catch (Throwable ignore) {}
+    }
+
+    private void stopCustomVideo() {
+        try {
+            if (customVideoView != null) {
+                try {
+                    customVideoView.stopPlayback();
+                } catch (Throwable ignore) {}
+                customVideoView.setVisibility(View.GONE);
+            }
+        } catch (Throwable ignore) {}
+    }
+
+    public void rebuildControlsForPrefs() {
+        try {
+            // Rebuild bottom row in order/hide prefs without losing native button views.
+            // Native views are reparented, so collect them first.
+            java.util.Map<String, View> map = new java.util.HashMap<>();
+            if (shuffleButton != null) map.put("shuffle", shuffleButton);
+            if (repeatButton != null) map.put("repeat", repeatButton);
+            if (prevButton != null) map.put("prev", prevButton);
+            if (playButton != null) map.put("play", playButton);
+            if (nextButton != null) map.put("next", nextButton);
+            if (queueButton != null) map.put("queue", queueButton);
+            if (!map.containsKey("prev") || !map.containsKey("play") || !map.containsKey("next")) return;
+            setControlButtons(map.get("repeat"), map.get("prev"), map.get("play"), map.get("next"));
+            // shuffle/queue are recreated inside setControlButtons; re-apply hide below via applyCustomization.
+            applyCustomization();
+        } catch (Throwable ignore) {}
     }
 
     private int getThemedColor(int key) {
