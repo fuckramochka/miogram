@@ -9,6 +9,7 @@ public class MiogramMusicTrack {
 
     public enum Source {
         TELEGRAM("Telegram Cloud", 0xFF0088CC),
+        YOUTUBE_MUSIC("YouTube Music", 0xFFFF0000),
         DEEZER("Deezer HQ", 0xFFFF0055),
         ITUNES("iTunes / Apple", 0xFFFA2D48),
         JAMENDO("Jamendo HQ", 0xFF9B59B6),

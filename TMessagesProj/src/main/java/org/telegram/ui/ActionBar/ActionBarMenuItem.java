@@ -2777,8 +2777,11 @@ public class ActionBarMenuItem extends FrameLayout {
             return view;
         }
 
+        public boolean shouldShow = true;
+
         public void setVisibility(int visibility) {
             this.visibility = visibility;
+            this.shouldShow = (visibility == VISIBLE);
             if (view != null) {
                 view.setVisibility(visibility);
             }
@@ -2787,9 +2790,26 @@ public class ActionBarMenuItem extends FrameLayout {
         public void setVisibility(boolean bvisibility) {
             int visibility = bvisibility ? View.VISIBLE : View.GONE;
             this.visibility = visibility;
+            this.shouldShow = bvisibility;
             if (view != null) {
                 view.setVisibility(visibility);
             }
+        }
+
+        public void setMenuVisible(boolean visible) {
+            int v = (visible && shouldShow) ? View.VISIBLE : View.GONE;
+            this.visibility = v;
+            if (view != null) {
+                view.setVisibility(v);
+            }
+        }
+
+        public int getVisibility() {
+            return view != null ? view.getVisibility() : visibility;
+        }
+
+        public View getView() {
+            return view;
         }
 
         public void setOnClickListener(View.OnClickListener onClickListener) {

@@ -569,6 +569,62 @@ public class ChatActivity extends BaseFragment implements
     private ActionBarMenu.LazyItem attachItem;
     private ActionBarMenuItem.Item savedChatsItem, savedChatsGap;
     private ActionBarMenuItem headerItem;
+    private final ArrayList<ActionBarMenuItem.Item> chatMenuPrimaryItems = new ArrayList<>();
+    private final ArrayList<ActionBarMenuItem.Item> chatMenuSecondaryItems = new ArrayList<>();
+    private ActionBarMenuItem.Item chatMenuMoreItem;
+    private ActionBarMenuItem.Item chatMenuBackItem;
+    private boolean showingMoreChatOptions = false;
+
+    private void applyChatMenuState(boolean showMore) {
+        showingMoreChatOptions = showMore;
+        if (headerItem == null || headerItem.getPopupLayout() == null) {
+            return;
+        }
+        if (chatMenuPrimaryItems.isEmpty() && chatMenuSecondaryItems.isEmpty()) {
+            return;
+        }
+        if (!showMore) {
+            for (int i = 0; i < chatMenuPrimaryItems.size(); i++) {
+                ActionBarMenuItem.Item item = chatMenuPrimaryItems.get(i);
+                if (item != null) {
+                    item.setMenuVisible(true);
+                }
+            }
+            if (chatMenuMoreItem != null) {
+                chatMenuMoreItem.setMenuVisible(!chatMenuSecondaryItems.isEmpty());
+            }
+            if (chatMenuBackItem != null) {
+                chatMenuBackItem.setMenuVisible(false);
+            }
+            for (int i = 0; i < chatMenuSecondaryItems.size(); i++) {
+                ActionBarMenuItem.Item item = chatMenuSecondaryItems.get(i);
+                if (item != null) {
+                    item.setMenuVisible(false);
+                }
+            }
+        } else {
+            for (int i = 0; i < chatMenuPrimaryItems.size(); i++) {
+                ActionBarMenuItem.Item item = chatMenuPrimaryItems.get(i);
+                if (item != null) {
+                    item.setMenuVisible(false);
+                }
+            }
+            if (chatMenuMoreItem != null) {
+                chatMenuMoreItem.setMenuVisible(false);
+            }
+            if (chatMenuBackItem != null) {
+                chatMenuBackItem.setMenuVisible(true);
+            }
+            for (int i = 0; i < chatMenuSecondaryItems.size(); i++) {
+                ActionBarMenuItem.Item item = chatMenuSecondaryItems.get(i);
+                if (item != null) {
+                    item.setMenuVisible(true);
+                }
+            }
+        }
+        headerItem.getPopupLayout().updateRadialSelectors();
+        headerItem.forceUpdatePopupPosition();
+    }
     private ActionBarMenu.LazyItem editTextItem;
     protected ActionBarMenuItem searchItem;
     protected ActionBarMenuItem topicCreateItem;
@@ -1873,6 +1929,8 @@ public class ChatActivity extends BaseFragment implements
 
     private final static int chat_menu_topic_create = 73;
     private final static int chat_menu_cloud_vault = 74;
+    private final static int chat_menu_more_options = 7771;
+    private final static int chat_menu_back_to_primary = 7772;
 
     private final static int id_chat_compose_panel = 1000;
     private final static int to_the_beginning = 200;
@@ -4595,6 +4653,10 @@ public class ChatActivity extends BaseFragment implements
                     presentFragment(TopicCreateFragment.create(-dialog_id, 0).setOpenInChatActivity(ChatActivity.this));
                 } else if (id == chat_menu_cloud_vault) {
                     presentFragment(new app.miogram.bridge.cloudvault.MiogramCloudVaultActivity());
+                } else if (id == chat_menu_more_options) {
+                    applyChatMenuState(true);
+                } else if (id == chat_menu_back_to_primary) {
+                    applyChatMenuState(false);
                 } else if (id == 888) {
                     dumpCanvas();
                 } else if (id == 889) {
@@ -4863,11 +4925,12 @@ public class ChatActivity extends BaseFragment implements
                 @Override
                 public void onShowSubMenu() {
                     updateScrimSourceBitmap();
+                    applyChatMenuState(false);
                 }
 
                 @Override
                 public void onHideSubMenu() {
-
+                    showingMoreChatOptions = false;
                 }
             });
             otherIcon.addView(headerItem.getIconView());
@@ -4877,12 +4940,13 @@ public class ChatActivity extends BaseFragment implements
             }
             headerItem.setForceHidden(isTitleCentered());
 
-            if (currentUser != null && currentUser.self && chatMode != MODE_SAVED) {
-                savedChatsItem = headerItem.lazilyAddSubItem(view_as_topics, R.drawable.msg_topics, LocaleController.getString(R.string.SavedViewAsChats));
-                savedChatsGap = headerItem.lazilyAddColoredGap();
-                savedChatsItem.setVisibility(getMessagesController().getSavedMessagesController().hasDialogs() ? View.VISIBLE : View.GONE);
-                savedChatsGap.setVisibility(getMessagesController().getSavedMessagesController().hasDialogs() ? View.VISIBLE : View.GONE);
-            } else if (chatMode != MODE_SAVED && (currentUser == null || !currentUser.self)) {
+            chatMenuPrimaryItems.clear();
+            chatMenuSecondaryItems.clear();
+            showingMoreChatOptions = false;
+
+            // ==================== 1. PRIMARY ITEMS ====================
+            // 1.1 Mute / Sound Notifications
+            if (chatMode != MODE_SAVED && (currentUser == null || !currentUser.self)) {
                 chatNotificationsPopupWrapper = new ChatNotificationsPopupWrapper(context, currentAccount, headerItem.getPopupLayout().getSwipeBack(), false, false, new ChatNotificationsPopupWrapper.Callback() {
                     @Override
                     public void dismiss() {
@@ -4955,8 +5019,91 @@ public class ChatActivity extends BaseFragment implements
                     }
                 });
                 muteItemGap = headerItem.lazilyAddColoredGap();
+                chatMenuPrimaryItems.add(muteItem);
+                chatMenuPrimaryItems.add(muteItemGap);
             }
 
+            // 1.2 Search in chat
+            if (searchItem != null) {
+                chatMenuPrimaryItems.add(headerItem.lazilyAddSubItem(search, R.drawable.msg_search, LocaleController.getString(R.string.Search)));
+            }
+
+            // 1.3 Audio Call & Video Call
+            if (currentUser != null && chatMode != MODE_SAVED) {
+                ActionBarMenuItem.Item callSubItem = headerItem.lazilyAddSubItem(call, R.drawable.msg_callback, LocaleController.getString(R.string.Call));
+                ActionBarMenuItem.Item videoCallSubItem = headerItem.lazilyAddSubItem(video_call, R.drawable.msg_videocall, LocaleController.getString(R.string.VideoCall));
+                chatMenuPrimaryItems.add(callSubItem);
+                chatMenuPrimaryItems.add(videoCallSubItem);
+                if (userFull != null && userFull.phone_calls_available) {
+                    headerItem.showSubItem(call);
+                    if (userFull.video_calls_available) {
+                        headerItem.showSubItem(video_call);
+                    } else {
+                        headerItem.hideSubItem(video_call);
+                    }
+                } else {
+                    headerItem.hideSubItem(call);
+                    headerItem.hideSubItem(video_call);
+                }
+            }
+
+            // 1.4 AI Companion (marquee feature)
+            chatMenuPrimaryItems.add(headerItem.lazilyAddSubItem(miogram_chat_ai, R.drawable.baseline_stars_24, app.miogram.bridge.MiogramLocale.get("ШІ Супутник ໒꒱", "ИИ Спутник ໒꒱", "AI Companion ໒꒱")));
+
+            // 1.5 Clear History
+            if (!isTopic && !ChatObject.isMonoForum(currentChat)) {
+                clearHistoryItem = headerItem.lazilyAddSubItem(clear_history, R.drawable.msg_clear,
+                    LocaleController.getString(UserObject.isBotForum(currentUser) ? R.string.ClearAllHistory : R.string.ClearHistory));
+                chatMenuPrimaryItems.add(clearHistoryItem);
+            }
+
+            // 1.6 Delete Chat / Leave Channel
+            if (!isTopic) {
+                if (ChatObject.isChannel(currentChat) && !currentChat.creator) {
+                    if (!ChatObject.isNotInChat(currentChat)) {
+                        ActionBarMenuItem.Item delItem;
+                        if (currentChat.monoforum) {
+                            delItem = headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_leave, LocaleController.getString(R.string.LeaveConversationMenu));
+                        } else if (currentChat.megagroup) {
+                            delItem = headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_leave, LocaleController.getString(R.string.LeaveMegaMenu));
+                        } else {
+                            delItem = headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_leave, LocaleController.getString(R.string.LeaveChannelMenu));
+                        }
+                        chatMenuPrimaryItems.add(delItem);
+                    }
+                } else if (!ChatObject.isChannel(currentChat) && getDialogId() != UserObject.VERIFY) {
+                    if (currentChat != null) {
+                        chatMenuPrimaryItems.add(headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_leave, LocaleController.getString(R.string.DeleteAndExit)));
+                    } else if (currentUser != null && currentUser.bot) {
+                        chatMenuPrimaryItems.add(headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_block2, LocaleController.getString(R.string.DeleteAndBlock)).setColors(getThemedColor(Theme.key_text_RedRegular), getThemedColor(Theme.key_text_RedRegular)));
+                    } else {
+                        chatMenuPrimaryItems.add(headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_delete, LocaleController.getString(R.string.DeleteChatUser)));
+                    }
+                }
+            }
+
+            // 1.7 Primary "Додатково..." toggle at the bottom of primary items
+            ActionBarMenuItem.Item primaryMoreGap = headerItem.lazilyAddColoredGap();
+            chatMenuPrimaryItems.add(primaryMoreGap);
+            chatMenuMoreItem = headerItem.lazilyAddSubItem(chat_menu_more_options, R.drawable.ic_ab_other, null, app.miogram.bridge.MiogramLocale.get("Додатково...", "Дополнительно...", "More..."), false, false);
+
+            // ==================== 2. SECONDARY (MORE) ITEMS ====================
+            // 2.1 Back Button at the top of the secondary menu
+            chatMenuBackItem = headerItem.lazilyAddSubItem(chat_menu_back_to_primary, R.drawable.ic_ab_back, null, app.miogram.bridge.MiogramLocale.get("⬅ Назад", "⬅ Назад", "⬅ Back"), false, false);
+            ActionBarMenuItem.Item secondaryBackGap = headerItem.lazilyAddColoredGap();
+            chatMenuSecondaryItems.add(secondaryBackGap);
+
+            // 2.2 Saved Chats (if currentUser.self)
+            if (currentUser != null && currentUser.self && chatMode != MODE_SAVED) {
+                savedChatsItem = headerItem.lazilyAddSubItem(view_as_topics, R.drawable.msg_topics, LocaleController.getString(R.string.SavedViewAsChats));
+                savedChatsGap = headerItem.lazilyAddColoredGap();
+                savedChatsItem.setVisibility(getMessagesController().getSavedMessagesController().hasDialogs() ? View.VISIBLE : View.GONE);
+                savedChatsGap.setVisibility(getMessagesController().getSavedMessagesController().hasDialogs() ? View.VISIBLE : View.GONE);
+                chatMenuSecondaryItems.add(savedChatsItem);
+                chatMenuSecondaryItems.add(savedChatsGap);
+            }
+
+            // 2.3 Admin Shortcuts
             if (ChatObject.hasAdminRights(currentChat)) {
                 boolean withoutPermissions = ChatObject.isChannel(currentChat) && !currentChat.megagroup || currentChat.gigagroup;
                 int[] shortcutIds = {shortcuts_permissions, shortcuts_administrators, shortcuts_members, shortcuts_recent_actions, shortcuts_statistics};
@@ -4983,10 +5130,10 @@ public class ChatActivity extends BaseFragment implements
                 }
                 if (adminShortcuts.size() < 2) {
                     for (int a : adminShortcuts) {
-                        headerItem.lazilyAddSubItem(shortcutIds[a], shortcutIcons[a], shortcutTitles[a]);
+                        chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(shortcutIds[a], shortcutIcons[a], shortcutTitles[a]));
                     }
                     if (!adminShortcuts.isEmpty()) {
-                        headerItem.lazilyAddColoredGap();
+                        chatMenuSecondaryItems.add(headerItem.lazilyAddColoredGap());
                     }
                 } else {
                     ArrayList<ActionRow.ActionItem> adminActions = new ArrayList<>();
@@ -5002,37 +5149,22 @@ public class ChatActivity extends BaseFragment implements
                             adminOverflow.add(a);
                         }
                     }
-                    headerItem.lazilyAddView(new ActionRow(context, themeDelegate, adminActions), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 56));
+                    chatMenuSecondaryItems.add(headerItem.lazilyAddView(new ActionRow(context, themeDelegate, adminActions), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 56)));
                     for (int a : adminOverflow) {
-                        headerItem.lazilyAddSubItem(shortcutIds[a], shortcutIcons[a], shortcutTitles[a]);
+                        chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(shortcutIds[a], shortcutIcons[a], shortcutTitles[a]));
                     }
-                    headerItem.lazilyAddColoredGap();
+                    chatMenuSecondaryItems.add(headerItem.lazilyAddColoredGap());
                 }
             }
 
+            // 2.4 Open Direct
             if (currentChat != null) {
-                headerItem.lazilyAddSubItem(open_direct, R.drawable.msg_markunread, getString(R.string.ChannelOpenDirect));
+                ActionBarMenuItem.Item openDirectItem = headerItem.lazilyAddSubItem(open_direct, R.drawable.msg_markunread, getString(R.string.ChannelOpenDirect));
                 headerItem.setSubItemShown(open_direct, ChatObject.isChannel(currentChat) && !ChatObject.isMonoForum(currentChat) && currentChat.linked_monoforum_id != 0 && (NaConfig.INSTANCE.getDisableChannelMuteButton().Bool() || ChatObject.canManageMonoForum(currentAccount, -currentChat.linked_monoforum_id)));
-            }
-            if (currentUser != null && chatMode != MODE_SAVED) {
-                headerItem.lazilyAddSubItem(call, R.drawable.msg_callback, LocaleController.getString(R.string.Call));
-                headerItem.lazilyAddSubItem(video_call, R.drawable.msg_videocall, LocaleController.getString(R.string.VideoCall));
-                if (userFull != null && userFull.phone_calls_available) {
-                    headerItem.showSubItem(call);
-                    if (userFull.video_calls_available) {
-                        headerItem.showSubItem(video_call);
-                    } else {
-                        headerItem.hideSubItem(video_call);
-                    }
-                } else {
-                    headerItem.hideSubItem(call);
-                    headerItem.hideSubItem(video_call);
-                }
+                chatMenuSecondaryItems.add(openDirectItem);
             }
 
-            if (searchItem != null) {
-                headerItem.lazilyAddSubItem(search, R.drawable.msg_search, LocaleController.getString(R.string.Search));
-            }
+            // 2.5 Show Pinned Messages
             boolean allowShowPinned;
             if (currentChat != null) {
                 allowShowPinned = ChatObject.canUserDoAction(currentChat, ChatObject.ACTION_PIN) || ChatObject.isChannel(currentChat);
@@ -5044,19 +5176,21 @@ public class ChatActivity extends BaseFragment implements
                 allowShowPinned = false;
             }
             if (allowShowPinned) {
-                headerItem.lazilyAddSubItem(nkheaderbtn_show_pinned, R.drawable.msg_pin, LocaleController.getString("PinnedMessage", R.string.PinnedMessage));
+                chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(nkheaderbtn_show_pinned, R.drawable.msg_pin, LocaleController.getString("PinnedMessage", R.string.PinnedMessage)));
             }
+
+            // 2.6 Boost Group
             if (ChatObject.isBoostSupported(currentChat) && (getUserConfig().isPremium() || ChatObject.isBoosted(chatInfo) || ChatObject.hasAdminRights(currentChat))) {
                 RLottieDrawable drawable = new RLottieDrawable(R.raw.boosts, "" + R.raw.boosts, dp(24), dp(24));
-                if (NaConfig.INSTANCE.getChatMenuItemBoostGroup().Bool()) headerItem.lazilyAddSubItem(boost_group, drawable, LocaleController.getString(ChatObject.isChannelAndNotMegaGroup(currentChat) ? R.string.BoostingBoostChannelMenu : R.string.BoostingBoostGroupMenu));
+                if (NaConfig.INSTANCE.getChatMenuItemBoostGroup().Bool()) chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(boost_group, drawable, LocaleController.getString(ChatObject.isChannelAndNotMegaGroup(currentChat) ? R.string.BoostingBoostChannelMenu : R.string.BoostingBoostGroupMenu)));
             }
+
+            // 2.7 Translate
             translateItem = headerItem.lazilyAddSubItem(translate, LlmConfig.llmIsDefaultProvider() ? R.drawable.magic_stick_solar : R.drawable.msg_translate, LocaleController.getString(R.string.TranslateMessage));
             updateTranslateItemVisibility();
-            headerItem.lazilyAddSubItem(miogram_chat_ai, R.drawable.baseline_stars_24, app.miogram.bridge.MiogramLocale.get("ШІ Супутник ໒꒱", "ИИ Спутник ໒꒱", "AI Companion ໒꒱"));
-            /*if (currentChat != null && !currentChat.creator && !ChatObject.hasAdminRights(currentChat)) {
-                headerItem.lazilyAddSubItem(report, R.drawable.msg_report, LocaleController.getString(R.string.ReportChat));
-            }*/
+            chatMenuSecondaryItems.add(translateItem);
 
+            // 2.8 Linked Chat
             if (currentChat != null && (currentChat.has_link || (chatInfo != null && chatInfo.linked_chat_id != 0))) {
                 String text;
                 int draw;
@@ -5067,80 +5201,87 @@ public class ChatActivity extends BaseFragment implements
                     text = getString(R.string.LinkedChannelChat);
                     draw = R.drawable.msg_channel;
                 }
-                if (NaConfig.INSTANCE.getChatMenuItemLinkedChat().Bool()) headerItem.lazilyAddSubItem(nkheaderbtn_linked_chat, draw, text);
+                if (NaConfig.INSTANCE.getChatMenuItemLinkedChat().Bool()) chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(nkheaderbtn_linked_chat, draw, text));
             }
+
+            // 2.9 Add / Share Contact
             if (currentUser != null && currentUser.id != UserObject.VERIFY && currentUser.id != UserObject.REPLY_BOT) {
                 addContactItem = headerItem.lazilyAddSubItem(share_contact, R.drawable.msg_addcontact, LocaleController.getString(R.string.AddToContacts));
+                chatMenuSecondaryItems.add(addContactItem);
             }
+
+            // 2.10 Encrypted Self-Destruct Timer
             if (currentEncryptedChat != null) {
                 timeItem2 = headerItem.lazilyAddSubItem(chat_enc_timer, R.drawable.msg_autodelete, LocaleController.getString(R.string.SetTimer));
+                chatMenuSecondaryItems.add(timeItem2);
             }
+
+            // 2.11 View as Topics
             if (currentChat != null && !isTopic) {
                 viewAsTopics = headerItem.lazilyAddSubItem(view_as_topics, R.drawable.msg_topics, LocaleController.getString("TopicViewAsTopics", R.string.TopicViewAsTopics));
+                chatMenuSecondaryItems.add(viewAsTopics);
             }
+
+            // 2.12 Set Wallpapers / Change Colors
             if (themeDelegate.isThemeChangeAvailable(true)) {
-                headerItem.lazilyAddSubItem(change_colors, R.drawable.msg_background, LocaleController.getString(R.string.SetWallpapers));
+                chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(change_colors, R.drawable.msg_background, LocaleController.getString(R.string.SetWallpapers)));
             }
+
+            // 2.13 Add Shortcut & Kanban Board
             if (currentUser != null && currentUser.self && getDialogId() != UserObject.VERIFY) {
-                headerItem.lazilyAddSubItem(add_shortcut, R.drawable.msg_home, LocaleController.getString(R.string.AddShortcut));
-                headerItem.lazilyAddSubItem(miogram_open_kanban, R.drawable.msg_saved, app.miogram.bridge.MiogramLocale.get("Канбан-дошка 📋", "Канбан-доска 📋", "Kanban Board 📋"));
+                chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(add_shortcut, R.drawable.msg_home, LocaleController.getString(R.string.AddShortcut)));
+                chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(miogram_open_kanban, R.drawable.msg_saved, app.miogram.bridge.MiogramLocale.get("Канбан-дошка 📋", "Канбан-доска 📋", "Kanban Board 📋")));
             }
-            headerItem.lazilyAddSubItem(miogram_split_screen, R.drawable.msg_fave, app.miogram.bridge.MiogramLocale.get("Розділити екран (Мультичат) ໒꒱", "Разделить экран (Мультичат) ໒꒱", "Split Screen (Multi-Chat) ໒꒱"));
-            if (!isTopic && !ChatObject.isMonoForum(currentChat)) {
-                clearHistoryItem = headerItem.lazilyAddSubItem(clear_history, R.drawable.msg_clear,
-                    LocaleController.getString(UserObject.isBotForum(currentUser) ? R.string.ClearAllHistory : R.string.ClearHistory));
-            }
+
+            // 2.14 Split Screen (Multi-Chat)
+            chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(miogram_split_screen, R.drawable.msg_fave, app.miogram.bridge.MiogramLocale.get("Розділити екран (Мультичат) ໒꒱", "Разделить экран (Мультичат) ໒꒱", "Split Screen (Multi-Chat) ໒꒱")));
+
+            // 2.15 Navigation & History Utilities
             boolean addedSettings = false;
-            if (NaConfig.INSTANCE.getChatMenuItemToBeginning().Bool()) headerItem.lazilyAddSubItem(to_the_beginning, R.drawable.ic_upward, getString(R.string.ToTheBeginning));
-            if (NaConfig.INSTANCE.getChatMenuItemGoToMessage().Bool()) headerItem.lazilyAddSubItem(to_the_message, R.drawable.msg_go_up, getString(R.string.ToTheMessage));
+            if (NaConfig.INSTANCE.getChatMenuItemToBeginning().Bool()) chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(to_the_beginning, R.drawable.ic_upward, getString(R.string.ToTheBeginning)));
+            if (NaConfig.INSTANCE.getChatMenuItemGoToMessage().Bool()) chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(to_the_message, R.drawable.msg_go_up, getString(R.string.ToTheMessage)));
             if (NaConfig.INSTANCE.getShowAddToBookmark().Bool()) {
                 bookmarksItem = headerItem.lazilyAddSubItem(nkbtn_bookmarks_manager, R.drawable.msg_fave, getString(R.string.BookmarksManager));
                 headerItem.setSubItemShown(nkbtn_bookmarks_manager, BookmarksHelper.getBookmarkedMessageIds(currentAccount, dialog_id).length > 0);
+                chatMenuSecondaryItems.add(bookmarksItem);
             }
             hideTitleItem = NaConfig.INSTANCE.getChatMenuItemHideTitle().Bool() ? headerItem.lazilyAddSubItem(nkheaderbtn_hide_title, R.drawable.hide_title, getString(R.string.HideTitle)) : null;
-            if (NaConfig.INSTANCE.getChatMenuItemViewDeleted().Bool() && NaConfig.INSTANCE.getEnableSaveDeletedMessages().Bool()) headerItem.lazilyAddSubItem(nkbtn_viewDeleted, R.drawable.msg_view_file, getString(R.string.ViewDeleted));
-            if (NaConfig.INSTANCE.getChatMenuItemClearDeleted().Bool() && NaConfig.INSTANCE.getEnableSaveDeletedMessages().Bool()) headerItem.lazilyAddSubItem(nkbtn_clearDeleted, R.drawable.msg_clear, getString(R.string.ClearDeleted));
+            if (hideTitleItem != null) chatMenuSecondaryItems.add(hideTitleItem);
+            if (NaConfig.INSTANCE.getChatMenuItemViewDeleted().Bool() && NaConfig.INSTANCE.getEnableSaveDeletedMessages().Bool()) chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(nkbtn_viewDeleted, R.drawable.msg_view_file, getString(R.string.ViewDeleted)));
+            if (NaConfig.INSTANCE.getChatMenuItemClearDeleted().Bool() && NaConfig.INSTANCE.getEnableSaveDeletedMessages().Bool()) chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(nkbtn_clearDeleted, R.drawable.msg_clear, getString(R.string.ClearDeleted)));
             if (!isTopic) {
                 if (NaConfig.INSTANCE.getChatMenuItemDeleteOwnMessages().Bool() && (ChatObject.isMegagroup(currentChat) || currentChat != null && !ChatObject.isChannel(currentChat))) {
-                    headerItem.lazilyAddSubItem(nkheaderbtn_zibi, R.drawable.msg_delete, LocaleController.getString(R.string.DeleteAllFromSelf));
+                    chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(nkheaderbtn_zibi, R.drawable.msg_delete, LocaleController.getString(R.string.DeleteAllFromSelf)));
                 }
-                if (ChatObject.isChannel(currentChat) && !currentChat.creator) {
-                    if (!ChatObject.isNotInChat(currentChat)) {
-                        if (currentChat.monoforum) {
-                            headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_leave, LocaleController.getString(R.string.LeaveConversationMenu));
-                        } else if (currentChat.megagroup) {
-                            headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_leave, LocaleController.getString(R.string.LeaveMegaMenu));
-                        } else {
-                            headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_leave, LocaleController.getString(R.string.LeaveChannelMenu));
-                        }
+                if (!ChatObject.isChannel(currentChat) && getDialogId() != UserObject.VERIFY && currentUser != null && currentUser.bot) {
+                    ActionBarMenuItem.Item botSettingsItem = headerItem.lazilyAddSubItem(bot_settings, R.drawable.msg_settings_old, LocaleController.getString(R.string.BotSettings));
+                    chatMenuSecondaryItems.add(botSettingsItem);
+                    addedSettings = true;
+                    ActionBarMenuItem.Item botHelpItem = headerItem.lazilyAddSubItem(bot_help, R.drawable.msg_help, LocaleController.getString(R.string.BotHelp));
+                    chatMenuSecondaryItems.add(botHelpItem);
+                    if (!MessagesController.isSupportUser(currentUser)) {
+                        ActionBarMenuItem.Item reportItem = headerItem.lazilyAddSubItem(report, R.drawable.msg_report, LocaleController.getString(R.string.ReportBot)).setColors(getThemedColor(Theme.key_text_RedRegular), getThemedColor(Theme.key_text_RedRegular));
+                        chatMenuSecondaryItems.add(reportItem);
                     }
-                } else if (!ChatObject.isChannel(currentChat) && getDialogId() != UserObject.VERIFY) {
-                    if (currentChat != null) {
-                        headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_leave, LocaleController.getString(R.string.DeleteAndExit));
-                    } else if (currentUser != null && currentUser.bot) {
-                        headerItem.lazilyAddSubItem(bot_settings, R.drawable.msg_settings_old, LocaleController.getString(R.string.BotSettings));
-                        addedSettings = true;
-                        headerItem.lazilyAddSubItem(bot_help, R.drawable.msg_help, LocaleController.getString(R.string.BotHelp));
-                        if (!MessagesController.isSupportUser(currentUser)) {
-                            headerItem.lazilyAddSubItem(report, R.drawable.msg_report, LocaleController.getString(R.string.ReportBot)).setColors(getThemedColor(Theme.key_text_RedRegular), getThemedColor(Theme.key_text_RedRegular));
-                        }
-                        headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_block2, LocaleController.getString(R.string.DeleteAndBlock)).setColors(getThemedColor(Theme.key_text_RedRegular), getThemedColor(Theme.key_text_RedRegular));
-                        updateBotButtons();
-                    } else {
-                        headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_delete, LocaleController.getString(R.string.DeleteChatUser));
-                    }
+                    updateBotButtons();
                 }
             }
+
+            // 2.16 Direct Fee Options
             if (ChatObject.isMonoForum(currentChat) && ChatObject.canManageMonoForum(currentAccount, currentChat)) {
-                headerItem.lazilyAddSubItem(remove_fee, R.drawable.menu_paid_off, getString(R.string.DirectRemoveFee));
-                headerItem.lazilyAddSubItem(charge_fee, R.drawable.menu_feature_paid, getString(R.string.DirectChargeFee));
+                ActionBarMenuItem.Item removeFeeItem = headerItem.lazilyAddSubItem(remove_fee, R.drawable.menu_paid_off, getString(R.string.DirectRemoveFee));
+                ActionBarMenuItem.Item chargeFeeItem = headerItem.lazilyAddSubItem(charge_fee, R.drawable.menu_feature_paid, getString(R.string.DirectChargeFee));
                 headerItem.setSubItemShown(remove_fee, false);
                 headerItem.setSubItemShown(charge_fee, false);
+                chatMenuSecondaryItems.add(removeFeeItem);
+                chatMenuSecondaryItems.add(chargeFeeItem);
 
                 feeItemGap = headerItem.lazilyAddColoredGap();
                 feeItemText = headerItem.lazilyAddText("", 13);
                 feeItemGap.setVisibility(View.GONE);
                 feeItemText.setVisibility(View.GONE);
+                chatMenuSecondaryItems.add(feeItemGap);
+                chatMenuSecondaryItems.add(feeItemText);
             }
         } else if (chatMode == MODE_EDIT_BUSINESS_LINK) {
             headerItem = menu.addItem(chat_menu_options, otherIcon);
@@ -5164,11 +5305,13 @@ public class ChatActivity extends BaseFragment implements
 
             if (!hasMyForum) {
                 openForumItem = headerItem.lazilyAddSubItem(open_forum, R.drawable.msg_discussion, LocaleController.getString(R.string.OpenAllTopics));
+                chatMenuSecondaryItems.add(openForumItem);
             }
         }
         if (currentChat != null && forumTopic != null && chatMode == 0) {
             closeTopicItem = headerItem.lazilyAddSubItem(topic_close, R.drawable.msg_topic_close, LocaleController.getString(R.string.CloseTopic));
             closeTopicItem.setVisibility(currentChat != null && ChatObject.canManageTopic(currentAccount, currentChat, forumTopic) && forumTopic != null && !forumTopic.closed ? View.VISIBLE : View.GONE);
+            chatMenuSecondaryItems.add(closeTopicItem);
         }
         menu.setVisibility(inMenuMode ? View.GONE : View.VISIBLE);
 
@@ -5196,7 +5339,7 @@ public class ChatActivity extends BaseFragment implements
         }
 
         if (BuildConfig.DEBUG && headerItem != null) {
-            headerItem.lazilyAddSubItem(888, R.drawable.menu_download_round, "Dump Canvas");
+            chatMenuSecondaryItems.add(headerItem.lazilyAddSubItem(888, R.drawable.menu_download_round, "Dump Canvas"));
         }
 
         // exteraless plugins: подменю CHAT_ACTION_MENU в конце меню «⋮».
@@ -5215,6 +5358,9 @@ public class ChatActivity extends BaseFragment implements
                     headerItem,
                     app.exteraless.plugins.MenuItemRecord.MenuType.CHAT_ACTION_MENU,
                     pluginMenuContext, themeDelegate, pluginsMenu);
+            if (pluginsMenu != null && pluginsMenu.item != null) {
+                chatMenuSecondaryItems.add(pluginsMenu.item);
+            }
         }
 
         actionModeViews.clear();

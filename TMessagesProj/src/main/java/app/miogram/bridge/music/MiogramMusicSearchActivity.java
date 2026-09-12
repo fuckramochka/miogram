@@ -53,9 +53,11 @@ public class MiogramMusicSearchActivity extends BaseFragment {
     private enum SourceFilter {
         ALL("Усі джерела", "Все источники", "All Sources"),
         TELEGRAM("Telegram Cloud", "Telegram Cloud", "Telegram Cloud"),
+        YOUTUBE_MUSIC("YouTube Music", "YouTube Music", "YouTube Music"),
         DEEZER("Deezer HQ", "Deezer HQ", "Deezer HQ"),
         ITUNES("iTunes Store", "iTunes Store", "iTunes Store"),
-        JAMENDO("Jamendo HQ", "Jamendo HQ", "Jamendo HQ");
+        JAMENDO("Jamendo HQ", "Jamendo HQ", "Jamendo HQ"),
+        DRIVEMUSIC("DriveMusic UA", "DriveMusic UA", "DriveMusic UA");
 
         public final String uk, ru, en;
         SourceFilter(String uk, String ru, String en) {
@@ -294,11 +296,15 @@ public class MiogramMusicSearchActivity extends BaseFragment {
                 displayTracks.add(t);
             } else if (currentFilter == SourceFilter.TELEGRAM && t.source == MiogramMusicTrack.Source.TELEGRAM) {
                 displayTracks.add(t);
+            } else if (currentFilter == SourceFilter.YOUTUBE_MUSIC && t.source == MiogramMusicTrack.Source.YOUTUBE_MUSIC) {
+                displayTracks.add(t);
             } else if (currentFilter == SourceFilter.DEEZER && t.source == MiogramMusicTrack.Source.DEEZER) {
                 displayTracks.add(t);
             } else if (currentFilter == SourceFilter.ITUNES && t.source == MiogramMusicTrack.Source.ITUNES) {
                 displayTracks.add(t);
             } else if (currentFilter == SourceFilter.JAMENDO && t.source == MiogramMusicTrack.Source.JAMENDO) {
+                displayTracks.add(t);
+            } else if (currentFilter == SourceFilter.DRIVEMUSIC && t.source == MiogramMusicTrack.Source.DRIVEMUSIC) {
                 displayTracks.add(t);
             }
         }
@@ -413,6 +419,18 @@ public class MiogramMusicSearchActivity extends BaseFragment {
             ArrayList<MessageObject> forwardList = new ArrayList<>();
             forwardList.add(track.telegramMessage);
             SendMessagesHelper.getInstance(currentAccount).sendMessage(forwardList, targetDialogId, true, true, true, 0, 0L);
+            Toast.makeText(getParentActivity() != null ? getParentActivity() : getContext(),
+                    MiogramLocale.get("Трек надіслано в чат", "Трек отправлен в чат", "Track sent to chat"),
+                    Toast.LENGTH_SHORT).show();
+            finishFragment();
+            return;
+        }
+
+        if (track.source == MiogramMusicTrack.Source.YOUTUBE_MUSIC) {
+            String text = "🎵 " + track.getDisplayArtist() + " — " + track.getDisplayTitle() + "\n" + (track.streamUrl != null ? track.streamUrl : "");
+            SendMessagesHelper.getInstance(currentAccount).sendMessage(
+                    SendMessagesHelper.SendMessageParams.of(text, targetDialogId, null, null, null, true, null, null, null, true, 0, 0, null, false)
+            );
             Toast.makeText(getParentActivity() != null ? getParentActivity() : getContext(),
                     MiogramLocale.get("Трек надіслано в чат", "Трек отправлен в чат", "Track sent to chat"),
                     Toast.LENGTH_SHORT).show();
@@ -559,7 +577,9 @@ public class MiogramMusicSearchActivity extends BaseFragment {
             playBtn.setOnClickListener(v -> {
                 MiogramHaptic.tap(v);
                 if (currentTrack != null) {
-                    if (currentTrack.telegramMessage != null) {
+                    if (currentTrack.source == MiogramMusicTrack.Source.YOUTUBE_MUSIC && currentTrack.streamUrl != null) {
+                        org.telegram.messenger.browser.Browser.openUrl(getParentActivity() != null ? getParentActivity() : getContext(), currentTrack.streamUrl);
+                    } else if (currentTrack.telegramMessage != null) {
                         stopActivePlayer();
                         MediaController.getInstance().playMessage(currentTrack.telegramMessage);
                         if (adapter != null) adapter.notifyDataSetChanged();
@@ -588,7 +608,15 @@ public class MiogramMusicSearchActivity extends BaseFragment {
 
             downloadBtn.setOnClickListener(v -> {
                 MiogramHaptic.tap(v);
-                if (currentTrack != null && !currentTrack.isDownloading && !currentTrack.isInstalled) {
+                if (currentTrack != null) {
+                    if (currentTrack.source == MiogramMusicTrack.Source.YOUTUBE_MUSIC) {
+                        if (currentTrack.streamUrl != null) {
+                            org.telegram.messenger.browser.Browser.openUrl(context, currentTrack.streamUrl);
+                            Toast.makeText(context, MiogramLocale.get("Відкриття у YouTube Music...", "Открытие в YouTube Music...", "Opening in YouTube Music..."), Toast.LENGTH_SHORT).show();
+                        }
+                        return;
+                    }
+                    if (!currentTrack.isDownloading && !currentTrack.isInstalled) {
                     final MiogramMusicTrack targetTrack = currentTrack;
                     targetTrack.isDownloading = true;
                     downloadBtn.setVisibility(View.GONE);
@@ -616,6 +644,7 @@ public class MiogramMusicSearchActivity extends BaseFragment {
                             Toast.makeText(context, MiogramLocale.get("Помилка завантаження", "Ошибка загрузки", "Download error") + (error != null ? ": " + error : ""), Toast.LENGTH_SHORT).show();
                         }
                     });
+                    }
                 }
             });
 

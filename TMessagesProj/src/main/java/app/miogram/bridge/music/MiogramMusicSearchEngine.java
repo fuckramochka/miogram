@@ -61,7 +61,7 @@ public class MiogramMusicSearchEngine {
         final String q = query.trim();
         final List<MiogramMusicTrack> aggregatedResults = Collections.synchronizedList(new ArrayList<>());
         final Set<String> seenSignatures = Collections.synchronizedSet(new HashSet<>());
-        final AtomicInteger pendingEngines = new AtomicInteger(6);
+        final AtomicInteger pendingEngines = new AtomicInteger(7);
 
         // 1. Search Telegram Global Cloud
         searchTelegram(q, currentAccount, new SearchCallback() {
@@ -219,6 +219,37 @@ public class MiogramMusicSearchEngine {
         // 6. Search DriveMusic UA Direct MP3 Catalog
         Utilities.globalQueue.postRunnable(() -> {
             searchDriveMusic(q, new SearchCallback() {
+                @Override
+                public void onResults(List<MiogramMusicTrack> tracks, boolean isFinal) {
+                    if (tracks != null) {
+                        for (MiogramMusicTrack t : tracks) {
+                            String sig = normalize(t.artist) + "|" + normalize(t.title);
+                            if (seenSignatures.add(sig)) {
+                                aggregatedResults.add(t);
+                            }
+                        }
+                    }
+                    checkFinal();
+                }
+
+                @Override
+                public void onError(String error) {
+                    checkFinal();
+                }
+
+                private void checkFinal() {
+                    if (pendingEngines.decrementAndGet() == 0) {
+                        AndroidUtilities.runOnUIThread(() -> callback.onResults(new ArrayList<>(aggregatedResults), true));
+                    } else {
+                        AndroidUtilities.runOnUIThread(() -> callback.onResults(new ArrayList<>(aggregatedResults), false));
+                    }
+                }
+            });
+        });
+
+        // 7. Search YouTube Music InnerTube API
+        Utilities.globalQueue.postRunnable(() -> {
+            searchYouTubeMusic(q, new SearchCallback() {
                 @Override
                 public void onResults(List<MiogramMusicTrack> tracks, boolean isFinal) {
                     if (tracks != null) {
@@ -605,6 +636,228 @@ public class MiogramMusicSearchEngine {
                 AndroidUtilities.runOnUIThread(() -> callback.onResults(results, true));
             } else {
                 AndroidUtilities.runOnUIThread(() -> callback.onError("DriveMusic HTTP " + code));
+            }
+        } catch (Throwable t) {
+            AndroidUtilities.runOnUIThread(() -> callback.onError(t.getMessage()));
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    /**
+     * YouTube Music Search (InnerTube API via WEB_REMIX client).
+     */
+    public static void searchYouTubeMusic(String query, SearchCallback callback) {
+        HttpURLConnection conn = null;
+        try {
+            URL url = new URL("https://music.youtube.com/youtubei/v1/search");
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(10000);
+            conn.setDoOutput(true);
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+            conn.setRequestProperty("Referer", "https://music.youtube.com/");
+
+            JSONObject contextObj = new JSONObject();
+            JSONObject clientObj = new JSONObject();
+            clientObj.put("clientName", "WEB_REMIX");
+            clientObj.put("clientVersion", "1.20230101.01.00");
+            clientObj.put("hl", "uk");
+            clientObj.put("gl", "UA");
+            contextObj.put("client", clientObj);
+
+            JSONObject payload = new JSONObject();
+            payload.put("context", contextObj);
+            payload.put("query", query);
+            payload.put("params", "EgWKAQIIAWoQEAMQBBAJEAoQBRAREBAQFQ%3D%3D");
+
+            byte[] postData = payload.toString().getBytes(StandardCharsets.UTF_8);
+            try (java.io.OutputStream os = conn.getOutputStream()) {
+                os.write(postData);
+                os.flush();
+            }
+
+            int code = conn.getResponseCode();
+            if (code == 200) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line);
+                }
+                br.close();
+
+                JSONObject root = new JSONObject(sb.toString());
+                List<MiogramMusicTrack> results = new ArrayList<>();
+
+                JSONObject contents = root.optJSONObject("contents");
+                if (contents != null) {
+                    JSONObject tabbed = contents.optJSONObject("tabbedSearchResultsRenderer");
+                    if (tabbed != null) {
+                        JSONArray tabs = tabbed.optJSONArray("tabs");
+                        if (tabs != null && tabs.length() > 0) {
+                            JSONObject tab = tabs.getJSONObject(0);
+                            JSONObject tabRenderer = tab.optJSONObject("tabRenderer");
+                            if (tabRenderer != null) {
+                                JSONObject tabContent = tabRenderer.optJSONObject("content");
+                                if (tabContent != null) {
+                                    JSONObject sectionList = tabContent.optJSONObject("sectionListRenderer");
+                                    if (sectionList != null) {
+                                        JSONArray secContents = sectionList.optJSONArray("contents");
+                                        if (secContents != null) {
+                                            for (int s = 0; s < secContents.length(); s++) {
+                                                JSONObject sec = secContents.getJSONObject(s);
+                                                JSONObject shelf = sec.optJSONObject("musicShelfRenderer");
+                                                if (shelf == null) continue;
+                                                JSONArray items = shelf.optJSONArray("contents");
+                                                if (items == null) continue;
+
+                                                for (int i = 0; i < items.length(); i++) {
+                                                    JSONObject item = items.getJSONObject(i);
+                                                    JSONObject r = item.optJSONObject("musicResponsiveListItemRenderer");
+                                                    if (r == null) continue;
+
+                                                    String videoId = null;
+                                                    JSONObject playlistItemData = r.optJSONObject("playlistItemData");
+                                                    if (playlistItemData != null) {
+                                                        videoId = playlistItemData.optString("videoId", null);
+                                                    }
+                                                    if (videoId == null || videoId.isEmpty()) {
+                                                        JSONObject overlay = r.optJSONObject("overlay");
+                                                        if (overlay != null) {
+                                                            JSONObject thumbOverlay = overlay.optJSONObject("musicItemThumbnailOverlayRenderer");
+                                                            if (thumbOverlay != null) {
+                                                                JSONObject content = thumbOverlay.optJSONObject("content");
+                                                                if (content != null) {
+                                                                    JSONObject playBtn = content.optJSONObject("musicPlayButtonRenderer");
+                                                                    if (playBtn != null) {
+                                                                        JSONObject nav = playBtn.optJSONObject("playNavigationEndpoint");
+                                                                        if (nav != null) {
+                                                                            JSONObject watch = nav.optJSONObject("watchEndpoint");
+                                                                            if (watch != null) {
+                                                                                videoId = watch.optString("videoId", null);
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    JSONArray flexCols = r.optJSONArray("flexColumns");
+                                                    if (flexCols == null || flexCols.length() == 0) continue;
+
+                                                    // Column 0: Title
+                                                    String trackTitle = "";
+                                                    JSONObject c0 = flexCols.getJSONObject(0);
+                                                    JSONObject col0Renderer = c0.optJSONObject("musicResponsiveListItemFlexColumnRenderer");
+                                                    if (col0Renderer != null) {
+                                                        JSONObject textObj = col0Renderer.optJSONObject("text");
+                                                        if (textObj != null) {
+                                                            JSONArray runs = textObj.optJSONArray("runs");
+                                                            if (runs != null && runs.length() > 0) {
+                                                                JSONObject run0 = runs.getJSONObject(0);
+                                                                trackTitle = run0.optString("text", "");
+                                                                if ((videoId == null || videoId.isEmpty()) && run0.has("navigationEndpoint")) {
+                                                                    JSONObject nav = run0.optJSONObject("navigationEndpoint");
+                                                                    if (nav != null) {
+                                                                        JSONObject watch = nav.optJSONObject("watchEndpoint");
+                                                                        if (watch != null) {
+                                                                            videoId = watch.optString("videoId", null);
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    if (videoId == null || videoId.isEmpty()) continue;
+                                                    if (trackTitle.isEmpty()) trackTitle = "YouTube Track";
+
+                                                    // Column 1: Artist, Album, Duration
+                                                    String artistName = "YouTube Music";
+                                                    String albumName = "";
+                                                    int durationSec = 0;
+
+                                                    if (flexCols.length() > 1) {
+                                                        JSONObject c1 = flexCols.getJSONObject(1);
+                                                        JSONObject col1Renderer = c1.optJSONObject("musicResponsiveListItemFlexColumnRenderer");
+                                                        if (col1Renderer != null) {
+                                                            JSONObject textObj = col1Renderer.optJSONObject("text");
+                                                            if (textObj != null) {
+                                                                JSONArray runs = textObj.optJSONArray("runs");
+                                                                if (runs != null) {
+                                                                    List<String> textParts = new ArrayList<>();
+                                                                    for (int runIdx = 0; runIdx < runs.length(); runIdx++) {
+                                                                        String part = runs.getJSONObject(runIdx).optString("text", "").trim();
+                                                                        if (!part.isEmpty() && !part.equals("•")) {
+                                                                            textParts.add(part);
+                                                                        }
+                                                                    }
+                                                                    if (!textParts.isEmpty()) {
+                                                                        artistName = textParts.get(0);
+                                                                        String lastPart = textParts.get(textParts.size() - 1);
+                                                                        if (lastPart.contains(":")) {
+                                                                            String[] timeParts = lastPart.split(":");
+                                                                            try {
+                                                                                if (timeParts.length == 2) {
+                                                                                    durationSec = Integer.parseInt(timeParts[0]) * 60 + Integer.parseInt(timeParts[1]);
+                                                                                } else if (timeParts.length == 3) {
+                                                                                    durationSec = Integer.parseInt(timeParts[0]) * 3600 + Integer.parseInt(timeParts[1]) * 60 + Integer.parseInt(timeParts[2]);
+                                                                                }
+                                                                                textParts.remove(textParts.size() - 1);
+                                                                            } catch (Throwable ignore) {}
+                                                                        }
+                                                                        if (textParts.size() > 1) {
+                                                                            albumName = textParts.get(1);
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // Cover Art
+                                                    String coverUrl = null;
+                                                    JSONObject thumbObj = r.optJSONObject("thumbnail");
+                                                    if (thumbObj != null) {
+                                                        JSONObject musicThumb = thumbObj.optJSONObject("musicThumbnailRenderer");
+                                                        if (musicThumb != null) {
+                                                            JSONObject thumbSub = musicThumb.optJSONObject("thumbnail");
+                                                            if (thumbSub != null) {
+                                                                JSONArray thumbs = thumbSub.optJSONArray("thumbnails");
+                                                                if (thumbs != null && thumbs.length() > 0) {
+                                                                    coverUrl = thumbs.getJSONObject(thumbs.length() - 1).optString("url");
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    MiogramMusicTrack track = new MiogramMusicTrack();
+                                                    track.id = "ytm_" + videoId;
+                                                    track.title = trackTitle;
+                                                    track.artist = artistName;
+                                                    track.album = albumName;
+                                                    track.durationSeconds = durationSec;
+                                                    track.coverUrl = coverUrl;
+                                                    track.streamUrl = "https://music.youtube.com/watch?v=" + videoId;
+                                                    track.downloadUrl = track.streamUrl;
+                                                    track.source = MiogramMusicTrack.Source.YOUTUBE_MUSIC;
+                                                    results.add(track);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                AndroidUtilities.runOnUIThread(() -> callback.onResults(results, true));
+            } else {
+                AndroidUtilities.runOnUIThread(() -> callback.onError("YouTube Music HTTP " + code));
             }
         } catch (Throwable t) {
             AndroidUtilities.runOnUIThread(() -> callback.onError(t.getMessage()));
