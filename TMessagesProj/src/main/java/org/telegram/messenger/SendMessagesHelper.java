@@ -4304,6 +4304,9 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                 return;
             }
         }
+        if (app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().interceptOutgoingMessage(currentAccount, originalParams)) {
+            return;
+        }
         SendMessageParams replacement = hookResult.replacement(SendMessageParams.class);
         final SendMessageParams sendMessageParams = replacement != null ? replacement : originalParams;
         app.exteraless.chats.DeletedReplyQuote.rewrite(currentAccount, sendMessageParams);

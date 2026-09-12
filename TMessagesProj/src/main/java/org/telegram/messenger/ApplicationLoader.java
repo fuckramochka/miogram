@@ -356,6 +356,7 @@ public class ApplicationLoader extends Application implements CameraXConfig.Prov
         super.onCreate();
         installCrashReportFilter();
         app.miogram.bridge.perf.MiogramPerformanceOptimizer.init(this);
+        app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().init();
 
         // AndroidUtilities must be initialized before FileLog
         final String helloWorld = AndroidUtilities.getHelloWorld();

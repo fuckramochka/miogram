@@ -529,6 +529,16 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             onSendMessage();
         });
 
+        addChip(context, chipsRow, "🪐 " + MiogramLocale.get("Юзербот .ping", "Юзербот .ping", "Userbot .ping"), () -> {
+            inputField.setText("Пі-тян, перевір затримку через юзербот команду ping");
+            onSendMessage();
+        });
+
+        addChip(context, chipsRow, "📦 " + MiogramLocale.get("Мої плагіни", "Мои плагины", "My Plugins"), () -> {
+            inputField.setText("Аме, покажи список встановлених плагінів MioHook");
+            onSendMessage();
+        });
+
         if (scopedDialogId != 0) {
             addChip(context, chipsRow, "💬 " + MiogramLocale.get("Що тут пишуть?", "Что тут пишут?", "What are they writing?"), () -> {
                 inputField.setText(MiogramLocale.get("П-тян, прочитай останні повідомлення цього чату", "П-тян, прочитай последние сообщения этого чата", "Read the latest messages in this chat"));

@@ -728,10 +728,40 @@ public class MiogramCompanionToolbox {
                     callback.run("Плагін " + pid + (enable ? " увімкнено." : " вимкнено."));
                     break;
                 }
+                case "list_plugins": {
+                    Map<String, app.exteraless.plugins.Plugin> map = PluginsController.getInstance().plugins;
+                    if (map == null || map.isEmpty()) {
+                        callback.run("У Miogram наразі немає встановлених плагінів MioHook/exteraGram.");
+                    } else {
+                        StringBuilder sb = new StringBuilder("📦 Список встановлених плагінів:\n");
+                        int idx = 1;
+                        for (app.exteraless.plugins.Plugin pInfo : map.values()) {
+                            sb.append(idx++).append(". ").append(pInfo.getName()).append(" (v").append(pInfo.getVersion()).append(")")
+                                    .append(pInfo.isEnabled() ? " — УВІМКНЕНО" : " — ВИМКНЕНО").append("\n");
+                        }
+                        callback.run(sb.toString());
+                    }
+                    break;
+                }
+                case "execute_userbot_command": {
+                    String cmd = p.optString("command", "ping");
+                    String args = p.optString("args", "");
+                    String full = app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().getPrefix() + cmd + (args.isEmpty() ? "" : " " + args);
+                    app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().dispatchCommand(account, scopedDialogId, full, null, null);
+                    callback.run("⚡ Виконано команду Heroku: `" + full + "`");
+                    break;
+                }
+                case "diagnose_client_and_report":
                 case "report_bug_to_creator": {
                     String details = p.optString("details", "AI detected runtime glitch");
-                    MiogramSupabaseBridge.openBugReportChat(null, "AI Companion Report", details);
-                    callback.run("Звіт та системні логи скопійовано англійською. Відкриваю чат із творцем @dkramochka!");
+                    StringBuilder diag = new StringBuilder();
+                    diag.append("Companion: ").append(MiogramCompanionPrefs.isAmeActive() ? "Ame-chan" : "KAngel").append("\n");
+                    diag.append("Plugins count: ").append(PluginsController.getInstance().plugins.size()).append("\n");
+                    diag.append("Userbot active: ").append(app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().isEnabled()).append("\n");
+                    diag.append("Helper Bot: ").append(app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().getBotUsername()).append("\n");
+                    diag.append("Details: ").append(details);
+                    MiogramSupabaseBridge.openBugReportChat(null, "AI Companion Diagnostic Report", diag.toString());
+                    callback.run("Звіт та системні логи сформовано та скопійовано. Відкриваю чат із творцем @dkramochka!");
                     break;
                 }
                 default:
@@ -740,7 +770,11 @@ public class MiogramCompanionToolbox {
             }
         } catch (Throwable t) {
             FileLog.e(t);
-            callback.run("Помилка виконання інструменту: " + t.getMessage());
+            boolean isAme = MiogramCompanionPrefs.isAmeActive();
+            String apology = isAme
+                    ? "Пі-тян, у мене лапки тремтять... Щось зламалося: " + t.getMessage() + "\nДавай я надішлю звіт та лог творцю @dkramochka щоб він усе полагодив? ( ；∀；)"
+                    : "† ОЙ-ОЙ †! Пі-тян, стався збій системи: " + t.getMessage() + "\nВідправити звіт творцю @dkramochka? (★ω★)";
+            callback.run(apology);
         }
     }
 }
