@@ -478,9 +478,9 @@ public class MiogramPluginForgeActivity extends BaseFragment {
         } else if ("lua".equalsIgnoreCase(lang)) {
             boolean ok = app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().installLuaPlugin(lastResult.name, lastResult.code);
             statusView.setText(ok
-                    ? MiogramLocale.get("✓ ВСТАНОВЛЕНО ТА АКТИВОВАНО!\nСкрипт Lua зареєстровано в системі, він уже активний.",
-                                        "✓ УСТАНОВЛЕНО И АКТИВИРОВАНО!\nСкрипт Lua зарегистрирован в системе, он уже активен.",
-                                        "✓ INSTALLED AND ACTIVATED!\nLua script registered in system, already active.")
+                    ? MiogramLocale.get("✓ ЗБЕРЕЖЕНО!\nСкрипт Lua в модулях. Без Lua-движка працюють лише текстові фільтри скрипта.",
+                                        "✓ СОХРАНЕНО!\nСкрипт Lua в модулях. Без Lua-движка работают только текстовые фильтры скрипта.",
+                                        "✓ SAVED!\nLua script in modules. Without a Lua engine only the script text filters apply.")
                     : MiogramLocale.get("Помилка встановлення Lua скрипта.",
                                         "Ошибка установки Lua скрипта.",
                                         "Failed to install Lua script."));
@@ -509,6 +509,7 @@ public class MiogramPluginForgeActivity extends BaseFragment {
                         Toast.makeText(getParentActivity(),
                                 MiogramLocale.get("Плагін зібрано: plugin.wasm", "Плагин собран: plugin.wasm", "Plugin built: plugin.wasm"),
                                 Toast.LENGTH_LONG).show();
+                        installBuiltWasmIntoCatalog(new File(dir, "plugin.wasm"));
                     } else {
                         Toast.makeText(getParentActivity(),
                                 MiogramLocale.get("Збірка не вдалася — скористайтесь імпортом або експортом", "Сборка не удалась — воспользуйтесь импортом или экспортом", "Build failed — use import or export below"),
@@ -573,6 +574,7 @@ public class MiogramPluginForgeActivity extends BaseFragment {
                     statusView.setText(MiogramLocale.get("ІМПОРТОВАНО: ", "ИМПОРТИРОВАНО: ", "IMPORTED: ") + dest.getAbsolutePath() + " (" + dest.length() + " bytes)");
                     MiogramHaptic.success(statusView);
                     Toast.makeText(getParentActivity(), MiogramLocale.get("plugin.wasm успішно імпортовано в проєкт!", "plugin.wasm успешно импортирован в проект!", "plugin.wasm successfully imported!"), Toast.LENGTH_LONG).show();
+                    installBuiltWasmIntoCatalog(dest);
                 });
             } catch (Exception e) {
                 FileLog.e(e);
@@ -582,6 +584,31 @@ public class MiogramPluginForgeActivity extends BaseFragment {
                 });
             }
         });
+    }
+
+    /**
+     * Puts a built/imported plugin.wasm into the plugin catalog
+     * (PluginsActivity list), so Forge output doesn't stay invisible
+     * in the forge/ directory.
+     */
+    private void installBuiltWasmIntoCatalog(File wasmFile) {
+        if (wasmFile == null || !wasmFile.isFile()) return;
+        try {
+            app.exteraless.plugins.PluginsController.getInstance().installPlugin(wasmFile,
+                    (ok, err, plugin) -> AndroidUtilities.runOnUIThread(() -> {
+                        if (ok) {
+                            String name = plugin != null && plugin.getName() != null ? plugin.getName() : wasmFile.getName();
+                            statusView.setText(MiogramLocale.get("В каталозі плагінів: ", "В каталоге плагинов: ", "In plugin catalog: ") + name);
+                            Toast.makeText(getParentActivity(),
+                                    MiogramLocale.get("Додано в каталог плагінів", "Добавлен в каталог плагинов", "Added to plugin catalog"),
+                                    Toast.LENGTH_LONG).show();
+                        } else {
+                            statusView.setText(MiogramLocale.get("Не вдалося додати в каталог: ", "Не удалось добавить в каталог: ", "Catalog add failed: ") + (err != null ? err : ""));
+                        }
+                    }));
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
     }
 
     private void onExportZip() {

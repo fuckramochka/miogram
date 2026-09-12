@@ -20,6 +20,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import okhttp3.MediaType;
@@ -39,7 +40,14 @@ import xyz.nextalone.nagram.NaConfig;
 public class MiogramAiService {
 
     private static final Gson gson = new Gson();
-    private static final OkHttpClient client = new OkHttpClient();
+    // Default OkHttp timeouts (10s read) kill code generation, which takes
+    // 20-60s. Generous limits: connect 20s, read/write 120s, whole call 180s.
+    private static final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .callTimeout(180, TimeUnit.SECONDS)
+            .build();
     private static final ExecutorService executor = Executors.newCachedThreadPool();
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private static final String AI_PREFS = "miogram_ai_prefs";
@@ -725,10 +733,10 @@ public class MiogramAiService {
                 + "\"" + codeKeyName + "\":\"complete source code with \\n escapes\","
                 + "\"steps\":[\"<=6 very short lines explaining linearly how the code works\"]}";
 
-        generateContentInternal(prompt, PLUGIN_MODEL, 0.4, true, 2048, (res, err) -> {
+        generateContentInternal(prompt, PLUGIN_MODEL, 0.4, true, 4096, (res, err) -> {
             if (res == null) {
                 // Plugin model unavailable -> retry once on the stable tier.
-                generateContentInternal(prompt, FALLBACK_MODEL, 0.4, true, 2048, (fbRes, fbErr) ->
+                generateContentInternal(prompt, FALLBACK_MODEL, 0.4, true, 4096, (fbRes, fbErr) ->
                         AndroidUtilities.runOnUIThread(() -> callback.run(parseForgeResult(fbRes, wantLang), fbErr)));
                 return;
             }

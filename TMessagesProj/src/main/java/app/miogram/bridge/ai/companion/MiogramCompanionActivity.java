@@ -1121,7 +1121,12 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
                 MiogramCompanionToolbox.tryResolvePendingPick(currentAccount, query);
         if ("RESOLVED".equals(pick.kind) && pick.foundChat != null) {
             String ref = pick.foundChat.username.isEmpty() ? pick.foundChat.name : "@" + pick.foundChat.username;
-            query = query + "\n[Уточнення: P-chan обрав «" + pick.foundChat.name + "» (" + ref + "), саме цей чат.]";
+            // Strict directive with the exact numeric chat_id: resolveChatTarget
+            // short-circuits on chat_id, so the next tool call CANNOT re-ask.
+            // This breaks the "choose again forever" loop at the root.
+            query = query + "\n[Система: P-chan обрав «" + pick.foundChat.name + "» (" + ref + "). "
+                    + "Твій наступний виклик МУСИТЬ містити {\"chat_id\": " + pick.foundChat.dialogId + "}. "
+                    + "Не показуй список знову, не проси уточнити — дій з цим чатом.]";
         } else if ("NEXT_PAGE".equals(pick.kind)) {
             MiogramCompanionToolbox.PendingPick pending = MiogramCompanionToolbox.getPendingPick(currentAccount);
             if (pending != null && pending.listFilter != null) {

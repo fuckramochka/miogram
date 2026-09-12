@@ -881,6 +881,15 @@ public class MiogramCompanionToolbox {
     }
 
     public static ChatResolution resolveChatTarget(int account, JSONObject p) {
+        return resolveChatTarget(account, p, null);
+    }
+
+    /**
+     * @param forAction tool name asking for resolution (read_messages, send_message...).
+     *                  Stored in the pending pick so a follow-up pick ("2", "другий")
+     *                  can resume the exact action instead of searching again.
+     */
+    public static ChatResolution resolveChatTarget(int account, JSONObject p, String forAction) {
         long chatId = p.optLong("chat_id", 0);
         if (chatId != 0) {
             return new ChatResolution(chatId, null, null);
@@ -909,7 +918,11 @@ public class MiogramCompanionToolbox {
             return new ChatResolution(results.get(0).dialogId, results.get(0), null);
         }
 
-        setPendingPick(account, new PendingPick(results, query, null, null, null, 0, 50));
+        JSONObject resumeParams = null;
+        try {
+            if (forAction != null && p != null) resumeParams = new JSONObject(p.toString());
+        } catch (Throwable ignore) {}
+        setPendingPick(account, new PendingPick(results, query, forAction, resumeParams, null, 0, 50));
         StringBuilder sb = new StringBuilder(MiogramLocale.get("Я знайшла ", "Я нашла ", "I found ") + results.size() + MiogramLocale.get(" схожих профілів за запитом «", " похожих профилей по запросу «", " similar profiles for query \"") + query + "»:\n");
         int count = Math.min(5, results.size());
         for (int i = 0; i < count; i++) {
@@ -997,7 +1010,7 @@ public class MiogramCompanionToolbox {
                     break;
                 }
                 case "open_chat": {
-                    ChatResolution res = resolveChatTarget(account, p);
+                    ChatResolution res = resolveChatTarget(account, p, "open_chat");
                     if (res.errorMessage != null) {
                         callback.run(res.errorMessage);
                         return;
@@ -1113,7 +1126,7 @@ public class MiogramCompanionToolbox {
                     MessagesController mc = MessagesController.getInstance(account);
 
                     if (specificChatId != 0 || !chatQuery.isEmpty()) {
-                        ChatResolution res = resolveChatTarget(account, p);
+                        ChatResolution res = resolveChatTarget(account, p, "search_messages");
                         if (res.errorMessage != null) {
                             callback.run(res.errorMessage);
                             return;
@@ -1200,7 +1213,7 @@ public class MiogramCompanionToolbox {
                     return;
                 }
                 case "clear_chat": {
-                    ChatResolution res = resolveChatTarget(account, p);
+                    ChatResolution res = resolveChatTarget(account, p, "clear_chat");
                     if (res.errorMessage != null) {
                         callback.run(res.errorMessage);
                         return;
@@ -1211,7 +1224,7 @@ public class MiogramCompanionToolbox {
                     break;
                 }
                 case "delete_chat": {
-                    ChatResolution res = resolveChatTarget(account, p);
+                    ChatResolution res = resolveChatTarget(account, p, "delete_chat");
                     if (res.errorMessage != null) {
                         callback.run(res.errorMessage);
                         return;
@@ -1222,7 +1235,7 @@ public class MiogramCompanionToolbox {
                     break;
                 }
                 case "send_message": {
-                    ChatResolution res = resolveChatTarget(account, p);
+                    ChatResolution res = resolveChatTarget(account, p, "send_message");
                     if (res.errorMessage != null) {
                         callback.run(res.errorMessage);
                         return;
@@ -1240,7 +1253,7 @@ public class MiogramCompanionToolbox {
                     break;
                 }
                 case "read_messages": {
-                    ChatResolution res = resolveChatTarget(account, p);
+                    ChatResolution res = resolveChatTarget(account, p, "read_messages");
                     if (res.errorMessage != null) {
                         callback.run(res.errorMessage);
                         return;
@@ -1385,16 +1398,16 @@ public class MiogramCompanionToolbox {
                                 String msg = MiogramLocale.get(
                                         "✦ **Плагін на Lua створено!**\n"
                                         + "📁 Назва: `" + result.name + ".lua`\n"
-                                        + "⚡ **Статус:** " + (installed ? "Успішно збережено та АКТИВОВАНО на пристрої без компіляції!" : "Збережено.") + "\n"
-                                        + "Плагін уже працює на льоту!",
+                                        + "⚡ **Статус:** " + (installed ? "Збережено в модулі." : "Не збережено.") + " "
+                                        + "Lua-движка на пристрої нема, тому працюють лише текстові фільтри (якщо скрипт їх оголошує).",
                                         "✦ **Плагин на Lua создан!**\n"
                                         + "📁 Название: `" + result.name + ".lua`\n"
-                                        + "⚡ **Статус:** " + (installed ? "Успешно сохранен и АКТИВИРОВАН на устройстве без компиляции!" : "Сохранен.") + "\n"
-                                        + "Плагин уже работает на лету!",
+                                        + "⚡ **Статус:** " + (installed ? "Сохранен в модули." : "Не сохранен.") + " "
+                                        + "Lua-движка на устройстве нет, поэтому работают только текстовые фильтры (если скрипт их объявляет).",
                                         "✦ **Lua plugin created!**\n"
                                         + "📁 Name: `" + result.name + ".lua`\n"
-                                        + "⚡ **Status:** " + (installed ? "Successfully saved and ACTIVATED on-device without compilation!" : "Saved.") + "\n"
-                                        + "Plugin is already running on the fly!"
+                                        + "⚡ **Status:** " + (installed ? "Saved to modules." : "Not saved.") + " "
+                                        + "No Lua engine on device, so only declared text filters apply."
                                 );
                                 callback.run(msg);
                             } else {

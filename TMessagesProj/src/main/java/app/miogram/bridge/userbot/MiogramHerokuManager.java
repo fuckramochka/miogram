@@ -374,14 +374,9 @@ public class MiogramHerokuManager {
                 fos.write(code.getBytes(StandardCharsets.UTF_8));
                 fos.flush();
             }
-            if (code.toLowerCase(Locale.ROOT).contains("dot") || code.contains("%1.") || code.contains("on_outgoing") || code.contains("filter_outgoing")) {
-                registerTextFilter(safeName, text -> {
-                    if (text == null || text.startsWith(getPrefix())) return text;
-                    if (code.contains("dot") || safeName.contains("dot")) {
-                        return text.replaceAll("(\\p{L}+)(?!\\.)", "$1.");
-                    }
-                    return text;
-                });
+            if (code.contains("filter_outgoing")) {
+                final String modulePath = target.getAbsolutePath();
+                registerTextFilter(safeName, text -> runModuleFilter(modulePath, text));
             }
             return loadExternalPythonModule(target);
         } catch (Throwable t) {
@@ -796,13 +791,77 @@ public class MiogramHerokuManager {
             });
         }
 
+        // Real outgoing-text filter when the module declares filter_outgoing.
+        try {
+            if (moduleDeclaresFilter(file)) {
+                final String modulePath = file.getAbsolutePath();
+                registerTextFilter(mod.name, text -> {
+                    if (text == null || text.startsWith(getPrefix())) return text;
+                    return runModuleFilter(modulePath, text);
+                });
+            }
+        } catch (Throwable ignore) {}
+
         modules.put(mod.name, mod);
         return true;
     }
 
+    private static boolean moduleDeclaresFilter(File file) {
+        if (file == null || !file.isFile()) return false;
+        try (java.io.FileInputStream in = new java.io.FileInputStream(file)) {
+            byte[] buf = new byte[(int) Math.min(file.length(), 65536)];
+            int read = 0;
+            while (read < buf.length) {
+                int n = in.read(buf, read, buf.length - read);
+                if (n < 0) break;
+                read += n;
+            }
+            String head = new String(buf, 0, read, StandardCharsets.UTF_8);
+            return head.contains("filter_outgoing");
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
+
     private void executePythonModuleFile(File file, CommandContext ctx) {
-        // NOTE: .py userbot modules target the Telethon/Hikka runtime, which the
-        // Android client does not embed. Never pretend execution happened.
+        // Real on-device execution via Chaquopy + heroku_compat shims
+        // (module_runner.py). Telethon network calls inside modules are NOT
+        // supported — everything else (text processing, replies) runs.
+        // Already on the userbot executor thread; Chaquopy call blocks here.
+        try {
+            if (PythonPluginsEngine.getInstance().isStarted()) {
+                com.chaquo.python.Python py = com.chaquo.python.Python.getInstance();
+                com.chaquo.python.PyObject runner = py.getModule("heroku_compat.module_runner");
+                com.chaquo.python.PyObject res = runner.callAttr("run_command",
+                        file.getAbsolutePath(), ctx.command, ctx.rawArgs, ctx.fullText);
+                if (res != null) {
+                    org.json.JSONObject out = new org.json.JSONObject(res.toString());
+                    org.json.JSONArray replies = out.optJSONArray("replies");
+                    boolean answered = false;
+                    if (replies != null) {
+                        for (int i = 0; i < replies.length(); i++) {
+                            org.json.JSONArray pair = replies.optJSONArray(i);
+                            if (pair != null && pair.length() >= 2) {
+                                String text = pair.optString(1, "");
+                                if (!TextUtils.isEmpty(text)) {
+                                    ctx.answer(text);
+                                    answered = true;
+                                }
+                            }
+                        }
+                    }
+                    if (answered) return;
+                    String err = out.optString("error", "");
+                    if (!TextUtils.isEmpty(err) && !"command not found in module".equals(err)) {
+                        ctx.answer("❌ " + MiogramLocale.get("Помилка модуля: ", "Ошибка модуля: ", "Module error: ") + "`" + err + "`");
+                        return;
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+        // Fallback: honest module card (no engine, or module needs Telethon network).
         HikkaModuleMeta meta = parseModuleMeta(file);
         StringBuilder sb = new StringBuilder();
         sb.append("🪐 **").append(!meta.name.isEmpty() ? meta.name : file.getName().replace(".py", "")).append("**\n");
@@ -817,10 +876,34 @@ public class MiogramHerokuManager {
         if (!meta.requires.isEmpty()) {
             sb.append(MiogramLocale.get("⚠️ Потребує pip-залежностей: `", "⚠️ Требует pip-зависимостей: `", "⚠️ Needs pip packages: `")).append(meta.requires).append("`\n");
         }
-        sb.append(MiogramLocale.get("_Повноцінний запуск Python-модулів (Telethon) на Android неможливий — модуль показано як довідку. Нативні команди юзербота працюють як зазвичай._",
-                "_Полноценный запуск Python-модулей (Telethon) на Android невозможен — модуль показан как справка. Нативные команды юзербота работают как обычно._",
-                "_Full Python-module execution (Telethon) is impossible on Android — showing module info instead. Native userbot commands work as usual._"));
+        sb.append(MiogramLocale.get("_Модуль не відповів (потрібен Python-рантайм або мережа Telethon)._",
+                "_Модуль не ответил (нужен Python-рантайм или сеть Telethon)._",
+                "_Module gave no reply (needs Python runtime or Telethon network)._"));
         ctx.answer(sb.toString());
+    }
+
+    /**
+     * Runs a module's {@code filter_outgoing(text)} on-device. Any failure
+     * (no engine, no filter, timeout, exception) returns the original text,
+     * so sending can never hang or corrupt a message.
+     */
+    private String runModuleFilter(String modulePath, String text) {
+        if (TextUtils.isEmpty(text) || TextUtils.isEmpty(modulePath)) return text;
+        try {
+            if (!PythonPluginsEngine.getInstance().isStarted()) return text;
+            File f = new File(modulePath);
+            if (!f.isFile()) return text;
+            com.chaquo.python.Python py = com.chaquo.python.Python.getInstance();
+            com.chaquo.python.PyObject runner = py.getModule("heroku_compat.module_runner");
+            com.chaquo.python.PyObject res = runner.callAttr("run_filter", modulePath, text);
+            if (res == null) return text;
+            org.json.JSONObject out = new org.json.JSONObject(res.toString());
+            String filtered = out.optString("text", text);
+            return filtered != null ? filtered : text;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return text;
+        }
     }
 
     private void executePythonEval(String code, Utilities.Callback<String> callback) {
