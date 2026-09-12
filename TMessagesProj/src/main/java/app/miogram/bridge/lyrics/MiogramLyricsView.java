@@ -201,7 +201,7 @@ public class MiogramLyricsView extends FrameLayout {
         emptyButtonsRow.setGravity(Gravity.CENTER);
 
         aiActionButton = new TextView(context);
-        aiActionButton.setText(MiogramLocale.get("Розпізнати текст через ШІ Gemini", "Распознать текст через ИИ Gemini", "Transcribe lyrics with Gemini AI"));
+        aiActionButton.setText(MiogramLocale.get("Розшифровка", "Расшифровка", "Transcribe"));
         aiActionButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         aiActionButton.setTypeface(AndroidUtilities.bold());
         aiActionButton.setTextColor(0xFFFFFFFF);
@@ -242,7 +242,7 @@ public class MiogramLyricsView extends FrameLayout {
         retryAiButton.setOnClickListener(v -> {
             MiogramHaptic.tap(v);
             if (currentMessageObject != null) {
-                transcribeWithAi(currentMessageObject);
+                transcribeWithAiForce(currentMessageObject);
             }
         });
         emptyButtonsRow.addView(retryAiButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
@@ -299,10 +299,9 @@ public class MiogramLyricsView extends FrameLayout {
         options.add(R.drawable.player_new_order, MiogramLocale.get("Яндекс Музика", "Яндекс Музыка", "Yandex Music"), () -> selectSource(MiogramLyricsEngine.SOURCE_YANDEX));
         options.add(R.drawable.player_new_order, "Genius", () -> selectSource(MiogramLyricsEngine.SOURCE_GENIUS));
         options.add(R.drawable.player_new_order, MiogramLocale.get("YouTube (Опис)", "YouTube (Описание)", "YouTube (Description)"), () -> selectSource(MiogramLyricsEngine.SOURCE_YOUTUBE));
-        options.add(R.drawable.msg_bot, MiogramLocale.get("ШІ зі звуку (Gemini)", "ИИ со слуха (Gemini)", "AI by ear (Gemini)"), () -> selectSource(MiogramLyricsEngine.SOURCE_AI));
-        options.add(R.drawable.msg_bot, MiogramLocale.get("✨ Точна розшифровка (по словах)", "✨ Точная расшифровка (по словам)", "✨ Enhanced transcription (word timings)"), () -> selectSource(MiogramLyricsEngine.SOURCE_AI_WORD));
-        options.add(R.drawable.msg_retry, MiogramLocale.get("↻ Повторити генерацію", "↻ Повторить генерацию", "↻ Regenerate"), () -> {
-            if (currentMessageObject != null) transcribeWithAi(currentMessageObject);
+        options.add(R.drawable.msg_bot, MiogramLocale.get("Розшифровка", "Расшифровка", "Transcribe"), () -> selectSource(MiogramLyricsEngine.SOURCE_AI));
+        options.add(R.drawable.msg_retry, MiogramLocale.get("Повторити генерацію", "Повторить генерацию", "Regenerate"), () -> {
+            if (currentMessageObject != null) transcribeWithAiForce(currentMessageObject);
         });
 
         options.show();
@@ -401,9 +400,45 @@ public class MiogramLyricsView extends FrameLayout {
     }
 
     private Runnable onSourceChangedListener;
+    private Runnable editTapListener;
+    private float editDownX;
+    private float editDownY;
 
     public void setOnSourceChangedListener(Runnable listener) {
         this.onSourceChangedListener = listener;
+    }
+
+    /**
+     * Player edit (jiggle) mode: while set, every touch on the lyrics list is
+     * consumed here — tap opens the lyrics panel, scroll/seek are suspended.
+     * Pass null to restore normal behavior.
+     */
+    public void setEditTapListener(Runnable onTap) {
+        this.editTapListener = onTap;
+        if (recyclerView == null) return;
+        if (onTap == null) {
+            recyclerView.setOnTouchListener(null);
+            return;
+        }
+        recyclerView.setOnTouchListener((v, e) -> {
+            int action = e.getActionMasked();
+            if (action == android.view.MotionEvent.ACTION_DOWN) {
+                editDownX = e.getRawX();
+                editDownY = e.getRawY();
+                return true;
+            } else if (action == android.view.MotionEvent.ACTION_UP) {
+                float dx = e.getRawX() - editDownX;
+                float dy = e.getRawY() - editDownY;
+                float slop = (float) AndroidUtilities.dp(10);
+                if (dx * dx + dy * dy <= slop * slop && editTapListener != null) {
+                    editTapListener.run();
+                }
+                return true;
+            } else if (action == android.view.MotionEvent.ACTION_CANCEL) {
+                return true;
+            }
+            return true;
+        });
     }
 
     private void notifySourceChanged() {
@@ -525,12 +560,43 @@ public class MiogramLyricsView extends FrameLayout {
     }
 
     private void transcribeWithAiWordTimed(final MessageObject messageObject) {
+        transcribeWithAiWordTimed(messageObject, false);
+    }
+
+    private void transcribeWithAiForce(final MessageObject messageObject) {
+        final long reqGen = ++lyricsRequestGeneration;
+        showLoading(true);
+        emptyTitle.setText(MiogramLocale.get("Генерую заново...", "Генерирую заново...", "Regenerating..."));
+        emptySubtitle.setText(MiogramLocale.get("Кожне слово отримає таймінг, до 15-30 секунд", "Каждое слово получит тайминг, до 15-30 секунд", "Each word gets timing, up to 15-30 seconds"));
+
+        MiogramLyricsEngine.getInstance().transcribeAudioWithAiForce(messageObject, new MiogramLyricsEngine.LyricsCallback() {
+            @Override
+            public void onLyricsLoaded(MiogramLrcModel.LrcSong song) {
+                if (reqGen != lyricsRequestGeneration) return;
+                currentSong = song;
+                currentSourceId = MiogramLyricsEngine.SOURCE_AI;
+                updateSourcePillText();
+                showLoading(false);
+                adapter.setLines(song.lines);
+                updateTranslationButton();
+                showToastPill(MiogramLocale.get("Готово", "Готово", "Done"));
+            }
+
+            @Override
+            public void onError(String message) {
+                if (reqGen != lyricsRequestGeneration) return;
+                showEmptyState(true, message);
+            }
+        });
+    }
+
+    private void transcribeWithAiWordTimed(final MessageObject messageObject, final boolean force) {
         final long reqGen = ++lyricsRequestGeneration;
         showLoading(true);
         emptyTitle.setText(MiogramLocale.get("ШІ розставляє таймінги слів...", "ИИ расставляет тайминги слов...", "AI is timing every word..."));
         emptySubtitle.setText(MiogramLocale.get("Кожне слово отримає початок і кінець — це займе 15-30 секунд", "Каждое слово получит начало и конец — это займёт 15-30 секунд", "Each word gets start and end — takes 15-30 seconds"));
 
-        MiogramLyricsEngine.getInstance().transcribeAudioWithAiWordTimed(messageObject, new MiogramLyricsEngine.LyricsCallback() {
+        MiogramLyricsEngine.LyricsCallback cb = new MiogramLyricsEngine.LyricsCallback() {
             @Override
             public void onLyricsLoaded(MiogramLrcModel.LrcSong song) {
                 if (reqGen != lyricsRequestGeneration) return;
@@ -548,7 +614,12 @@ public class MiogramLyricsView extends FrameLayout {
                 if (reqGen != lyricsRequestGeneration) return;
                 showEmptyState(true, message);
             }
-        });
+        };
+        if (force) {
+            MiogramLyricsEngine.getInstance().transcribeAudioWithAiForce(messageObject, cb);
+        } else {
+            MiogramLyricsEngine.getInstance().transcribeAudioWithAiWordTimed(messageObject, cb);
+        }
     }
 
     public void updateTime(long currentPositionMs) {

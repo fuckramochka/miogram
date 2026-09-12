@@ -321,7 +321,12 @@ public class MiogramLyricsEngine {
 
     /** Standard AI transcription = precise word-timed transcription. */
     public void transcribeAudioWithAi(final MessageObject messageObject, final LyricsCallback callback) {
-        transcribeInternal(messageObject, callback, "_ai", "✨ Gemini AI", true);
+        transcribeInternal(messageObject, callback, "_ai", "✨ Gemini AI", true, false);
+    }
+
+    /** Regenerate: same as standard but bypasses the memory cache. */
+    public void transcribeAudioWithAiForce(final MessageObject messageObject, final LyricsCallback callback) {
+        transcribeInternal(messageObject, callback, "_ai", "✨ Gemini AI", true, true);
     }
 
     /**
@@ -329,11 +334,12 @@ public class MiogramLyricsEngine {
      * timing. Result lines carry per-word timings for precise karaoke.
      */
     public void transcribeAudioWithAiWordTimed(final MessageObject messageObject, final LyricsCallback callback) {
-        transcribeInternal(messageObject, callback, "_ai_word", "✨ Gemini AI+", true);
+        transcribeInternal(messageObject, callback, "_ai_word", "✨ Gemini AI+", true, false);
     }
 
     private void transcribeInternal(final MessageObject messageObject, final LyricsCallback callback,
-                                    final String cacheSuffix, final String sourceLabel, final boolean wordTimed) {
+                                    final String cacheSuffix, final String sourceLabel, final boolean wordTimed,
+                                    final boolean force) {
         if (messageObject == null) {
             if (callback != null) callback.onError("No track to transcribe");
             return;
@@ -346,7 +352,7 @@ public class MiogramLyricsEngine {
 
         executor.execute(() -> {
             try {
-                MiogramLrcModel.LrcSong cached = memoryCache.get(cacheKey);
+                MiogramLrcModel.LrcSong cached = force ? null : memoryCache.get(cacheKey);
                 if (cached != null) {
                     postSuccess(callback, cached);
                     return;
@@ -374,10 +380,10 @@ public class MiogramLyricsEngine {
 
                 if (wordTimed) {
                     app.miogram.bridge.ai.MiogramAiService.transcribeAudioWordTimed(audioFile, resolveAudioMimeType(messageObject, audioFile), title, artist, durationSec,
-                            (lrc, error) -> onTranscribeResult(lrc, error, title, artist, sourceLabel, cacheKey, callback));
+                            (lrc, error) -> onTranscribeResult(lrc, error, title, artist, sourceLabel, cacheKey, callback, true));
                 } else {
                     app.miogram.bridge.ai.MiogramAiService.transcribeAudio(audioFile, resolveAudioMimeType(messageObject, audioFile), title, artist, durationSec,
-                            (lrc, error) -> onTranscribeResult(lrc, error, title, artist, sourceLabel, cacheKey, callback));
+                            (lrc, error) -> onTranscribeResult(lrc, error, title, artist, sourceLabel, cacheKey, callback, false));
                 }
             } catch (Throwable e) {
                 FileLog.e(e);
@@ -387,9 +393,9 @@ public class MiogramLyricsEngine {
     }
 
     private void onTranscribeResult(String lrc, String error, String title, String artist,
-                                    String sourceLabel, String cacheKey, LyricsCallback callback) {
+                                    String sourceLabel, String cacheKey, LyricsCallback callback, boolean wordTimed) {
         if (!TextUtils.isEmpty(lrc)) {
-            MiogramLrcModel.LrcSong aiSong = "✨ Gemini AI+".equals(sourceLabel)
+            MiogramLrcModel.LrcSong aiSong = wordTimed
                     ? MiogramLrcModel.parseWordTimed(stripCodeFence(lrc), title, artist, sourceLabel)
                     : MiogramLrcModel.parseLrc(stripCodeFence(lrc), title, artist, sourceLabel);
             if (aiSong != null && !aiSong.isEmpty()) {
@@ -410,7 +416,7 @@ public class MiogramLyricsEngine {
      * Kept for compatibility with existing callers.
      */
     public void transcribeAudioWithAiWordTimedLegacy(final MessageObject messageObject, final LyricsCallback callback) {
-        transcribeInternal(messageObject, callback, "_ai_word", "✨ Gemini AI+", true);
+        transcribeInternal(messageObject, callback, "_ai_word", "✨ Gemini AI+", true, false);
     }
 
     /* =========================================================================

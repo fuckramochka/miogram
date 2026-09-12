@@ -105,32 +105,10 @@ public class MiogramPlayerSectionSheet extends BottomSheet {
 
         buildSection(root, context, this.section);
 
-        // Footer: all settings + done
+        // Footer: done only — no general settings, each panel is standalone.
         LinearLayout actionsRow = new LinearLayout(context);
         actionsRow.setOrientation(LinearLayout.HORIZONTAL);
         actionsRow.setPadding(0, AndroidUtilities.dp(16), 0, 0);
-
-        TextView allBtn = new TextView(context);
-        allBtn.setText(MiogramLocale.get("Всі налаштування", "Все настройки", "All settings"));
-        allBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        allBtn.setTextColor(accentColor);
-        allBtn.setTypeface(AndroidUtilities.bold());
-        allBtn.setGravity(Gravity.CENTER);
-        GradientDrawable allBg = new GradientDrawable();
-        allBg.setColor(0x14000000 | (accentColor & 0x00FFFFFF));
-        allBg.setCornerRadius(AndroidUtilities.dp(16));
-        allBtn.setBackground(allBg);
-        allBtn.setOnClickListener(v -> {
-            MiogramHaptic.tap(v);
-            try {
-                new MiogramPlayerCustomizeAlert(getContext(), resourcesProvider, playerLayout, null).show();
-            } catch (Throwable ignore) {}
-            dismiss();
-        });
-        actionsRow.addView(allBtn, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(44), 1.0f));
-
-        View spacer = new View(context);
-        actionsRow.addView(spacer, LayoutHelper.createLinear(12, LayoutHelper.MATCH_PARENT));
 
         TextView doneBtn = new TextView(context);
         doneBtn.setText(MiogramLocale.get("Готово", "Готово", "Done"));

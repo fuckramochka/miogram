@@ -145,7 +145,6 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     // Edit (jiggle) mode: tap element -> its own panel, drag extras to move.
     private boolean editMode = false;
     private final java.util.List<android.animation.Animator> jiggleAnims = new java.util.ArrayList<>();
-    private final java.util.List<View> editOverlays = new java.util.ArrayList<>();
     private View editHintBar;
 
     private MessageObject currentMessageObject;
@@ -361,7 +360,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         }
         compactCoverWrapper.setOnClickListener(v -> {
             MiogramHaptic.tap(v);
-            if (alert != null) alert.setFullScreen(true, true);
+            openFullscreenFromCover();
         });
         compactCoverWrapper.setContentDescription(MiogramLocale.get("Обкладинка, відкрити плеєр", "Обложка, открыть плеер", "Cover art, open player"));  
         compactInfoContainer.addView(compactCoverWrapper, LayoutHelper.createLinear(115, 115, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 10));
@@ -772,6 +771,10 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     public void setCoverView(View cover) {
         this.coverView = cover;
         updateCoverAttachment();
+    }
+
+    private void openFullscreenFromCover() {
+        if (alert != null) alert.setFullScreen(true, true);
     }
 
     private void updateCoverAttachment() {
@@ -1584,11 +1587,9 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             if (floatCustomizeBtn != null) floatCustomizeBtn.setVisibility(View.GONE);
             attachEditTouchIfNeeded();
             startJiggle();
-            buildEditOverlays();
             showEditHint();
         } else {
             if (floatCustomizeBtn != null) floatCustomizeBtn.setVisibility(View.VISIBLE);
-            clearEditOverlays();
             stopJiggle();
             detachEditTouch();
             if (editHintBar != null) {
@@ -1673,13 +1674,23 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             java.util.List<View> targets = editJiggleTargets();
             for (int i = 0; i < targets.size(); i++) {
                 View v = targets.get(i);
-                android.animation.ObjectAnimator anim = android.animation.ObjectAnimator.ofFloat(v, "rotation", -2.2f, 2.2f);
-                anim.setDuration(150);
-                anim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
-                anim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
-                anim.setStartDelay((i % 4) * 35L);
-                anim.start();
-                jiggleAnims.add(anim);
+                android.animation.ObjectAnimator rot = android.animation.ObjectAnimator.ofFloat(v, "rotation", -3.4f, 3.4f);
+                rot.setDuration(140);
+                rot.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                rot.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                android.animation.ObjectAnimator sx = android.animation.ObjectAnimator.ofFloat(v, "scaleX", 1f, 1.06f);
+                sx.setDuration(300);
+                sx.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                sx.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                android.animation.ObjectAnimator sy = android.animation.ObjectAnimator.ofFloat(v, "scaleY", 1f, 1.06f);
+                sy.setDuration(300);
+                sy.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                sy.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                android.animation.AnimatorSet set = new android.animation.AnimatorSet();
+                set.playTogether(rot, sx, sy);
+                set.setStartDelay((i % 4) * 40L);
+                set.start();
+                jiggleAnims.add(set);
             }
         } catch (Throwable ignore) {}
     }
@@ -1697,56 +1708,17 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             java.util.List<View> targets = editJiggleTargets();
             for (View v : targets) {
                 v.setRotation(0f);
+                v.setScaleX(1f);
+                v.setScaleY(1f);
             }
         } catch (Throwable ignore) {}
     }
 
-    /** Tap-element zones that open ONLY their own panel (no full sheet). */
-    private void buildEditOverlays() {
-        clearEditOverlays();
-        try {
-            addZoneOverlay(compactCoverWrapper, "background");
-            addZoneOverlay(fullscreenCoverHolder, "background");
-            addZoneOverlay(compactBassVisualizer, "visualizer");
-            addZoneOverlay(fullscreenBassVisualizer, "visualizer");
-            addZoneOverlay(lyricsView, "lyrics");
-        } catch (Throwable ignore) {}
-    }
-
-    private void addZoneOverlay(View zone, final String section) {
-        if (zone == null || zone.getVisibility() != View.VISIBLE) return;
-        if (zone.getWidth() <= 0 || zone.getHeight() <= 0) return;
-        try {
-            int[] rootPos = new int[2];
-            int[] zonePos = new int[2];
-            getLocationOnScreen(rootPos);
-            zone.getLocationOnScreen(zonePos);
-            int left = zonePos[0] - rootPos[0];
-            int top = zonePos[1] - rootPos[1];
-            if (left < 0 || top < 0) return;
-            View overlay = new View(getContext());
-            overlay.setBackgroundColor(0x14FFFFFF);
-            overlay.setOnClickListener(v -> {
-                MiogramHaptic.select(v);
-                openSectionSheet(section);
-            });
-            addView(overlay, LayoutHelper.createFrame(zone.getWidth(), zone.getHeight(), Gravity.TOP | Gravity.LEFT, left, top, 0, 0));
-            editOverlays.add(overlay);
-        } catch (Throwable ignore) {}
-    }
-
-    private void clearEditOverlays() {
-        try {
-            for (View o : editOverlays) {
-                try {
-                    removeView(o);
-                } catch (Throwable ignore) {}
-            }
-        } catch (Throwable ignore) {}
-        editOverlays.clear();
-    }
-
-    /** Intercepts taps/drags on row buttons + profile pill while in edit mode. */
+    /**
+     * Direct tap routing, no coordinate overlays: row buttons + profile pill
+     * get touch interceptors (clicks underneath stay intact), cover holders
+     * and visualizers get plain click listeners, lyrics gets a tap interceptor.
+     */
     private void attachEditTouchIfNeeded() {
         if (!editMode) return;
         try {
@@ -1759,11 +1731,32 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             attachExtraEditTouch(nextButton, "next", "controls", false);
             attachExtraEditTouch(saveToProfileButton, "profile", "profile", true);
             attachExtraEditTouch(unsaveFromProfileButton, "profile", "profile", true);
+            attachZoneTap(compactCoverWrapper, "background");
+            attachZoneTap(fullscreenCoverHolder, "background");
+            attachZoneTap(compactBassVisualizer, "visualizer");
+            attachZoneTap(fullscreenBassVisualizer, "visualizer");
+            if (lyricsView != null) {
+                lyricsView.setEditTapListener(() -> {
+                    MiogramHaptic.select(lyricsView);
+                    openSectionSheet("lyrics");
+                });
+            }
+        } catch (Throwable ignore) {}
+    }
+
+    private void attachZoneTap(View zone, final String section) {
+        if (zone == null) return;
+        try {
+            zone.setOnClickListener(v -> {
+                if (!editMode) return;
+                MiogramHaptic.select(v);
+                openSectionSheet(section);
+            });
         } catch (Throwable ignore) {}
     }
 
     private void detachEditTouch() {
-        // Only touch interceptors are removed — click listeners underneath stay intact.
+        // Only edit-mode interceptors are removed — everything underneath stays intact.
         try {
             View[] views = new View[]{shuffleButton, repeatButton, queueButton, speedButton,
                     prevButton, playButton, nextButton, saveToProfileButton, unsaveFromProfileButton};
@@ -1773,6 +1766,32 @@ public class MiogramModernPlayerLayout extends FrameLayout {
                         v.setOnTouchListener(null);
                     } catch (Throwable ignore) {}
                 }
+            }
+            if (compactCoverWrapper != null) {
+                compactCoverWrapper.setOnClickListener(v -> {
+                    MiogramHaptic.tap(v);
+                    openFullscreenFromCover();
+                });
+            }
+            if (fullscreenCoverHolder != null) {
+                try {
+                    fullscreenCoverHolder.setOnClickListener(null);
+                } catch (Throwable ignore) {}
+            }
+            if (compactBassVisualizer != null) {
+                try {
+                    compactBassVisualizer.setOnClickListener(null);
+                } catch (Throwable ignore) {}
+            }
+            if (fullscreenBassVisualizer != null) {
+                try {
+                    fullscreenBassVisualizer.setOnClickListener(null);
+                } catch (Throwable ignore) {}
+            }
+            if (lyricsView != null) {
+                try {
+                    lyricsView.setEditTapListener(null);
+                } catch (Throwable ignore) {}
             }
         } catch (Throwable ignore) {}
     }
@@ -1832,7 +1851,6 @@ public class MiogramModernPlayerLayout extends FrameLayout {
                 stopJiggle();
                 attachEditTouchIfNeeded();
                 startJiggle();
-                buildEditOverlays();
                 return;
             }
             View target = findExtraAt(rawX, rawY, dragId);
