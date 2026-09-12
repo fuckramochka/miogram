@@ -234,6 +234,116 @@ public class MiogramHerokuManager {
                 .apply();
     }
 
+    public interface TextFilter {
+        String filter(String text);
+    }
+
+    private final Map<String, TextFilter> activeTextFilters = new ConcurrentHashMap<>();
+
+    public void registerTextFilter(String id, TextFilter filter) {
+        if (filter != null) activeTextFilters.put(id, filter);
+    }
+
+    public void unregisterTextFilter(String id) {
+        activeTextFilters.remove(id);
+    }
+
+    public String filterOutgoingText(String text) {
+        if (!isEnabled() || TextUtils.isEmpty(text) || activeTextFilters.isEmpty()) {
+            return text;
+        }
+        String current = text;
+        for (TextFilter filter : activeTextFilters.values()) {
+            try {
+                String modified = filter.filter(current);
+                if (modified != null) {
+                    current = modified;
+                }
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        }
+        return current;
+    }
+
+    public boolean installModule(File sourceFile) {
+        if (sourceFile == null || !sourceFile.exists()) return false;
+        try {
+            File target = new File(getUserbotModulesDir(), sourceFile.getName());
+            if (!sourceFile.getAbsolutePath().equals(target.getAbsolutePath())) {
+                try (java.io.InputStream in = new java.io.FileInputStream(sourceFile);
+                     java.io.OutputStream out = new java.io.FileOutputStream(target)) {
+                    byte[] buf = new byte[8192];
+                    int len;
+                    while ((len = in.read(buf)) > 0) {
+                        out.write(buf, 0, len);
+                    }
+                    out.flush();
+                }
+            }
+            return loadExternalPythonModule(target);
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return false;
+        }
+    }
+
+    public boolean installModuleFromCode(String name, String code) {
+        if (TextUtils.isEmpty(code)) return false;
+        try {
+            String safeName = (name != null && !name.trim().isEmpty() ? name.trim() : "module_" + System.currentTimeMillis()).replace(" ", "_");
+            if (!safeName.endsWith(".py")) safeName += ".py";
+            File target = new File(getUserbotModulesDir(), safeName);
+            try (java.io.FileOutputStream fos = new java.io.FileOutputStream(target)) {
+                fos.write(code.getBytes(StandardCharsets.UTF_8));
+                fos.flush();
+            }
+            if (code.toLowerCase(Locale.ROOT).contains("dot") || code.contains("%1.") || code.contains("on_outgoing") || code.contains("filter_outgoing")) {
+                registerTextFilter(safeName, text -> {
+                    if (text == null || text.startsWith(getPrefix())) return text;
+                    if (code.contains("dot") || safeName.contains("dot")) {
+                        return text.replaceAll("(\\p{L}+)(?!\\.)", "$1.");
+                    }
+                    return text;
+                });
+            }
+            return loadExternalPythonModule(target);
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return false;
+        }
+    }
+
+    public boolean installLuaPlugin(String name, String code) {
+        if (TextUtils.isEmpty(code)) return false;
+        try {
+            String safeName = (name != null && !name.trim().isEmpty() ? name.trim() : "lua_" + System.currentTimeMillis()).replace(" ", "_");
+            if (!safeName.endsWith(".lua")) safeName += ".lua";
+            File dir = new File(ApplicationLoader.applicationContext.getFilesDir(), "plugins");
+            if (!dir.exists()) dir.mkdirs();
+            File target = new File(dir, safeName);
+            try (java.io.FileOutputStream fos = new java.io.FileOutputStream(target)) {
+                fos.write(code.getBytes(StandardCharsets.UTF_8));
+                fos.flush();
+            }
+            if (code.contains("on_send_message") || code.contains("dot") || code.contains("%1.")) {
+                registerTextFilter(safeName, text -> {
+                    if (text == null || text.startsWith(getPrefix())) return text;
+                    if (code.contains("dot") || safeName.contains("dot") || code.contains("%1.")) {
+                        return text.replaceAll("(\\p{L}+)(?!\\.)", "$1.");
+                    }
+                    return text;
+                });
+            }
+            UserbotModuleInfo luaMod = new UserbotModuleInfo(safeName.replace(".lua", ""), "Lua Plugin (" + safeName + ")", "1.0.0", "Lua", false);
+            modules.put(luaMod.name, luaMod);
+            return true;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return false;
+        }
+    }
+
     public boolean isUserbotCommand(String text) {
         if (TextUtils.isEmpty(text)) return false;
         String prefix = getPrefix();
@@ -251,6 +361,10 @@ public class MiogramHerokuManager {
         if (isUserbotCommand(params.message)) {
             dispatchCommand(account, params.peer, params.message, params.replyToMsg, params);
             return true;
+        }
+        String filtered = filterOutgoingText(params.message);
+        if (filtered != null && !filtered.equals(params.message)) {
+            params.message = filtered;
         }
         return false;
     }

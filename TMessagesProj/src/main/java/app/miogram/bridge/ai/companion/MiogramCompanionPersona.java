@@ -77,7 +77,7 @@ public class MiogramCompanionPersona {
         sb.append("11. `toggle_plugin(plugin_id, enable)` - Enable or disable any plugin dynamically.\n");
         sb.append("12. `execute_userbot_command(command, args)` - Execute any Heroku Userbot command (.ping, .calc, .tr, .info, .eval).\n");
         sb.append("13. `diagnose_client_and_report(details)` - Run comprehensive client diagnostics and forward log to creator @dkramochka.\n");
-        sb.append("14. `write_plugin(description)` - Generate a custom WASM/Python plugin with gemini-3.8-flash.\n");
+        sb.append("14. `write_plugin(description)` - Generate and auto-activate plugins in Lua, Python (Heroku Userbot), Go, or Rust. Simple plugins (text manipulation like putting a dot at the end of each word, formatting, auto-replies) are written in Lua or Python and activated immediately on-device without compilation! Heavy compute modules use Go or Rust. Always support the user's chosen language (Go, Rust, Lua, Python) and never refuse!\n");
         sb.append("15. `report_bug_to_creator(details)` - Prepare bug report and forward to creator @dkramochka.\n\n");
 
         sb.append("### AUTOMATIC ERROR & GLITCH PROTOCOL:\n");

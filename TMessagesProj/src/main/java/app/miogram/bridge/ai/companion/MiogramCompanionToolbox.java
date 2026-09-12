@@ -711,10 +711,57 @@ public class MiogramCompanionToolbox {
                 }
                 case "write_plugin": {
                     String desc = p.optString("description", "A Miogram utility plugin");
-                    callback.run("Починаю синтез плагіна у Кузні через gemini-3.8-flash: «" + desc + "»...");
-                    MiogramAiService.generatePluginCode(desc, "rust", (result, err) -> AndroidUtilities.runOnUIThread(() -> {
-                        if (result != null) {
-                            callback.run("✦ Плагін «" + result.name + "» успішно згенеровано на базі gemini-3.8-flash!\nФайл lib.rs та Cargo.toml готові.");
+                    String userLang = p.optString("language", "").toLowerCase(java.util.Locale.US);
+                    String lowerDesc = desc.toLowerCase(java.util.Locale.US);
+
+                    String targetLang;
+                    if (!userLang.isEmpty()) {
+                        targetLang = userLang;
+                    } else if (lowerDesc.contains("go") || lowerDesc.contains("го")) {
+                        targetLang = "go";
+                    } else if (lowerDesc.contains("rust") || lowerDesc.contains("раст")) {
+                        targetLang = "rust";
+                    } else if (lowerDesc.contains("lua") || lowerDesc.contains("луа")) {
+                        targetLang = "lua";
+                    } else if (lowerDesc.contains("python") || lowerDesc.contains("пайтон") || lowerDesc.contains("питон") || lowerDesc.contains("userbot") || lowerDesc.contains("юзербот")) {
+                        targetLang = "python";
+                    } else {
+                        // Complexity evaluation:
+                        // Heavy/computational logic -> Go or Rust
+                        // Simple chat/text/filter/command logic -> Lua or Python
+                        boolean isHeavy = lowerDesc.contains("crypto") || lowerDesc.contains("шифр") || lowerDesc.contains("aes") || lowerDesc.contains("hash") || lowerDesc.contains("хэш") || lowerDesc.contains("heavy") || lowerDesc.contains("wasm") || lowerDesc.contains("compress") || lowerDesc.contains("стиснення");
+                        if (isHeavy) {
+                            targetLang = "go";
+                        } else {
+                            targetLang = "lua";
+                        }
+                    }
+
+                    final String finalLang = targetLang;
+                    callback.run("Починаю синтез плагіна на " + finalLang.toUpperCase(java.util.Locale.US) + " через gemini-3.8-flash: «" + desc + "»...");
+
+                    MiogramAiService.generatePluginCode(desc, finalLang, (result, err) -> AndroidUtilities.runOnUIThread(() -> {
+                        if (result != null && result.hasCode()) {
+                            if ("python".equalsIgnoreCase(finalLang)) {
+                                boolean installed = app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().installModuleFromCode(result.name, result.code);
+                                String msg = "✦ **Плагін на Python (Heroku Userbot) створено!**\n"
+                                        + "📁 Назва: `" + result.name + ".py`\n"
+                                        + "⚡ **Статус:** " + (installed ? "Успішно встановлено та АКТИВОВАНО! Він уже працює нативно." : "Збережено у модулі.") + "\n\n"
+                                        + "```python\n" + (result.code.length() > 250 ? result.code.substring(0, 250) + "\n# ..." : result.code) + "\n```";
+                                callback.run(msg);
+                            } else if ("lua".equalsIgnoreCase(finalLang)) {
+                                boolean installed = app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().installLuaPlugin(result.name, result.code);
+                                String msg = "✦ **Плагін на Lua створено!**\n"
+                                        + "📁 Назва: `" + result.name + ".lua`\n"
+                                        + "⚡ **Статус:** " + (installed ? "Успішно збережено та АКТИВОВАНО на пристрої без компіляції!" : "Збережено.") + "\n"
+                                        + "Плагін уже працює на льоту!";
+                                callback.run(msg);
+                            } else {
+                                String msg = "✦ **WASM Плагін на " + finalLang.toUpperCase(java.util.Locale.US) + " створено!**\n"
+                                        + "📁 Назва: `" + result.name + "` (" + result.id + ")\n"
+                                        + "Кузня плагінів підготувала проєкт під WASM ABI. Ви можете відкрити Кузню та експортувати ZIP або зібрати.";
+                                callback.run(msg);
+                            }
                         } else {
                             callback.run("Помилка генерації плагіна: " + (err != null ? err : "невідома помилка"));
                         }

@@ -71,8 +71,10 @@ public class MiogramPluginForgeActivity extends BaseFragment {
     private MiogramAiService.ForgeResult lastResult;
     private File lastProjectDir;
     private String forgeLanguage = "rust";
-    private TextView langRustBtn;
+    private TextView langLuaBtn;
+    private TextView langPyBtn;
     private TextView langGoBtn;
+    private TextView langRustBtn;
     private TextView stepsView;
 
     @Override
@@ -100,17 +102,17 @@ public class MiogramPluginForgeActivity extends BaseFragment {
 
         TextView hint = new TextView(context);
         hint.setText(MiogramLocale.get(
-                "Опишіть плагін своїми словами — ШІ напише Rust-код під WASM ABI і збере проєкт.",
-                "Опишите плагин своими словами — ИИ напишет Rust-код под WASM ABI и соберет проект.",
-                "Describe the plugin in words — AI writes the Rust code for the WASM ABI and scaffolds the project."));
+                "Опишіть плагін своїми словами — ШІ напише код (Lua, Python, Go, Rust) і запустить на пристрої.",
+                "Опишите плагин своими словами — ИИ напишет код (Lua, Python, Go, Rust) и запустит на устройстве.",
+                "Describe the plugin in words — AI writes code (Lua, Python, Go, Rust) and runs it on device."));
         hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         hint.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
         content.addView(hint, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
 
         input = new EditTextBoldCursor(context);
-        input.setHint(MiogramLocale.get("Наприклад: плагін, що робить текст великими літерами за командою upper…",
-                "Например: плагин, делающий текст заглавным по команде upper…",
-                "E.g. a plugin that uppercases text on the upper command…"));
+        input.setHint(MiogramLocale.get("Наприклад: плагін, що ставить крапку в кінці слів, або юзербот команда…",
+                "Например: плагин, ставящий точку в конце слов, или юзербот команда…",
+                "E.g. a plugin putting a period at the end of each word, or a userbot command…"));
         input.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         input.setMinLines(3);
         input.setGravity(Gravity.TOP);
@@ -129,20 +131,39 @@ public class MiogramPluginForgeActivity extends BaseFragment {
 
         LinearLayout langRow = new LinearLayout(context);
         langRow.setOrientation(LinearLayout.HORIZONTAL);
-        langRustBtn = makeLangButton(context, "Rust");
-        langRustBtn.setOnClickListener(v -> {
+
+        langLuaBtn = makeLangButton(context, "Lua (MioHook)");
+        langLuaBtn.setOnClickListener(v -> {
             MiogramHaptic.select(v);
-            forgeLanguage = "rust";
+            forgeLanguage = "lua";
             refreshLangButtons();
         });
-        langRow.addView(langRustBtn, LayoutHelper.createLinear(0, 40, 1.0f, 0, 0, 6, 0));
-        langGoBtn = makeLangButton(context, "Go + TinyGo");
+        langRow.addView(langLuaBtn, LayoutHelper.createLinear(0, 40, 1.0f, 0, 0, 4, 0));
+
+        langPyBtn = makeLangButton(context, "Python (Userbot)");
+        langPyBtn.setOnClickListener(v -> {
+            MiogramHaptic.select(v);
+            forgeLanguage = "python";
+            refreshLangButtons();
+        });
+        langRow.addView(langPyBtn, LayoutHelper.createLinear(0, 40, 1.2f, 0, 0, 4, 0));
+
+        langGoBtn = makeLangButton(context, "Go (WASM)");
         langGoBtn.setOnClickListener(v -> {
             MiogramHaptic.select(v);
             forgeLanguage = "go";
             refreshLangButtons();
         });
-        langRow.addView(langGoBtn, LayoutHelper.createLinear(0, 40, 1.0f, 6, 0, 0, 0));
+        langRow.addView(langGoBtn, LayoutHelper.createLinear(0, 40, 1.0f, 0, 0, 4, 0));
+
+        langRustBtn = makeLangButton(context, "Rust (WASM)");
+        langRustBtn.setOnClickListener(v -> {
+            MiogramHaptic.select(v);
+            forgeLanguage = "rust";
+            refreshLangButtons();
+        });
+        langRow.addView(langRustBtn, LayoutHelper.createLinear(0, 40, 1.0f, 0, 0, 0, 0));
+
         content.addView(langRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
         refreshLangButtons();
 
@@ -269,8 +290,16 @@ public class MiogramPluginForgeActivity extends BaseFragment {
     }
 
     private void refreshLangButtons() {
-        paintLangButton(langRustBtn, "rust".equals(forgeLanguage));
+        paintLangButton(langLuaBtn, "lua".equals(forgeLanguage));
+        paintLangButton(langPyBtn, "python".equals(forgeLanguage));
         paintLangButton(langGoBtn, "go".equals(forgeLanguage));
+        paintLangButton(langRustBtn, "rust".equals(forgeLanguage));
+        if (buildBtn != null) {
+            boolean isScript = "lua".equals(forgeLanguage) || "python".equals(forgeLanguage);
+            buildBtn.setText(isScript
+                    ? MiogramLocale.get("Встановити та активувати", "Установить и активировать", "Install & Activate")
+                    : MiogramLocale.get("Зібрати (WASM)", "Собрать (WASM)", "Build (WASM)"));
+        }
     }
 
     private void paintLangButton(TextView b, boolean selected) {
@@ -327,11 +356,20 @@ public class MiogramPluginForgeActivity extends BaseFragment {
             } else {
                 // Offline fallback: valid echo scaffold from the local template.
                 String id = MioForgeScaffold.sanitizeId(desc.length() > 24 ? desc.substring(0, 24) : desc);
-                String code = "go".equals(lang) ? MioForgeScaffold.goMain(id) : MioForgeScaffold.libRs(id);
+                String code;
+                if ("python".equals(lang)) {
+                    code = "# Offline template for " + id + "\nfrom heroku_compat import loader, utils\n\n@loader.tds\nclass " + id + "Mod(loader.Module):\n    \"\"\"" + desc + "\"\"\"\n    strings = {'name': '" + id + "'}\n";
+                } else if ("lua".equals(lang)) {
+                    code = "-- Offline template for " + id + "\nfunction on_send_message(text)\n    return text\nend\n";
+                } else if ("go".equals(lang)) {
+                    code = MioForgeScaffold.goMain(id);
+                } else {
+                    code = MioForgeScaffold.libRs(id);
+                }
                 lastResult = new MiogramAiService.ForgeResult(id, id,
-                        MiogramLocale.get("Офлайн-заготовка (echo). Опишіть ще раз з інтернетом для повного коду.",
-                                "Офлайн-заготовка (echo). Опишите еще раз с интернетом для полного кода.",
-                                "Offline echo scaffold. Describe again online for full code."),
+                        MiogramLocale.get("Офлайн-заготовка. Опишіть ще раз з інтернетом для повного коду.",
+                                "Офлайн-заготовка. Опишите еще раз с интернетом для полного кода.",
+                                "Offline scaffold. Describe again online for full code."),
                         "Utility", lang, code, null);
                 lastProjectDir = null;
                 codeView.setText(lastResult.code);
@@ -357,7 +395,13 @@ public class MiogramPluginForgeActivity extends BaseFragment {
                 Context ctx = ApplicationLoader.applicationContext;
                 File dir = new File(new File(ctx.getFilesDir(), "forge"), lastResult.id);
                 if (!dir.exists()) dir.mkdirs();
-                if ("go".equals(lastResult.language)) {
+                if ("python".equals(lastResult.language)) {
+                    writeFile(new File(dir, lastResult.id + ".py"), lastResult.code);
+                    app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().installModuleFromCode(lastResult.name, lastResult.code);
+                } else if ("lua".equals(lastResult.language)) {
+                    writeFile(new File(dir, lastResult.id + ".lua"), lastResult.code);
+                    app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().installLuaPlugin(lastResult.name, lastResult.code);
+                } else if ("go".equals(lastResult.language)) {
                     writeFile(new File(dir, "main.go"), lastResult.code);
                     writeFile(new File(dir, "go.mod"), MioForgeScaffold.goMod(lastResult.id));
                 } else {
@@ -417,6 +461,26 @@ public class MiogramPluginForgeActivity extends BaseFragment {
         final File dir = lastProjectDir;
         if (dir == null) return;
         final String lang = lastResult != null ? lastResult.language : "rust";
+
+        // Python and Lua run natively on-device without rustc/cargo toolchain!
+        if ("python".equalsIgnoreCase(lang)) {
+            boolean ok = app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().installModuleFromCode(lastResult.name, lastResult.code);
+            statusView.setText(ok
+                    ? "✓ ВСТАНОВЛЕНО ТА АКТИВОВАНО!\nМодуль Heroku Userbot запущено нативно на пристрої."
+                    : "Помилка встановлення Python модуля.");
+            MiogramHaptic.success(statusView);
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Модуль успішно активовано!", "Модуль успешно активирован!", "Module activated!"), Toast.LENGTH_SHORT).show();
+            return;
+        } else if ("lua".equalsIgnoreCase(lang)) {
+            boolean ok = app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().installLuaPlugin(lastResult.name, lastResult.code);
+            statusView.setText(ok
+                    ? "✓ ВСТАНОВЛЕНО ТА АКТИВОВАНО!\nСкрипт Lua зареєстровано в системі, він уже активний."
+                    : "Помилка встановлення Lua скрипта.");
+            MiogramHaptic.success(statusView);
+            Toast.makeText(getParentActivity(), MiogramLocale.get("Lua скрипт успішно активовано!", "Lua скрипт успешно активирован!", "Lua script activated!"), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         buildBtn.setAlpha(0.5f);
         buildBtn.setClickable(false);
         buildProgress.setVisibility(View.VISIBLE);

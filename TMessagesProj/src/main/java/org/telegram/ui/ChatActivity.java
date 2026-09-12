@@ -509,6 +509,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int nkbtn_clearDeleted = 2100;
     private final static int nkbtn_viewDeleted = 2101;
     private final static int OPTION_SAVE_TO_VAULT = 9981;
+    private final static int OPTION_INSTALL_USERBOT_MODULE = 9982;
 
     public int shareAlertDebugMode = DEBUG_SHARE_ALERT_MODE_NORMAL;
     public boolean shareAlertDebugTopicsSlowMotion;
@@ -32881,6 +32882,16 @@ public class ChatActivity extends BaseFragment implements
                 icons.add(R.drawable.cloud);
             }
 
+            // Miogram Heroku Userbot: 1-Tap Module Install
+            if (message != null && message.getDocument() != null) {
+                String dName = FileLoader.getDocumentFileName(message.getDocument());
+                if (dName != null && dName.toLowerCase(java.util.Locale.ROOT).endsWith(".py")) {
+                    items.add("🪐 " + app.miogram.bridge.MiogramLocale.get("Встановити в Heroku Userbot", "Установить в Heroku Userbot", "Install to Heroku Userbot"));
+                    options.add(OPTION_INSTALL_USERBOT_MODULE);
+                    icons.add(R.drawable.msg_settings_old);
+                }
+            }
+
             if (options.isEmpty() && optionsView == null) {
                 return false;
             }
@@ -35471,6 +35482,10 @@ public class ChatActivity extends BaseFragment implements
                 saveSelectedMessageToVault(selectedObject);
                 BotWebViewVibrationEffect.SELECTION_CHANGE.vibrate();
                 break;
+            case OPTION_INSTALL_USERBOT_MODULE:
+                installSelectedUserbotModule(selectedObject);
+                BotWebViewVibrationEffect.SELECTION_CHANGE.vibrate();
+                break;
             case OPTION_RETRY: {
                 final MessageObject object = selectedObject;
                 final MessageObject.GroupedMessages group = selectedObjectGroup;
@@ -36711,6 +36726,44 @@ public class ChatActivity extends BaseFragment implements
                 });
             }
         });
+    }
+
+    private void installSelectedUserbotModule(final MessageObject message) {
+        if (message == null || message.getDocument() == null) return;
+        TLRPC.Document doc = message.getDocument();
+        String fileName = FileLoader.getDocumentFileName(doc);
+        if (TextUtils.isEmpty(fileName)) fileName = "module_" + System.currentTimeMillis() + ".py";
+
+        File fileToLoad = FileLoader.getInstance(currentAccount).getPathToAttach(doc, true);
+        if (fileToLoad == null || !fileToLoad.exists()) {
+            fileToLoad = FileLoader.getInstance(currentAccount).getPathToAttach(doc, false);
+        }
+
+        if (fileToLoad == null || !fileToLoad.exists()) {
+            FileLoader.getInstance(currentAccount).loadFile(doc, message, 0, 0);
+            if (getParentActivity() != null) {
+                BulletinFactory.of(ChatActivity.this).createSimpleBulletin(
+                        R.drawable.msg_download,
+                        app.miogram.bridge.MiogramLocale.get("Завантаження модуля... Спробуйте ще раз після завантаження", "Загрузка модуля... Попробуйте снова после загрузки", "Downloading module... Try again once downloaded")
+                ).show();
+            }
+            return;
+        }
+
+        boolean ok = app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().installModule(fileToLoad);
+        if (getParentActivity() != null) {
+            if (ok) {
+                BulletinFactory.of(ChatActivity.this).createSimpleBulletin(
+                        R.drawable.msg_settings_old,
+                        app.miogram.bridge.MiogramLocale.get("🪐 Модуль " + fileName + " встановлено в Heroku Userbot!", "🪐 Модуль " + fileName + " установлен в Heroku Userbot!", "🪐 Module " + fileName + " installed to Heroku Userbot!")
+                ).show();
+            } else {
+                BulletinFactory.of(ChatActivity.this).createErrorBulletin(
+                        app.miogram.bridge.MiogramLocale.get("Не вдалося завантажити модуль", "Не удалось загрузить модуль", "Failed to load module"),
+                        themeDelegate
+                ).show();
+            }
+        }
     }
 
     public void showSuggestionOfferForEditMessage(MessageSuggestionParams oldParams) {
@@ -50643,6 +50696,12 @@ public class ChatActivity extends BaseFragment implements
                         options.add(OPTION_SHARE);
                         icons.add(R.drawable.msg_shareout);
                     } else if (!selectedObject.isVideo() && selectedObject.getDocument() != null && !selectedObject.isVoiceOnce() && !selectedObject.isRoundOnce()) {
+                        String docName = FileLoader.getDocumentFileName(selectedObject.getDocument());
+                        if (docName != null && docName.toLowerCase(java.util.Locale.ROOT).endsWith(".py")) {
+                            items.add("🪐 " + app.miogram.bridge.MiogramLocale.get("Встановити в Heroku Userbot", "Установить в Heroku Userbot", "Install to Heroku Userbot"));
+                            options.add(OPTION_INSTALL_USERBOT_MODULE);
+                            icons.add(R.drawable.msg_settings_old);
+                        }
                         items.add(LocaleController.getString(R.string.SaveToDownloads));
                         options.add(OPTION_SAVE_TO_DOWNLOADS_OR_MUSIC);
                         icons.add(R.drawable.msg_download);

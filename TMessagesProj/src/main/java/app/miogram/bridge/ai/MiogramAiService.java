@@ -587,12 +587,83 @@ public class MiogramAiService {
         public final String code;
         /** Short linear "how it works" outline (token-cheap, max ~6 lines). */
         public final java.util.List<String> steps;
+
+    /**
+     * Specialized raw execution for Smart Feed with ad-filtering and structured digest,
+     * maintaining the hierarchical fallback chain without overriding user instructions.
+     */
+    public static void processFeedWithAi(String customPrompt, Utilities.Callback<String> callback) {
+        // Low temperature + JSON mode: feed parsing must be deterministic.
+        generateContentInternal(customPrompt, getModel(), 0.2, true, (res, err) -> {
+            if (res != null) {
+                AndroidUtilities.runOnUIThread(() -> callback.run(res));
+            } else if (err != null && (err.contains("404") || err.contains("400") || err.contains("503"))) {
+                String curModel = getModel();
+                String fb = FALLBACK_MODEL.equals(curModel) ? DEFAULT_MODEL : FALLBACK_MODEL;
+                generateContent(customPrompt, fb, (fb1Res, fb1Err) -> {
+                    if (fb1Res != null) {
+                        AndroidUtilities.runOnUIThread(() -> callback.run(fb1Res));
+                    } else {
+                        generateContent(customPrompt, FALLBACK_MODEL, (fb2Res, fb2Err) -> {
+                            AndroidUtilities.runOnUIThread(() -> callback.run(fb2Res));
+                        });
+                    }
+                });
+            } else {
+                AndroidUtilities.runOnUIThread(() -> callback.run(null));
+            }
+        });
+    }
+
+    /**
+     * General text generation for digests, analysis, and custom prompts.
+     */
+    public static void generateText(String prompt, Utilities.Callback2<String, String> callback) {
+        generateContent(prompt, getModel(), (res, err) -> {
+            if (res != null) {
+                deliverProse2("text", callback, res, null);
+            } else if (err != null && (err.contains("404") || err.contains("400") || err.contains("503"))) {
+                String curModel = getModel();
+                String fb = FALLBACK_MODEL.equals(curModel) ? DEFAULT_MODEL : FALLBACK_MODEL;
+                generateContent(prompt, fb, (fb1Res, fb1Err) -> {
+                    if (fb1Res != null) {
+                        deliverProse2("text", callback, fb1Res, null);
+                    } else {
+                        generateContent(prompt, FALLBACK_MODEL, (fb2Res, fb2Err) -> {
+                            if (fb2Res != null) {
+                                deliverProse2("text", callback, fb2Res, null);
+                            } else {
+                                callback.run(null, fb2Err != null ? fb2Err : err);
+                            }
+                        });
+                    }
+                });
+            } else {
+                callback.run(null, err);
+            }
+        });
+    }
+
+    // ==================================================================
+    // Plugin Forge: description -> Rust WASM plugin source (dedicated model)
+    // ==================================================================
+
+    /** Result of {@link #generatePluginCode}: ready-to-save scaffold files. */
+    public static class ForgeResult {
+        public final String id;
+        public final String name;
+        public final String description;
+        public final String category;
+        public final String language;
+        public final String code;
+        /** Short linear "how it works" outline (token-cheap, max ~6 lines). */
+        public final java.util.List<String> steps;
         public ForgeResult(String id, String name, String description, String category, String language, String code, java.util.List<String> steps) {
             this.id = id != null ? id : "custom_plugin";
             this.name = name != null ? name : "Custom Plugin";
             this.description = description != null ? description : "";
             this.category = category != null ? category : "Utility";
-            this.language = "go".equalsIgnoreCase(language) ? "go" : "rust";
+            this.language = language != null ? language.toLowerCase(java.util.Locale.US) : "rust";
             this.code = code != null ? code : "";
             this.steps = steps != null ? steps : new java.util.ArrayList<>();
         }
@@ -602,19 +673,22 @@ public class MiogramAiService {
         }
         public boolean hasCode() {
             if ("go".equals(language)) {
-                return code.contains("miogram_call") && code.contains("package main");
+                return code.contains("miogram_call") || code.contains("package main");
+            } else if ("python".equals(language)) {
+                return code.contains("loader.Module") || code.contains("def ") || code.contains("class ");
+            } else if ("lua".equals(language)) {
+                return code.contains("function") || code.contains("return") || code.contains("on_");
             }
-            return code.contains("impl Plugin for");
+            return code.contains("impl Plugin for") || code.contains("fn handle");
         }
     }
 
     /**
      * Asks the dedicated plugin model to write a complete plugin from a
      * plain-language description. ONE request returns code + a short linear
-     * explanation (no follow-up calls — the plugin-model quota is tight).
-     * Always answers on the UI thread.
+     * explanation. Always answers on the UI thread.
      *
-     * @param language "rust" (miogram-plugin-sdk) or "go" (TinyGo, same C ABI).
+     * @param language "rust" (WASM), "go" (TinyGo WASM), "python" (Heroku Userbot Module), or "lua" (MioHook Script).
      */
     public static void generatePluginCode(String description, Utilities.Callback2<ForgeResult, String> callback) {
         generatePluginCode(description, "rust", callback);
@@ -629,25 +703,67 @@ public class MiogramAiService {
             callback.run(null, "No Gemini API key configured");
             return;
         }
-        final boolean go = "go".equalsIgnoreCase(language);
-        String contract = go
-                ? "You write Miogram WASM plugins in GO (TinyGo-compatible, no cgo, no net/http, no goroutines leaking):\n"
-                + "package main\n"
-                + "//export miogram_abi_version\nfunc miogram_abi_version() int32 { return 1 }\n"
-                + "//export miogram_alloc\nfunc miogram_alloc(size int32) int32 // bump-allocate, keep alive in a global map\n"
-                + "//export miogram_guest_free\nfunc miogram_guest_free(ptr int32, length int32) // drop from the map\n"
-                + "//export miogram_call\nfunc miogram_call(ptr int32, length int32) int64 // decode frame, dispatch op, return packed ptr<<32|len or -1\n"
-                + "Frame layout (little-endian): 0..4 magic MIOG, 4 version=1, 5..8 zeros, 8..12 op_len u32, 12..12+op_len op UTF-8, rest payload. "
-                + "Encode answers with the same layout. Unknown op => return -1. Build: tinygo build -o plugin.wasm -target wasm .\n"
-                : "You write Miogram WASM plugins in Rust against this exact SDK:\n"
-                + "use miogram_plugin_sdk::{envelope, Plugin};\n"
-                + "#[derive(Default)] struct MyPlugin;\n"
-                + "impl Plugin for MyPlugin { fn handle(&mut self, op: &str, payload: &[u8]) -> Result<Vec<u8>, i32> {"
-                + " match op { \"ping\" => Ok(envelope::encode(\"ping\", b\"pong\")), _ => Err(1) } } }\n"
-                + "miogram_plugin_sdk::register!(MyPlugin);\n"
-                + "Rules: only miogram-plugin-sdk as a dependency, no unwrap/expect/panic on untrusted input, "
-                + "UTF-8 lossy handling, ops are lowercase snake_case, payloads raw bytes, "
-                + "always answer with envelope::encode(op, bytes), unknown op => Err(1).\n";
+        String langNorm = language != null ? language.toLowerCase(java.util.Locale.US) : "rust";
+        if (!langNorm.equals("go") && !langNorm.equals("python") && !langNorm.equals("lua")) {
+            langNorm = "rust";
+        }
+        final String wantLang = langNorm;
+
+        String contract;
+        String codeKeyName;
+        if ("go".equals(wantLang)) {
+            codeKeyName = "main_go";
+            contract = "You write Miogram WASM plugins in GO (TinyGo-compatible, no cgo, no net/http, no goroutines leaking):\n"
+                    + "package main\n"
+                    + "//export miogram_abi_version\nfunc miogram_abi_version() int32 { return 1 }\n"
+                    + "//export miogram_alloc\nfunc miogram_alloc(size int32) int32 // bump-allocate, keep alive in a global map\n"
+                    + "//export miogram_guest_free\nfunc miogram_guest_free(ptr int32, length int32) // drop from the map\n"
+                    + "//export miogram_call\nfunc miogram_call(ptr int32, length int32) int64 // decode frame, dispatch op, return packed ptr<<32|len or -1\n"
+                    + "Frame layout (little-endian): 0..4 magic MIOG, 4 version=1, 5..8 zeros, 8..12 op_len u32, 12..12+op_len op UTF-8, rest payload. "
+                    + "Encode answers with the same layout. Unknown op => return -1. Build: tinygo build -o plugin.wasm -target wasm .\n";
+        } else if ("python".equals(wantLang)) {
+            codeKeyName = "module_py";
+            contract = "You write native Miogram / Heroku Userbot modules in Python (3.8+ compatible):\n"
+                    + "from heroku_compat import loader, utils\n\n"
+                    + "@loader.tds\n"
+                    + "class MyModuleMod(loader.Module):\n"
+                    + "    \"\"\"Module docstring explaining features\"\"\"\n"
+                    + "    strings = {\"name\": \"MyModule\"}\n\n"
+                    + "    @loader.command()\n"
+                    + "    async def mycmd(self, message):\n"
+                    + "        \"\"\"Command documentation\"\"\"\n"
+                    + "        await utils.answer(message, \"Result text\")\n\n"
+                    + "    # If the user requested automatic text transformation/filtering (e.g. putting a dot at the end of each word):\n"
+                    + "    def filter_outgoing(self, text: str) -> str:\n"
+                    + "        # transform and return text\n"
+                    + "        return ...\n"
+                    + "Rules: valid clean Python 3, no uninstalled heavy libraries, fully self-contained.\n";
+        } else if ("lua".equals(wantLang)) {
+            codeKeyName = "script_lua";
+            contract = "You write lightweight Miogram Lua plugins (runs directly on device without compilation):\n"
+                    + "-- Miogram Lua Plugin Script\n"
+                    + "function on_send_message(text)\n"
+                    + "    -- transform text (e.g. text:gsub(\"(%w+)\", \"%1.\")) or return unchanged\n"
+                    + "    return text\n"
+                    + "end\n\n"
+                    + "function on_command(cmd, args)\n"
+                    + "    if cmd == \"ping\" then return \"Pong from Lua! 🌙\" end\n"
+                    + "    return nil\n"
+                    + "end\n"
+                    + "Rules: standard Lua 5.2 syntax, string manipulations with string.gsub/match, fast and bug-free.\n";
+        } else {
+            codeKeyName = "lib_rs";
+            contract = "You write Miogram WASM plugins in Rust against this exact SDK:\n"
+                    + "use miogram_plugin_sdk::{envelope, Plugin};\n"
+                    + "#[derive(Default)] struct MyPlugin;\n"
+                    + "impl Plugin for MyPlugin { fn handle(&mut self, op: &str, payload: &[u8]) -> Result<Vec<u8>, i32> {"
+                    + " match op { \"ping\" => Ok(envelope::encode(\"ping\", b\"pong\")), _ => Err(1) } } }\n"
+                    + "miogram_plugin_sdk::register!(MyPlugin);\n"
+                    + "Rules: only miogram-plugin-sdk as a dependency, no unwrap/expect/panic on untrusted input, "
+                    + "UTF-8 lossy handling, ops are lowercase snake_case, payloads raw bytes, "
+                    + "always answer with envelope::encode(op, bytes), unknown op => Err(1).\n";
+        }
+
         String trimmed = description.trim();
         if (trimmed.length() > 600) trimmed = trimmed.substring(0, 600);
         String prompt = contract
@@ -655,9 +771,9 @@ public class MiogramAiService {
                 + "Return ONLY strict JSON, no markdown: "
                 + "{\"id\":\"snake_case_id\",\"name\":\"Human Name\",\"description\":\"one line\","
                 + "\"category\":\"Utility|Formatting|Privacy|Automation|Fun\","
-                + (go ? "\"main_go\":\"complete main.go source with \\n escapes\"," : "\"lib_rs\":\"complete src/lib.rs source with \\n escapes\",")
+                + "\"" + codeKeyName + "\":\"complete source code with \\n escapes\","
                 + "\"steps\":[\"<=6 very short lines explaining linearly how the code works\"]}";
-        final String wantLang = go ? "go" : "rust";
+
         generateContentInternal(prompt, PLUGIN_MODEL, 0.4, true, 2048, (res, err) -> {
             if (res == null) {
                 // Plugin model unavailable -> retry once on the stable tier.
@@ -682,8 +798,23 @@ public class MiogramAiService {
             }
             com.google.gson.JsonObject obj = gson.fromJson(cleaned, com.google.gson.JsonObject.class);
             if (obj == null) return null;
-            String codeKey = "go".equals(language) ? "main_go" : "lib_rs";
-            if (!obj.has(codeKey)) return null;
+
+            String codeKey = "lib_rs";
+            if ("go".equals(language)) codeKey = "main_go";
+            else if ("python".equals(language)) codeKey = "module_py";
+            else if ("lua".equals(language)) codeKey = "script_lua";
+
+            String codeVal = null;
+            if (obj.has(codeKey)) codeVal = obj.get(codeKey).getAsString();
+            else if (obj.has("code")) codeVal = obj.get("code").getAsString();
+            else if (obj.has("source")) codeVal = obj.get("source").getAsString();
+            else if (obj.has("main_go")) codeVal = obj.get("main_go").getAsString();
+            else if (obj.has("module_py")) codeVal = obj.get("module_py").getAsString();
+            else if (obj.has("script_lua")) codeVal = obj.get("script_lua").getAsString();
+            else if (obj.has("lib_rs")) codeVal = obj.get("lib_rs").getAsString();
+
+            if (codeVal == null) return null;
+
             java.util.List<String> steps = new java.util.ArrayList<>();
             if (obj.has("steps") && obj.get("steps").isJsonArray()) {
                 com.google.gson.JsonArray arr = obj.getAsJsonArray("steps");
@@ -700,7 +831,7 @@ public class MiogramAiService {
                     obj.has("description") ? obj.get("description").getAsString() : null,
                     obj.has("category") ? obj.get("category").getAsString() : null,
                     language,
-                    obj.get(codeKey).getAsString(),
+                    codeVal,
                     steps);
             return r.hasCode() ? r : null;
         } catch (Throwable t) {
