@@ -573,21 +573,6 @@ public class MiogramAiService {
         });
     }
 
-    // ==================================================================
-    // Plugin Forge: description -> Rust WASM plugin source (dedicated model)
-    // ==================================================================
-
-    /** Result of {@link #generatePluginCode}: ready-to-save scaffold files. */
-    public static class ForgeResult {
-        public final String id;
-        public final String name;
-        public final String description;
-        public final String category;
-        public final String language;
-        public final String code;
-        /** Short linear "how it works" outline (token-cheap, max ~6 lines). */
-        public final java.util.List<String> steps;
-
     /**
      * Specialized raw execution for Smart Feed with ad-filtering and structured digest,
      * maintaining the hierarchical fallback chain without overriding user instructions.
