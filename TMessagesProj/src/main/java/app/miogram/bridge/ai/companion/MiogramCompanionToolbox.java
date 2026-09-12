@@ -542,7 +542,6 @@ public class MiogramCompanionToolbox {
         }
     }
 
-    private static final String[] ORDINALS_1 = {"1", "перший", "перший", "первый", "first", "один", "один", "один"};
     private static boolean isOrdinal(String low, int n) {
         if (low == null) return false;
         if (low.equals(String.valueOf(n))) return true;
@@ -1109,14 +1108,26 @@ public class MiogramCompanionToolbox {
         return out;
     }
 
-    public static String formatChatPage(List<FoundChat> all, int page, int pageSize, String header) {
+    public static String formatChatPage(int account, List<FoundChat> all, int page, int pageSize, String header) {
         StringBuilder sb = new StringBuilder(header);
         int total = all.size();
         int pages = Math.max(1, (total + pageSize - 1) / pageSize);
         int p = Math.max(0, Math.min(page, pages - 1));
         int from = p * pageSize;
         int to = Math.min(total, from + pageSize);
-        MessagesController mc = null;
+        Map<Long, Integer> unreadByDialog = new HashMap<>();
+        try {
+            MessagesController mc = MessagesController.getInstance(account);
+            ArrayList<TLRPC.Dialog> dialogs = mc != null ? mc.getAllDialogs() : null;
+            if (dialogs != null) {
+                for (int k = 0; k < dialogs.size(); k++) {
+                    TLRPC.Dialog d = dialogs.get(k);
+                    if (d != null && d.unread_count > 0) {
+                        unreadByDialog.put(d.id, d.unread_count);
+                    }
+                }
+            }
+        } catch (Throwable ignore) {}
         for (int i = from; i < to; i++) {
             FoundChat fc = all.get(i);
             sb.append(i + 1).append(". ");
@@ -1125,19 +1136,8 @@ public class MiogramCompanionToolbox {
             sb.append(fc.name.isEmpty() ? MiogramLocale.get("(без назви)", "(без названия)", "(no name)") : fc.name);
             if (!fc.username.isEmpty()) sb.append(" (@").append(fc.username).append(")");
             try {
-                if (mc == null) mc = MessagesController.getInstance(UserConfig.selectedAccount);
-                int unread = 0;
-                ArrayList<TLRPC.Dialog> dialogs = mc.getAllDialogs();
-                if (dialogs != null) {
-                    for (int k = 0; k < dialogs.size(); k++) {
-                        TLRPC.Dialog d = dialogs.get(k);
-                        if (d != null && d.id == fc.dialogId) {
-                            unread = d.unread_count;
-                            break;
-                        }
-                    }
-                }
-                if (unread > 0) sb.append(" [").append(unread).append("]");
+                Integer unread = unreadByDialog.get(fc.dialogId);
+                if (unread != null && unread > 0) sb.append(" [").append(unread).append("]");
             } catch (Throwable ignore) {}
             sb.append("\n");
         }
@@ -1275,7 +1275,7 @@ public class MiogramCompanionToolbox {
                     setPendingPick(account, new PendingPick(all, "", null, null, filter, page, pageSize));
                     String header = MiogramLocale.get("Мої чати (спочатку недавні", "Мои чаты (сначала недавние", "My chats (recent first")
                             + ("all".equalsIgnoreCase(filter) ? "" : ", " + filter) + "):\n";
-                    callback.run(formatChatPage(all, page, pageSize, header));
+                    callback.run(formatChatPage(account, all, page, pageSize, header));
                     break;
                 }
                 case "open_chat": {
