@@ -819,6 +819,7 @@ public class MiogramCompanionToolbox {
                 case "execute_userbot_command": {
                     String cmd = p.optString("command", "ping");
                     String args = p.optString("args", "");
+                    String full = app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().getPrefix() + cmd + (args.isEmpty() ? "" : " " + args);
                     long targetDialogId = p.optLong("dialog_id", p.optLong("chat_id", UserConfig.getInstance(account).getClientUserId()));
                     app.miogram.bridge.userbot.MiogramHerokuManager.getInstance().dispatchCommand(account, targetDialogId, full, null, null);
                     callback.run("⚡ " + MiogramLocale.get("Виконано команду Heroku: `", "Выполнена команда Heroku: `", "Executed Heroku command: `") + full + "`");

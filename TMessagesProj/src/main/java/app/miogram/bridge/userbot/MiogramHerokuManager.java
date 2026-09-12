@@ -291,8 +291,8 @@ public class MiogramHerokuManager {
     public boolean installModuleFromCode(String name, String code) {
         if (TextUtils.isEmpty(code)) return false;
         try {
-            String safeName = (name != null && !name.trim().isEmpty() ? name.trim() : "module_" + System.currentTimeMillis()).replace(" ", "_");
-            if (!safeName.endsWith(".py")) safeName += ".py";
+            String baseName = (name != null && !name.trim().isEmpty() ? name.trim() : "module_" + System.currentTimeMillis()).replace(" ", "_");
+            final String safeName = baseName.endsWith(".py") ? baseName : baseName + ".py";
             File target = new File(getUserbotModulesDir(), safeName);
             try (java.io.FileOutputStream fos = new java.io.FileOutputStream(target)) {
                 fos.write(code.getBytes(StandardCharsets.UTF_8));
@@ -317,8 +317,8 @@ public class MiogramHerokuManager {
     public boolean installLuaPlugin(String name, String code) {
         if (TextUtils.isEmpty(code)) return false;
         try {
-            String safeName = (name != null && !name.trim().isEmpty() ? name.trim() : "lua_" + System.currentTimeMillis()).replace(" ", "_");
-            if (!safeName.endsWith(".lua")) safeName += ".lua";
+            String baseName = (name != null && !name.trim().isEmpty() ? name.trim() : "lua_" + System.currentTimeMillis()).replace(" ", "_");
+            final String safeName = baseName.endsWith(".lua") ? baseName : baseName + ".lua";
             File dir = new File(ApplicationLoader.applicationContext.getFilesDir(), "plugins");
             if (!dir.exists()) dir.mkdirs();
             File target = new File(dir, safeName);
