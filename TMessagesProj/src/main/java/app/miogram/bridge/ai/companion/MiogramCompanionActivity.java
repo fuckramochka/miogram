@@ -95,6 +95,13 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
     private ImageView sendIcon;
     private ProgressBar sendProgress;
 
+    // Monster console: live MioTool call log (toggle chip in composer).
+    private LinearLayout consolePanel;
+    private LinearLayout consoleLog;
+    private ScrollView consoleScroll;
+    private boolean consoleOpen = false;
+    private app.miogram.bridge.ai.tools.MioTool.ConsoleListener consoleListener;
+
     private final List<MiogramCompanionPrefs.ChatMessage> history = new ArrayList<>();
     private boolean isSending = false;
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
@@ -117,6 +124,8 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
     @Override
     public boolean onFragmentCreate() {
         NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.didSetNewTheme);
+        consoleListener = line -> AndroidUtilities.runOnUIThread(() -> appendConsoleLine(line));
+        app.miogram.bridge.ai.tools.MioTool.addConsoleListener(consoleListener);
         return super.onFragmentCreate();
     }
 
@@ -124,6 +133,10 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
     public void onFragmentDestroy() {
         super.onFragmentDestroy();
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.didSetNewTheme);
+        try {
+            app.miogram.bridge.ai.tools.MioTool.removeConsoleListener(consoleListener);
+        } catch (Throwable ignore) {}
+        consoleListener = null;
     }
 
     @Override
@@ -654,6 +667,8 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             inputField.setText(MiogramLocale.get("Кангель, подаруй мені своє благословення! †BLESSING†", "Кангель, подари мне своё благословение! †BLESSING†", "KAngel, bestow your blessing upon me! †BLESSING†"));
             onSendMessage();
         });
+        addChip(context, chipsRow, "⌨ " + MiogramLocale.get("Консоль", "Консоль", "Console"), this::toggleConsole);
+
         addChip(context, chipsRow, "🐞 " + MiogramLocale.get("Звіт про баг", "Отчет о баге", "Report Bug"), () -> {
             MiogramSupabaseBridge.showBugReportDialog(
                     getParentActivity(),
@@ -667,6 +682,20 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
                     "User reported issue from companion chips. Active: " + (MiogramCompanionPrefs.isAmeActive() ? "Ame" : "KAngel")
             );
         });
+
+        // Monster console panel (collapsed by default, above composer).
+        consolePanel = new LinearLayout(context);
+        consolePanel.setOrientation(LinearLayout.VERTICAL);
+        consolePanel.setBackgroundColor(0xFF0D1117);
+        consolePanel.setVisibility(View.GONE);
+        consolePanel.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(6), AndroidUtilities.dp(10), AndroidUtilities.dp(6));
+        consoleScroll = new ScrollView(context);
+        consoleScroll.setVerticalScrollBarEnabled(true);
+        consoleLog = new LinearLayout(context);
+        consoleLog.setOrientation(LinearLayout.VERTICAL);
+        consoleScroll.addView(consoleLog, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        consolePanel.addView(consoleScroll, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(140)));
+        parent.addView(consolePanel, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         // Telegram Native Composer Bar
         LinearLayout composerBar = new LinearLayout(context);
@@ -1078,7 +1107,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
                 if (msg.toolParams != null) paramsObj = new JSONObject(msg.toolParams);
             } catch (Throwable ignore) {}
             MiogramCompanionToolbox.ActionRequest req = new MiogramCompanionToolbox.ActionRequest(msg.toolAction, paramsObj, false);
-            MiogramCompanionToolbox.executeTool(currentAccount, req, resultText -> AndroidUtilities.runOnUIThread(() -> {
+            app.miogram.bridge.ai.tools.MioTool.exec(currentAccount, req.name, req.params, resultText -> AndroidUtilities.runOnUIThread(() -> {
                 MiogramCompanionPrefs.ChatMessage resultMsg = new MiogramCompanionPrefs.ChatMessage(false, "✓ " + resultText, "happy", System.currentTimeMillis(), null, null);
                 history.add(resultMsg);
                 MiogramCompanionPrefs.saveHistory(history);
@@ -1225,7 +1254,7 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
                 MiogramCompanionPrefs.saveHistory(history);
                 renderFullHistory();
                 final String cleanFinal = cleanText;
-                MiogramCompanionToolbox.executeTool(currentAccount, action, resultText -> AndroidUtilities.runOnUIThread(() -> {
+                app.miogram.bridge.ai.tools.MioTool.exec(currentAccount, action.name, action.params, resultText -> AndroidUtilities.runOnUIThread(() -> {
                     String finalReply;
                     String ct = cleanFinal != null ? cleanFinal.toLowerCase() : "";
                     boolean isWaitingWord = ct.contains("зараз") || ct.contains("хвилинку") || ct.contains("секунду")
@@ -1247,9 +1276,214 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
                             || rt.contains("не удалось") || rt.contains("не нашла") || rt.contains("ошибка")
                             || rt.contains("failed") || rt.contains("error") || rt.contains("could not");
                     updateStageMood(isError ? "sad" : "happy");
+                    // Chain pure-action turns so multi-step jobs finish without re-prompting.
+                    if (!isError && !agentResultAsksUser(resultText)
+                            && (cleanFinal == null || cleanFinal.isEmpty() || isWaitingWord)) {
+                        continueAgentTurn(2, botBubble);
+                    }
                 }));
             }
         }));
+    }
+
+    private static final int AGENT_MAX_STEPS = 4;
+
+    private void finishAgentTurn() {
+        isSending = false;
+        if (sendIcon != null) sendIcon.setVisibility(View.VISIBLE);
+        if (sendProgress != null) sendProgress.setVisibility(View.GONE);
+        if (sendButton != null) sendButton.setAlpha(1.0f);
+    }
+
+    private static boolean agentResultIsError(String resultText) {
+        if (resultText == null) return true;
+        String rt = resultText.toLowerCase();
+        return rt.contains("не вдалося") || rt.contains("не знайшла") || rt.contains("помилка")
+                || rt.contains("не удалось") || rt.contains("не нашла") || rt.contains("ошибка")
+                || rt.contains("failed") || rt.contains("error") || rt.contains("could not")
+                || rt.contains("denied");
+    }
+
+    private static boolean agentResultAsksUser(String resultText) {
+        if (resultText == null) return false;
+        String rt = resultText.toLowerCase();
+        if (!(rt.contains("?") || rt.contains("номер") || rt.contains("уточни") || rt.contains("which")
+                || rt.contains("кого") || rt.contains("який") || rt.contains("далі") || rt.contains("дальше"))) {
+            return false;
+        }
+        return true;
+    }
+
+    private String mergeAgentReplies(String cleanText, String resultText) {
+        String ct = cleanText != null ? cleanText.toLowerCase() : "";
+        boolean isWaitingWord = ct.contains("зараз") || ct.contains("хвилинку") || ct.contains("секунду")
+                || ct.contains("сейчас") || ct.contains("минутку") || ct.contains("секундочку")
+                || ct.contains("wait") || ct.contains("moment") || ct.contains("hold on");
+        if (cleanText == null || cleanText.isEmpty() || isWaitingWord) {
+            return resultText;
+        } else if (cleanText.trim().equalsIgnoreCase(resultText.trim())) {
+            return resultText;
+        } else {
+            return cleanText + "\n\n" + resultText;
+        }
+    }
+
+    /**
+     * Monster loop: after a pure-action reply, feed the tool result back and
+     * let the model chain the next step (up to AGENT_MAX_STEPS). Stops on
+     * errors, questions to the user, sensitive actions (permission card) and
+     * plain replies.
+     */
+    private void continueAgentTurn(final int step, final MiogramCompanionPrefs.ChatMessage botBubble) {
+        if (step > AGENT_MAX_STEPS) {
+            finishAgentTurn();
+            return;
+        }
+        isSending = true;
+        if (sendIcon != null) sendIcon.setVisibility(View.GONE);
+        if (sendProgress != null) sendProgress.setVisibility(View.VISIBLE);
+        if (sendButton != null) sendButton.setAlpha(0.6f);
+
+        StringBuilder fullPrompt = new StringBuilder();
+        TLRPC.User currentUser = UserConfig.getInstance(currentAccount).getCurrentUser();
+        String userName = currentUser != null ? UserObject.getUserName(currentUser) : "P-chan";
+        fullPrompt.append(MiogramCompanionPersona.getSystemPrompt(MiogramCompanionPrefs.getActiveCompanion(), userName, scopedDialogId));
+        fullPrompt.append("\n\n### CONVERSATION HISTORY:\n");
+        int start = Math.max(0, history.size() - 8);
+        for (int i = start; i < history.size(); i++) {
+            MiogramCompanionPrefs.ChatMessage m = history.get(i);
+            fullPrompt.append(m.isUser ? "P-chan: " : "Companion: ").append(m.text).append("\n");
+        }
+        fullPrompt.append("Companion:");
+
+        MiogramAiService.generateText(fullPrompt.toString(), (rawReply, err) -> AndroidUtilities.runOnUIThread(() -> {
+            if (err != null && (rawReply == null || rawReply.isEmpty())) {
+                finishAgentTurn();
+                return;
+            }
+            String mood = MiogramCompanionToolbox.extractMoodTag(rawReply);
+            MiogramCompanionToolbox.ActionRequest action = MiogramCompanionToolbox.parseAction(rawReply);
+            String cleanText = MiogramCompanionToolbox.stripActionBlock(MiogramCompanionToolbox.stripMoodTag(rawReply));
+            if (action != null && !action.sensitive) {
+                final String stepClean = cleanText;
+                botBubble.text = (botBubble.text == null || botBubble.text.isEmpty() ? "" : botBubble.text + "\n\n")
+                        + "⏳ " + MiogramCompanionToolbox.describeTool(action.name, action.params) + "…";
+                MiogramCompanionPrefs.saveHistory(history);
+                renderFullHistory();
+                app.miogram.bridge.ai.tools.MioTool.exec(currentAccount, action.name, action.params,
+                        resultText -> AndroidUtilities.runOnUIThread(() -> {
+                            botBubble.text = mergeAgentReplies(botBubble.text, resultText);
+                            botBubble.actionExecuted = true;
+                            MiogramCompanionPrefs.saveHistory(history);
+                            renderFullHistory();
+                            updateStageMood(agentResultIsError(resultText) ? "sad" : "happy");
+                            if (!agentResultIsError(resultText) && !agentResultAsksUser(resultText)
+                                    && (stepClean == null || stepClean.isEmpty())) {
+                                continueAgentTurn(step + 1, botBubble);
+                            } else {
+                                if (stepClean != null && !stepClean.isEmpty()) {
+                                    botBubble.text = mergeAgentReplies(botBubble.text, stepClean);
+                                    MiogramCompanionPrefs.saveHistory(history);
+                                    renderFullHistory();
+                                }
+                                finishAgentTurn();
+                            }
+                        }));
+            } else if (action != null) {
+                String actionName = action.name;
+                String actionParams = action.params != null ? action.params.toString() : null;
+                MiogramCompanionPrefs.ChatMessage cardMsg = new MiogramCompanionPrefs.ChatMessage(false, cleanText, mood, System.currentTimeMillis(), actionName, actionParams);
+                history.add(cardMsg);
+                MiogramCompanionPrefs.saveHistory(history);
+                renderFullHistory();
+                updateStageMood(mood);
+                finishAgentTurn();
+            } else {
+                if (cleanText != null && !cleanText.isEmpty()) {
+                    botBubble.text = (botBubble.text == null || botBubble.text.isEmpty() ? "" : botBubble.text + "\n\n") + cleanText;
+                    MiogramCompanionPrefs.saveHistory(history);
+                    renderFullHistory();
+                }
+                updateStageMood(mood);
+                finishAgentTurn();
+            }
+        }));
+    }
+
+    private void toggleConsole() {
+        consoleOpen = !consoleOpen;
+        if (consolePanel != null) {
+            consolePanel.setVisibility(consoleOpen ? View.VISIBLE : View.GONE);
+        }
+        if (consoleOpen) {
+            backfillConsole();
+        }
+    }
+
+    private void backfillConsole() {
+        if (consoleLog == null) return;
+        try {
+            consoleLog.removeAllViews();
+            java.util.List<app.miogram.bridge.ai.tools.MioTool.ConsoleLine> lines =
+                    app.miogram.bridge.ai.tools.MioTool.snapshot();
+            for (app.miogram.bridge.ai.tools.MioTool.ConsoleLine line : lines) {
+                addConsoleRow(line);
+            }
+            scrollConsoleToEnd();
+        } catch (Throwable ignore) {}
+    }
+
+    private void appendConsoleLine(app.miogram.bridge.ai.tools.MioTool.ConsoleLine line) {
+        if (line == null || consoleLog == null) return;
+        try {
+            addConsoleRow(line);
+            while (consoleLog.getChildCount() > 200) {
+                consoleLog.removeViewAt(0);
+            }
+            if (consoleOpen) scrollConsoleToEnd();
+        } catch (Throwable ignore) {}
+    }
+
+    private void addConsoleRow(app.miogram.bridge.ai.tools.MioTool.ConsoleLine line) {
+        try {
+            Context context = getParentActivity() != null ? getParentActivity() : getContext();
+            if (context == null || consoleLog == null) return;
+            LinearLayout row = new LinearLayout(context);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+
+            TextView stamp = new TextView(context);
+            stamp.setText(line.stamp() + " ");
+            stamp.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+            stamp.setTypeface(android.graphics.Typeface.MONOSPACE);
+            stamp.setTextColor(0xFF8B949E);
+            row.addView(stamp, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+            TextView body = new TextView(context);
+            body.setText(line.tool + " [" + line.phase + "] " + line.preview);
+            body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+            body.setTypeface(android.graphics.Typeface.MONOSPACE);
+            int color = 0xFF8B949E;
+            if ("ok".equals(line.phase)) color = 0xFF3FB950;
+            else if ("error".equals(line.phase)) color = 0xFFF85149;
+            else if ("denied".equals(line.phase) || "paused".equals(line.phase)) color = 0xFFD29922;
+            else if ("started".equals(line.phase)) color = 0xFF58A6FF;
+            body.setTextColor(color);
+            row.addView(body, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+
+            consoleLog.addView(row, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 2));
+        } catch (Throwable ignore) {}
+    }
+
+    private void scrollConsoleToEnd() {
+        try {
+            if (consoleScroll != null) {
+                consoleScroll.post(() -> {
+                    try {
+                        consoleScroll.fullScroll(View.FOCUS_DOWN);
+                    } catch (Throwable ignore) {}
+                });
+            }
+        } catch (Throwable ignore) {}
     }
 
     private Drawable createCardDrawable() {

@@ -49,6 +49,12 @@ public final class MioHook {
         FEED_ITEM,
         /** Mutable result filter for AI text (summary/digest/rephrase). */
         AI_TEXT_RESULT,
+        /**
+         * AI tool lifecycle: fired with phase "started" before an AI companion
+         * tool runs and "finished"/"denied" afterwards. Vetoable — any hook
+         * returning false cancels the tool call (audited, quarantined on throw).
+         */
+        AI_TOOL_CALL,
         /** Fired when the audio track or play state changes. */
         AUDIO_TRACK_CHANGED,
         /** Fired after a divine preset is applied (UI thread). */
@@ -94,6 +100,25 @@ public final class MioHook {
 
     public interface AiTextListener {
         void onAiText(AiText result);
+    }
+
+    /** Carrier for AI tool lifecycle events. Set {@link #veto} to block the call. */
+    public static final class AiToolCall {
+        public final String toolName;
+        public final String paramsJson;
+        public final String phase; // "started" | "finished" | "denied"
+        public String resultPreview;
+        public boolean veto;
+        public AiToolCall(String toolName, String paramsJson, String phase) {
+            this.toolName = toolName != null ? toolName : "?";
+            this.paramsJson = paramsJson != null ? paramsJson : "{}";
+            this.phase = phase != null ? phase : "started";
+        }
+    }
+
+    public interface AiToolListener {
+        /** Return false to veto (cancel) this AI tool call. */
+        boolean onAiToolCall(AiToolCall call);
     }
 
     public interface AudioListener {
@@ -260,6 +285,10 @@ public final class MioHook {
         return add(Point.AI_TEXT_RESULT, l, owner, name, priority);
     }
 
+    public static Handle onAiToolCall(Object owner, String name, int priority, AiToolListener l) {
+        return add(Point.AI_TOOL_CALL, l, owner, name, priority);
+    }
+
     public static Handle onAudio(Object owner, String name, int priority, AudioListener l) {
         return add(Point.AUDIO_TRACK_CHANGED, l, owner, name, priority);
     }
@@ -387,6 +416,37 @@ public final class MioHook {
             return carrier.text;
         } finally {
             noteTime(Point.AI_TEXT_RESULT, t0);
+        }
+    }
+
+    /**
+     * Vetoable AI tool lifecycle event. Any hook returning false (or setting
+     * {@code veto}) cancels the tool call. Never throws to callers.
+     *
+     * @return true if the tool call is allowed to proceed.
+     */
+    public static boolean dispatchAiToolCall(String toolName, String paramsJson, String phase, String resultPreview) {
+        Entry[] arr = snapshots.get(Point.AI_TOOL_CALL);
+        if (arr == null || arr.length == 0) return true;
+        long t0 = System.nanoTime();
+        noteStart(Point.AI_TOOL_CALL);
+        boolean allowed = true;
+        try {
+            AiToolCall carrier = new AiToolCall(toolName, paramsJson, phase);
+            carrier.resultPreview = resultPreview;
+            for (Entry e : arr) {
+                if (!e.enabled) continue;
+                try {
+                    if (!((AiToolListener) e.listener).onAiToolCall(carrier) || carrier.veto) {
+                        allowed = false;
+                    }
+                } catch (Throwable t) {
+                    failed(e, Point.AI_TOOL_CALL, t);
+                }
+            }
+            return allowed;
+        } finally {
+            noteTime(Point.AI_TOOL_CALL, t0);
         }
     }
 

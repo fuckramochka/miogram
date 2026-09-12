@@ -7,9 +7,11 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.NotificationsController;
 import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
@@ -139,6 +141,27 @@ public class MiogramCompanionToolbox {
                 String q = params != null ? params.optString("chat_query", "") : "";
                 return MiogramLocale.get("Відкриє чат «", "Откроет чат «", "Will open chat \"") + q + "».";
             }
+            if (n.equals("mute_chat")) {
+                return MiogramLocale.get("Заглушить/увімкне звук чату.", "Заглушит/включит звук чата.", "Will (un)mute the chat.");
+            }
+            if (n.equals("archive_chat")) {
+                return MiogramLocale.get("Прибере/поверне чат з архіву.", "Уберёт/вернёт чат из архива.", "Will (un)archive the chat.");
+            }
+            if (n.equals("mark_read")) {
+                return MiogramLocale.get("Позначить все як прочитане.", "Отметит всё как прочитанное.", "Will mark all as read.");
+            }
+            if (n.equals("chat_info")) {
+                return MiogramLocale.get("Покаже інфо чату.", "Покажет инфо чата.", "Will show chat info.");
+            }
+            if (n.equals("player_control")) {
+                return MiogramLocale.get("Керує плеєром.", "Управляет плеером.", "Will control the player.");
+            }
+            if (n.equals("player_now")) {
+                return MiogramLocale.get("Покаже що грає.", "Покажет что играет.", "Will show now playing.");
+            }
+            if (n.equals("contacts_list")) {
+                return MiogramLocale.get("Покаже контакти.", "Покажет контакты.", "Will list contacts.");
+            }
             if (n.equals("send_message")) {
                 String q = params != null ? params.optString("chat_query", "") : "";
                 return MiogramLocale.get("Надішле повідомлення в чат «", "Отправит сообщение в чат «", "Will send a message to chat \"") + q + "».";
@@ -149,6 +172,252 @@ public class MiogramCompanionToolbox {
             }
         } catch (Throwable ignore) {}
         return MiogramLocale.get("Виконає дію: ", "Выполнит действие: ", "Will perform: ") + name;
+    }
+
+    // ==================================================================
+    // Monster tools: real client actions behind MioTool defs below.
+    // ==================================================================
+
+    private static void toolSetMuted(int account, long dialogId, boolean mute, Utilities.Callback<String> callback) {
+        try {
+            NotificationsController.getInstance(account).muteDialog(dialogId, 0, mute);
+            FoundChat fc = null;
+            try {
+                for (FoundChat c : snapshotDialogs(account, "all")) {
+                    if (c.dialogId == dialogId) {
+                        fc = c;
+                        break;
+                    }
+                }
+            } catch (Throwable ignore) {}
+            String ref = fc != null ? fc.getReference() : String.valueOf(dialogId);
+            callback.run(mute
+                    ? MiogramLocale.get("Заглушила чат ", "Заглушила чат ", "Muted chat ").concat(ref).concat(".")
+                    : MiogramLocale.get("Увімкнула звук чату ", "Включила звук чата ", "Unmuted chat ").concat(ref).concat("."));
+        } catch (Throwable t) {
+            callback.run(MiogramLocale.get("Не вдалося змінити звук: ", "Не удалось изменить звук: ", "Mute failed: ") + t.getMessage());
+        }
+    }
+
+    private static void toolSetArchived(int account, long dialogId, boolean archive, Utilities.Callback<String> callback) {
+        try {
+            MessagesController.getInstance(account).addDialogToFolder(dialogId, archive ? 1 : 0, -1, 0);
+            callback.run(archive
+                    ? MiogramLocale.get("Чат прибрано в архів.", "Чат убран в архив.", "Chat archived.")
+                    : MiogramLocale.get("Чат повернуто з архіву.", "Чат возвращён из архива.", "Chat unarchived."));
+        } catch (Throwable t) {
+            callback.run(MiogramLocale.get("Не вдалося змінити архів: ", "Не удалось изменить архив: ", "Archive failed: ") + t.getMessage());
+        }
+    }
+
+    private static void toolMarkRead(int account, long dialogId, Utilities.Callback<String> callback) {
+        try {
+            MessagesController mc = MessagesController.getInstance(account);
+            TLRPC.Dialog dlg = null;
+            try {
+                dlg = mc.dialogs_dict.get(dialogId);
+            } catch (Throwable ignore) {}
+            if (dlg == null) {
+                callback.run(MiogramLocale.get("Чат не знайдено в списку.", "Чат не найден в списке.", "Chat not in list."));
+                return;
+            }
+            int top = dlg.top_message;
+            mc.markDialogAsRead(dialogId, top, top, 0, false, 0, 0, true, 0);
+            callback.run(MiogramLocale.get("Позначила все як прочитане.", "Отметила всё как прочитанное.", "Marked everything as read."));
+        } catch (Throwable t) {
+            callback.run(MiogramLocale.get("Не вдалося позначити: ", "Не удалось отметить: ", "Mark-read failed: ") + t.getMessage());
+        }
+    }
+
+    private static void toolChatInfo(int account, long dialogId, Utilities.Callback<String> callback) {
+        try {
+            MessagesController mc = MessagesController.getInstance(account);
+            StringBuilder sb = new StringBuilder();
+            if (dialogId > 0) {
+                TLRPC.User u = mc.getUser(dialogId);
+                if (u == null) {
+                    callback.run(MiogramLocale.get("Користувача не знайдено.", "Пользователь не найден.", "User not found."));
+                    return;
+                }
+                sb.append("👤 ").append(UserObject.getUserName(u)).append("\n");
+                if (u.username != null && !u.username.isEmpty()) sb.append("@").append(u.username).append("\n");
+                sb.append("id: ").append(u.id).append(u.bot ? " (bot)" : "").append("\n");
+            } else {
+                TLRPC.Chat c = mc.getChat(-dialogId);
+                if (c == null) {
+                    callback.run(MiogramLocale.get("Чат не знайдено.", "Чат не найден.", "Chat not found."));
+                    return;
+                }
+                boolean isChannel = ChatObject.isChannelAndNotMegaGroup(c);
+                sb.append(isChannel ? "📢 " : "👥 ").append(c.title != null ? c.title : "").append("\n");
+                if (c.username != null && !c.username.isEmpty()) sb.append("@").append(c.username).append("\n");
+                sb.append("id: ").append(c.id).append("\n");
+                if (c.participants_count > 0) {
+                    sb.append(MiogramLocale.get("Учасників: ", "Участников: ", "Members: ")).append(c.participants_count).append("\n");
+                }
+            }
+            try {
+                ArrayList<TLRPC.Dialog> dialogs = mc.getAllDialogs();
+                if (dialogs != null) {
+                    for (int i = 0; i < dialogs.size(); i++) {
+                        TLRPC.Dialog d = dialogs.get(i);
+                        if (d != null && d.id == dialogId && d.unread_count > 0) {
+                            sb.append(MiogramLocale.get("Непрочитаних: ", "Непрочитанных: ", "Unread: ")).append(d.unread_count).append("\n");
+                            break;
+                        }
+                    }
+                }
+            } catch (Throwable ignore) {}
+            callback.run(sb.toString().trim());
+        } catch (Throwable t) {
+            callback.run(MiogramLocale.get("Не вдалося отримати інфо: ", "Не удалось получить инфо: ", "Info failed: ") + t.getMessage());
+        }
+    }
+
+    private static void toolPlayerControl(String action, Utilities.Callback<String> callback) {
+        try {
+            String a = action != null ? action.trim().toLowerCase(java.util.Locale.US) : "toggle";
+            MediaController mc = MediaController.getInstance();
+            MessageObject cur = mc.getPlayingMessageObject();
+            if (a.equals("next")) {
+                mc.playNextMessage();
+                callback.run(MiogramLocale.get("⏭ Наступний трек.", "⏭ Следующий трек.", "⏭ Next track."));
+            } else if (a.equals("prev") || a.equals("previous")) {
+                mc.playPreviousMessage();
+                callback.run(MiogramLocale.get("⏮ Попередній трек.", "⏮ Предыдущий трек.", "⏮ Previous track."));
+            } else if (a.equals("pause")) {
+                if (cur != null && !mc.isMessagePaused()) mc.pauseMessage(cur);
+                callback.run(MiogramLocale.get("⏸ Пауза.", "⏸ Пауза.", "⏸ Paused."));
+            } else if (a.equals("play")) {
+                if (cur != null && mc.isMessagePaused()) mc.playMessage(cur);
+                callback.run(MiogramLocale.get("▶ Відтворення.", "▶ Воспроизведение.", "▶ Playing."));
+            } else {
+                if (cur == null) {
+                    callback.run(MiogramLocale.get("Нічого не грає.", "Ничего не играет.", "Nothing playing."));
+                } else if (mc.isMessagePaused()) {
+                    mc.playMessage(cur);
+                    callback.run(MiogramLocale.get("▶ Відтворення.", "▶ Воспроизведение.", "▶ Playing."));
+                } else {
+                    mc.pauseMessage(cur);
+                    callback.run(MiogramLocale.get("⏸ Пауза.", "⏸ Пауза.", "⏸ Paused."));
+                }
+            }
+        } catch (Throwable t) {
+            callback.run(MiogramLocale.get("Плеєр: ", "Плеер: ", "Player: ") + t.getMessage());
+        }
+    }
+
+    private static void toolPlayerNow(Utilities.Callback<String> callback) {
+        try {
+            MediaController mc = MediaController.getInstance();
+            MessageObject cur = mc.getPlayingMessageObject();
+            if (cur == null) {
+                callback.run(MiogramLocale.get("Нічого не грає.", "Ничего не играет.", "Nothing playing."));
+                return;
+            }
+            String title = cur.getMusicTitle();
+            String author = cur.getMusicAuthor();
+            if (title == null || title.isEmpty()) title = cur.getDocumentName();
+            callback.run((mc.isMessagePaused() ? "⏸ " : "▶ ")
+                    + (author != null && !author.isEmpty() ? author + " — " : "")
+                    + (title != null ? title : "?"));
+        } catch (Throwable t) {
+            callback.run(MiogramLocale.get("Плеєр: ", "Плеер: ", "Player: ") + t.getMessage());
+        }
+    }
+
+    private static void toolContactsList(int account, int limit, Utilities.Callback<String> callback) {
+        try {
+            ContactsController cc = ContactsController.getInstance(account);
+            MessagesController mc = MessagesController.getInstance(account);
+            if (cc == null || cc.contacts == null || cc.contacts.isEmpty()) {
+                callback.run(MiogramLocale.get("Контакти порожні.", "Контакты пусты.", "Contacts empty."));
+                return;
+            }
+            StringBuilder sb = new StringBuilder(MiogramLocale.get("Контакти:\n", "Контакты:\n", "Contacts:\n"));
+            int n = 0;
+            for (int i = 0; i < cc.contacts.size() && n < limit; i++) {
+                TLRPC.TL_contact tc = cc.contacts.get(i);
+                if (tc == null) continue;
+                TLRPC.User u = mc.getUser(tc.user_id);
+                if (u == null) continue;
+                sb.append(n + 1).append(". ").append(UserObject.getUserName(u));
+                if (u.username != null && !u.username.isEmpty()) sb.append(" (@").append(u.username).append(")");
+                sb.append("\n");
+                n++;
+            }
+            if (n == 0) {
+                callback.run(MiogramLocale.get("Контакти порожні.", "Контакты пусты.", "Contacts empty."));
+                return;
+            }
+            sb.append(MiogramLocale.get("Відповіси номером.", "Ответь номером.", "Reply with a number."));
+            callback.run(sb.toString());
+        } catch (Throwable t) {
+            callback.run(MiogramLocale.get("Не вдалося прочитати контакти: ", "Не удалось прочитать контакты: ", "Contacts failed: ") + t.getMessage());
+        }
+    }
+
+    private static volatile boolean mioToolsRegistered = false;
+
+    /** Registers the monster toolset in MioTool (idempotent). Called at class load. */
+    public static void registerMioTools() {
+        if (mioToolsRegistered) return;
+        mioToolsRegistered = true;
+        try {
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "mute_chat", "Mute", "mute_chat(chat_query|chat_id, mute=true) — mute/unmute a chat.", false,
+                    (account, params, cb) -> {
+                        ChatResolution res = resolveChatTarget(account, params, "mute_chat");
+                        if (res.errorMessage != null) {
+                            cb.run(res.errorMessage);
+                            return;
+                        }
+                        toolSetMuted(account, res.dialogId, params.optBoolean("mute", true), cb);
+                    }));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "archive_chat", "Archive", "archive_chat(chat_query|chat_id, archive=true) — archive/unarchive a chat.", false,
+                    (account, params, cb) -> {
+                        ChatResolution res = resolveChatTarget(account, params, "archive_chat");
+                        if (res.errorMessage != null) {
+                            cb.run(res.errorMessage);
+                            return;
+                        }
+                        toolSetArchived(account, res.dialogId, params.optBoolean("archive", true), cb);
+                    }));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "mark_read", "Mark read", "mark_read(chat_query|chat_id) — mark everything as read.", false,
+                    (account, params, cb) -> {
+                        ChatResolution res = resolveChatTarget(account, params, "mark_read");
+                        if (res.errorMessage != null) {
+                            cb.run(res.errorMessage);
+                            return;
+                        }
+                        toolMarkRead(account, res.dialogId, cb);
+                    }));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "chat_info", "Chat info", "chat_info(chat_query|chat_id) — type, title, @username, members, unread.", false,
+                    (account, params, cb) -> {
+                        ChatResolution res = resolveChatTarget(account, params, "chat_info");
+                        if (res.errorMessage != null) {
+                            cb.run(res.errorMessage);
+                            return;
+                        }
+                        toolChatInfo(account, res.dialogId, cb);
+                    }));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "player_control", "Player", "player_control(action=play|pause|toggle|next|prev) — control music.", false,
+                    (account, params, cb) -> toolPlayerControl(params.optString("action", "toggle"), cb)));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "player_now", "Now playing", "player_now() — current track and state.", false,
+                    (account, params, cb) -> toolPlayerNow(cb)));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "contacts_list", "Contacts", "contacts_list(limit=15) — numbered contact list.", false,
+                    (account, params, cb) -> toolContactsList(account, Math.min(30, Math.max(1, params.optInt("limit", 15))), cb)));
+        } catch (Throwable ignore) {}
+    }
+
+    static {
+        registerMioTools();
     }
 
     public static class FoundChat {
@@ -1098,6 +1367,56 @@ public class MiogramCompanionToolbox {
                                 : MiogramLocale.get("Ось список твоїх груп:\n", "Вот список твоих групп:\n", "Here is the list of your groups:\n");
                         callback.run(header + sb.toString());
                     }
+                    break;
+                }
+                case "mute_chat": {
+                    ChatResolution res = resolveChatTarget(account, p, "mute_chat");
+                    if (res.errorMessage != null) {
+                        callback.run(res.errorMessage);
+                        return;
+                    }
+                    boolean mute = p.optBoolean("mute", true);
+                    toolSetMuted(account, res.dialogId, mute, callback);
+                    break;
+                }
+                case "archive_chat": {
+                    ChatResolution res = resolveChatTarget(account, p, "archive_chat");
+                    if (res.errorMessage != null) {
+                        callback.run(res.errorMessage);
+                        return;
+                    }
+                    boolean archive = p.optBoolean("archive", true);
+                    toolSetArchived(account, res.dialogId, archive, callback);
+                    break;
+                }
+                case "mark_read": {
+                    ChatResolution res = resolveChatTarget(account, p, "mark_read");
+                    if (res.errorMessage != null) {
+                        callback.run(res.errorMessage);
+                        return;
+                    }
+                    toolMarkRead(account, res.dialogId, callback);
+                    break;
+                }
+                case "chat_info": {
+                    ChatResolution res = resolveChatTarget(account, p, "chat_info");
+                    if (res.errorMessage != null) {
+                        callback.run(res.errorMessage);
+                        return;
+                    }
+                    toolChatInfo(account, res.dialogId, callback);
+                    break;
+                }
+                case "player_control": {
+                    toolPlayerControl(p.optString("action", "toggle"), callback);
+                    break;
+                }
+                case "player_now": {
+                    toolPlayerNow(callback);
+                    break;
+                }
+                case "contacts_list": {
+                    toolContactsList(account, Math.min(30, Math.max(1, p.optInt("limit", 15))), callback);
                     break;
                 }
                 case "search_messages": {
