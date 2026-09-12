@@ -1874,3 +1874,4 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             new MiogramPlayerSectionSheet(getContext(), resourcesProvider, MiogramModernPlayerLayout.this, section).show();
         } catch (Throwable ignore) {}
     }
+}
