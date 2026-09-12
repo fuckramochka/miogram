@@ -18,7 +18,11 @@ public class MiogramPlayerPrefs {
     public static final int BG_MODE_CUSTOM_PHOTO = 4;
     public static final int BG_MODE_CUSTOM_VIDEO = 5;
 
-    public static final String DEFAULT_CONTROLS_ORDER = "shuffle,repeat,prev,play,next,queue";
+    public static final String DEFAULT_CONTROLS_ORDER = "shuffle,repeat,prev,play,next,speed,queue";
+
+    public static final int PROFILE_ALIGN_LEFT = 0;
+    public static final int PROFILE_ALIGN_CENTER = 1;
+    public static final int PROFILE_ALIGN_RIGHT = 2;
 
     public interface OnPrefsChangedListener {
         void onPrefsChanged();
@@ -274,6 +278,38 @@ public class MiogramPlayerPrefs {
 
     public static void setControlHidden(String id, boolean hidden) {
         getPrefs().edit().putBoolean("hide_ctrl_" + id, hidden).apply();
+        notifyChanged();
+    }
+
+    public static void swapControls(String id1, String id2) {
+        try {
+            java.util.List<String> order = new java.util.ArrayList<>(getControlsOrderList());
+            int i1 = order.indexOf(id1);
+            int i2 = order.indexOf(id2);
+            if (i1 < 0 || i2 < 0 || i1 == i2) return;
+            // Trio (prev/play/next) stays locked in the middle — refuse swaps crossing it.
+            if (isTrioId(order.get(i1)) != isTrioId(order.get(i2))) return;
+            order.set(i1, id2);
+            order.set(i2, id1);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < order.size(); i++) {
+                if (i > 0) sb.append(",");
+                sb.append(order.get(i));
+            }
+            setControlsOrder(sb.toString());
+        } catch (Throwable ignore) {}
+    }
+
+    private static boolean isTrioId(String id) {
+        return "prev".equals(id) || "play".equals(id) || "next".equals(id);
+    }
+
+    public static int getProfileAlign() {
+        return getPrefs().getInt("profile_align", PROFILE_ALIGN_CENTER);
+    }
+
+    public static void setProfileAlign(int align) {
+        getPrefs().edit().putInt("profile_align", Math.max(0, Math.min(2, align))).apply();
         notifyChanged();
     }
 

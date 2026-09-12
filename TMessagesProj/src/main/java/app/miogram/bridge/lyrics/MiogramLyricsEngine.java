@@ -319,66 +319,9 @@ public class MiogramLyricsEngine {
         });
     }
 
+    /** Standard AI transcription = precise word-timed transcription. */
     public void transcribeAudioWithAi(final MessageObject messageObject, final LyricsCallback callback) {
-        if (messageObject == null) {
-            if (callback != null) callback.onError("No track to transcribe");
-            return;
-        }
-
-        final String title = cleanTitle(messageObject.getMusicTitle());
-        final String artist = cleanArtist(messageObject.getMusicAuthor());
-        final int durationSec = (int) Math.round(messageObject.getDuration());
-        final String cacheKey = getCacheKey(artist, title) + "_ai";
-
-        executor.execute(() -> {
-            try {
-                MiogramLrcModel.LrcSong cached = memoryCache.get(cacheKey);
-                if (cached != null) {
-                    postSuccess(callback, cached);
-                    return;
-                }
-
-                File audioFile = resolveAudioFile(messageObject);
-                if (audioFile == null) {
-                    if (messageObject.getDocument() != null) {
-                        FileLoader.getInstance(messageObject.currentAccount).loadFile(messageObject.getDocument(), messageObject, FileLoader.PRIORITY_HIGH, 0);
-                    }
-                    postError(callback, app.miogram.bridge.MiogramLocale.get(
-                            "Завантаження аудіофайлу... Зачекайте пару секунд і спробуйте знову.",
-                            "Загрузка аудиофайла... Подождите пару секунд и попробуйте снова.",
-                            "Downloading audio file... Please wait a few seconds and try again."));
-                    return;
-                }
-
-                if (!app.miogram.bridge.ai.MiogramAiService.hasApiKey()) {
-                    postError(callback, app.miogram.bridge.MiogramLocale.get(
-                            "Вкажіть Gemini API ключ у Налаштуваннях Miogram -> ШІ.",
-                            "Укажите Gemini API ключ в Настройках Miogram -> ИИ.",
-                            "Configure Gemini API key in Miogram Settings -> AI."));
-                    return;
-                }
-
-                app.miogram.bridge.ai.MiogramAiService.transcribeAudio(audioFile, resolveAudioMimeType(messageObject, audioFile), title, artist, durationSec,
-                        (lrc, error) -> {
-                            if (!TextUtils.isEmpty(lrc)) {
-                                MiogramLrcModel.LrcSong aiSong = MiogramLrcModel.parseLrc(stripCodeFence(lrc), title, artist, "✨ Gemini AI");
-                                if (aiSong != null && !aiSong.isEmpty()) {
-                                    completeAndSave(cacheKey, aiSong, callback);
-                                    return;
-                                }
-                                postError(callback, app.miogram.bridge.MiogramLocale.get(
-                                        "ШІ не зміг розпізнати розбірливий текст пісні.",
-                                        "ИИ не смог распознать разборчивый текст песни.",
-                                        "AI could not extract recognizable lyrics from audio."));
-                                return;
-                            }
-                            postError(callback, TextUtils.isEmpty(error) ? "AI transcription failed." : error);
-                        });
-            } catch (Throwable e) {
-                FileLog.e(e);
-                postError(callback, "AI error: " + e.getMessage());
-            }
-        });
+        transcribeInternal(messageObject, callback, "_ai", "✨ Gemini AI", true);
     }
 
     /**
@@ -386,6 +329,11 @@ public class MiogramLyricsEngine {
      * timing. Result lines carry per-word timings for precise karaoke.
      */
     public void transcribeAudioWithAiWordTimed(final MessageObject messageObject, final LyricsCallback callback) {
+        transcribeInternal(messageObject, callback, "_ai_word", "✨ Gemini AI+", true);
+    }
+
+    private void transcribeInternal(final MessageObject messageObject, final LyricsCallback callback,
+                                    final String cacheSuffix, final String sourceLabel, final boolean wordTimed) {
         if (messageObject == null) {
             if (callback != null) callback.onError("No track to transcribe");
             return;
@@ -394,7 +342,7 @@ public class MiogramLyricsEngine {
         final String title = cleanTitle(messageObject.getMusicTitle());
         final String artist = cleanArtist(messageObject.getMusicAuthor());
         final int durationSec = (int) Math.round(messageObject.getDuration());
-        final String cacheKey = getCacheKey(artist, title) + "_ai_word";
+        final String cacheKey = getCacheKey(artist, title) + cacheSuffix;
 
         executor.execute(() -> {
             try {
@@ -424,27 +372,45 @@ public class MiogramLyricsEngine {
                     return;
                 }
 
-                app.miogram.bridge.ai.MiogramAiService.transcribeAudioWordTimed(audioFile, resolveAudioMimeType(messageObject, audioFile), title, artist, durationSec,
-                        (lrc, error) -> {
-                            if (!TextUtils.isEmpty(lrc)) {
-                                MiogramLrcModel.LrcSong aiSong = MiogramLrcModel.parseWordTimed(stripCodeFence(lrc), title, artist, "✨ Gemini AI+");
-                                if (aiSong != null && !aiSong.isEmpty()) {
-                                    completeAndSave(cacheKey, aiSong, callback);
-                                    return;
-                                }
-                                postError(callback, app.miogram.bridge.MiogramLocale.get(
-                                        "ШІ не зміг розпізнати розбірливий текст пісні.",
-                                        "ИИ не смог распознать разборчивый текст песни.",
-                                        "AI could not extract recognizable lyrics from audio."));
-                                return;
-                            }
-                            postError(callback, TextUtils.isEmpty(error) ? "AI transcription failed." : error);
-                        });
+                if (wordTimed) {
+                    app.miogram.bridge.ai.MiogramAiService.transcribeAudioWordTimed(audioFile, resolveAudioMimeType(messageObject, audioFile), title, artist, durationSec,
+                            (lrc, error) -> onTranscribeResult(lrc, error, title, artist, sourceLabel, cacheKey, callback));
+                } else {
+                    app.miogram.bridge.ai.MiogramAiService.transcribeAudio(audioFile, resolveAudioMimeType(messageObject, audioFile), title, artist, durationSec,
+                            (lrc, error) -> onTranscribeResult(lrc, error, title, artist, sourceLabel, cacheKey, callback));
+                }
             } catch (Throwable e) {
                 FileLog.e(e);
                 postError(callback, "AI error: " + e.getMessage());
             }
         });
+    }
+
+    private void onTranscribeResult(String lrc, String error, String title, String artist,
+                                    String sourceLabel, String cacheKey, LyricsCallback callback) {
+        if (!TextUtils.isEmpty(lrc)) {
+            MiogramLrcModel.LrcSong aiSong = "✨ Gemini AI+".equals(sourceLabel)
+                    ? MiogramLrcModel.parseWordTimed(stripCodeFence(lrc), title, artist, sourceLabel)
+                    : MiogramLrcModel.parseLrc(stripCodeFence(lrc), title, artist, sourceLabel);
+            if (aiSong != null && !aiSong.isEmpty()) {
+                completeAndSave(cacheKey, aiSong, callback);
+                return;
+            }
+            postError(callback, app.miogram.bridge.MiogramLocale.get(
+                    "ШІ не зміг розпізнати розбірливий текст пісні.",
+                    "ИИ не смог распознать разборчивый текст песни.",
+                    "AI could not extract recognizable lyrics from audio."));
+            return;
+        }
+        postError(callback, TextUtils.isEmpty(error) ? "AI transcription failed." : error);
+    }
+
+    /**
+     * Enhanced transcription entry point (same as standard: word-timed).
+     * Kept for compatibility with existing callers.
+     */
+    public void transcribeAudioWithAiWordTimedLegacy(final MessageObject messageObject, final LyricsCallback callback) {
+        transcribeInternal(messageObject, callback, "_ai_word", "✨ Gemini AI+", true);
     }
 
     /* =========================================================================

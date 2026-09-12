@@ -234,6 +234,12 @@ public final class PluginInstallHelper {
                 if (activity.isFinishing()) {
                     return;
                 }
+                // exteraGram metadata missing (e.g. Hikka module): second life
+                // as a Heroku userbot module instead of an install error.
+                if ((plugin == null || TextUtils.isEmpty(plugin.id))
+                        && PyModuleRouter.fallbackToHerokuOnMetadataFailure(activity, file)) {
+                    return;
+                }
                 if (plugin != null && !TextUtils.isEmpty(plugin.id)) {
                     Plugin existing = controller.getPlugin(plugin.id);
                     if (existing != null) {

@@ -1115,6 +1115,51 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         if (TextUtils.isEmpty(query)) return;
 
         inputField.setText("");
+        // Follow-up to our own numbered list ("2", "другий", "@nick", "так"/"далі"):
+        // resolve locally first so a short answer keeps working.
+        MiogramCompanionToolbox.PickResolution pick =
+                MiogramCompanionToolbox.tryResolvePendingPick(currentAccount, query);
+        if ("RESOLVED".equals(pick.kind) && pick.foundChat != null) {
+            String ref = pick.foundChat.username.isEmpty() ? pick.foundChat.name : "@" + pick.foundChat.username;
+            query = query + "\n[Уточнення: P-chan обрав «" + pick.foundChat.name + "» (" + ref + "), саме цей чат.]";
+        } else if ("NEXT_PAGE".equals(pick.kind)) {
+            MiogramCompanionToolbox.PendingPick pending = MiogramCompanionToolbox.getPendingPick(currentAccount);
+            if (pending != null && pending.listFilter != null) {
+                // Deterministic paging, no LLM roundtrip needed.
+                MiogramCompanionPrefs.ChatMessage userMsg0 = new MiogramCompanionPrefs.ChatMessage(true, query, "neutral", System.currentTimeMillis(), null, null);
+                history.add(userMsg0);
+                MiogramCompanionPrefs.saveHistory(history);
+                renderMessageBubble(userMsg0);
+                isSending = true;
+                sendIcon.setVisibility(View.GONE);
+                sendProgress.setVisibility(View.VISIBLE);
+                sendButton.setAlpha(0.6f);
+                final String fFilter = pending.listFilter;
+                final int fPage = pending.listPage + 1;
+                final int fSize = pending.listPageSize > 0 ? pending.listPageSize : 50;
+                org.json.JSONObject lp = new org.json.JSONObject();
+                try {
+                    lp.put("filter", fFilter);
+                    lp.put("page", fPage);
+                    lp.put("page_size", fSize);
+                } catch (Throwable ignore) {}
+                MiogramCompanionToolbox.executeTool(currentAccount,
+                        new MiogramCompanionToolbox.ActionRequest("list_dialogs", lp, false),
+                        resultText -> AndroidUtilities.runOnUIThread(() -> {
+                            isSending = false;
+                            sendIcon.setVisibility(View.VISIBLE);
+                            sendProgress.setVisibility(View.GONE);
+                            sendButton.setAlpha(1.0f);
+                            MiogramCompanionPrefs.ChatMessage botBubble = new MiogramCompanionPrefs.ChatMessage(false, resultText, "neutral", System.currentTimeMillis(), null, null);
+                            history.add(botBubble);
+                            MiogramCompanionPrefs.saveHistory(history);
+                            renderMessageBubble(botBubble);
+                            updateStageMood("neutral");
+                        }));
+                return;
+            }
+            query = query + "\n[Не той варіант; покажи наступні або гортай список чатів далі.]";
+        }
         MiogramCompanionPrefs.ChatMessage userMsg = new MiogramCompanionPrefs.ChatMessage(true, query, "neutral", System.currentTimeMillis(), null, null);
         history.add(userMsg);
         MiogramCompanionPrefs.saveHistory(history);

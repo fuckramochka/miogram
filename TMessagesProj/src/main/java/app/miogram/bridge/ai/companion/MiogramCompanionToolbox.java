@@ -130,6 +130,15 @@ public class MiogramCompanionToolbox {
                 String q = params != null ? params.optString("query", params.optString("chat_query", "")) : "";
                 return MiogramLocale.get("Знайде чат «", "Найдёт чат «", "Will find chat \"") + q + "».";
             }
+            if (n.equals("list_dialogs")) {
+                String f = params != null ? params.optString("filter", "all") : "all";
+                int pg = params != null ? params.optInt("page", 0) : 0;
+                return MiogramLocale.get("Покаже список чатів (", "Покажет список чатов (", "Will list chats (") + f + ", " + MiogramLocale.get("сторінка ", "страница ", "page ") + (pg + 1) + ").";
+            }
+            if (n.equals("open_chat")) {
+                String q = params != null ? params.optString("chat_query", "") : "";
+                return MiogramLocale.get("Відкриє чат «", "Откроет чат «", "Will open chat \"") + q + "».";
+            }
             if (n.equals("send_message")) {
                 String q = params != null ? params.optString("chat_query", "") : "";
                 return MiogramLocale.get("Надішле повідомлення в чат «", "Отправит сообщение в чат «", "Will send a message to chat \"") + q + "».";
@@ -185,6 +194,171 @@ public class MiogramCompanionToolbox {
             this.chat = chat;
             this.score = score;
         }
+    }
+
+    /**
+     * Unfinished disambiguation: when the AI lists several similar chats and
+     * asks "which one?", the user's next message ("другий", "2", "@nick",
+     * "так"/"ні") resolves against THIS list instead of a fresh search.
+     * Expires after 10 minutes. Also carries an optional pending action
+     * (e.g. read_messages) and paginated list state for "далі".
+     */
+    public static class PendingPick {
+        public final List<FoundChat> candidates;
+        public final String query;
+        public final long time;
+        public final String resumeAction;
+        public final JSONObject resumeParams;
+        public final String listFilter;
+        public final int listPage;
+        public final int listPageSize;
+
+        public PendingPick(List<FoundChat> candidates, String query, String resumeAction,
+                           JSONObject resumeParams, String listFilter, int listPage, int listPageSize) {
+            this.candidates = candidates != null ? new ArrayList<>(candidates) : new ArrayList<>();
+            this.query = query != null ? query : "";
+            this.time = System.currentTimeMillis();
+            this.resumeAction = resumeAction;
+            this.resumeParams = resumeParams;
+            this.listFilter = listFilter;
+            this.listPage = listPage;
+            this.listPageSize = listPageSize;
+        }
+
+        public boolean expired() {
+            return System.currentTimeMillis() - time > 10L * 60 * 1000;
+        }
+    }
+
+    private static final java.util.Map<Integer, PendingPick> pendingPicks = new java.util.HashMap<>();
+
+    public static void setPendingPick(int account, PendingPick pick) {
+        try {
+            if (pick == null) pendingPicks.remove(account);
+            else pendingPicks.put(account, pick);
+        } catch (Throwable ignore) {}
+    }
+
+    public static PendingPick getPendingPick(int account) {
+        try {
+            PendingPick p = pendingPicks.get(account);
+            if (p != null && p.expired()) {
+                pendingPicks.remove(account);
+                return null;
+            }
+            return p;
+        } catch (Throwable ignore) {
+            return null;
+        }
+    }
+
+    public static void clearPendingPick(int account) {
+        try {
+            pendingPicks.remove(account);
+        } catch (Throwable ignore) {}
+    }
+
+    public static class PickResolution {
+        /** RESOLVED (foundChat set, resumeAction/Params may be set), NEXT_PAGE, or NONE. */
+        public final String kind;
+        public final FoundChat foundChat;
+        public final String resumeAction;
+        public final JSONObject resumeParams;
+
+        public PickResolution(String kind, FoundChat foundChat, String resumeAction, JSONObject resumeParams) {
+            this.kind = kind;
+            this.foundChat = foundChat;
+            this.resumeAction = resumeAction;
+            this.resumeParams = resumeParams;
+        }
+    }
+
+    private static final String[] ORDINALS_1 = {"1", "перший", "перший", "первый", "first", "один", "один", "один"};
+    private static boolean isOrdinal(String low, int n) {
+        if (low == null) return false;
+        if (low.equals(String.valueOf(n))) return true;
+        if (low.equals(n + ".") || low.equals(n + ")") || low.equals("№" + n)) return true;
+        String[][] words = {
+                {"перший", "перший", "первый", "first"},
+                {"другий", "другий", "второй", "second"},
+                {"третій", "третій", "третий", "third"},
+                {"четвертий", "четвертий", "четвертый", "fourth"},
+                {"п'ятий", "пятый", "пʼятий", "п’ятий", "fifth"},
+                {"шостий", "шостий", "шестой", "sixth"},
+                {"сьомий", "седьмой", "сьомий", "seventh"},
+                {"восьмий", "восьмой", "восьмий", "eighth"},
+                {"дев'ятий", "девятий", "девʼятий", "девятый", "ninth"},
+                {"десятий", "десятий", "десятый", "tenth"}
+        };
+        if (n >= 1 && n <= words.length) {
+            for (String w : words[n - 1]) {
+                if (low.equals(w) || low.equals(w + ".") || low.equals("№" + n) || low.equals(n + "-й") || low.equals(n + "-й")) return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isBareYes(String low) {
+        return low.equals("так") || low.equals("да") || low.equals("yes") || low.equals("ага") || low.equals("угу")
+                || low.equals("цей") || low.equals("ця") || low.equals("це") || low.equals("this") || low.equals("that")
+                || low.equals("той") || low.equals("та") || low.equals("давай") || low.equals("ok") || low.equals("ок")
+                || low.equals("+") || low.equals("👍");
+    }
+
+    private static boolean isNext(String low) {
+        return low.equals("ні") || low.equals("нет") || low.equals("no") || low.equals("не той") || low.equals("не та")
+                || low.equals("не то") || low.equals("інший") || low.equals("другой") || low.equals("інша") || low.equals("другая")
+                || low.equals("далі") || low.equals("дальше") || low.equals("next") || low.equals("more") || low.equals("ще")
+                || low.equals("еще") || low.equals("-") || low.equals("👎");
+    }
+
+    /**
+     * Resolves a follow-up message against the pending candidate list:
+     * number/ordinal, @username, bare yes (= first), no/next (= next page).
+     */
+    public static PickResolution tryResolvePendingPick(int account, String userText) {
+        PendingPick pending = getPendingPick(account);
+        if (pending == null || pending.candidates.isEmpty() || userText == null) return new PickResolution("NONE", null, null, null);
+        String low = userText.trim().toLowerCase(java.util.Locale.ROOT);
+        if (low.length() > 64) return new PickResolution("NONE", null, null, null);
+
+        if (isNext(low)) {
+            return new PickResolution("NEXT_PAGE", null, pending.resumeAction, pending.resumeParams);
+        }
+        // Number or ordinal: "2", "другий", "2.", "№2"
+        for (int i = 0; i < pending.candidates.size(); i++) {
+            if (isOrdinal(low, i + 1)) {
+                FoundChat fc = pending.candidates.get(i);
+                clearPendingPick(account);
+                return new PickResolution("RESOLVED", fc, pending.resumeAction, pending.resumeParams);
+            }
+        }
+        // Bare confirmation = top candidate (the AI asked "is this it?").
+        if (isBareYes(low)) {
+            FoundChat fc = pending.candidates.get(0);
+            clearPendingPick(account);
+            return new PickResolution("RESOLVED", fc, pending.resumeAction, pending.resumeParams);
+        }
+        // Username (with or without @) matched inside candidates.
+        String uname = low.startsWith("@") ? low.substring(1) : low;
+        if (!uname.isEmpty() && uname.length() >= 3 && !uname.contains(" ")) {
+            for (FoundChat fc : pending.candidates) {
+                if (!fc.username.isEmpty() && (fc.username.equalsIgnoreCase(uname)
+                        || fc.username.toLowerCase(java.util.Locale.ROOT).contains(uname)
+                        || uname.contains(fc.username.toLowerCase(java.util.Locale.ROOT)))) {
+                    clearPendingPick(account);
+                    return new PickResolution("RESOLVED", fc, pending.resumeAction, pending.resumeParams);
+                }
+            }
+            // Name fragment matched inside candidates.
+            for (FoundChat fc : pending.candidates) {
+                if (!fc.name.isEmpty() && fc.name.toLowerCase(java.util.Locale.ROOT).contains(uname)) {
+                    clearPendingPick(account);
+                    return new PickResolution("RESOLVED", fc, pending.resumeAction, pending.resumeParams);
+                }
+            }
+        }
+        return new PickResolution("NONE", null, null, null);
     }
 
     public static String stripGrammaticalEnding(String s) {
@@ -626,6 +800,86 @@ public class MiogramCompanionToolbox {
         return sb.toString();
     }
 
+    /**
+     * Ordered dialog snapshot, recent chats first (native dialog order),
+     * for paginated browsing (50 per page). No search, no scores.
+     */
+    public static List<FoundChat> snapshotDialogs(int account, String filter) {
+        List<FoundChat> out = new ArrayList<>();
+        try {
+            MessagesController mc = MessagesController.getInstance(account);
+            ArrayList<TLRPC.Dialog> all = mc.getAllDialogs();
+            if (all == null || all.isEmpty()) all = mc.getDialogs(0);
+            if (all == null || all.isEmpty()) all = mc.dialogsServerOnly;
+            if (all == null) return out;
+            String f = filter != null ? filter.trim().toLowerCase(java.util.Locale.ROOT) : "all";
+            for (int i = 0; i < all.size(); i++) {
+                TLRPC.Dialog d = all.get(i);
+                if (d == null) continue;
+                long did = d.id;
+                if (did > 0) {
+                    if (f.equals("groups") || f.equals("channels")) continue;
+                    TLRPC.User u = mc.getUser(did);
+                    if (u == null) continue;
+                    String fullName = UserObject.getUserName(u);
+                    String uname = u.username != null ? u.username : "";
+                    out.add(new FoundChat(did, fullName, uname, false, false));
+                } else if (did < 0) {
+                    TLRPC.Chat c = mc.getChat(-did);
+                    if (c == null) continue;
+                    boolean isChannel = ChatObject.isChannelAndNotMegaGroup(c);
+                    if (f.equals("users")) continue;
+                    if (f.equals("groups") && isChannel) continue;
+                    if (f.equals("channels") && !isChannel) continue;
+                    String title = c.title != null ? c.title : "";
+                    String uname = c.username != null ? c.username : "";
+                    out.add(new FoundChat(did, title, uname, isChannel, !isChannel));
+                }
+            }
+        } catch (Throwable ignore) {}
+        return out;
+    }
+
+    public static String formatChatPage(List<FoundChat> all, int page, int pageSize, String header) {
+        StringBuilder sb = new StringBuilder(header);
+        int total = all.size();
+        int pages = Math.max(1, (total + pageSize - 1) / pageSize);
+        int p = Math.max(0, Math.min(page, pages - 1));
+        int from = p * pageSize;
+        int to = Math.min(total, from + pageSize);
+        MessagesController mc = null;
+        for (int i = from; i < to; i++) {
+            FoundChat fc = all.get(i);
+            sb.append(i + 1).append(". ");
+            sb.append(fc.isGroup ? MiogramLocale.get("[Група] ", "[Группа] ", "[Group] ")
+                    : fc.isChannel ? MiogramLocale.get("[Канал] ", "[Канал] ", "[Channel] ") : "");
+            sb.append(fc.name.isEmpty() ? MiogramLocale.get("(без назви)", "(без названия)", "(no name)") : fc.name);
+            if (!fc.username.isEmpty()) sb.append(" (@").append(fc.username).append(")");
+            try {
+                if (mc == null) mc = MessagesController.getInstance(UserConfig.selectedAccount);
+                int unread = 0;
+                ArrayList<TLRPC.Dialog> dialogs = mc.getAllDialogs();
+                if (dialogs != null) {
+                    for (int k = 0; k < dialogs.size(); k++) {
+                        TLRPC.Dialog d = dialogs.get(k);
+                        if (d != null && d.id == fc.dialogId) {
+                            unread = d.unread_count;
+                            break;
+                        }
+                    }
+                }
+                if (unread > 0) sb.append(" [").append(unread).append("]");
+            } catch (Throwable ignore) {}
+            sb.append("\n");
+        }
+        sb.append(MiogramLocale.get("Сторінка ", "Страница ", "Page ")).append(p + 1).append("/").append(pages)
+                .append(MiogramLocale.get(", всього ", ", всего ", ", total ")).append(total).append(". ")
+                .append(MiogramLocale.get("Відповіси номером — відкрию/прочитаю. «Далі» — наступні 50.",
+                        "Ответь номером — открою/прочитаю. «Дальше» — следующие 50.",
+                        "Reply with a number — I'll open/read it. \"Next\" — next 50."));
+        return sb.toString();
+    }
+
     public static ChatResolution resolveChatTarget(int account, JSONObject p) {
         long chatId = p.optLong("chat_id", 0);
         if (chatId != 0) {
@@ -640,14 +894,22 @@ public class MiogramCompanionToolbox {
             return new ChatResolution(0, null, MiogramLocale.get("Будь ласка, вкажи ім'я або юзернейм співрозмовника.", "Пожалуйста, укажи имя или юзернейм собеседника.", "Please specify name or @username."));
         }
 
+        // Follow-up to our own disambiguation list ("2", "другий", "@nick", "так"/"ні").
+        PickResolution pick = tryResolvePendingPick(account, query);
+        if ("RESOLVED".equals(pick.kind) && pick.foundChat != null) {
+            return new ChatResolution(pick.foundChat.dialogId, pick.foundChat, null);
+        }
+
         List<FoundChat> results = searchChats(account, query);
         if (results.isEmpty()) {
             return new ChatResolution(0, null, MiogramLocale.get("Не вдалося знайти жодного чату за запитом «", "Не удалось найти ни одного чата по запросу «", "Could not find any chat for query \"") + query + MiogramLocale.get("». Перевір правильність написання імені чи юзернейму.", "». Проверь правильность написания имени или юзернейма.", "\". Check the name or username spelling."));
         }
         if (results.size() == 1) {
+            clearPendingPick(account);
             return new ChatResolution(results.get(0).dialogId, results.get(0), null);
         }
 
+        setPendingPick(account, new PendingPick(results, query, null, null, null, 0, 50));
         StringBuilder sb = new StringBuilder(MiogramLocale.get("Я знайшла ", "Я нашла ", "I found ") + results.size() + MiogramLocale.get(" схожих профілів за запитом «", " похожих профилей по запросу «", " similar profiles for query \"") + query + "»:\n");
         int count = Math.min(5, results.size());
         for (int i = 0; i < count; i++) {
@@ -658,7 +920,9 @@ public class MiogramCompanionToolbox {
             }
             sb.append("\n");
         }
-        sb.append(MiogramLocale.get("Уточни, будь ласка, за @юзернеймом, кого саме ти маєш на увазі?", "Уточни, пожалуйста, по @юзернейму, кого именно ты имеешь в виду?", "Please clarify by @username which one you mean."));
+        sb.append(MiogramLocale.get("Скажи номер (наприклад «2» або «другий») — і я продовжу. «Далі» — гортаю список чатів.",
+                "Скажи номер (например «2» или «второй») — и я продолжу. «Дальше» — листаю список чатов.",
+                "Reply with the number (e.g. \"2\") and I'll continue. \"Next\" — browse the chat list."));
         return new ChatResolution(0, null, sb.toString());
     }
 
@@ -680,16 +944,24 @@ public class MiogramCompanionToolbox {
                         callback.run(MiogramLocale.get("Вкажи, будь ласка, ім'я або юзернейм для пошуку (наприклад: «знайди в лс з Віталіком»).", "Укажи, пожалуйста, имя или юзернейм для поиска (например: «найди в лс с Виталиком»).", "Please specify name or username to search (e.g. \"find chat with Alex\")."));
                         return;
                     }
+                    PickResolution pre = tryResolvePendingPick(account, query);
+                    if ("RESOLVED".equals(pre.kind) && pre.foundChat != null) {
+                        FoundChat fc = pre.foundChat;
+                        callback.run(MiogramLocale.get("Знайдено чат: ", "Найден чат: ", "Chat found: ") + fc.name + (!fc.username.isEmpty() ? " (@" + fc.username + ")" : "") + ".");
+                        return;
+                    }
                     List<FoundChat> results = searchChats(account, query);
                     if (results.isEmpty()) {
                         callback.run(MiogramLocale.get("Не знайшла жодного чату чи контакту за запитом «", "Не нашла ни одного чата или контакта по запросу «", "Did not find any chat or contact for query \"") + query + "».");
                         return;
                     }
                     if (results.size() == 1) {
+                        clearPendingPick(account);
                         FoundChat fc = results.get(0);
                         callback.run(MiogramLocale.get("Знайдено чат: ", "Найден чат: ", "Chat found: ") + fc.name + (!fc.username.isEmpty() ? " (@" + fc.username + ")" : "") + ".");
                         return;
                     }
+                    setPendingPick(account, new PendingPick(results, query, null, null, null, 0, 50));
                     StringBuilder sb = new StringBuilder(MiogramLocale.get("Я знайшла ", "Я нашла ", "I found ") + results.size() + MiogramLocale.get(" схожих профілів:\n", " похожих профилей:\n", " similar profiles:\n"));
                     int count = Math.min(5, results.size());
                     for (int i = 0; i < count; i++) {
@@ -700,8 +972,68 @@ public class MiogramCompanionToolbox {
                         }
                         sb.append("\n");
                     }
-                    sb.append(MiogramLocale.get("Уточни, будь ласка, за @юзернеймом, про кого саме мова?", "Уточни, пожалуйста, по @юзернейму, о ком именно речь?", "Please clarify by @username who you are referring to."));
+                    sb.append(MiogramLocale.get("Скажи номер (наприклад «2» або «другий») — продовжу. «Далі» — гортаю список чатів.",
+                            "Скажи номер (например «2» или «второй») — продолжу. «Дальше» — листаю список чатов.",
+                            "Reply with the number (e.g. \"2\") and I'll continue. \"Next\" — browse the chat list."));
                     callback.run(sb.toString());
+                    break;
+                }
+                case "list_dialogs": {
+                    String filter = p.optString("filter", "all");
+                    if (filter.isEmpty()) filter = p.optString("kind", "all");
+                    int page = Math.max(0, p.optInt("page", 0));
+                    int pageSize = p.optInt("page_size", 50);
+                    if (pageSize < 10) pageSize = 10;
+                    if (pageSize > 50) pageSize = 50;
+                    List<FoundChat> all = snapshotDialogs(account, filter);
+                    if (all.isEmpty()) {
+                        callback.run(MiogramLocale.get("Список чатів порожній або ще не завантажився.", "Список чатов пуст или ещё не загрузился.", "Chat list is empty or not loaded yet."));
+                        return;
+                    }
+                    setPendingPick(account, new PendingPick(all, "", null, null, filter, page, pageSize));
+                    String header = MiogramLocale.get("Мої чати (спочатку недавні", "Мои чаты (сначала недавние", "My chats (recent first")
+                            + ("all".equalsIgnoreCase(filter) ? "" : ", " + filter) + "):\n";
+                    callback.run(formatChatPage(all, page, pageSize, header));
+                    break;
+                }
+                case "open_chat": {
+                    ChatResolution res = resolveChatTarget(account, p);
+                    if (res.errorMessage != null) {
+                        callback.run(res.errorMessage);
+                        return;
+                    }
+                    final long did = res.dialogId;
+                    final String ref = res.foundChat != null ? res.foundChat.getReference() : String.valueOf(did);
+                    AndroidUtilities.runOnUIThread(() -> {
+                        try {
+                            org.telegram.ui.ActionBar.BaseFragment last = org.telegram.ui.LaunchActivity.getLastFragment();
+                            if (last == null) {
+                                callback.run(MiogramLocale.get("Не можу відкрити чат зараз (немає екрану).", "Не могу открыть чат сейчас (нет экрана).", "Can't open the chat right now (no screen)."));
+                                return;
+                            }
+                            if (did > 0) {
+                                TLRPC.User u = MessagesController.getInstance(account).getUser(did);
+                                if (u != null && u.username != null && !u.username.isEmpty()) {
+                                    MessagesController.getInstance(account).openByUserName(u.username, last, 1);
+                                    callback.run(MiogramLocale.get("Відкриваю чат ", "Открываю чат ", "Opening chat ") + ref + ".");
+                                    return;
+                                }
+                            } else if (did < 0) {
+                                TLRPC.Chat c = MessagesController.getInstance(account).getChat(-did);
+                                if (c != null && c.username != null && !c.username.isEmpty()) {
+                                    MessagesController.getInstance(account).openByUserName(c.username, last, 1);
+                                    callback.run(MiogramLocale.get("Відкриваю чат ", "Открываю чат ", "Opening chat ") + ref + ".");
+                                    return;
+                                }
+                            }
+                            android.os.Bundle args = new android.os.Bundle();
+                            args.putLong("dialog_id", did);
+                            last.presentFragment(new org.telegram.ui.ChatActivity(args));
+                            callback.run(MiogramLocale.get("Відкриваю чат ", "Открываю чат ", "Opening chat ") + ref + ".");
+                        } catch (Throwable t) {
+                            callback.run(MiogramLocale.get("Не вдалося відкрити чат: ", "Не удалось открыть чат: ", "Failed to open chat: ") + t.getMessage());
+                        }
+                    });
                     break;
                 }
                 case "search_groups": {

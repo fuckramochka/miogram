@@ -377,6 +377,17 @@ public class MiogramHerokuActivity extends BaseNekoSettingsActivity {
             fos.close();
             is.close();
 
+            // Reverse direction: an exteraGram plugin picked here goes to the
+            // plugin consent sheet instead of becoming a broken stub command.
+            try {
+                android.app.Activity host = getParentActivity();
+                if (host != null && app.exteraless.plugins.PyModuleRouter.detectKind(target)
+                        == app.exteraless.plugins.PyModuleRouter.Kind.EXTERAGRAM) {
+                    app.exteraless.plugins.PluginInstallHelper.confirmAndInstall(host, target);
+                    return;
+                }
+            } catch (Throwable ignore) {}
+
             boolean ok = MiogramHerokuManager.getInstance().loadExternalPythonModule(target);
             if (ok) {
                 Toast.makeText(ctx, MiogramLocale.get("✅ Модуль успішно встановлено: ", "✅ Модуль успешно установлен: ", "✅ Module installed successfully: ") + fileName, Toast.LENGTH_SHORT).show();

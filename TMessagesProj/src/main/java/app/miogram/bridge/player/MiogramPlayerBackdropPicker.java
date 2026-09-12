@@ -56,6 +56,11 @@ public class MiogramPlayerBackdropPicker extends BaseFragment {
     private TextView applyBtn;
     private String stagedPath = "";
     private boolean stagedValid = false;
+    private boolean stagedIsVideo = false;
+
+    private boolean isVideoMode() {
+        return mode.equals("video") || (mode.equals("auto") && stagedIsVideo);
+    }
 
     @Override
     public boolean onFragmentCreate() {
@@ -63,8 +68,14 @@ public class MiogramPlayerBackdropPicker extends BaseFragment {
         if (args != null) {
             mode = args.getString(ARG_MODE, "photo");
         }
-        if (!mode.equals("video")) mode = "photo";
-        String cur = mode.equals("video") ? MiogramPlayerPrefs.getCustomVideoPath() : MiogramPlayerPrefs.getCustomPhotoPath();
+        if (!mode.equals("video") && !mode.equals("auto")) mode = "photo";
+        if (mode.equals("auto")) {
+            int bgMode = MiogramPlayerPrefs.getBackgroundMode();
+            stagedIsVideo = bgMode == MiogramPlayerPrefs.BG_MODE_CUSTOM_VIDEO;
+        } else {
+            stagedIsVideo = mode.equals("video");
+        }
+        String cur = isVideoMode() ? MiogramPlayerPrefs.getCustomVideoPath() : MiogramPlayerPrefs.getCustomPhotoPath();
         if (MiogramPlayerPrefs.isCustomMediaValid(cur)) {
             stagedPath = cur;
             stagedValid = true;
@@ -154,7 +165,7 @@ public class MiogramPlayerBackdropPicker extends BaseFragment {
                 }
                 finishFragment();
             } else if (stagedPath.isEmpty()) {
-                if (mode.equals("video")) MiogramPlayerPrefs.setCustomVideoPath("");
+                if (isVideoMode()) MiogramPlayerPrefs.setCustomVideoPath("");
                 else MiogramPlayerPrefs.setCustomPhotoPath("");
                 if (MiogramPlayerPrefs.getBackgroundMode() == MiogramPlayerPrefs.BG_MODE_CUSTOM_PHOTO
                         || MiogramPlayerPrefs.getBackgroundMode() == MiogramPlayerPrefs.BG_MODE_CUSTOM_VIDEO) {
@@ -202,7 +213,7 @@ public class MiogramPlayerBackdropPicker extends BaseFragment {
                 previewVideo.setVisibility(View.GONE);
             }
             if (stagedValid && MiogramPlayerPrefs.isCustomMediaValid(stagedPath)) {
-                if (mode.equals("video")) {
+                if (isVideoMode()) {
                     previewImage.setImageDrawable(null);
                     previewVideo.setVideoPath(stagedPath);
                     previewVideo.setOnPreparedListener(mp -> {
@@ -245,11 +256,33 @@ public class MiogramPlayerBackdropPicker extends BaseFragment {
         }
     }
 
+    private static boolean isVideoUri(Context ctx, Uri uri) {
+        try {
+            String mime = ctx.getContentResolver().getType(uri);
+            if (mime != null && mime.toLowerCase(java.util.Locale.ROOT).startsWith("video")) return true;
+        } catch (Throwable ignore) {}
+        try {
+            String path = uri.getLastPathSegment();
+            if (path != null) {
+                String low = path.toLowerCase(java.util.Locale.ROOT);
+                if (low.endsWith(".mp4") || low.endsWith(".mov") || low.endsWith(".webm")
+                        || low.endsWith(".mkv") || low.endsWith(".3gp") || low.endsWith(".avi")) return true;
+            }
+        } catch (Throwable ignore) {}
+        return false;
+    }
+
     private void openPicker() {
         try {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType(mode.equals("video") ? "video/*" : "image/*");
+            if (mode.equals("auto")) {
+                // Single button for photo AND video.
+                intent.setType("*/*");
+                intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "video/*"});
+            } else {
+                intent.setType(mode.equals("video") ? "video/*" : "image/*");
+            }
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
             startActivityForResult(intent, REQ_PICK);
         } catch (Throwable t) {
@@ -271,7 +304,12 @@ public class MiogramPlayerBackdropPicker extends BaseFragment {
                 try {
                     ctx.getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 } catch (Throwable ignore) {}
-                File out = new File(ctx.getFilesDir(), mode.equals("video") ? "miogram_player_bg_video.mp4" : "miogram_player_bg_photo.jpg");
+                boolean pickedVideo = mode.equals("video");
+                if (mode.equals("auto")) {
+                    pickedVideo = isVideoUri(ctx, uri);
+                }
+                stagedIsVideo = pickedVideo;
+                File out = new File(ctx.getFilesDir(), pickedVideo ? "miogram_player_bg_video.mp4" : "miogram_player_bg_photo.jpg");
                 try (InputStream in = ctx.getContentResolver().openInputStream(uri);
                      FileOutputStream fos = new FileOutputStream(out)) {
                     if (in == null) throw new Exception("null stream");
@@ -288,7 +326,7 @@ public class MiogramPlayerBackdropPicker extends BaseFragment {
                 if (!MiogramPlayerPrefs.isCustomMediaValid(out.getAbsolutePath())) {
                     throw new Exception("invalid file");
                 }
-                if (mode.equals("photo")) {
+                if (!stagedIsVideo) {
                     BitmapFactory.Options o = new BitmapFactory.Options();
                     o.inJustDecodeBounds = true;
                     BitmapFactory.decodeFile(out.getAbsolutePath(), o);

@@ -81,7 +81,7 @@ public class MiogramLyricsView extends FrameLayout {
     private final TextView emptySubtitle;
     private final LinearLayout emptyButtonsRow;
     private final TextView aiActionButton;
-    private final TextView aiWordActionButton;
+    private final TextView retryAiButton;
     private final TextView changeSourceButton;
 
     // Floating Pill Toast
@@ -216,22 +216,6 @@ public class MiogramLyricsView extends FrameLayout {
         });
         emptyButtonsRow.addView(aiActionButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
 
-        aiWordActionButton = new TextView(context);
-        aiWordActionButton.setText(MiogramLocale.get("✨ Точна розшифровка (по словах)", "✨ Точная расшифровка (по словам)", "✨ Enhanced transcription (word timings)"));
-        aiWordActionButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-        aiWordActionButton.setTypeface(AndroidUtilities.bold());
-        aiWordActionButton.setTextColor(0xFFFFFFFF);
-        aiWordActionButton.setGravity(Gravity.CENTER);
-        aiWordActionButton.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(10), AndroidUtilities.dp(20), AndroidUtilities.dp(10));
-        aiWordActionButton.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(20), ColorUtils.setAlphaComponent(accent, 70)));
-        aiWordActionButton.setOnClickListener(v -> {
-            MiogramHaptic.tap(v);
-            if (currentMessageObject != null) {
-                transcribeWithAiWordTimed(currentMessageObject);
-            }
-        });
-        emptyButtonsRow.addView(aiWordActionButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
-
         changeSourceButton = new TextView(context);
         changeSourceButton.setText(MiogramLocale.get("Змінити джерело пошуку", "Изменить источник поиска", "Change search source"));
         changeSourceButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
@@ -244,7 +228,24 @@ public class MiogramLyricsView extends FrameLayout {
             MiogramHaptic.tap(v);
             showSourceOptions(v);
         });
-        emptyButtonsRow.addView(changeSourceButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+        emptyButtonsRow.addView(changeSourceButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 10));
+
+        retryAiButton = new TextView(context);
+        retryAiButton.setText(MiogramLocale.get("↻ Повторити генерацію", "↻ Повторить генерацию", "↻ Regenerate"));
+        retryAiButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        retryAiButton.setTypeface(AndroidUtilities.bold());
+        retryAiButton.setTextColor(accent);
+        retryAiButton.setGravity(Gravity.CENTER);
+        retryAiButton.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(8), AndroidUtilities.dp(18), AndroidUtilities.dp(8));
+        retryAiButton.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(16), ColorUtils.setAlphaComponent(accent, 30)));
+        retryAiButton.setVisibility(View.GONE);
+        retryAiButton.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            if (currentMessageObject != null) {
+                transcribeWithAi(currentMessageObject);
+            }
+        });
+        emptyButtonsRow.addView(retryAiButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
         emptyContainer.addView(emptyButtonsRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         addView(emptyContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, 46, 0, 0));
@@ -271,6 +272,7 @@ public class MiogramLyricsView extends FrameLayout {
 
     private void updateSourcePillText() {
         sourcePillButton.setText(MiogramSourceSelectAlert.getSourceName(currentSourceId));
+        notifySourceChanged();
     }
 
     private void updateTranslationButton() {
@@ -299,13 +301,20 @@ public class MiogramLyricsView extends FrameLayout {
         options.add(R.drawable.player_new_order, MiogramLocale.get("YouTube (Опис)", "YouTube (Описание)", "YouTube (Description)"), () -> selectSource(MiogramLyricsEngine.SOURCE_YOUTUBE));
         options.add(R.drawable.msg_bot, MiogramLocale.get("ШІ зі звуку (Gemini)", "ИИ со слуха (Gemini)", "AI by ear (Gemini)"), () -> selectSource(MiogramLyricsEngine.SOURCE_AI));
         options.add(R.drawable.msg_bot, MiogramLocale.get("✨ Точна розшифровка (по словах)", "✨ Точная расшифровка (по словам)", "✨ Enhanced transcription (word timings)"), () -> selectSource(MiogramLyricsEngine.SOURCE_AI_WORD));
+        options.add(R.drawable.msg_retry, MiogramLocale.get("↻ Повторити генерацію", "↻ Повторить генерацию", "↻ Regenerate"), () -> {
+            if (currentMessageObject != null) transcribeWithAi(currentMessageObject);
+        });
 
         options.show();
     }
 
     private void selectSource(int sourceId) {
         this.currentSourceId = sourceId;
-        savedSourceId = sourceId;
+        // AI is a one-shot per-song action — never persist it as the global
+        // default, otherwise every next song would transcribe via AI.
+        if (sourceId != MiogramLyricsEngine.SOURCE_AI && sourceId != MiogramLyricsEngine.SOURCE_AI_WORD) {
+            savedSourceId = sourceId;
+        }
         updateSourcePillText();
         showToastPill(MiogramSourceSelectAlert.getSourceName(sourceId));
         if (currentMessageObject != null) {
@@ -391,6 +400,36 @@ public class MiogramLyricsView extends FrameLayout {
         this.onCloseClickListener = listener;
     }
 
+    private Runnable onSourceChangedListener;
+
+    public void setOnSourceChangedListener(Runnable listener) {
+        this.onSourceChangedListener = listener;
+    }
+
+    private void notifySourceChanged() {
+        try {
+            if (onSourceChangedListener != null) onSourceChangedListener.run();
+        } catch (Throwable ignore) {}
+    }
+
+    /** True when lyrics exist (or are missing) but did NOT come from AI — can be upgraded. */
+    public boolean canImprove() {
+        return currentMessageObject != null
+                && currentSourceId != MiogramLyricsEngine.SOURCE_AI
+                && currentSourceId != MiogramLyricsEngine.SOURCE_AI_WORD;
+    }
+
+    /** Upgrade current (non-AI) lyrics to precise AI transcription. */
+    public void upgradeLyricsToAi() {
+        if (currentMessageObject != null) {
+            transcribeWithAi(currentMessageObject);
+        }
+    }
+
+    public int getCurrentSourceId() {
+        return currentSourceId;
+    }
+
     @Override
     protected void onDetachedFromWindow() {
         if (hideToastRunnable != null) {
@@ -444,6 +483,7 @@ public class MiogramLyricsView extends FrameLayout {
                 showLoading(false);
                 adapter.setLines(song.lines);
                 updateTranslationButton();
+                updateSourcePillText();
                 updateTime(MediaController.getInstance().getPlayingMessageObject() != null
                         ? MediaController.getInstance().getPlayingMessageObject().audioProgressMs
                         : 0L);
@@ -461,7 +501,7 @@ public class MiogramLyricsView extends FrameLayout {
         final long reqGen = ++lyricsRequestGeneration;
         showLoading(true);
         emptyTitle.setText(MiogramLocale.get("ШІ розпізнає текст пісні...", "ИИ распознает текст песни...", "AI is transcribing lyrics..."));
-        emptySubtitle.setText(MiogramLocale.get("Це може зайняти до 10-15 секунд", "Это может занять до 10-15 секунд", "This may take 10-15 seconds"));
+        emptySubtitle.setText(MiogramLocale.get("Кожне слово отримає таймінг, до 15-30 секунд", "Каждое слово получит тайминг, до 15-30 секунд", "Each word gets timing, up to 15-30 seconds"));
 
         MiogramLyricsEngine.getInstance().transcribeAudioWithAi(messageObject, new MiogramLyricsEngine.LyricsCallback() {
             @Override
@@ -605,6 +645,9 @@ public class MiogramLyricsView extends FrameLayout {
         progressBar.setVisibility(View.GONE);
         recyclerView.setVisibility(View.GONE);
         emptyButtonsRow.setVisibility(View.VISIBLE);
+        if (retryAiButton != null) {
+            retryAiButton.setVisibility(error && currentMessageObject != null ? View.VISIBLE : View.GONE);
+        }
 
         String msg = message != null ? message.toLowerCase() : "";
         boolean isNetwork = error && (msg.contains("network") || msg.contains("timeout") || msg.contains("connect")

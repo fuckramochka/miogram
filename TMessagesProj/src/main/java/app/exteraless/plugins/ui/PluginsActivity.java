@@ -669,6 +669,11 @@ public class PluginsActivity extends BaseFragment {
                     .create());
             return;
         }
+        // .py shared by two subsystems: Heroku/Hikka modules route to the
+        // userbot automatically, archives and exteraGram plugins go below.
+        if (".py".equals(ext) && app.exteraless.plugins.PyModuleRouter.routeToHerokuIfNeeded(activity, tmp)) {
+            return;
+        }
         // Через диалог согласия, а не installPlugin напрямую: иначе выбор файла
         // на этом экране выдавал бы плагину все объявленные разрешения молча,
         // в обход единственного места, где пользователь их видит.
