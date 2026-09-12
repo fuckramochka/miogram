@@ -5075,7 +5075,9 @@ public class ChatActivity extends BaseFragment implements
                     if (currentChat != null) {
                         chatMenuPrimaryItems.add(headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_leave, LocaleController.getString(R.string.DeleteAndExit)));
                     } else if (currentUser != null && currentUser.bot) {
-                        chatMenuPrimaryItems.add(headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_block2, LocaleController.getString(R.string.DeleteAndBlock)).setColors(getThemedColor(Theme.key_text_RedRegular), getThemedColor(Theme.key_text_RedRegular)));
+                        ActionBarMenuItem.Item delBlockItem = headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_block2, LocaleController.getString(R.string.DeleteAndBlock));
+                        delBlockItem.setColors(getThemedColor(Theme.key_text_RedRegular), getThemedColor(Theme.key_text_RedRegular));
+                        chatMenuPrimaryItems.add(delBlockItem);
                     } else {
                         chatMenuPrimaryItems.add(headerItem.lazilyAddSubItem(delete_chat, R.drawable.msg_delete, LocaleController.getString(R.string.DeleteChatUser)));
                     }
@@ -5260,7 +5262,8 @@ public class ChatActivity extends BaseFragment implements
                     ActionBarMenuItem.Item botHelpItem = headerItem.lazilyAddSubItem(bot_help, R.drawable.msg_help, LocaleController.getString(R.string.BotHelp));
                     chatMenuSecondaryItems.add(botHelpItem);
                     if (!MessagesController.isSupportUser(currentUser)) {
-                        ActionBarMenuItem.Item reportItem = headerItem.lazilyAddSubItem(report, R.drawable.msg_report, LocaleController.getString(R.string.ReportBot)).setColors(getThemedColor(Theme.key_text_RedRegular), getThemedColor(Theme.key_text_RedRegular));
+                        ActionBarMenuItem.Item reportItem = headerItem.lazilyAddSubItem(report, R.drawable.msg_report, LocaleController.getString(R.string.ReportBot));
+                        reportItem.setColors(getThemedColor(Theme.key_text_RedRegular), getThemedColor(Theme.key_text_RedRegular));
                         chatMenuSecondaryItems.add(reportItem);
                     }
                     updateBotButtons();

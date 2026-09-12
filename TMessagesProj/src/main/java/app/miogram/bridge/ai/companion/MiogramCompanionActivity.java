@@ -456,17 +456,6 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         kangelSpeechBubble.setMaxLines(3);
         kangelSpeechBubble.setEllipsize(TextUtils.TruncateAt.END);
         middleRow.addView(kangelSpeechBubble, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 8, 0, 0, 0));
-        kangelSpeechBubble.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        kangelSpeechBubble.setTextColor(0xFFFFFFFF);
-        GradientDrawable bubble = new GradientDrawable();
-        bubble.setColor(0x3300B4D8);
-        bubble.setCornerRadius(AndroidUtilities.dp(10));
-        bubble.setStroke(AndroidUtilities.dp(1), 0x6600B4D8);
-        kangelSpeechBubble.setBackground(bubble);
-        kangelSpeechBubble.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(6), AndroidUtilities.dp(8), AndroidUtilities.dp(6));
-        kangelSpeechBubble.setMaxLines(3);
-        kangelSpeechBubble.setEllipsize(TextUtils.TruncateAt.END);
-        middleRow.addView(kangelSpeechBubble, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f, 8, 0, 0, 0));
 
         // Stats Row
         LinearLayout statsBar = new LinearLayout(context);
@@ -1204,13 +1193,6 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             fullPrompt.append(m.isUser ? "P-chan: " : "Companion: ").append(m.text).append("\n");
         }
         fullPrompt.append("Companion:");
-
-        boolean isPluginCoding = query.toLowerCase().contains("плагін") || query.toLowerCase().contains("плагин") || query.toLowerCase().contains("plugin") || query.toLowerCase().contains("код") || query.toLowerCase().contains("code");
-        if (isPluginCoding) {
-            modelBadge.setText("⚡ 3.8 Flash (Coding)");
-        } else {
-            modelBadge.setText("⚡ 3.5 Flash Lite");
-        }
 
         MiogramAiService.generateText(fullPrompt.toString(), (rawReply, err) -> AndroidUtilities.runOnUIThread(() -> {
             isSending = false;

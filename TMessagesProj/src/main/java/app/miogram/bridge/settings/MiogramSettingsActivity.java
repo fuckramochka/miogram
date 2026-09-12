@@ -239,7 +239,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                         cell.setTextAndValueAndIcon(
                                 MiogramLocale.get("Підпапки чатів", "Подпапки чатов", "Chat Subfolders"),
                                 MiogramLocale.get("Вкладені теки діалогів", "Вложенные папки диалогов", "Nested chat folders"),
-                                R.drawable.msg_folder,
+                                R.drawable.msg_folders,
                                 true
                         );
                     } else if (position == badgeStudioRow) {
@@ -335,7 +335,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                         cell.setTextAndValueAndIcon(
                                 MiogramLocale.get("Продуктивність та оптимізація", "Производительность и оптимизация", "Performance & Optimization"),
                                 MiogramLocale.get("Кеш, GPU прискорення, RAM", "Кэш, GPU ускорение, RAM", "Cache, GPU acceleration, RAM"),
-                                R.drawable.msg_round_speed,
+                                R.drawable.msg_speed_solar,
                                 true
                         );
                     } else if (position == generalRow) {
@@ -349,7 +349,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                         cell.setTextAndValueAndIcon(
                                 MiogramLocale.get("Перевірити оновлення", "Проверить обновления", "Check for Updates"),
                                 "v" + org.telegram.messenger.BuildVars.BUILD_VERSION_STRING,
-                                R.drawable.msg_arrow_down,
+                                R.drawable.msg_download_solar,
                                 false
                         );
                     }

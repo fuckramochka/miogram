@@ -573,62 +573,6 @@ public class MiogramAiService {
         });
     }
 
-    /**
-     * Specialized raw execution for Smart Feed with ad-filtering and structured digest,
-     * maintaining the hierarchical fallback chain without overriding user instructions.
-     */
-    public static void processFeedWithAi(String customPrompt, Utilities.Callback<String> callback) {
-        // Low temperature + JSON mode: feed parsing must be deterministic.
-        generateContentInternal(customPrompt, getModel(), 0.2, true, (res, err) -> {
-            if (res != null) {
-                AndroidUtilities.runOnUIThread(() -> callback.run(res));
-            } else if (err != null && (err.contains("404") || err.contains("400") || err.contains("503"))) {
-                String curModel = getModel();
-                String fb = FALLBACK_MODEL.equals(curModel) ? DEFAULT_MODEL : FALLBACK_MODEL;
-                generateContent(customPrompt, fb, (fb1Res, fb1Err) -> {
-                    if (fb1Res != null) {
-                        AndroidUtilities.runOnUIThread(() -> callback.run(fb1Res));
-                    } else {
-                        generateContent(customPrompt, FALLBACK_MODEL, (fb2Res, fb2Err) -> {
-                            AndroidUtilities.runOnUIThread(() -> callback.run(fb2Res));
-                        });
-                    }
-                });
-            } else {
-                AndroidUtilities.runOnUIThread(() -> callback.run(null));
-            }
-        });
-    }
-
-    /**
-     * General text generation for digests, analysis, and custom prompts.
-     */
-    public static void generateText(String prompt, Utilities.Callback2<String, String> callback) {
-        generateContent(prompt, getModel(), (res, err) -> {
-            if (res != null) {
-                deliverProse2("text", callback, res, null);
-            } else if (err != null && (err.contains("404") || err.contains("400") || err.contains("503"))) {
-                String curModel = getModel();
-                String fb = FALLBACK_MODEL.equals(curModel) ? DEFAULT_MODEL : FALLBACK_MODEL;
-                generateContent(prompt, fb, (fb1Res, fb1Err) -> {
-                    if (fb1Res != null) {
-                        deliverProse2("text", callback, fb1Res, null);
-                    } else {
-                        generateContent(prompt, FALLBACK_MODEL, (fb2Res, fb2Err) -> {
-                            if (fb2Res != null) {
-                                deliverProse2("text", callback, fb2Res, null);
-                            } else {
-                                callback.run(null, fb2Err != null ? fb2Err : err);
-                            }
-                        });
-                    }
-                });
-            } else {
-                callback.run(null, err);
-            }
-        });
-    }
-
     // ==================================================================
     // Plugin Forge: description -> Rust WASM plugin source (dedicated model)
     // ==================================================================

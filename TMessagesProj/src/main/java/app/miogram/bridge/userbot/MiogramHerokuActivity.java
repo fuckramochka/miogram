@@ -82,11 +82,11 @@ public class MiogramHerokuActivity extends BaseNekoSettingsActivity {
 
         // 2. Modules
         headerModulesRow = addRow();
-        modulesStartRow = getRowCount();
+        modulesStartRow = rowCount;
         for (int i = 0; i < cachedModules.size(); i++) {
             addRow();
         }
-        modulesEndRow = getRowCount();
+        modulesEndRow = rowCount;
         installModuleRow = addRow();
         modulesInfoRow = addRow();
 
@@ -102,109 +102,139 @@ public class MiogramHerokuActivity extends BaseNekoSettingsActivity {
         actionsInfoRow = addRow();
     }
 
-    @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position, int type) {
-        if (type == BaseNekoSettingsActivity.VIEW_TYPE_HEADER) {
-            HeaderCell cell = (HeaderCell) holder.itemView;
-            if (position == headerMainRow) {
-                cell.setText(MiogramLocale.get("Загальні налаштування 🪐", "Общие настройки 🪐", "General Settings 🪐"));
-            } else if (position == headerModulesRow) {
-                cell.setText(MiogramLocale.get("Модулі юзербота 📦", "Модули юзербота 📦", "Userbot Modules 📦"));
-            } else if (position == headerActionsRow) {
-                cell.setText(MiogramLocale.get("Діагностика та команди ⚡", "Диагностика и команды ⚡", "Diagnostics & Commands ⚡"));
+    private class ListAdapter extends BaseListAdapter {
+
+        public ListAdapter(Context context) {
+            super(context);
+        }
+
+        @Override
+        public int getItemCount() {
+            return rowCount;
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            if (position == headerMainRow || position == headerModulesRow || position == headerActionsRow) {
+                return TYPE_HEADER;
+            } else if (position == enabledRow || (position >= modulesStartRow && position < modulesEndRow)) {
+                return TYPE_CHECK;
+            } else if (position == mainInfoRow || position == modulesInfoRow || position == actionsInfoRow) {
+                return TYPE_INFO_PRIVACY;
             }
-        } else if (type == BaseNekoSettingsActivity.VIEW_TYPE_CHECK) {
-            TextCheckCell cell = (TextCheckCell) holder.itemView;
-            if (position == enabledRow) {
-                cell.setTextAndCheck(
-                        MiogramLocale.get("Увімкнути юзербот", "Включить юзербот", "Enable Userbot"),
-                        MiogramHerokuManager.getInstance().isEnabled(),
-                        true
-                );
-            } else if (position >= modulesStartRow && position < modulesEndRow) {
-                int idx = position - modulesStartRow;
-                if (idx < cachedModules.size()) {
-                    MiogramHerokuManager.UserbotModuleInfo m = cachedModules.get(idx);
+            return TYPE_SETTINGS;
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position, boolean partial) {
+            int type = holder.getItemViewType();
+            if (type == TYPE_HEADER) {
+                HeaderCell cell = (HeaderCell) holder.itemView;
+                if (position == headerMainRow) {
+                    cell.setText(MiogramLocale.get("Загальні налаштування 🪐", "Общие настройки 🪐", "General Settings 🪐"));
+                } else if (position == headerModulesRow) {
+                    cell.setText(MiogramLocale.get("Модулі юзербота 📦", "Модули юзербота 📦", "Userbot Modules 📦"));
+                } else if (position == headerActionsRow) {
+                    cell.setText(MiogramLocale.get("Діагностика та команди ⚡", "Диагностика и команды ⚡", "Diagnostics & Commands ⚡"));
+                }
+            } else if (type == TYPE_CHECK) {
+                TextCheckCell cell = (TextCheckCell) holder.itemView;
+                if (position == enabledRow) {
                     cell.setTextAndCheck(
-                            m.name + " (v" + m.version + ")",
-                            m.isEnabled,
+                            MiogramLocale.get("Увімкнути юзербот", "Включить юзербот", "Enable Userbot"),
+                            MiogramHerokuManager.getInstance().isEnabled(),
                             true
                     );
+                } else if (position >= modulesStartRow && position < modulesEndRow) {
+                    int idx = position - modulesStartRow;
+                    if (idx < cachedModules.size()) {
+                        MiogramHerokuManager.UserbotModuleInfo m = cachedModules.get(idx);
+                        cell.setTextAndCheck(
+                                m.name + " (v" + m.version + ")",
+                                m.isEnabled,
+                                true
+                        );
+                    }
+                }
+            } else if (type == TYPE_SETTINGS) {
+                TextSettingsCell cell = (TextSettingsCell) holder.itemView;
+                if (position == prefixRow) {
+                    cell.setTextAndValue(
+                            MiogramLocale.get("Префікс команд", "Префикс команд", "Command Prefix"),
+                            "`" + MiogramHerokuManager.getInstance().getPrefix() + "`",
+                            true
+                    );
+                } else if (position == botSetupRow) {
+                    boolean hasBot = MiogramHerokuManager.getInstance().hasConfiguredBot();
+                    cell.setTextAndValue(
+                            MiogramLocale.get("Помічник Bot API (@BotFather)", "Помощник Bot API (@BotFather)", "Bot API Assistant (@BotFather)"),
+                            hasBot ? "@" + MiogramHerokuManager.getInstance().getBotUsername() : MiogramLocale.get("Не налаштовано", "Не настроено", "Not configured"),
+                            true
+                    );
+                } else if (position == botStatusRow) {
+                    boolean hasBot = MiogramHerokuManager.getInstance().hasConfiguredBot();
+                    boolean inline = MiogramHerokuManager.getInstance().isInlineCapable();
+                    String status = !hasBot
+                            ? MiogramLocale.get("Бот відсутній (тільки локальні команди)", "Бот отсутствует (только локальные команды)", "No bot (local commands only)")
+                            : (inline ? "🟢 " + MiogramLocale.get("Активний (Inline OK)", "Активен (Inline OK)", "Active (Inline OK)") : "🟡 " + MiogramLocale.get("Активний (без Inline)", "Активен (без Inline)", "Active (no Inline)"));
+                    cell.setTextAndValue(
+                            MiogramLocale.get("Статус помічника", "Статус помощника", "Helper Status"),
+                            status,
+                            false
+                    );
+                } else if (position == installModuleRow) {
+                    cell.setTextAndValue(
+                            MiogramLocale.get("Встановити модуль (.py)", "Установить модуль (.py)", "Install Module (.py)"),
+                            MiogramLocale.get("З файлу", "Из файла", "From file"),
+                            false
+                    );
+                } else if (position == testPingRow) {
+                    cell.setTextAndValue(
+                            MiogramLocale.get("Тест затримки (.ping)", "Тест задержки (.ping)", "Test Latency (.ping)"),
+                            MiogramLocale.get("Перевірити швидкість", "Проверить скорость", "Check latency"),
+                            true
+                    );
+                } else if (position == viewCommandsRow) {
+                    cell.setTextAndValue(
+                            MiogramLocale.get("Список усіх команд", "Список всех команд", "List All Commands"),
+                            String.valueOf(MiogramHerokuManager.getInstance().getAvailableCommands().size()),
+                            clearBotRow != -1
+                    );
+                } else if (position == clearBotRow) {
+                    cell.setTextAndValue(
+                            MiogramLocale.get("Відключити помічника", "Отключить помощника", "Disconnect Helper Bot"),
+                            MiogramLocale.get("Видалити токен", "Удалить токен", "Remove token"),
+                            false
+                    );
+                }
+            } else if (type == TYPE_INFO_PRIVACY) {
+                TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
+                if (position == mainInfoRow) {
+                    cell.setText(MiogramLocale.get(
+                            "Команди юзербота виконуються прямо у відправлених повідомленнях при введенні префікса (наприклад: .ping, .tr, .calc).",
+                            "Команды юзербота выполняются прямо в отправляемых сообщениях при вводе префикса (например: .ping, .tr, .calc).",
+                            "Userbot commands execute directly inside your sent messages when using the prefix (e.g. .ping, .tr, .calc)."
+                    ));
+                } else if (position == modulesInfoRow) {
+                    cell.setText(MiogramLocale.get(
+                            "Ви можете встановлювати стандартні .py модулі Heroku Userbot. Вони автоматично реєструють команди та хуки.",
+                            "Вы можете устанавливать стандартные .py модули Heroku Userbot. Они автоматически регистрируют команды и хуки.",
+                            "You can install standard Heroku userbot .py modules. They automatically register commands and hooks."
+                    ));
+                } else if (position == actionsInfoRow) {
+                    cell.setText(MiogramLocale.get(
+                            "Heroku Userbot для Miogram працює повністю нативно без потреби в окремому сервері.",
+                            "Heroku Userbot для Miogram работает полностью нативно без необходимости в отдельном сервере.",
+                            "Heroku Userbot for Miogram runs completely natively without needing an external server."
+                    ));
                 }
             }
-        } else if (type == BaseNekoSettingsActivity.VIEW_TYPE_SETTINGS) {
-            TextSettingsCell cell = (TextSettingsCell) holder.itemView;
-            if (position == prefixRow) {
-                cell.setTextAndValue(
-                        MiogramLocale.get("Префікс команд", "Префикс команд", "Command Prefix"),
-                        "`" + MiogramHerokuManager.getInstance().getPrefix() + "`",
-                        true
-                );
-            } else if (position == botSetupRow) {
-                boolean hasBot = MiogramHerokuManager.getInstance().hasConfiguredBot();
-                cell.setTextAndValue(
-                        MiogramLocale.get("Помічник Bot API (@BotFather)", "Помощник Bot API (@BotFather)", "Bot API Assistant (@BotFather)"),
-                        hasBot ? "@" + MiogramHerokuManager.getInstance().getBotUsername() : MiogramLocale.get("Не налаштовано", "Не настроено", "Not configured"),
-                        true
-                );
-            } else if (position == botStatusRow) {
-                boolean hasBot = MiogramHerokuManager.getInstance().hasConfiguredBot();
-                boolean inline = MiogramHerokuManager.getInstance().isInlineCapable();
-                String status = !hasBot
-                        ? MiogramLocale.get("Бот відсутній (тільки локальні команди)", "Бот отсутствует (только локальные команды)", "No bot (local commands only)")
-                        : (inline ? "🟢 " + MiogramLocale.get("Активний (Inline OK)", "Активен (Inline OK)", "Active (Inline OK)") : "🟡 " + MiogramLocale.get("Активний (без Inline)", "Активен (без Inline)", "Active (no Inline)"));
-                cell.setTextAndValue(
-                        MiogramLocale.get("Статус помічника", "Статус помощника", "Helper Status"),
-                        status,
-                        false
-                );
-            } else if (position == installModuleRow) {
-                cell.setTextAndValue(
-                        MiogramLocale.get("Встановити модуль (.py)", "Установить модуль (.py)", "Install Module (.py)"),
-                        MiogramLocale.get("З файлу", "Из файла", "From file"),
-                        false
-                );
-            } else if (position == testPingRow) {
-                cell.setTextAndValue(
-                        MiogramLocale.get("Тест затримки (.ping)", "Тест задержки (.ping)", "Test Latency (.ping)"),
-                        MiogramLocale.get("Перевірити швидкість", "Проверить скорость", "Check latency"),
-                        true
-                );
-            } else if (position == viewCommandsRow) {
-                cell.setTextAndValue(
-                        MiogramLocale.get("Список усіх команд", "Список всех команд", "List All Commands"),
-                        String.valueOf(MiogramHerokuManager.getInstance().getAvailableCommands().size()),
-                        clearBotRow != -1
-                );
-            } else if (position == clearBotRow) {
-                cell.setTextAndValue(
-                        MiogramLocale.get("Відключити помічника", "Отключить помощника", "Disconnect Helper Bot"),
-                        MiogramLocale.get("Видалити токен", "Удалить токен", "Remove token"),
-                        false
-                );
-            }
-        } else if (type == BaseNekoSettingsActivity.VIEW_TYPE_INFO) {
-            TextInfoPrivacyCell cell = (TextInfoPrivacyCell) holder.itemView;
-            if (position == mainInfoRow) {
-                cell.setText(MiogramLocale.get(
-                        "Команди юзербота виконуються прямо у відправлених повідомленнях при введенні префікса (наприклад: .ping, .tr, .calc).",
-                        "Команды юзербота выполняются прямо в отправляемых сообщениях при вводе префикса (например: .ping, .tr, .calc).",
-                        "Userbot commands execute directly inside your sent messages when using the prefix (e.g. .ping, .tr, .calc)."
-                ));
-            } else if (position == modulesInfoRow) {
-                cell.setText(MiogramLocale.get(
-                        "Ви можете встановлювати стандартні .py модулі Heroku Userbot. Вони автоматично реєструють команди та хуки.",
-                        "Вы можете устанавливать стандартные .py модули Heroku Userbot. Они автоматически регистрируют команды и хуки.",
-                        "You can install standard Heroku userbot .py modules. They automatically register commands and hooks."
-                ));
-            } else if (position == actionsInfoRow) {
-                cell.setText(MiogramLocale.get(
-                        "Heroku Userbot для Miogram працює повністю нативно без потреби в окремому сервері.",
-                        "Heroku Userbot для Miogram работает полностью нативно без необходимости в отдельном сервере.",
-                        "Heroku Userbot for Miogram runs completely natively without needing an external server."
-                ));
-            }
         }
+    }
+
+    @Override
+    protected BaseListAdapter createAdapter(Context context) {
+        return new ListAdapter(context);
     }
 
     @Override
@@ -220,8 +250,8 @@ public class MiogramHerokuActivity extends BaseNekoSettingsActivity {
         } else if (position == botSetupRow) {
             MiogramHerokuBotSetupDialog.show(getParentActivity(), (success, username) -> {
                 updateRows();
-                if (getListView() != null && getListView().getAdapter() != null) {
-                    getListView().getAdapter().notifyDataSetChanged();
+                if (listAdapter != null) {
+                    listAdapter.notifyDataSetChanged();
                 }
             });
         } else if (position >= modulesStartRow && position < modulesEndRow) {
@@ -243,8 +273,8 @@ public class MiogramHerokuActivity extends BaseNekoSettingsActivity {
         } else if (position == clearBotRow) {
             MiogramHerokuManager.getInstance().clearBotInfo();
             updateRows();
-            if (getListView() != null && getListView().getAdapter() != null) {
-                getListView().getAdapter().notifyDataSetChanged();
+            if (listAdapter != null) {
+                listAdapter.notifyDataSetChanged();
             }
             Toast.makeText(getParentActivity(), MiogramLocale.get("Токен бота видалено", "Токен бота удален", "Bot token removed"), Toast.LENGTH_SHORT).show();
         }
@@ -265,8 +295,8 @@ public class MiogramHerokuActivity extends BaseNekoSettingsActivity {
             if (!TextUtils.isEmpty(val)) {
                 MiogramHerokuManager.getInstance().setPrefix(val);
                 updateRows();
-                if (getListView() != null && getListView().getAdapter() != null) {
-                    getListView().getAdapter().notifyDataSetChanged();
+                if (listAdapter != null) {
+                    listAdapter.notifyDataSetChanged();
                 }
             }
         });
@@ -351,8 +381,8 @@ public class MiogramHerokuActivity extends BaseNekoSettingsActivity {
             if (ok) {
                 Toast.makeText(ctx, MiogramLocale.get("✅ Модуль успішно встановлено: ", "✅ Модуль успешно установлен: ", "✅ Module installed successfully: ") + fileName, Toast.LENGTH_SHORT).show();
                 updateRows();
-                if (getListView() != null && getListView().getAdapter() != null) {
-                    getListView().getAdapter().notifyDataSetChanged();
+                if (listAdapter != null) {
+                    listAdapter.notifyDataSetChanged();
                 }
             } else {
                 Toast.makeText(ctx, MiogramLocale.get("❌ Помилка завантаження модуля", "❌ Ошибка загрузки модуля", "❌ Failed to load module"), Toast.LENGTH_SHORT).show();

@@ -2852,7 +2852,7 @@ public class ActionBarMenuItem extends FrameLayout {
             }
         }
 
-        public void setColors(int textColor, int iconColor) {
+        public Item setColors(int textColor, int iconColor) {
             if (this.textColor == null || this.iconColor == null || this.textColor != textColor || this.iconColor != iconColor) {
                 this.textColor = textColor;
                 this.iconColor = iconColor;
@@ -2860,6 +2860,7 @@ public class ActionBarMenuItem extends FrameLayout {
                     ((ActionBarMenuSubItem) view).setColors(textColor, iconColor);
                 }
             }
+            return this;
         }
     }
     public Item lazilyAddSwipeBackItem(int icon, Drawable iconDrawable, String text, View viewToSwipeBack) {
