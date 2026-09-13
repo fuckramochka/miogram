@@ -178,11 +178,37 @@ public class MiogramSpotifyManager {
             filter.addAction(ACTION_METADATA_CHANGED);
             filter.addAction(ACTION_PLAYBACK_STATE_CHANGED);
             filter.addAction(ACTION_QUEUE_CHANGED);
-            context.registerReceiver(spotifyReceiver, filter);
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                context.registerReceiver(spotifyReceiver, filter, Context.RECEIVER_EXPORTED);
+            } else {
+                context.registerReceiver(spotifyReceiver, filter);
+            }
             registered = true;
         } catch (Throwable t) {
             FileLog.e("MiogramSpotifyManager: register receiver failed", t);
         }
+    }
+
+    public static final String PREF_BRIDGE_ENABLED = "spotify_bridge_enabled_v1";
+
+    public boolean isBridgeEnabled() {
+        Context ctx = ApplicationLoader.applicationContext;
+        if (ctx == null) return false;
+        return ctx.getSharedPreferences("miogram_spotify", Context.MODE_PRIVATE)
+                .getBoolean(PREF_BRIDGE_ENABLED, false);
+    }
+
+    public void setBridgeEnabled(boolean enabled) {
+        Context ctx = ApplicationLoader.applicationContext;
+        if (ctx == null) return;
+        ctx.getSharedPreferences("miogram_spotify", Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(PREF_BRIDGE_ENABLED, enabled)
+                .apply();
+    }
+
+    public boolean isLinked() {
+        return isBridgeEnabled() || isPlaying() || !TextUtils.isEmpty(currentTrack);
     }
 
     public void addListener(SpotifyListener l) {

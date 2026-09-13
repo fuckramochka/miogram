@@ -112,9 +112,13 @@ public class MiogramSteamManager {
         getPrefs().edit().putString(KEY_SELF_STEAM_ID, steamId != null ? steamId.trim() : "").apply();
     }
 
+    public boolean isLinked() {
+        return !TextUtils.isEmpty(getLinkedSteamId());
+    }
+
     /**
      * Resolves public Steam Community profile using the official XML feed.
-     * Works for custom vanity URLs, friend IDs and SteamID64 without requiring API keys.
+     * Works for custom vanity URLs, friend IDs, vanity URLs with/without https, and SteamID64.
      */
     public void resolvePublicSteam(String query, ProfileCallback callback) {
         if (TextUtils.isEmpty(query)) {
@@ -122,22 +126,91 @@ public class MiogramSteamManager {
             return;
         }
 
-        final String clean = query.trim().replaceAll("https?://steamcommunity\\.com/(id|profiles)/", "").replaceAll("/.*", "");
-        final boolean isId64 = clean.matches("\\d{17}");
-        final String urlStr = isId64
-                ? "https://steamcommunity.com/profiles/" + clean + "/?xml=1"
-                : "https://steamcommunity.com/id/" + clean + "/?xml=1";
+        String q = query.trim();
+        if (q.startsWith("https://")) q = q.substring(8);
+        else if (q.startsWith("http://")) q = q.substring(7);
+
+        boolean explicitProfiles = false;
+        boolean explicitId = false;
+
+        if (q.contains("steamcommunity.com/profiles/")) {
+            explicitProfiles = true;
+            q = q.substring(q.indexOf("steamcommunity.com/profiles/") + "steamcommunity.com/profiles/".length());
+        } else if (q.contains("steamcommunity.com/id/")) {
+            explicitId = true;
+            q = q.substring(q.indexOf("steamcommunity.com/id/") + "steamcommunity.com/id/".length());
+        }
+
+        if (q.contains("?")) q = q.substring(0, q.indexOf("?"));
+        if (q.contains("#")) q = q.substring(0, q.indexOf("#"));
+        if (q.contains("/")) q = q.substring(0, q.indexOf("/"));
+        final String clean = q.trim();
+
+        if (TextUtils.isEmpty(clean)) {
+            if (callback != null) callback.onProfileLoaded(null);
+            return;
+        }
+
+        // Friend Code (7 to 10 digits) -> convert to SteamID64
+        String resolvedId64 = null;
+        if (!explicitId && clean.matches("\\d{7,10}")) {
+            try {
+                long friendCode = Long.parseLong(clean);
+                resolvedId64 = String.valueOf(76561197960265728L + friendCode);
+            } catch (Throwable ignore) {}
+        } else if (clean.matches("\\d{17}")) {
+            resolvedId64 = clean;
+        }
+
+        final String primaryUrl;
+        final String secondaryUrl;
+
+        if (resolvedId64 != null || explicitProfiles) {
+            String targetId = resolvedId64 != null ? resolvedId64 : clean;
+            primaryUrl = "https://steamcommunity.com/profiles/" + targetId + "/?xml=1";
+            secondaryUrl = null;
+        } else {
+            primaryUrl = "https://steamcommunity.com/id/" + clean + "/?xml=1";
+            secondaryUrl = "https://steamcommunity.com/profiles/" + clean + "/?xml=1";
+        }
 
         Utilities.globalQueue.postRunnable(() -> {
+            SteamProfile profile = fetchSteamXmlWithRedirects(primaryUrl);
+            if (profile == null && secondaryUrl != null) {
+                profile = fetchSteamXmlWithRedirects(secondaryUrl);
+            }
+
+            final SteamProfile result = profile;
+            AndroidUtilities.runOnUIThread(() -> {
+                if (callback != null) callback.onProfileLoaded(result);
+            });
+        });
+    }
+
+    private SteamProfile fetchSteamXmlWithRedirects(String urlStr) {
+        String currentUrl = urlStr;
+        for (int redirects = 0; redirects < 4; redirects++) {
             HttpURLConnection conn = null;
             try {
-                URL u = new URL(urlStr);
+                URL u = new URL(currentUrl);
                 conn = (HttpURLConnection) u.openConnection();
-                conn.setConnectTimeout(6000);
-                conn.setReadTimeout(6000);
-                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+                conn.setInstanceFollowRedirects(false);
+                conn.setConnectTimeout(7000);
+                conn.setReadTimeout(7000);
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                conn.setRequestProperty("Accept", "text/xml,application/xml,*/*");
 
                 int code = conn.getResponseCode();
+                if (code >= 300 && code < 400) {
+                    String loc = conn.getHeaderField("Location");
+                    if (TextUtils.isEmpty(loc)) break;
+                    if (!loc.contains("?xml=1") && !loc.contains("&xml=1")) {
+                        loc += (loc.contains("?") ? "&" : "?") + "xml=1";
+                    }
+                    currentUrl = loc;
+                    continue;
+                }
+
                 if (code == 200) {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
                     StringBuilder xml = new StringBuilder();
@@ -147,35 +220,35 @@ public class MiogramSteamManager {
                     }
                     reader.close();
 
-                    SteamProfile p = parseSteamXml(xml.toString());
-                    if (p != null) {
-                        AndroidUtilities.runOnUIThread(() -> {
-                            if (callback != null) callback.onProfileLoaded(p);
-                        });
-                        return;
-                    }
+                    return parseSteamXml(xml.toString());
                 }
+                break;
             } catch (Throwable t) {
-                FileLog.e("MiogramSteamManager: resolve error", t);
+                FileLog.e("MiogramSteamManager: fetch error for " + currentUrl, t);
+                break;
             } finally {
                 if (conn != null) conn.disconnect();
             }
-            AndroidUtilities.runOnUIThread(() -> {
-                if (callback != null) callback.onProfileLoaded(null);
-            });
-        });
+        }
+        return null;
     }
 
     private SteamProfile parseSteamXml(String xml) {
-        if (TextUtils.isEmpty(xml) || !xml.contains("<profile>")) return null;
+        if (TextUtils.isEmpty(xml) || !xml.contains("<profile>") || xml.contains("<error>")) return null;
 
         SteamProfile p = new SteamProfile();
         p.steamId = extractTag(xml, "steamID64");
         p.personaName = extractTag(xml, "steamID");
         p.avatarUrl = extractTag(xml, "avatarMedium");
+        if (TextUtils.isEmpty(p.avatarUrl)) p.avatarUrl = extractTag(xml, "avatarFull");
         if (TextUtils.isEmpty(p.avatarUrl)) p.avatarUrl = extractTag(xml, "avatarIcon");
         p.stateMessage = extractTag(xml, "stateMessage");
-        p.gameHours2Weeks = extractTag(xml, "hoursPlayed2Wk");
+        String hours = extractTag(xml, "hoursPlayed2Wk");
+        if (!TextUtils.isEmpty(hours) && !"0.0".equals(hours) && !"0".equals(hours)) {
+            p.gameHours2Weeks = hours;
+        }
+
+        String onlineState = extractTag(xml, "onlineState");
 
         // In-game info block
         if (xml.contains("<inGameInfo>")) {
@@ -189,11 +262,19 @@ public class MiogramSteamManager {
                     p.gameId = m.group(1);
                 }
             }
+        } else if ("in-game".equalsIgnoreCase(onlineState) || (p.stateMessage != null && p.stateMessage.contains("In-Game"))) {
+            p.isInGame = true;
+            if (p.stateMessage != null && p.stateMessage.contains("<br/>")) {
+                p.gameName = p.stateMessage.substring(p.stateMessage.indexOf("<br/>") + 5).replace("<![CDATA[", "").replace("]]>", "").trim();
+            }
         } else {
             p.isInGame = false;
         }
 
-        if (!TextUtils.isEmpty(p.steamId)) {
+        String customUrl = extractTag(xml, "customURL");
+        if (!TextUtils.isEmpty(customUrl)) {
+            p.profileUrl = "https://steamcommunity.com/id/" + customUrl;
+        } else if (!TextUtils.isEmpty(p.steamId)) {
             p.profileUrl = "https://steamcommunity.com/profiles/" + p.steamId;
         }
         p.lastUpdated = System.currentTimeMillis();
@@ -204,7 +285,13 @@ public class MiogramSteamManager {
         Pattern pattern = Pattern.compile("<" + tag + ">(?:<\\!\\[CDATA\\[)?(.*?)(?:\\]\\]>)?<\\/" + tag + ">", Pattern.DOTALL);
         Matcher matcher = pattern.matcher(xml);
         if (matcher.find()) {
-            return matcher.group(1).trim();
+            String val = matcher.group(1).trim();
+            return val.replace("&amp;", "&")
+                    .replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .replace("&quot;", "\"")
+                    .replace("&apos;", "'")
+                    .replace("&#39;", "'");
         }
         return "";
     }

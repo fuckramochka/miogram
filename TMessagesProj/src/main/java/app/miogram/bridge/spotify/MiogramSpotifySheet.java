@@ -105,6 +105,53 @@ public class MiogramSpotifySheet extends BottomSheet {
 
         root.addView(statusCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 16));
 
+        // Important Hint for Free & Premium Users
+        LinearLayout hintCard = new LinearLayout(context);
+        hintCard.setOrientation(LinearLayout.VERTICAL);
+        hintCard.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
+        GradientDrawable hintBg = new GradientDrawable();
+        hintBg.setColor(0x181DB954);
+        hintBg.setCornerRadius(AndroidUtilities.dp(12));
+        hintBg.setStroke(AndroidUtilities.dp(1), 0x331DB954);
+        hintCard.setBackground(hintBg);
+
+        TextView hintTitle = new TextView(context);
+        hintTitle.setText("💡 " + MiogramLocale.get("Важливо для синхронізації (Free та Premium):", "Важно для синхронизации (Free и Premium):", "Important for sync (Free & Premium):"));
+        hintTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+        hintTitle.setTypeface(AndroidUtilities.bold());
+        hintTitle.setTextColor(0xFF1DB954);
+        hintCard.addView(hintTitle, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 4));
+
+        TextView hintDesc = new TextView(context);
+        hintDesc.setText(MiogramLocale.get(
+                "Щоб Spotify передавав треки в Miogram, відкрийте додаток Spotify -> Налаштування -> увімкніть пункт «Статус трансляції пристрою» (Device Broadcast Status).",
+                "Чтобы Spotify передавал треки в Miogram, откройте приложение Spotify -> Настройки -> включите «Статус трансляции устройства» (Device Broadcast Status).",
+                "To allow Spotify to broadcast music to Miogram, open Spotify app -> Settings -> turn ON «Device Broadcast Status»."
+        ));
+        hintDesc.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f);
+        hintDesc.setTextColor(textColor);
+        hintCard.addView(hintDesc, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 8));
+
+        TextView btnOpenSpotSettings = new TextView(context);
+        btnOpenSpotSettings.setText(MiogramLocale.get("Відкрити Spotify", "Открыть Spotify", "Open Spotify"));
+        btnOpenSpotSettings.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12f);
+        btnOpenSpotSettings.setTypeface(AndroidUtilities.bold());
+        btnOpenSpotSettings.setTextColor(0xFFFFFFFF);
+        btnOpenSpotSettings.setGravity(Gravity.CENTER);
+        btnOpenSpotSettings.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(6), AndroidUtilities.dp(12), AndroidUtilities.dp(6));
+        GradientDrawable bBg = new GradientDrawable();
+        bBg.setColor(0xFF1DB954);
+        bBg.setCornerRadius(AndroidUtilities.dp(8));
+        btnOpenSpotSettings.setBackground(bBg);
+        ScaleStateListAnimator.apply(btnOpenSpotSettings, 0.035f, 1.4f);
+        btnOpenSpotSettings.setOnClickListener(v -> {
+            MiogramHaptic.click(v);
+            MiogramSpotifyManager.getInstance().openSpotifyApp(context);
+        });
+        hintCard.addView(btnOpenSpotSettings, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        root.addView(hintCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 16));
+
         // Explanation / Feature List Section
         addSectionHeader(root, MiogramLocale.get("ДЕ ПРАЦЮЄ SPOTIFY В MIOGRAM", "ГДЕ РАБОТАЕТ SPOTIFY В MIOGRAM", "WHERE SPOTIFY WORKS IN MIOGRAM"), textColor);
 

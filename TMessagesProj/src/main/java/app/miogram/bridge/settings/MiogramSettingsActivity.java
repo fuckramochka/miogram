@@ -41,8 +41,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     private int navigationRow;
     private int subfoldersRow;
     private int badgeStudioRow;
-    private int spotifyBridgeRow;
-    private int steamBridgeRow;
+    private int connectedAppsRow;
 
     // 2. Chats, Multichat & Private Vault 💬
     private int headerChatsPrivacyRow;
@@ -50,6 +49,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     private int chatsRow;
     private int cloudVaultRow;
     private int privacyRow;
+    private int telemetryRow;
     private int translatorRow;
     private int localizerRow;
 
@@ -66,7 +66,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     private int headerSystemRow;
     private int pluginsRow;
     private int performanceRow;
-    private int telemetryRow;
     private int generalRow;
     private int updaterRow;
 
@@ -86,8 +85,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         navigationRow = addRow();
         subfoldersRow = addRow();
         badgeStudioRow = addRow();
-        spotifyBridgeRow = addRow();
-        steamBridgeRow = addRow();
+        connectedAppsRow = addRow();
 
         // 2. Chats, Multichat & Private Vault
         headerChatsPrivacyRow = addRow();
@@ -95,6 +93,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         chatsRow = addRow();
         cloudVaultRow = addRow();
         privacyRow = addRow();
+        telemetryRow = addRow();
         translatorRow = addRow();
         localizerRow = addRow();
 
@@ -111,7 +110,6 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         headerSystemRow = addRow();
         pluginsRow = addRow();
         performanceRow = addRow();
-        telemetryRow = addRow();
         generalRow = addRow();
         updaterRow = addRow();
     }
@@ -129,10 +127,14 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         } else if (position == badgeStudioRow) {
             long clientUserId = UserConfig.getInstance(currentAccount).getClientUserId();
             app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(getParentActivity(), clientUserId);
-        } else if (position == spotifyBridgeRow) {
-            new app.miogram.bridge.spotify.MiogramSpotifySheet(getParentActivity(), null).show();
-        } else if (position == steamBridgeRow) {
-            new app.miogram.bridge.steam.MiogramSteamSheet(getParentActivity(), null).show();
+        } else if (position == connectedAppsRow) {
+            app.miogram.bridge.presence.MiogramConnectedAppsSheet sheet = new app.miogram.bridge.presence.MiogramConnectedAppsSheet(getParentActivity(), null);
+            sheet.setOnAppsChangedListener(() -> {
+                if (listView != null && listView.getAdapter() != null) {
+                    listView.getAdapter().notifyDataSetChanged();
+                }
+            });
+            sheet.show();
         } else if (position == multichatRow) {
             presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0));
         } else if (position == chatsRow) {
@@ -252,27 +254,19 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                                 R.drawable.msg_fave,
                                 true
                         );
-                    } else if (position == spotifyBridgeRow) {
-                        app.miogram.bridge.spotify.MiogramSpotifyManager sm = app.miogram.bridge.spotify.MiogramSpotifyManager.getInstance();
-                        String val = sm.isPlaying()
-                                ? ("🟢 " + sm.getCurrentTrack())
-                                : MiogramLocale.get("Синхронізація треків та слів", "Синхронизация треков и слов", "Track & lyrics sync");
+                    } else if (position == connectedAppsRow) {
+                        int count = 0;
+                        if (app.miogram.bridge.steam.MiogramSteamManager.getInstance().isLinked()) count++;
+                        if (app.miogram.bridge.github.MiogramGitHubManager.getInstance().isLinked()) count++;
+                        if (app.miogram.bridge.discord.MiogramDiscordManager.getInstance().isLinked()) count++;
+                        if (app.miogram.bridge.spotify.MiogramSpotifyManager.getInstance().isLinked()) count++;
+                        String val = count > 0
+                                ? (count + " " + MiogramLocale.get("підключено", "подключено", "linked"))
+                                : MiogramLocale.get("Steam, GitHub, Discord, Spotify", "Steam, GitHub, Discord, Spotify", "Steam, GitHub, Discord, Spotify");
                         cell.setTextAndValueAndIcon(
-                                MiogramLocale.get("Spotify Міст ໒꒱", "Spotify Мост ໒꒱", "Spotify Bridge ໒꒱"),
+                                MiogramLocale.get("Прив'язані додатки ໒꒱", "Привязанные приложения ໒꒱", "Connected Apps ໒꒱"),
                                 val,
-                                R.drawable.msg_media,
-                                true
-                        );
-                    } else if (position == steamBridgeRow) {
-                        app.miogram.bridge.steam.MiogramSteamManager stm = app.miogram.bridge.steam.MiogramSteamManager.getInstance();
-                        String linked = stm.getLinkedSteamId();
-                        String val = !android.text.TextUtils.isEmpty(linked)
-                                ? linked
-                                : MiogramLocale.get("Прив'язка та статус гри", "Привязка и статус игры", "Link & game status");
-                        cell.setTextAndValueAndIcon(
-                                MiogramLocale.get("Steam Профіль 🎮", "Steam Профиль 🎮", "Steam Profile 🎮"),
-                                val,
-                                R.drawable.baseline_videogame_asset_16,
+                                R.drawable.msg_openin,
                                 false
                         );
                     }

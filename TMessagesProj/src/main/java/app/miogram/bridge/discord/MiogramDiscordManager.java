@@ -224,20 +224,39 @@ public class MiogramDiscordManager {
         } catch (Throwable ignore) {}
     }
 
+    public boolean isLinked() {
+        return !TextUtils.isEmpty(getLinkedUserId());
+    }
+
     public void showConfigDialog(Context context, PresenceCallback callback) {
         if (context == null) return;
         org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(context);
         builder.setTitle(MiogramLocale.get("Підключення Discord", "Подключение Discord", "Link Discord"));
         builder.setMessage(MiogramLocale.get(
-                "Введіть ваш числовий Discord User ID (потрібна присутність на сервері з ботом Lanyard):",
-                "Введите ваш числовой Discord User ID (требуется присутствие на сервере с ботом Lanyard):",
-                "Enter your numeric Discord User ID (requires presence on server with Lanyard bot):"
+                "Введіть ваш числовий Discord User ID:\n\n" +
+                "💡 Як дізнатися свій ID в Discord:\n" +
+                "1. Відкрийте Discord -> Налаштування -> Розширені -> Увімкніть «Режим розробника».\n" +
+                "2. Натисніть на свій профіль -> «Скопіювати ID користувача».\n\n" +
+                "⚡ Для відображення статусу ви маєте бути присутні на офіційному сервері Lanyard (discord.gg/lanyard).",
+
+                "Введите ваш числовой Discord User ID:\n\n" +
+                "💡 Как узнать свой ID в Discord:\n" +
+                "1. Откройте Discord -> Настройки -> Расширенные -> Включите «Режим разработчика».\n" +
+                "2. Нажмите на свой профиль -> «Скопировать ID пользователя».\n\n" +
+                "⚡ Для отображения статуса требуется присутствие на сервере Lanyard (discord.gg/lanyard).",
+
+                "Enter your numeric Discord User ID:\n\n" +
+                "💡 How to get your Discord ID:\n" +
+                "1. Open Discord -> Settings -> Advanced -> Enable «Developer Mode».\n" +
+                "2. Tap your profile -> «Copy User ID».\n\n" +
+                "⚡ Requires presence on the public Lanyard Discord server (discord.gg/lanyard)."
         ));
         final android.widget.EditText input = new android.widget.EditText(context);
         input.setSingleLine(true);
+        input.setHint("наприклад: 80351110224678912");
         input.setText(getLinkedUserId());
         builder.setView(input);
-        builder.setPositiveButton(MiogramLocale.get("Зберегти", "Сохранить", "Save"), (dialog, which) -> {
+        builder.setPositiveButton(MiogramLocale.get("Підключити", "Подключить", "Connect"), (dialog, which) -> {
             String val = input.getText().toString().trim();
             setLinkedUserId(val);
             fetchPresence(val, true, callback);
