@@ -1881,6 +1881,10 @@ public class MiogramModernPlayerLayout extends FrameLayout {
         return null;
     }
 
+    public AudioPlayerAlert getAlert() {
+        return alert;
+    }
+
     /** Opens ONLY the tapped element's panel — never the full sheet. */
     public void openSectionSheet(String section) {
         try {

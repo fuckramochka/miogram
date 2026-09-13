@@ -3295,6 +3295,19 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
             o.dismiss();
             onSubItemClick(4);
         });
+        final String musicTitle = messageObject.getMusicTitle();
+        final String musicAuthor = messageObject.getMusicAuthor();
+        final String spotifyQuery = (android.text.TextUtils.isEmpty(musicAuthor) ? "" : (musicAuthor + " ")) + (android.text.TextUtils.isEmpty(musicTitle) ? "" : musicTitle);
+        if (!android.text.TextUtils.isEmpty(spotifyQuery.trim())) {
+            o.add(R.drawable.msg_openin, app.miogram.bridge.MiogramLocale.get("Знайти в Spotify", "Найти в Spotify", "Find in Spotify"), () -> {
+                o.dismiss();
+                app.miogram.bridge.spotify.MiogramSpotifyManager.openSpotifySearch(getContext(), spotifyQuery.trim());
+            });
+        }
+        o.add(R.drawable.msg_bot, app.miogram.bridge.MiogramLocale.get("Spotify Міст ໒꒱", "Spotify Мост ໒꒱", "Spotify Bridge ໒꒱"), () -> {
+            o.dismiss();
+            new app.miogram.bridge.spotify.MiogramSpotifySheet(getContext(), resourcesProvider).show();
+        });
         if (castAvailable) {
             castItem = o.add();
             castItem.setTextAndIcon(getString(R.string.VideoPlayerChromecast), R.drawable.menu_video_chromecast);

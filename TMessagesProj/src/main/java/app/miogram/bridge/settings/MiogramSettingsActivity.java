@@ -41,6 +41,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     private int navigationRow;
     private int subfoldersRow;
     private int badgeStudioRow;
+    private int spotifyBridgeRow;
 
     // 2. Chats, Multichat & Private Vault 💬
     private int headerChatsPrivacyRow;
@@ -84,6 +85,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         navigationRow = addRow();
         subfoldersRow = addRow();
         badgeStudioRow = addRow();
+        spotifyBridgeRow = addRow();
 
         // 2. Chats, Multichat & Private Vault
         headerChatsPrivacyRow = addRow();
@@ -125,6 +127,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         } else if (position == badgeStudioRow) {
             long clientUserId = UserConfig.getInstance(currentAccount).getClientUserId();
             app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(getParentActivity(), clientUserId);
+        } else if (position == spotifyBridgeRow) {
+            new app.miogram.bridge.spotify.MiogramSpotifySheet(getParentActivity(), null).show();
         } else if (position == multichatRow) {
             presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0));
         } else if (position == chatsRow) {
@@ -242,6 +246,17 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                         cell.setTextAndIcon(
                                 MiogramLocale.get("Студія бейджів спільноти", "Студия бейджей сообщества", "Community Badge Studio"),
                                 R.drawable.msg_fave,
+                                true
+                        );
+                    } else if (position == spotifyBridgeRow) {
+                        app.miogram.bridge.spotify.MiogramSpotifyManager sm = app.miogram.bridge.spotify.MiogramSpotifyManager.getInstance();
+                        String val = sm.isPlaying()
+                                ? ("🟢 " + sm.getCurrentTrack())
+                                : MiogramLocale.get("Синхронізація треків та слів", "Синхронизация треков и слов", "Track & lyrics sync");
+                        cell.setTextAndValueAndIcon(
+                                MiogramLocale.get("Spotify Міст ໒꒱", "Spotify Мост ໒꒱", "Spotify Bridge ໒꒱"),
+                                val,
+                                R.drawable.msg_media,
                                 false
                         );
                     }

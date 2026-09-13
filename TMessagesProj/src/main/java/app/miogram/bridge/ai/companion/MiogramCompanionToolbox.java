@@ -1709,36 +1709,26 @@ public class MiogramCompanionToolbox {
                                         authorName = chatTitle;
                                     }
 
+                                    MessageObject mo = new MessageObject(account, m, false, false);
                                     StringBuilder body = new StringBuilder();
                                     if (m.media != null) {
-                                        if (m.media instanceof TLRPC.TL_messageMediaPhoto) {
+                                        if (mo.isVoice()) {
+                                            int dur = mo.getDuration();
+                                            body.append("[Голосове").append(dur > 0 ? " " + dur + "с" : "").append("] ");
+                                        } else if (mo.isRoundVideo()) {
+                                            body.append("[Відеоповідомлення (кружечок)] ");
+                                        } else if (mo.isSticker()) {
+                                            String stickerEmoji = mo.getStickerEmoji();
+                                            body.append("[Стікер").append(stickerEmoji != null ? " " + stickerEmoji : "").append("] ");
+                                        } else if (mo.isMusic()) {
+                                            body.append("[Музика: ").append(mo.getMusicTitle()).append("] ");
+                                        } else if (mo.isVideo()) {
+                                            body.append("[Відео] ");
+                                        } else if (mo.isPhoto()) {
                                             body.append("[Фото] ");
-                                        } else if (m.media instanceof TLRPC.TL_messageMediaDocument) {
-                                            TLRPC.TL_messageMediaDocument doc = (TLRPC.TL_messageMediaDocument) m.media;
-                                            if (MessageObject.isVoiceMessage(m)) {
-                                                int dur = MessageObject.getDuration(m);
-                                                body.append("[Голосове").append(dur > 0 ? " " + dur + "с" : "").append("] ");
-                                            } else if (MessageObject.isRoundVideoDocument(doc.document)) {
-                                                body.append("[Відеоповідомлення (кружечок)] ");
-                                            } else if (MessageObject.isStickerMessage(m)) {
-                                                String stickerEmoji = "";
-                                                if (doc.document != null && doc.document.attributes != null) {
-                                                    for (TLRPC.DocumentAttribute attr : doc.document.attributes) {
-                                                        if (attr instanceof TLRPC.TL_documentAttributeSticker) {
-                                                            stickerEmoji = attr.alt != null ? " " + attr.alt : "";
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                                body.append("[Стікер").append(stickerEmoji).append("] ");
-                                            } else if (MessageObject.isMusicMessage(m)) {
-                                                body.append("[Музика: ").append(MessageObject.getMusicTitle(m)).append("] ");
-                                            } else if (MessageObject.isVideoMessage(m)) {
-                                                body.append("[Відео] ");
-                                            } else {
-                                                String fn = doc.document != null ? MessageObject.getDocumentFileName(doc.document) : null;
-                                                body.append("[Файл").append(fn != null ? ": " + fn : "").append("] ");
-                                            }
+                                        } else if (mo.getDocument() != null) {
+                                            String fn = org.telegram.messenger.FileLoader.getDocumentFileName(mo.getDocument());
+                                            body.append("[Файл").append(fn != null ? ": " + fn : "").append("] ");
                                         } else if (m.media instanceof TLRPC.TL_messageMediaContact) {
                                             body.append("[Контакт] ");
                                         } else if (m.media instanceof TLRPC.TL_messageMediaGeo || m.media instanceof TLRPC.TL_messageMediaVenue) {
@@ -1813,9 +1803,9 @@ public class MiogramCompanionToolbox {
                             if (!uname.isEmpty()) sb.append(" (").append(uname).append(")");
                             sb.append(" — ").append(d.unread_count).append(MiogramLocale.get(" нових", " новых", " new"));
 
-                            TLRPC.Message lastMsg = mc.dialogMessagesByIds.get(d.top_message);
-                            if (lastMsg != null && lastMsg.message != null && !lastMsg.message.trim().isEmpty()) {
-                                String snippet = lastMsg.message.replace("\n", " ").trim();
+                            MessageObject lastMsg = mc.dialogMessagesByIds.get(d.top_message);
+                            if (lastMsg != null && lastMsg.messageOwner != null && lastMsg.messageOwner.message != null && !lastMsg.messageOwner.message.trim().isEmpty()) {
+                                String snippet = lastMsg.messageOwner.message.replace("\n", " ").trim();
                                 if (snippet.length() > 60) snippet = snippet.substring(0, 57) + "...";
                                 sb.append(" | \"").append(snippet).append("\"");
                             }
