@@ -30,6 +30,10 @@ import app.miogram.bridge.MiogramLocale;
 import app.miogram.bridge.ai.MiogramAiService;
 import app.miogram.bridge.badge.MiogramSupabaseBridge;
 import app.miogram.bridge.customui.MiogramCustomUiPrefs;
+import app.miogram.bridge.discord.MiogramDiscordManager;
+import app.miogram.bridge.github.MiogramGitHubManager;
+import app.miogram.bridge.spotify.MiogramSpotifyManager;
+import app.miogram.bridge.steam.MiogramSteamManager;
 import tw.nekomimi.nekogram.NekoConfig;
 
 /**
@@ -172,6 +176,30 @@ public class MiogramCompanionToolbox {
             if (n.equals("clear_chat") || n.equals("delete_chat")) {
                 String q = params != null ? params.optString("chat_query", "") : "";
                 return MiogramLocale.get("⚠️ Очистить/видалить історію чату «", "⚠️ Очистит/удалит историю чата «", "⚠️ Will clear/delete history of chat \"") + q + "».";
+            }
+            if (n.equals("remember_fact")) {
+                String k = params != null ? params.optString("key", "") : "";
+                return MiogramLocale.get("Запам'ятає факт: «", "Запомнит факт: «", "Will remember fact: \"") + k + "».";
+            }
+            if (n.equals("forget_fact")) {
+                String k = params != null ? params.optString("key", "") : "";
+                return MiogramLocale.get("Забуде факт: «", "Забудет факт: «", "Will forget fact: \"") + k + "».";
+            }
+            if (n.equals("recall_memory")) {
+                return MiogramLocale.get("Перевірить збережені факти про тебе.", "Проверит сохранённые факты о тебе.", "Will recall stored memory facts.");
+            }
+            if (n.equals("github_status")) {
+                String repo = params != null ? params.optString("repo", "") : "";
+                return MiogramLocale.get("Перевірить статус GitHub Actions для ", "Проверит статус GitHub Actions для ", "Will check GitHub Actions for ") + (repo.isEmpty() ? "репозиторію" : repo) + ".";
+            }
+            if (n.equals("discord_status")) {
+                return MiogramLocale.get("Перевірить статус Discord.", "Проверит статус Discord.", "Will check Discord presence.");
+            }
+            if (n.equals("spotify_status")) {
+                return MiogramLocale.get("Перевірить трек у Spotify.", "Проверит трек в Spotify.", "Will check Spotify playback.");
+            }
+            if (n.equals("steam_status")) {
+                return MiogramLocale.get("Перевірить гру в Steam.", "Проверит игру в Steam.", "Will check Steam game.");
             }
         } catch (Throwable ignore) {}
         return MiogramLocale.get("Виконає дію: ", "Выполнит действие: ", "Will perform: ") + name;
@@ -419,6 +447,106 @@ public class MiogramCompanionToolbox {
             app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
                     "read_unread_summary", "Unread summary", "read_unread_summary() — summarize unread messages across all chats.", false,
                     (account, params, cb) -> executeTool(account, new ActionRequest("read_unread_summary", params, false), cb)));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "remember_fact", "Remember Fact", "remember_fact(key, value) — remember a fact or preference about P-chan.", false,
+                    (account, params, cb) -> {
+                        String key = params.optString("key", "");
+                        String value = params.optString("value", "");
+                        if (key.isEmpty()) {
+                            cb.run("Key is required.");
+                            return;
+                        }
+                        MiogramCompanionMemory.getInstance().setFact(key, value);
+                        cb.run("Fact memorized: " + key + " = " + value);
+                    }));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "forget_fact", "Forget Fact", "forget_fact(key) — remove a fact from memory.", false,
+                    (account, params, cb) -> {
+                        String key = params.optString("key", "");
+                        MiogramCompanionMemory.getInstance().removeFact(key);
+                        cb.run("Fact removed: " + key);
+                    }));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "recall_memory", "Recall Memory", "recall_memory() — view all stored memory facts.", false,
+                    (account, params, cb) -> {
+                        Map<String, String> facts = MiogramCompanionMemory.getInstance().getAllFacts();
+                        if (facts.isEmpty()) {
+                            cb.run("No custom facts stored yet.");
+                        } else {
+                            StringBuilder sb = new StringBuilder("Known facts:\n");
+                            for (Map.Entry<String, String> e : facts.entrySet()) {
+                                sb.append("- ").append(e.getKey()).append(": ").append(e.getValue()).append("\n");
+                            }
+                            cb.run(sb.toString());
+                        }
+                    }));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "github_status", "GitHub Actions", "github_status(repo) — check latest GitHub Actions workflow run.", false,
+                    (account, params, cb) -> {
+                        String repo = params.optString("repo", "");
+                        if (android.text.TextUtils.isEmpty(repo)) repo = MiogramGitHubManager.getInstance().getTrackedRepo();
+                        final String fRepo = repo;
+                        MiogramGitHubManager.getInstance().fetchLatestWorkflow(true, run -> {
+                            if (run == null) {
+                                cb.run("GitHub status unavailable for " + fRepo);
+                            } else {
+                                cb.run("GitHub Actions for " + run.repo + ":\nWorkflow: " + run.workflowName
+                                        + "\nStatus: " + run.status + ", Conclusion: " + run.conclusion
+                                        + "\nCommit: " + run.commitMessage + " (" + run.branch + ")"
+                                        + "\nURL: " + run.htmlUrl);
+                            }
+                        });
+                    }));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "discord_status", "Discord", "discord_status(user_id) — check Discord presence via Lanyard.", false,
+                    (account, params, cb) -> {
+                        String uid = params.optString("user_id", "");
+                        if (android.text.TextUtils.isEmpty(uid)) uid = MiogramDiscordManager.getInstance().getLinkedUserId();
+                        final String fUid = uid;
+                        if (android.text.TextUtils.isEmpty(fUid)) {
+                            cb.run("Discord user ID is not configured.");
+                            return;
+                        }
+                        MiogramDiscordManager.getInstance().fetchPresence(fUid, true, presence -> {
+                            if (presence == null) {
+                                cb.run("Discord presence unavailable for " + fUid);
+                            } else {
+                                cb.run("Discord user: " + presence.getDisplayName() + " (@" + presence.username + ")\nStatus: " + presence.status
+                                        + (!android.text.TextUtils.isEmpty(presence.customStatus) ? "\nCustom status: " + presence.customStatus : "")
+                                        + (!android.text.TextUtils.isEmpty(presence.activityName) ? "\nPlaying/Activity: " + presence.activityName + " (" + presence.activityDetails + ")" : ""));
+                            }
+                        });
+                    }));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "spotify_status", "Spotify", "spotify_status() — check current Spotify playback status and track.", false,
+                    (account, params, cb) -> {
+                        MiogramSpotifyManager sm = MiogramSpotifyManager.getInstance();
+                        MiogramSpotifyManager.SpotifyTrack track = sm.getCurrentTrack();
+                        if (track == null) {
+                            cb.run("Spotify is currently idle or disconnected.");
+                        } else {
+                            cb.run("Spotify: " + track.title + " — " + track.artist + " (" + (sm.isPlaying() ? "Playing" : "Paused") + ")");
+                        }
+                    }));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "steam_status", "Steam", "steam_status(steam_id) — check Steam gaming status.", false,
+                    (account, params, cb) -> {
+                        String sId = params.optString("steam_id", "");
+                        if (android.text.TextUtils.isEmpty(sId)) sId = MiogramSteamManager.getInstance().getLinkedSteamId();
+                        final String fId = sId;
+                        if (android.text.TextUtils.isEmpty(fId)) {
+                            cb.run("Steam ID is not configured.");
+                            return;
+                        }
+                        MiogramSteamManager.getInstance().resolvePublicSteam(fId, profile -> {
+                            if (profile == null) {
+                                cb.run("Steam profile unavailable for " + fId);
+                            } else {
+                                cb.run("Steam user: " + profile.personaName + "\nState: "
+                                        + (profile.isInGame ? "Playing " + profile.gameName + " (" + profile.gameHours2Weeks + " hrs past 2 weeks)" : profile.stateMessage));
+                            }
+                        });
+                    }));
         } catch (Throwable ignore) {}
     }
 

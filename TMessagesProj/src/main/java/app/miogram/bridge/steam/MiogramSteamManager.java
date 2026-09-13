@@ -104,6 +104,10 @@ public class MiogramSteamManager {
         return getPrefs().getString(KEY_SELF_STEAM_ID, "");
     }
 
+    public String getSelfSteamId() {
+        return getLinkedSteamId();
+    }
+
     public void setLinkedSteamId(String steamId) {
         getPrefs().edit().putString(KEY_SELF_STEAM_ID, steamId != null ? steamId.trim() : "").apply();
     }

@@ -13999,7 +13999,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     break;
                 }
                 case VIEW_TYPE_STEAM: {
-                    MiogramSteamProfileCard card = new MiogramSteamProfileCard(mContext, resourcesProvider);
+                    app.miogram.bridge.presence.MiogramPresenceCard card = new app.miogram.bridge.presence.MiogramPresenceCard(mContext, resourcesProvider);
                     view = card;
                     view.setTag(RecyclerListView.TAG_NOT_SECTION);
                     break;
@@ -15012,8 +15012,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     }
                     break;
                 case VIEW_TYPE_STEAM:
-                    if (holder.itemView instanceof MiogramSteamProfileCard && steamProfile != null) {
-                        ((MiogramSteamProfileCard) holder.itemView).setProfile(steamProfile);
+                    if (holder.itemView instanceof app.miogram.bridge.presence.MiogramPresenceCard) {
+                        ((app.miogram.bridge.presence.MiogramPresenceCard) holder.itemView).setSteamProfile(steamProfile);
                     }
                     break;
                 case VIEW_TYPE_VERSION:

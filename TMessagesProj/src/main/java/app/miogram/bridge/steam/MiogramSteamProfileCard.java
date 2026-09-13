@@ -176,7 +176,7 @@ public class MiogramSteamProfileCard extends FrameLayout {
         // Button 1: "Зайти в гру" (Steam Play green)
         btnPlayGame = createActionButton(
                 context,
-                "🎮 " + MiogramLocale.get("Зайти в гру", "Зайти в игру", "Launch Game"),
+                MiogramLocale.get("Зайти в гру", "Зайти в игру", "Launch Game"),
                 0xFF5C7E10,
                 0xFFFFFFFF
         );
@@ -191,7 +191,7 @@ public class MiogramSteamProfileCard extends FrameLayout {
         // Button 2: "Додати в друзі" (Steam cyan tint)
         btnAddFriend = createActionButton(
                 context,
-                "➕ " + MiogramLocale.get("У друзі", "В друзья", "Add Friend"),
+                MiogramLocale.get("Додати в друзі", "Добавить в друзья", "Add Friend"),
                 0x3366C0F4,
                 0xFF66C0F4
         );
@@ -206,7 +206,7 @@ public class MiogramSteamProfileCard extends FrameLayout {
         // Button 3: "Профіль" (Steam dark tint)
         btnOpenProfile = createActionButton(
                 context,
-                "🌐 " + MiogramLocale.get("Профіль", "Профиль", "Profile"),
+                MiogramLocale.get("Профіль", "Профиль", "Profile"),
                 0x2AFFFFFF,
                 0xFFD2DBE3
         );

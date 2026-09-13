@@ -244,7 +244,7 @@ public class MiogramPlayerCustomizeAlert extends BottomSheet {
         color1Btn.setTypeface(AndroidUtilities.bold());
         color1Btn.setGravity(Gravity.CENTER);
         color1Btn.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
-        color1Btn.setText(MiogramLocale.get("🎨 Колір 1 (Верх)", "🎨 Цвет 1 (Верх)", "🎨 Color 1 (Top)"));
+        color1Btn.setText(MiogramLocale.get("Колір 1 (Верх)", "Цвет 1 (Верх)", "Color 1 (Top)"));
         GradientDrawable c1Bg = new GradientDrawable();
         c1Bg.setColor(Theme.getColor(Theme.key_dialogBackground));
         c1Bg.setCornerRadius(AndroidUtilities.dp(12));
@@ -270,7 +270,7 @@ public class MiogramPlayerCustomizeAlert extends BottomSheet {
         color2Btn.setTypeface(AndroidUtilities.bold());
         color2Btn.setGravity(Gravity.CENTER);
         color2Btn.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
-        color2Btn.setText(MiogramLocale.get("🎨 Колір 2 (Низ)", "🎨 Цвет 2 (Низ)", "🎨 Color 2 (Bottom)"));
+        color2Btn.setText(MiogramLocale.get("Колір 2 (Низ)", "Цвет 2 (Низ)", "Color 2 (Bottom)"));
         GradientDrawable c2Bg = new GradientDrawable();
         c2Bg.setColor(Theme.getColor(Theme.key_dialogBackground));
         c2Bg.setCornerRadius(AndroidUtilities.dp(12));
@@ -296,7 +296,7 @@ public class MiogramPlayerCustomizeAlert extends BottomSheet {
         solidBtn.setTypeface(AndroidUtilities.bold());
         solidBtn.setGravity(Gravity.CENTER);
         solidBtn.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
-        solidBtn.setText(MiogramLocale.get("🎨 Суцільний", "🎨 Сплошной", "🎨 Solid"));
+        solidBtn.setText(MiogramLocale.get("Суцільний", "Сплошной", "Solid"));
         GradientDrawable solidBg = new GradientDrawable();
         solidBg.setColor(Theme.getColor(Theme.key_dialogBackground));
         solidBg.setCornerRadius(AndroidUtilities.dp(12));

@@ -1153,60 +1153,32 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         });
     }
 
+    private static final int AGENT_MAX_STEPS = 4;
+
+    private static class AgentStepRecord {
+        final String actionRaw;
+        final String observation;
+
+        AgentStepRecord(String actionRaw, String observation) {
+            this.actionRaw = actionRaw;
+            this.observation = observation;
+        }
+    }
+
     private void onSendMessage() {
         if (isSending) return;
         String query = inputField.getText() != null ? inputField.getText().toString().trim() : "";
         if (TextUtils.isEmpty(query)) return;
 
         inputField.setText("");
-        // Follow-up to our own numbered list ("2", "другий", "@nick", "так"/"далі"):
-        // resolve locally first so a short answer keeps working.
         MiogramCompanionToolbox.PickResolution pick =
                 MiogramCompanionToolbox.tryResolvePendingPick(currentAccount, query);
         if ("RESOLVED".equals(pick.kind) && pick.foundChat != null) {
             String ref = pick.foundChat.username.isEmpty() ? pick.foundChat.name : "@" + pick.foundChat.username;
-            // Strict directive with the exact numeric chat_id: resolveChatTarget
-            // short-circuits on chat_id, so the next tool call CANNOT re-ask.
-            // This breaks the "choose again forever" loop at the root.
             query = query + "\n[Система: P-chan обрав «" + pick.foundChat.name + "» (" + ref + "). "
                     + "Твій наступний виклик МУСИТЬ містити {\"chat_id\": " + pick.foundChat.dialogId + "}. "
                     + "Не показуй список знову, не проси уточнити — дій з цим чатом.]";
         } else if ("NEXT_PAGE".equals(pick.kind)) {
-            MiogramCompanionToolbox.PendingPick pending = MiogramCompanionToolbox.getPendingPick(currentAccount);
-            if (pending != null && pending.listFilter != null) {
-                // Deterministic paging, no LLM roundtrip needed.
-                MiogramCompanionPrefs.ChatMessage userMsg0 = new MiogramCompanionPrefs.ChatMessage(true, query, "neutral", System.currentTimeMillis(), null, null);
-                history.add(userMsg0);
-                MiogramCompanionPrefs.saveHistory(history);
-                renderMessageBubble(userMsg0);
-                isSending = true;
-                sendIcon.setVisibility(View.GONE);
-                sendProgress.setVisibility(View.VISIBLE);
-                sendButton.setAlpha(0.6f);
-                final String fFilter = pending.listFilter;
-                final int fPage = pending.listPage + 1;
-                final int fSize = pending.listPageSize > 0 ? pending.listPageSize : 50;
-                org.json.JSONObject lp = new org.json.JSONObject();
-                try {
-                    lp.put("filter", fFilter);
-                    lp.put("page", fPage);
-                    lp.put("page_size", fSize);
-                } catch (Throwable ignore) {}
-                MiogramCompanionToolbox.executeTool(currentAccount,
-                        new MiogramCompanionToolbox.ActionRequest("list_dialogs", lp, false),
-                        resultText -> AndroidUtilities.runOnUIThread(() -> {
-                            isSending = false;
-                            sendIcon.setVisibility(View.VISIBLE);
-                            sendProgress.setVisibility(View.GONE);
-                            sendButton.setAlpha(1.0f);
-                            MiogramCompanionPrefs.ChatMessage botBubble = new MiogramCompanionPrefs.ChatMessage(false, resultText, "neutral", System.currentTimeMillis(), null, null);
-                            history.add(botBubble);
-                            MiogramCompanionPrefs.saveHistory(history);
-                            renderMessageBubble(botBubble);
-                            updateStageMood("neutral");
-                        }));
-                return;
-            }
             query = query + "\n[Не той варіант; покажи наступні або гортай список чатів далі.]";
         }
         MiogramCompanionPrefs.ChatMessage userMsg = new MiogramCompanionPrefs.ChatMessage(true, query, "neutral", System.currentTimeMillis(), null, null);
@@ -1215,37 +1187,67 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         renderMessageBubble(userMsg);
 
         isSending = true;
-        sendIcon.setVisibility(View.GONE);
-        sendProgress.setVisibility(View.VISIBLE);
-        sendButton.setAlpha(0.6f);
+        if (sendIcon != null) sendIcon.setVisibility(View.GONE);
+        if (sendProgress != null) sendProgress.setVisibility(View.VISIBLE);
+        if (sendButton != null) sendButton.setAlpha(0.6f);
 
+        List<AgentStepRecord> steps = new ArrayList<>();
+        executeAgentStep(1, query, steps, null);
+    }
+
+    private String buildPromptForTurn(String userQuery, List<AgentStepRecord> steps, boolean forceFinal) {
         TLRPC.User currentUser = UserConfig.getInstance(currentAccount).getCurrentUser();
         String userName = currentUser != null ? UserObject.getUserName(currentUser) : "P-chan";
-        String systemPrompt = MiogramCompanionPersona.getSystemPrompt(MiogramCompanionPrefs.getActiveCompanion(), userName, scopedDialogId);
+        String systemPrompt = MiogramCompanionPersona.getSystemPrompt(MiogramCompanionPrefs.getActiveCompanion(), userName, scopedDialogId, currentAccount);
 
-        StringBuilder fullPrompt = new StringBuilder();
-        fullPrompt.append(systemPrompt).append("\n\n### CONVERSATION HISTORY:\n");
+        StringBuilder sb = new StringBuilder();
+        sb.append(systemPrompt).append("\n\n### CONVERSATION HISTORY:\n");
         int start = Math.max(0, history.size() - 8);
         for (int i = start; i < history.size(); i++) {
             MiogramCompanionPrefs.ChatMessage m = history.get(i);
-            fullPrompt.append(m.isUser ? "P-chan: " : "Companion: ").append(m.text).append("\n");
+            if (i == history.size() - 1 && m.isUser && m.text.equals(userQuery)) continue;
+            sb.append(m.isUser ? "P-chan: " : "Companion: ").append(m.text).append("\n");
         }
-        fullPrompt.append("Companion:");
 
-        MiogramAiService.generateText(fullPrompt.toString(), (rawReply, err) -> AndroidUtilities.runOnUIThread(() -> {
-            isSending = false;
-            sendIcon.setVisibility(View.VISIBLE);
-            sendProgress.setVisibility(View.GONE);
-            sendButton.setAlpha(1.0f);
+        sb.append("\n### CURRENT TURN:\n");
+        sb.append("P-chan: ").append(userQuery).append("\n");
 
+        if (steps != null && !steps.isEmpty()) {
+            for (AgentStepRecord s : steps) {
+                sb.append("Companion: ").append(s.actionRaw).append("\n");
+                sb.append("[OBSERVATION: ").append(s.observation).append("]\n");
+            }
+            if (forceFinal) {
+                sb.append("System: All tool operations completed. Now formulate your final, comprehensive in-character response to P-chan based on the observations above. Do NOT call any more tools.\n");
+            } else {
+                sb.append("System: You received the observation above. Analyze it carefully. You can either invoke another tool using [ACTION: ...] if more actions or information are needed, or formulate your final in-character response to P-chan (starting with [MOOD: ...]). Never output raw observation text directly.\n");
+            }
+        }
+        sb.append("Companion:");
+        return sb.toString();
+    }
+
+    private void executeAgentStep(final int stepIndex, final String userQuery,
+                                  final List<AgentStepRecord> steps,
+                                  final MiogramCompanionPrefs.ChatMessage existingBubble) {
+        if (stepIndex > AGENT_MAX_STEPS) {
+            executeFinalSynthesis(userQuery, steps, existingBubble);
+            return;
+        }
+
+        String prompt = buildPromptForTurn(userQuery, steps, false);
+        MiogramAiService.generateText(prompt, (rawReply, err) -> AndroidUtilities.runOnUIThread(() -> {
             if (err != null && (rawReply == null || rawReply.isEmpty())) {
-                String errorNotice = MiogramLocale.get("Ой... сталася помилка з'єднання: ", "Ой... возникла ошибка соединения: ", "Oops... connection error: ") + err
-                        + MiogramLocale.get("\n\nНатисни «Надіслати» ще раз щоб повторити.", "\n\nНажми «Отправить» ещё раз чтобы повторить.", "\n\nTap Send again to retry.");
-                MiogramCompanionPrefs.ChatMessage errBubble = new MiogramCompanionPrefs.ChatMessage(false, errorNotice, "sad", System.currentTimeMillis(), null, null);
-                history.add(errBubble);
-                MiogramCompanionPrefs.saveHistory(history);
-                renderMessageBubble(errBubble);
-                updateStageMood("sad");
+                finishAgentTurn();
+                if (existingBubble == null) {
+                    String errorNotice = MiogramLocale.get("Ой... сталася помилка з'єднання: ", "Ой... возникла ошибка соединения: ", "Oops... connection error: ") + err
+                            + MiogramLocale.get("\n\nНатисни «Надіслати» ще раз щоб повторити.", "\n\nНажми «Отправить» ещё раз чтобы повторить.", "\n\nTap Send again to retry.");
+                    MiogramCompanionPrefs.ChatMessage errBubble = new MiogramCompanionPrefs.ChatMessage(false, errorNotice, "sad", System.currentTimeMillis(), null, null);
+                    history.add(errBubble);
+                    MiogramCompanionPrefs.saveHistory(history);
+                    renderMessageBubble(errBubble);
+                    updateStageMood("sad");
+                }
                 return;
             }
 
@@ -1253,55 +1255,85 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             MiogramCompanionToolbox.ActionRequest action = MiogramCompanionToolbox.parseAction(rawReply);
             String cleanText = MiogramCompanionToolbox.stripActionBlock(MiogramCompanionToolbox.stripMoodTag(rawReply));
 
-            String actionName = action != null ? action.name : null;
-            String actionParams = action != null ? action.params.toString() : null;
-
-            MiogramCompanionPrefs.ChatMessage botBubble = new MiogramCompanionPrefs.ChatMessage(false, cleanText, mood, System.currentTimeMillis(), actionName, actionParams);
-            history.add(botBubble);
-            MiogramCompanionPrefs.saveHistory(history);
-            renderMessageBubble(botBubble);
-            updateStageMood(mood);
-
-            if (action != null && !action.sensitive) {
-                String working = MiogramLocale.get("⏳ Працюю над «", "⏳ Работаю над «", "⏳ Working on \"")
-                        + MiogramCompanionToolbox.describeTool(action.name, action.params) + "»…";
-                botBubble.text = (cleanText == null || cleanText.isEmpty() ? "" : cleanText + "\n\n") + working;
-                MiogramCompanionPrefs.saveHistory(history);
-                renderFullHistory();
-                final String cleanFinal = cleanText;
-                app.miogram.bridge.ai.tools.MioTool.exec(currentAccount, action.name, action.params, resultText -> AndroidUtilities.runOnUIThread(() -> {
-                    String finalReply;
-                    String ct = cleanFinal != null ? cleanFinal.toLowerCase() : "";
-                    boolean isWaitingWord = ct.contains("зараз") || ct.contains("хвилинку") || ct.contains("секунду")
-                            || ct.contains("сейчас") || ct.contains("минутку") || ct.contains("секундочку")
-                            || ct.contains("wait") || ct.contains("moment") || ct.contains("hold on");
-                    if (cleanFinal == null || cleanFinal.isEmpty() || isWaitingWord) {
-                        finalReply = resultText;
-                    } else if (cleanFinal.trim().equalsIgnoreCase(resultText.trim())) {
-                        finalReply = resultText;
-                    } else {
-                        finalReply = cleanFinal + "\n\n" + resultText;
-                    }
-                    botBubble.text = finalReply;
-                    botBubble.actionExecuted = true;
+            if (action != null) {
+                if (action.sensitive) {
+                    String actionName = action.name;
+                    String actionParams = action.params != null ? action.params.toString() : null;
+                    MiogramCompanionPrefs.ChatMessage cardMsg = new MiogramCompanionPrefs.ChatMessage(false, cleanText, mood, System.currentTimeMillis(), actionName, actionParams);
+                    history.add(cardMsg);
                     MiogramCompanionPrefs.saveHistory(history);
                     renderFullHistory();
-                    String rt = resultText != null ? resultText.toLowerCase() : "";
-                    boolean isError = rt.contains("не вдалося") || rt.contains("не знайшла") || rt.contains("помилка")
-                            || rt.contains("не удалось") || rt.contains("не нашла") || rt.contains("ошибка")
-                            || rt.contains("failed") || rt.contains("error") || rt.contains("could not");
-                    updateStageMood(isError ? "sad" : "happy");
-                    // Chain pure-action turns so multi-step jobs finish without re-prompting.
-                    if (!isError && !agentResultAsksUser(resultText)
-                            && (cleanFinal == null || cleanFinal.isEmpty() || isWaitingWord)) {
-                        continueAgentTurn(2, botBubble);
+                    updateStageMood(mood);
+                    finishAgentTurn();
+                    return;
+                }
+
+                MiogramCompanionPrefs.ChatMessage bubble = existingBubble;
+                String toolDesc = MiogramCompanionToolbox.describeTool(action.name, action.params);
+                String workingText = "⏳ " + toolDesc + "…";
+                if (bubble == null) {
+                    bubble = new MiogramCompanionPrefs.ChatMessage(false, workingText, mood, System.currentTimeMillis(), action.name, action.params.toString());
+                    history.add(bubble);
+                    renderMessageBubble(bubble);
+                } else {
+                    bubble.text = workingText;
+                    renderFullHistory();
+                }
+                updateStageMood(mood);
+                final MiogramCompanionPrefs.ChatMessage activeBubble = bubble;
+                final String actionRawStr = "[ACTION: " + action.name + " | " + (action.params != null ? action.params.toString() : "{}") + "]";
+
+                app.miogram.bridge.ai.tools.MioTool.exec(currentAccount, action.name, action.params, resultText -> AndroidUtilities.runOnUIThread(() -> {
+                    steps.add(new AgentStepRecord(actionRawStr, resultText != null ? resultText : ""));
+                    if (agentResultIsError(resultText)) {
+                        updateStageMood("sad");
                     }
+                    executeAgentStep(stepIndex + 1, userQuery, steps, activeBubble);
                 }));
+            } else {
+                // Final response reached
+                MiogramCompanionPrefs.ChatMessage bubble = existingBubble;
+                if (bubble == null) {
+                    bubble = new MiogramCompanionPrefs.ChatMessage(false, cleanText, mood, System.currentTimeMillis(), null, null);
+                    history.add(bubble);
+                    renderMessageBubble(bubble);
+                } else {
+                    bubble.text = cleanText;
+                    bubble.mood = mood;
+                    bubble.actionExecuted = true;
+                    renderFullHistory();
+                }
+                MiogramCompanionPrefs.saveHistory(history);
+                updateStageMood(mood);
+                finishAgentTurn();
             }
         }));
     }
 
-    private static final int AGENT_MAX_STEPS = 4;
+    private void executeFinalSynthesis(final String userQuery, final List<AgentStepRecord> steps,
+                                       final MiogramCompanionPrefs.ChatMessage existingBubble) {
+        String prompt = buildPromptForTurn(userQuery, steps, true);
+        MiogramAiService.generateText(prompt, (rawReply, err) -> AndroidUtilities.runOnUIThread(() -> {
+            finishAgentTurn();
+            if (err != null && (rawReply == null || rawReply.isEmpty())) {
+                return;
+            }
+            String mood = MiogramCompanionToolbox.extractMoodTag(rawReply);
+            String cleanText = MiogramCompanionToolbox.stripActionBlock(MiogramCompanionToolbox.stripMoodTag(rawReply));
+            if (existingBubble != null) {
+                existingBubble.text = cleanText;
+                existingBubble.mood = mood;
+                existingBubble.actionExecuted = true;
+                renderFullHistory();
+            } else {
+                MiogramCompanionPrefs.ChatMessage bubble = new MiogramCompanionPrefs.ChatMessage(false, cleanText, mood, System.currentTimeMillis(), null, null);
+                history.add(bubble);
+                renderMessageBubble(bubble);
+            }
+            MiogramCompanionPrefs.saveHistory(history);
+            updateStageMood(mood);
+        }));
+    }
 
     private void finishAgentTurn() {
         isSending = false;
@@ -1318,111 +1350,6 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
                 || rt.contains("failed") || rt.contains("error") || rt.contains("could not")
                 || rt.contains("denied");
     }
-
-    private static boolean agentResultAsksUser(String resultText) {
-        if (resultText == null) return false;
-        String rt = resultText.toLowerCase();
-        if (!(rt.contains("?") || rt.contains("номер") || rt.contains("уточни") || rt.contains("which")
-                || rt.contains("кого") || rt.contains("який") || rt.contains("далі") || rt.contains("дальше"))) {
-            return false;
-        }
-        return true;
-    }
-
-    private String mergeAgentReplies(String cleanText, String resultText) {
-        String ct = cleanText != null ? cleanText.toLowerCase() : "";
-        boolean isWaitingWord = ct.contains("зараз") || ct.contains("хвилинку") || ct.contains("секунду")
-                || ct.contains("сейчас") || ct.contains("минутку") || ct.contains("секундочку")
-                || ct.contains("wait") || ct.contains("moment") || ct.contains("hold on");
-        if (cleanText == null || cleanText.isEmpty() || isWaitingWord) {
-            return resultText;
-        } else if (cleanText.trim().equalsIgnoreCase(resultText.trim())) {
-            return resultText;
-        } else {
-            return cleanText + "\n\n" + resultText;
-        }
-    }
-
-    /**
-     * Monster loop: after a pure-action reply, feed the tool result back and
-     * let the model chain the next step (up to AGENT_MAX_STEPS). Stops on
-     * errors, questions to the user, sensitive actions (permission card) and
-     * plain replies.
-     */
-    private void continueAgentTurn(final int step, final MiogramCompanionPrefs.ChatMessage botBubble) {
-        if (step > AGENT_MAX_STEPS) {
-            finishAgentTurn();
-            return;
-        }
-        isSending = true;
-        if (sendIcon != null) sendIcon.setVisibility(View.GONE);
-        if (sendProgress != null) sendProgress.setVisibility(View.VISIBLE);
-        if (sendButton != null) sendButton.setAlpha(0.6f);
-
-        StringBuilder fullPrompt = new StringBuilder();
-        TLRPC.User currentUser = UserConfig.getInstance(currentAccount).getCurrentUser();
-        String userName = currentUser != null ? UserObject.getUserName(currentUser) : "P-chan";
-        fullPrompt.append(MiogramCompanionPersona.getSystemPrompt(MiogramCompanionPrefs.getActiveCompanion(), userName, scopedDialogId));
-        fullPrompt.append("\n\n### CONVERSATION HISTORY:\n");
-        int start = Math.max(0, history.size() - 8);
-        for (int i = start; i < history.size(); i++) {
-            MiogramCompanionPrefs.ChatMessage m = history.get(i);
-            fullPrompt.append(m.isUser ? "P-chan: " : "Companion: ").append(m.text).append("\n");
-        }
-        fullPrompt.append("Companion:");
-
-        MiogramAiService.generateText(fullPrompt.toString(), (rawReply, err) -> AndroidUtilities.runOnUIThread(() -> {
-            if (err != null && (rawReply == null || rawReply.isEmpty())) {
-                finishAgentTurn();
-                return;
-            }
-            String mood = MiogramCompanionToolbox.extractMoodTag(rawReply);
-            MiogramCompanionToolbox.ActionRequest action = MiogramCompanionToolbox.parseAction(rawReply);
-            String cleanText = MiogramCompanionToolbox.stripActionBlock(MiogramCompanionToolbox.stripMoodTag(rawReply));
-            if (action != null && !action.sensitive) {
-                final String stepClean = cleanText;
-                botBubble.text = (botBubble.text == null || botBubble.text.isEmpty() ? "" : botBubble.text + "\n\n")
-                        + "⏳ " + MiogramCompanionToolbox.describeTool(action.name, action.params) + "…";
-                MiogramCompanionPrefs.saveHistory(history);
-                renderFullHistory();
-                app.miogram.bridge.ai.tools.MioTool.exec(currentAccount, action.name, action.params,
-                        resultText -> AndroidUtilities.runOnUIThread(() -> {
-                            botBubble.text = mergeAgentReplies(botBubble.text, resultText);
-                            botBubble.actionExecuted = true;
-                            MiogramCompanionPrefs.saveHistory(history);
-                            renderFullHistory();
-                            updateStageMood(agentResultIsError(resultText) ? "sad" : "happy");
-                            if (!agentResultIsError(resultText) && !agentResultAsksUser(resultText)
-                                    && (stepClean == null || stepClean.isEmpty())) {
-                                continueAgentTurn(step + 1, botBubble);
-                            } else {
-                                if (stepClean != null && !stepClean.isEmpty()) {
-                                    botBubble.text = mergeAgentReplies(botBubble.text, stepClean);
-                                    MiogramCompanionPrefs.saveHistory(history);
-                                    renderFullHistory();
-                                }
-                                finishAgentTurn();
-                            }
-                        }));
-            } else if (action != null) {
-                String actionName = action.name;
-                String actionParams = action.params != null ? action.params.toString() : null;
-                MiogramCompanionPrefs.ChatMessage cardMsg = new MiogramCompanionPrefs.ChatMessage(false, cleanText, mood, System.currentTimeMillis(), actionName, actionParams);
-                history.add(cardMsg);
-                MiogramCompanionPrefs.saveHistory(history);
-                renderFullHistory();
-                updateStageMood(mood);
-                finishAgentTurn();
-            } else {
-                if (cleanText != null && !cleanText.isEmpty()) {
-                    botBubble.text = (botBubble.text == null || botBubble.text.isEmpty() ? "" : botBubble.text + "\n\n") + cleanText;
-                    MiogramCompanionPrefs.saveHistory(history);
-                    renderFullHistory();
-                }
-                updateStageMood(mood);
-                finishAgentTurn();
-            }
-        }));
     }
 
     private void toggleConsole() {

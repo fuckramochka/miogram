@@ -359,20 +359,27 @@ public class MiogramSpotifyManager {
         final String query = (artistToPlay != null && !artistToPlay.isEmpty() ? artistToPlay + " " : "") + trackToPlay;
 
         // Asynchronously search Telegram cloud / music engines
-        app.miogram.bridge.music.MiogramMusicSearchEngine.searchAll(query, currentAccount, (tracks, isFinal) -> {
-            if (tracks != null && !tracks.isEmpty()) {
-                for (app.miogram.bridge.music.MiogramMusicTrack t : tracks) {
-                    if (t.originalMessage != null) {
-                        AndroidUtilities.runOnUIThread(() -> {
-                            org.telegram.messenger.MessageObject currentPlaying = org.telegram.messenger.MediaController.getInstance().getPlayingMessageObject();
-                            if (currentPlaying == null || org.telegram.messenger.MediaController.getInstance().isMessagePaused()) {
-                                org.telegram.messenger.MediaController.getInstance().playMessage(t.originalMessage);
-                                showAutoSyncBulletin(trackToPlay, artistToPlay);
-                            }
-                        });
-                        return;
+        app.miogram.bridge.music.MiogramMusicSearchEngine.searchAll(query, currentAccount, new app.miogram.bridge.music.MiogramMusicSearchEngine.SearchCallback() {
+            @Override
+            public void onResults(java.util.List<app.miogram.bridge.music.MiogramMusicTrack> tracks, boolean isFinal) {
+                if (tracks != null && !tracks.isEmpty()) {
+                    for (app.miogram.bridge.music.MiogramMusicTrack t : tracks) {
+                        if (t != null && t.telegramMessage != null) {
+                            AndroidUtilities.runOnUIThread(() -> {
+                                org.telegram.messenger.MessageObject currentPlaying = org.telegram.messenger.MediaController.getInstance().getPlayingMessageObject();
+                                if (currentPlaying == null || org.telegram.messenger.MediaController.getInstance().isMessagePaused()) {
+                                    org.telegram.messenger.MediaController.getInstance().playMessage(t.telegramMessage);
+                                    showAutoSyncBulletin(trackToPlay, artistToPlay);
+                                }
+                            });
+                            return;
+                        }
                     }
                 }
+            }
+
+            @Override
+            public void onError(String error) {
             }
         });
     }

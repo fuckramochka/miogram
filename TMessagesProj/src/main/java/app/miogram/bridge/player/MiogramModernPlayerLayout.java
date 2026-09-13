@@ -65,6 +65,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     private PlayerMode playerMode = PlayerMode.LYRICS;
 
     private final ImageView backgroundBlurView;
+    private GradientDrawable cachedBackgroundDrawable;
 
     // Header / Top section
     private final LinearLayout topSection;
@@ -669,6 +670,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
             float radius = AndroidUtilities.dp(24) * (1.0f - fullScreenProgress);
             bg.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
             bg.setStroke(AndroidUtilities.dp(1), 0x28FFFFFF);
+            cachedBackgroundDrawable = bg;
             setBackground(bg);
 
             // Blur strength (RenderEffect API 31+, alpha fallback below) + brightness.
@@ -1095,11 +1097,7 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     public void setFullScreenProgress(float progress) {
         this.fullScreenProgress = Math.max(0f, Math.min(1f, progress));
         this.isFullScreen = this.fullScreenProgress >= 0.5f;
-        if (MiogramPlayerPrefs.getBackgroundMode() == MiogramPlayerPrefs.BG_MODE_COVER_BLUR) {
-            updateBackgroundShape(this.fullScreenProgress);
-        } else {
-            applyCustomization();
-        }
+        updateBackgroundShape(this.fullScreenProgress);
 
         int statusBar = AndroidUtilities.statusBarHeight;
         int topPadding = AndroidUtilities.dp(8) + (int) (statusBar * this.fullScreenProgress);
@@ -1179,9 +1177,10 @@ public class MiogramModernPlayerLayout extends FrameLayout {
 
     private void updateBackgroundShape(float progress) {
         this.fullScreenProgress = progress;
-        applyCustomization();
-
         float radius = AndroidUtilities.dp(24) * (1.0f - progress);
+        if (cachedBackgroundDrawable != null) {
+            cachedBackgroundDrawable.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
+        }
         if (backgroundBlurView != null && Build.VERSION.SDK_INT >= 21) {
             backgroundBlurView.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
