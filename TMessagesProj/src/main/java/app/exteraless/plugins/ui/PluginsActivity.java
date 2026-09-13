@@ -70,8 +70,10 @@ public class PluginsActivity extends BaseFragment {
     private static final int MENU_FORGE = 2;
 
     private static final int ID_ENGINE_TOGGLE = -1;
+    private static final int ID_MIOPLUGIN_FOLDER = -2;
 
     private static final int REQUEST_CODE_PICK_PLUGIN = 9781;
+    private static final int REQUEST_CODE_PICK_FOLDER = 9782;
 
     private UniversalRecyclerView listView;
     private final List<Plugin> plugins = new ArrayList<>();
@@ -267,6 +269,12 @@ public class PluginsActivity extends BaseFragment {
         if (!engineEnabled) {
             return;
         }
+        String folderLabel = app.exteraless.plugins.MiogramMiopluginWatcher.hasFolder(getContext())
+                ? app.exteraless.plugins.MiogramMiopluginWatcher.getFolderLabel(getContext())
+                : null;
+        items.add(UItem.asButton(ID_MIOPLUGIN_FOLDER, R.drawable.msg_folders,
+                app.miogram.bridge.MiogramLocale.get("Папка mioplugin (автоімпорт)", "Папка mioplugin (автоимпорт)", "mioplugin folder (auto-import)"),
+                folderLabel != null ? folderLabel : app.miogram.bridge.MiogramLocale.get("не вибрано — натисни", "не выбрана — нажми", "not set — tap")));
         items.add(UItem.asSpace(dp(8)));
 
         List<Plugin> visible = visiblePlugins();
@@ -471,10 +479,49 @@ public class PluginsActivity extends BaseFragment {
             }
             return;
         }
+        if (item.id == ID_MIOPLUGIN_FOLDER) {
+            onMiopluginFolderRow();
+            return;
+        }
         // По карточке кликов не ждём: у неё свои кнопки и свой тумблер.
         // Когда здесь стояло переключение, один тап по тумблеру доходил и до
         // него, и до строки списка — плагин включался и тут же выключался
         // обратно, а в prefs оставалось false при уже загруженном модуле.
+    }
+
+    /**
+     * Папка mioplugin: перший тап просить SAF-доступ, наступні — сканують
+     * прямо зараз. Файли, кинуті в папку, самі з'являються в каталозі.
+     */
+    private void onMiopluginFolderRow() {
+        if (!app.exteraless.plugins.MiogramMiopluginWatcher.hasFolder(getContext())) {
+            try {
+                startActivityForResult(
+                        app.exteraless.plugins.MiogramMiopluginWatcher.createPickerIntent(),
+                        REQUEST_CODE_PICK_FOLDER);
+            } catch (Exception e) {
+                FileLog.e("PluginsActivity: no folder picker", e);
+            }
+            return;
+        }
+        BulletinFactory.of(this).createSimpleBulletin(R.raw.contact_check,
+                app.miogram.bridge.MiogramLocale.get("Сканую папку mioplugin…", "Сканирую папку mioplugin…", "Scanning mioplugin folder…")).show();
+        app.exteraless.plugins.MiogramMiopluginWatcher.scanAndImport(
+                org.telegram.messenger.ApplicationLoader.applicationContext,
+                (count, names, error) -> {
+                    if (getParentActivity() == null) return;
+                    refreshPlugins(true);
+                    updateRows();
+                    String text;
+                    if (error != null) {
+                        text = app.miogram.bridge.MiogramLocale.get("Папка недоступна: ", "Папка недоступна: ", "Folder unavailable: ") + error;
+                    } else if (count > 0) {
+                        text = app.miogram.bridge.MiogramLocale.get("Імпортовано: ", "Импортировано: ", "Imported: ") + android.text.TextUtils.join(", ", names);
+                    } else {
+                        text = app.miogram.bridge.MiogramLocale.get("Нових файлів нема", "Новых файлов нет", "No new files");
+                    }
+                    BulletinFactory.of(PluginsActivity.this).createSimpleBulletin(R.raw.contact_check, text).show();
+                });
     }
 
     private boolean onItemLongClick(UItem item, View view, int position, float x, float y) {
@@ -625,6 +672,13 @@ public class PluginsActivity extends BaseFragment {
 
     @Override
     public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_PICK_FOLDER && resultCode == Activity.RESULT_OK
+                && data != null && data.getData() != null) {
+            app.exteraless.plugins.MiogramMiopluginWatcher.saveFolderUri(getContext(), data.getData());
+            updateRows();
+            onMiopluginFolderRow();
+            return;
+        }
         if (requestCode != REQUEST_CODE_PICK_PLUGIN || resultCode != Activity.RESULT_OK
                 || data == null || data.getData() == null) {
             return;

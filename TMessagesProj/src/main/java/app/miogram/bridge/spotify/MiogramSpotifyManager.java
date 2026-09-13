@@ -281,9 +281,36 @@ public class MiogramSpotifyManager {
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(currentTrackUri));
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(intent);
+            } else if (!TextUtils.isEmpty(currentTrack)) {
+                openSpotifySearch(context, (currentArtist != null && !currentArtist.isEmpty()
+                        ? currentArtist + " " : "") + currentTrack);
             } else {
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://open.spotify.com"));
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+    }
+
+    /**
+     * Always works, no API keys: opens the Spotify app (or web fallback)
+     * with a search for any "artist — title" query. Used when the legacy
+     * playback broadcasts are unavailable on modern Spotify versions.
+     */
+    public static void openSpotifySearch(Context context, String query) {
+        if (context == null || TextUtils.isEmpty(query)) return;
+        try {
+            String encoded = java.net.URLEncoder.encode(query.trim(), "UTF-8");
+            Intent intent = new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("https://open.spotify.com/search/" + encoded));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                intent.setPackage("com.spotify.music");
+                context.startActivity(intent);
+            } catch (Throwable appMissing) {
+                intent.setPackage(null);
                 context.startActivity(intent);
             }
         } catch (Throwable t) {
