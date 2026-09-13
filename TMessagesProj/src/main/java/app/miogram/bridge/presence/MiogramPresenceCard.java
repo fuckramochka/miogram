@@ -376,7 +376,7 @@ public class MiogramPresenceCard extends FrameLayout {
             TextView btnSetup = createButton(context, MiogramLocale.get("Підключити Steam", "Подключить Steam", "Link Steam"), 0x3366C0F4, 0xFF66C0F4);
             btnSetup.setOnClickListener(v -> {
                 MiogramHaptic.click(v);
-                new app.miogram.bridge.steam.MiogramSteamSheet(context).show();
+                new app.miogram.bridge.steam.MiogramSteamSheet(context, resourcesProvider).show();
             });
             actions.addView(btnSetup, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 36));
         }

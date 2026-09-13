@@ -20,6 +20,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
+import app.miogram.bridge.MiogramLocale;
+
 /**
  * Public GitHub Actions & Repository Bridge for Miogram.
  * Safe, keyless REST monitor for GitHub Actions workflow runs, commits, and releases.
