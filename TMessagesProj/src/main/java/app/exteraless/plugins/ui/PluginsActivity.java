@@ -198,7 +198,9 @@ public class PluginsActivity extends BaseFragment {
             tab.setOnClickListener(v -> {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 if (filter == FILTER_CATALOG) {
-                    Browser.openUrl(getParentActivity(), "https://github.com/fuckramochka/mioplugin");
+                    if (getParentActivity() != null) {
+                        new MiogramPluginCatalogAlert(getParentActivity()).show();
+                    }
                     return;
                 }
                 currentFilter = filter;

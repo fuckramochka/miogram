@@ -124,6 +124,9 @@ public class MiogramCompanionToolbox {
                 return MiogramLocale.get("Прочитає останні ", "Прочитает последние ", "Will read last ") + limit
                         + MiogramLocale.get(" повідомлень з чату «", " сообщений из чата «", " messages from chat \"") + q + "».";
             }
+            if (n.equals("read_unread_summary")) {
+                return MiogramLocale.get("Підсумує всі непрочитані повідомлення у чатах.", "Подытожит все непрочитанные сообщения в чатах.", "Will summarize all unread chat messages.");
+            }
             if (n.equals("search_messages")) {
                 String q = params != null ? params.optString("query", params.optString("text", "")) : "";
                 return MiogramLocale.get("Знайде повідомлення за запитом «", "Найдёт сообщения по запросу «", "Will search messages for \"") + q + "».";
@@ -413,6 +416,9 @@ public class MiogramCompanionToolbox {
             app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
                     "contacts_list", "Contacts", "contacts_list(limit=15) — numbered contact list.", false,
                     (account, params, cb) -> toolContactsList(account, Math.min(30, Math.max(1, params.optInt("limit", 15))), cb)));
+            app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(
+                    "read_unread_summary", "Unread summary", "read_unread_summary() — summarize unread messages across all chats.", false,
+                    (account, params, cb) -> executeTool(account, new ActionRequest("read_unread_summary", params, false), cb)));
         } catch (Throwable ignore) {}
     }
 
@@ -1202,7 +1208,46 @@ public class MiogramCompanionToolbox {
         if (query.isEmpty()) query = p.optString("username", "");
         if (query.isEmpty()) query = p.optString("query", "");
 
-        if (query.isEmpty()) {
+        String lowQ = query.trim().toLowerCase(java.util.Locale.ROOT);
+        boolean isGeneric = query.isEmpty()
+                || lowQ.equals("тут") || lowQ.equals("зараз") || lowQ.equals("поточний") || lowQ.equals("активний")
+                || lowQ.equals("що пишуть") || lowQ.equals("що нового") || lowQ.equals("останній")
+                || lowQ.equals("here") || lowQ.equals("current") || lowQ.equals("recent") || lowQ.equals("last")
+                || lowQ.equals("чат") || lowQ.equals("діалог");
+
+        if (isGeneric) {
+            MessagesController mc = MessagesController.getInstance(account);
+            ArrayList<TLRPC.Dialog> all = mc.getAllDialogs();
+            if (all == null || all.isEmpty()) all = mc.getDialogs(0);
+            if (all == null || all.isEmpty()) all = mc.dialogsServerOnly;
+            if (all != null && !all.isEmpty()) {
+                TLRPC.Dialog targetDlg = all.get(0);
+                for (int i = 0; i < all.size(); i++) {
+                    TLRPC.Dialog d = all.get(i);
+                    if (d != null && d.unread_count > 0) {
+                        targetDlg = d;
+                        break;
+                    }
+                }
+                long did = targetDlg.id;
+                String name = "";
+                String uname = "";
+                if (did > 0) {
+                    TLRPC.User u = mc.getUser(did);
+                    if (u != null) {
+                        name = UserObject.getUserName(u);
+                        uname = u.username != null ? u.username : "";
+                    }
+                } else if (did < 0) {
+                    TLRPC.Chat c = mc.getChat(-did);
+                    if (c != null) {
+                        name = c.title != null ? c.title : "";
+                        uname = c.username != null ? c.username : "";
+                    }
+                }
+                FoundChat fc = new FoundChat(did, name, uname, did < 0, did < 0);
+                return new ChatResolution(did, fc, null);
+            }
             return new ChatResolution(0, null, MiogramLocale.get("Будь ласка, вкажи ім'я або юзернейм співрозмовника.", "Пожалуйста, укажи имя или юзернейм собеседника.", "Please specify name or @username."));
         }
 
@@ -1217,6 +1262,14 @@ public class MiogramCompanionToolbox {
             return new ChatResolution(0, null, MiogramLocale.get("Не вдалося знайти жодного чату за запитом «", "Не удалось найти ни одного чата по запросу «", "Could not find any chat for query \"") + query + MiogramLocale.get("». Перевір правильність написання імені чи юзернейму.", "». Проверь правильность написания имени или юзернейма.", "\". Check the name or username spelling."));
         }
         if (results.size() == 1) {
+            clearPendingPick(account);
+            return new ChatResolution(results.get(0).dialogId, results.get(0), null);
+        }
+
+        // Smart friend selection: If top match is strong (exact match or dominates second match)
+        int scoreTop = calculateMatchScore(query, results.get(0).name, results.get(0).username, null, null);
+        int scoreSecond = calculateMatchScore(query, results.get(1).name, results.get(1).username, null, null);
+        if (scoreTop >= 88 && (scoreTop == 100 || (scoreTop - scoreSecond) >= 12)) {
             clearPendingPick(account);
             return new ChatResolution(results.get(0).dialogId, results.get(0), null);
         }
@@ -1611,7 +1664,7 @@ public class MiogramCompanionToolbox {
                         callback.run(res.errorMessage);
                         return;
                     }
-                    int limit = Math.min(20, Math.max(1, p.optInt("limit", 10)));
+                    int limit = Math.min(30, Math.max(1, p.optInt("limit", 15)));
                     TLRPC.TL_messages_getHistory req = new TLRPC.TL_messages_getHistory();
                     req.peer = MessagesController.getInstance(account).getInputPeer(res.dialogId);
                     req.limit = limit;
@@ -1619,17 +1672,89 @@ public class MiogramCompanionToolbox {
                     ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
                         if (response instanceof TLRPC.messages_Messages) {
                             TLRPC.messages_Messages msgRes = (TLRPC.messages_Messages) response;
-                            String header = fc != null
-                                    ? (MiogramLocale.get("Останні повідомлення з ", "Последние сообщения с ", "Recent messages from ") + fc.getReference() + ":\n")
-                                    : MiogramLocale.get("Останні повідомлення:\n", "Последние сообщения:\n", "Recent messages:\n");
+                            MessagesController mc = MessagesController.getInstance(account);
+                            mc.putUsers(msgRes.users, false);
+                            mc.putChats(msgRes.chats, false);
+
+                            String chatTitle = fc != null ? fc.getReference() : String.valueOf(res.dialogId);
+                            String header = MiogramLocale.get("Останні повідомлення з «", "Последние сообщения из «", "Recent messages from \"")
+                                    + chatTitle + "»:\n";
                             StringBuilder sb = new StringBuilder(header);
                             if (msgRes.messages.isEmpty()) {
                                 sb.append(MiogramLocale.get("(Листування порожнє або немає недавніх повідомлень)", "(Переписка пуста или нет недавних сообщений)", "(Chat is empty or no recent messages)"));
                             } else {
-                                for (TLRPC.Message m : msgRes.messages) {
-                                    if (m != null && m.message != null && !m.message.isEmpty()) {
-                                        sb.append("- ").append(m.message.replace("\n", " ")).append("\n");
+                                long myId = UserConfig.getInstance(account).getClientUserId();
+                                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+
+                                for (int i = msgRes.messages.size() - 1; i >= 0; i--) {
+                                    TLRPC.Message m = msgRes.messages.get(i);
+                                    if (m == null || m instanceof TLRPC.TL_messageEmpty) continue;
+
+                                    String timeStr = "";
+                                    try {
+                                        timeStr = "[" + sdf.format(new java.util.Date(m.date * 1000L)) + "] ";
+                                    } catch (Throwable ignore) {}
+
+                                    String authorName;
+                                    long fromId = MessageObject.getFromChatId(m);
+                                    if (m.out || fromId == myId) {
+                                        authorName = MiogramLocale.get("Ви", "Вы", "You");
+                                    } else if (fromId > 0) {
+                                        TLRPC.User u = mc.getUser(fromId);
+                                        authorName = u != null ? UserObject.getUserName(u) : MiogramLocale.get("Співрозмовник", "Собеседник", "User");
+                                    } else if (fromId < 0) {
+                                        TLRPC.Chat c = mc.getChat(-fromId);
+                                        authorName = c != null && c.title != null ? c.title : MiogramLocale.get("Група", "Группа", "Group");
+                                    } else {
+                                        authorName = chatTitle;
                                     }
+
+                                    StringBuilder body = new StringBuilder();
+                                    if (m.media != null) {
+                                        if (m.media instanceof TLRPC.TL_messageMediaPhoto) {
+                                            body.append("[Фото] ");
+                                        } else if (m.media instanceof TLRPC.TL_messageMediaDocument) {
+                                            TLRPC.TL_messageMediaDocument doc = (TLRPC.TL_messageMediaDocument) m.media;
+                                            if (MessageObject.isVoiceMessage(m)) {
+                                                int dur = MessageObject.getDuration(m);
+                                                body.append("[Голосове").append(dur > 0 ? " " + dur + "с" : "").append("] ");
+                                            } else if (MessageObject.isRoundVideoDocument(doc.document)) {
+                                                body.append("[Відеоповідомлення (кружечок)] ");
+                                            } else if (MessageObject.isStickerMessage(m)) {
+                                                String stickerEmoji = "";
+                                                if (doc.document != null && doc.document.attributes != null) {
+                                                    for (TLRPC.DocumentAttribute attr : doc.document.attributes) {
+                                                        if (attr instanceof TLRPC.TL_documentAttributeSticker) {
+                                                            stickerEmoji = attr.alt != null ? " " + attr.alt : "";
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                                body.append("[Стікер").append(stickerEmoji).append("] ");
+                                            } else if (MessageObject.isMusicMessage(m)) {
+                                                body.append("[Музика: ").append(MessageObject.getMusicTitle(m)).append("] ");
+                                            } else if (MessageObject.isVideoMessage(m)) {
+                                                body.append("[Відео] ");
+                                            } else {
+                                                String fn = doc.document != null ? MessageObject.getDocumentFileName(doc.document) : null;
+                                                body.append("[Файл").append(fn != null ? ": " + fn : "").append("] ");
+                                            }
+                                        } else if (m.media instanceof TLRPC.TL_messageMediaContact) {
+                                            body.append("[Контакт] ");
+                                        } else if (m.media instanceof TLRPC.TL_messageMediaGeo || m.media instanceof TLRPC.TL_messageMediaVenue) {
+                                            body.append("[Геолокація] ");
+                                        } else if (m.media instanceof TLRPC.TL_messageMediaPoll) {
+                                            body.append("[Опитування] ");
+                                        }
+                                    }
+
+                                    if (m.message != null && !m.message.trim().isEmpty()) {
+                                        body.append(m.message.replace("\n", " "));
+                                    } else if (body.length() == 0) {
+                                        body.append(MiogramLocale.get("(медіаповідомлення)", "(медиасообщение)", "(media)"));
+                                    }
+
+                                    sb.append("• ").append(timeStr).append(authorName).append(": ").append(body.toString().trim()).append("\n");
                                 }
                             }
                             callback.run(sb.toString());
@@ -1638,6 +1763,85 @@ public class MiogramCompanionToolbox {
                         }
                     }));
                     return;
+                }
+                case "read_unread_summary": {
+                    MessagesController mc = MessagesController.getInstance(account);
+                    ArrayList<TLRPC.Dialog> all = mc.getAllDialogs();
+                    if (all == null || all.isEmpty()) all = mc.getDialogs(0);
+                    if (all == null || all.isEmpty()) all = mc.dialogsServerOnly;
+
+                    if (all == null || all.isEmpty()) {
+                        callback.run(MiogramLocale.get("У тебе немає активних чатів або список ще завантажується.", "У тебя нет активных чатов или список ещё загружается.", "You have no active chats or list is still loading."));
+                        return;
+                    }
+
+                    List<TLRPC.Dialog> unreadDialogs = new ArrayList<>();
+                    for (int i = 0; i < all.size(); i++) {
+                        TLRPC.Dialog d = all.get(i);
+                        if (d != null && d.unread_count > 0) {
+                            unreadDialogs.add(d);
+                        }
+                    }
+
+                    StringBuilder sb = new StringBuilder();
+                    if (!unreadDialogs.isEmpty()) {
+                        sb.append(MiogramLocale.get("📬 Знайдено ", "📬 Найдено ", "📬 Found "))
+                          .append(unreadDialogs.size())
+                          .append(MiogramLocale.get(" чатів з непрочитаними повідомленнями:\n", " чатов с непрочитанными сообщениями:\n", " chats with unread messages:\n"));
+
+                        int max = Math.min(8, unreadDialogs.size());
+                        for (int i = 0; i < max; i++) {
+                            TLRPC.Dialog d = unreadDialogs.get(i);
+                            String title = "";
+                            String uname = "";
+                            if (d.id > 0) {
+                                TLRPC.User u = mc.getUser(d.id);
+                                if (u != null) {
+                                    title = UserObject.getUserName(u);
+                                    uname = u.username != null ? "@" + u.username : "";
+                                }
+                            } else if (d.id < 0) {
+                                TLRPC.Chat c = mc.getChat(-d.id);
+                                if (c != null) {
+                                    title = c.title != null ? c.title : "";
+                                    uname = c.username != null ? "@" + c.username : "";
+                                }
+                            }
+                            if (title.isEmpty()) title = "Chat #" + d.id;
+
+                            sb.append(i + 1).append(". «").append(title).append("»");
+                            if (!uname.isEmpty()) sb.append(" (").append(uname).append(")");
+                            sb.append(" — ").append(d.unread_count).append(MiogramLocale.get(" нових", " новых", " new"));
+
+                            TLRPC.Message lastMsg = mc.dialogMessagesByIds.get(d.top_message);
+                            if (lastMsg != null && lastMsg.message != null && !lastMsg.message.trim().isEmpty()) {
+                                String snippet = lastMsg.message.replace("\n", " ").trim();
+                                if (snippet.length() > 60) snippet = snippet.substring(0, 57) + "...";
+                                sb.append(" | \"").append(snippet).append("\"");
+                            }
+                            sb.append("\n");
+                        }
+                        sb.append("\n").append(MiogramLocale.get("Скажи ім'я або номер — і я прочитаю листування детально!", "Скажи имя или номер — и я прочитаю переписку детально!", "Tell me the name or number and I'll read the full chat!"));
+                    } else {
+                        sb.append(MiogramLocale.get("✨ Непрочитаних повідомлень немає! Усі чати переглянуті.\nОсь останні активні чати:\n", "✨ Непрочитанных сообщений нет! Все чаты просмотрены.\nВот последние активные чаты:\n", "✨ No unread messages! All chats are up to date.\nHere are the most recent active chats:\n"));
+                        int max = Math.min(5, all.size());
+                        for (int i = 0; i < max; i++) {
+                            TLRPC.Dialog d = all.get(i);
+                            String title = "";
+                            if (d.id > 0) {
+                                TLRPC.User u = mc.getUser(d.id);
+                                if (u != null) title = UserObject.getUserName(u);
+                            } else if (d.id < 0) {
+                                TLRPC.Chat c = mc.getChat(-d.id);
+                                if (c != null) title = c.title != null ? c.title : "";
+                            }
+                            if (!title.isEmpty()) {
+                                sb.append(i + 1).append(". «").append(title).append("»\n");
+                            }
+                        }
+                    }
+                    callback.run(sb.toString());
+                    break;
                 }
                 case "create_chat": {
                     String title = p.optString("title", "Miogram New Chat");

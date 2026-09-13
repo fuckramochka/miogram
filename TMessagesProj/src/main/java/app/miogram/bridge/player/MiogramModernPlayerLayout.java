@@ -682,8 +682,15 @@ public class MiogramModernPlayerLayout extends FrameLayout {
                     }
                 }
             } catch (Throwable ignore) {}
-            if (backgroundBlurView != null && mode != MiogramPlayerPrefs.BG_MODE_CUSTOM_PHOTO && mode != MiogramPlayerPrefs.BG_MODE_CUSTOM_VIDEO) {
-                backgroundBlurView.setAlpha(0.35f * brightness);
+            if (backgroundBlurView != null) {
+                if (mode == MiogramPlayerPrefs.BG_MODE_SOLID || mode == MiogramPlayerPrefs.BG_MODE_GRADIENT || mode == MiogramPlayerPrefs.BG_MODE_TRANSPARENT) {
+                    backgroundBlurView.setVisibility(View.GONE);
+                } else {
+                    backgroundBlurView.setVisibility(View.VISIBLE);
+                    if (mode == MiogramPlayerPrefs.BG_MODE_COVER_BLUR) {
+                        backgroundBlurView.setAlpha(0.35f * brightness);
+                    }
+                }
             }
 
             // Buttons: opacity + neon glow on hero play.
@@ -1171,28 +1178,10 @@ public class MiogramModernPlayerLayout extends FrameLayout {
     }
 
     private void updateBackgroundShape(float progress) {
-        int surface = getThemedColor(Theme.key_player_background);
-        if (surface == 0) surface = getThemedColor(Theme.key_windowBackgroundWhite);
-        int accentColor = getThemeAccentColor();
-
-        // Sleek TG frosted glassmorphism (~82% opacity with translucent subtle gradient & 1dp glass stroke)
-        int frostedSurface = ColorUtils.setAlphaComponent(surface, 210);
-        int topGradient = ColorUtils.blendARGB(frostedSurface, accentColor, 0.16f);
-        int bottomGradient = ColorUtils.blendARGB(frostedSurface, 0xFF000000, 0.14f);
-
-        GradientDrawable background = new GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                new int[]{
-                        topGradient,
-                        frostedSurface,
-                        bottomGradient
-                });
+        this.fullScreenProgress = progress;
+        applyCustomization();
 
         float radius = AndroidUtilities.dp(24) * (1.0f - progress);
-        background.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
-        background.setStroke(AndroidUtilities.dp(1), 0x28FFFFFF);
-        setBackground(background);
-
         if (backgroundBlurView != null && Build.VERSION.SDK_INT >= 21) {
             backgroundBlurView.setOutlineProvider(new ViewOutlineProvider() {
                 @Override

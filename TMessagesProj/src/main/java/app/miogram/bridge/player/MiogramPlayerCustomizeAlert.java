@@ -222,14 +222,99 @@ public class MiogramPlayerCustomizeAlert extends BottomSheet {
                 MiogramPlayerPrefs.setGradientColor1(pp[0]);
                 MiogramPlayerPrefs.setGradientColor2(pp[1]);
                 MiogramPlayerPrefs.setSolidColor(pp[2]);
-                // Preset implies gradient — switch so user instantly sees result.
-                MiogramPlayerPrefs.setBackgroundMode(MiogramPlayerPrefs.BG_MODE_GRADIENT);
+                int curMode = MiogramPlayerPrefs.getBackgroundMode();
+                if (curMode != MiogramPlayerPrefs.BG_MODE_SOLID && curMode != MiogramPlayerPrefs.BG_MODE_GRADIENT) {
+                    MiogramPlayerPrefs.setBackgroundMode(MiogramPlayerPrefs.BG_MODE_GRADIENT);
+                }
                 updateModeButtonStyles(modeButtons, modeValues, accentColor);
                 if (playerLayout != null) playerLayout.applyCustomization();
             });
             presetsRow.addView(chip, LayoutHelper.createLinear(36, 36, Gravity.CENTER, 6, 0, 6, 0));
         }
         root.addView(presetsRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        // Custom Color Picker Row (Gradient / Solid)
+        LinearLayout customColorRow = new LinearLayout(context);
+        customColorRow.setOrientation(LinearLayout.HORIZONTAL);
+        customColorRow.setGravity(Gravity.CENTER);
+        customColorRow.setPadding(0, 0, 0, AndroidUtilities.dp(12));
+
+        TextView color1Btn = new TextView(context);
+        color1Btn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+        color1Btn.setTypeface(AndroidUtilities.bold());
+        color1Btn.setGravity(Gravity.CENTER);
+        color1Btn.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
+        color1Btn.setText(MiogramLocale.get("🎨 Колір 1 (Верх)", "🎨 Цвет 1 (Верх)", "🎨 Color 1 (Top)"));
+        GradientDrawable c1Bg = new GradientDrawable();
+        c1Bg.setColor(Theme.getColor(Theme.key_dialogBackground));
+        c1Bg.setCornerRadius(AndroidUtilities.dp(12));
+        c1Bg.setStroke(AndroidUtilities.dp(1), Color.argb(40, 128, 128, 128));
+        color1Btn.setBackground(c1Bg);
+        color1Btn.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+        color1Btn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            openColorPickerSheet(context, MiogramPlayerPrefs.getGradientColor1(), MiogramLocale.get("Вибір кольору 1 (Верхній)", "Выбор цвета 1 (Верхний)", "Pick Color 1 (Top)"), col -> {
+                MiogramPlayerPrefs.setGradientColor1(col);
+                MiogramPlayerPrefs.setBackgroundMode(MiogramPlayerPrefs.BG_MODE_GRADIENT);
+                updateModeButtonStyles(modeButtons, modeValues, accentColor);
+                if (playerLayout != null) playerLayout.applyCustomization();
+            });
+        });
+        customColorRow.addView(color1Btn, new LinearLayout.LayoutParams(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+
+        View colorSpacer = new View(context);
+        customColorRow.addView(colorSpacer, LayoutHelper.createLinear(8, 1));
+
+        TextView color2Btn = new TextView(context);
+        color2Btn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+        color2Btn.setTypeface(AndroidUtilities.bold());
+        color2Btn.setGravity(Gravity.CENTER);
+        color2Btn.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
+        color2Btn.setText(MiogramLocale.get("🎨 Колір 2 (Низ)", "🎨 Цвет 2 (Низ)", "🎨 Color 2 (Bottom)"));
+        GradientDrawable c2Bg = new GradientDrawable();
+        c2Bg.setColor(Theme.getColor(Theme.key_dialogBackground));
+        c2Bg.setCornerRadius(AndroidUtilities.dp(12));
+        c2Bg.setStroke(AndroidUtilities.dp(1), Color.argb(40, 128, 128, 128));
+        color2Btn.setBackground(c2Bg);
+        color2Btn.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+        color2Btn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            openColorPickerSheet(context, MiogramPlayerPrefs.getGradientColor2(), MiogramLocale.get("Вибір кольору 2 (Нижній)", "Выбор цвета 2 (Нижний)", "Pick Color 2 (Bottom)"), col -> {
+                MiogramPlayerPrefs.setGradientColor2(col);
+                MiogramPlayerPrefs.setBackgroundMode(MiogramPlayerPrefs.BG_MODE_GRADIENT);
+                updateModeButtonStyles(modeButtons, modeValues, accentColor);
+                if (playerLayout != null) playerLayout.applyCustomization();
+            });
+        });
+        customColorRow.addView(color2Btn, new LinearLayout.LayoutParams(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+
+        View colorSpacer2 = new View(context);
+        customColorRow.addView(colorSpacer2, LayoutHelper.createLinear(8, 1));
+
+        TextView solidBtn = new TextView(context);
+        solidBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+        solidBtn.setTypeface(AndroidUtilities.bold());
+        solidBtn.setGravity(Gravity.CENTER);
+        solidBtn.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
+        solidBtn.setText(MiogramLocale.get("🎨 Суцільний", "🎨 Сплошной", "🎨 Solid"));
+        GradientDrawable solidBg = new GradientDrawable();
+        solidBg.setColor(Theme.getColor(Theme.key_dialogBackground));
+        solidBg.setCornerRadius(AndroidUtilities.dp(12));
+        solidBg.setStroke(AndroidUtilities.dp(1), Color.argb(40, 128, 128, 128));
+        solidBtn.setBackground(solidBg);
+        solidBtn.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+        solidBtn.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            openColorPickerSheet(context, MiogramPlayerPrefs.getSolidColor(), MiogramLocale.get("Вибір суцільного кольору", "Выбор сплошного цвета", "Pick Solid Color"), col -> {
+                MiogramPlayerPrefs.setSolidColor(col);
+                MiogramPlayerPrefs.setBackgroundMode(MiogramPlayerPrefs.BG_MODE_SOLID);
+                updateModeButtonStyles(modeButtons, modeValues, accentColor);
+                if (playerLayout != null) playerLayout.applyCustomization();
+            });
+        });
+        customColorRow.addView(solidBtn, new LinearLayout.LayoutParams(0, LayoutHelper.WRAP_CONTENT, 1.0f));
+
+        root.addView(customColorRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         // Slider: Прозорість фону (Opacity)
         addSliderRow(root, context, MiogramLocale.get("Прозорість фону", "Прозрачность фона", "Background opacity"),
@@ -582,6 +667,62 @@ public class MiogramPlayerCustomizeAlert extends BottomSheet {
         parent.addView(row, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
     }
 
+    private void openColorPickerSheet(Context context, int initialColor, String title, org.telegram.messenger.Utilities.Callback<Integer> callback) {
+        try {
+            org.telegram.ui.Components.ColorPicker colorPicker = new org.telegram.ui.Components.ColorPicker(context, false, new org.telegram.ui.Components.ColorPicker.ColorPickerDelegate() {
+                @Override
+                public void setColor(int color, int num, boolean applyNow) {
+                    if (callback != null) callback.run(color);
+                }
+            }) {
+                @Override
+                protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                    super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(320), MeasureSpec.EXACTLY));
+                }
+            };
+            colorPicker.setType(-1, true, 1, 1, false, 0, false);
+            colorPicker.setColor(initialColor, 0);
+
+            BottomSheet pickerSheet = new BottomSheet(context, false);
+            LinearLayout layout = new LinearLayout(context);
+            layout.setOrientation(LinearLayout.VERTICAL);
+            layout.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(16));
+
+            TextView titleView = new TextView(context);
+            titleView.setText(title);
+            titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+            titleView.setTypeface(AndroidUtilities.bold());
+            titleView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+            titleView.setGravity(Gravity.CENTER);
+            titleView.setPadding(0, 0, 0, AndroidUtilities.dp(8));
+            layout.addView(titleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+            layout.addView(colorPicker, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 320));
+
+            TextView doneBtn = new TextView(context);
+            doneBtn.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.Done));
+            doneBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+            doneBtn.setTypeface(AndroidUtilities.bold());
+            doneBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
+            doneBtn.setGravity(Gravity.CENTER);
+            doneBtn.setPadding(0, AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10));
+            GradientDrawable doneBg = new GradientDrawable();
+            doneBg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton));
+            doneBg.setCornerRadius(AndroidUtilities.dp(14));
+            doneBtn.setBackground(doneBg);
+            doneBtn.setOnClickListener(v -> {
+                MiogramHaptic.tap(v);
+                pickerSheet.dismiss();
+            });
+            layout.addView(doneBtn, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 10, 0, 0));
+
+            pickerSheet.setCustomView(layout);
+            pickerSheet.show();
+        } catch (Throwable t) {
+            org.telegram.messenger.FileLog.e(t);
+        }
+    }
+
     private void openBackdropPicker(boolean isVideo) {
         try {
             org.telegram.ui.ActionBar.BaseFragment frag = org.telegram.ui.LaunchActivity.getLastFragment();
@@ -593,6 +734,11 @@ public class MiogramPlayerCustomizeAlert extends BottomSheet {
                 try {
                     dismiss();
                 } catch (Throwable ignore) {}
+                if (playerLayout != null && playerLayout.getAlert() != null) {
+                    try {
+                        playerLayout.getAlert().dismiss();
+                    } catch (Throwable ignore) {}
+                }
                 frag.presentFragment(picker);
             }
         } catch (Throwable ignore) {}

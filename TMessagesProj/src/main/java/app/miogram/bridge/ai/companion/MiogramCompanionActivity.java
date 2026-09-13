@@ -608,6 +608,21 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
         chipsRow.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(4), AndroidUtilities.dp(10), AndroidUtilities.dp(6));
         chipsScroll.addView(chipsRow, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
+        addChip(context, chipsRow, "⚡ " + MiogramLocale.get("Що нового?", "Что нового?", "What's new?"), () -> {
+            inputField.setText(MiogramLocale.get("Що нового в моїх чатах? Зроби короткий огляд!", "Что нового в моих чатах? Сделай краткий обзор!", "What's new in my chats? Give me a quick summary!"));
+            onSendMessage();
+        });
+
+        addChip(context, chipsRow, "📬 " + MiogramLocale.get("Непрочитані", "Непрочитанные", "Unread"), () -> {
+            inputField.setText(MiogramLocale.get("Почитай мої непрочитані повідомлення і розкажи що там пишуть", "Почитай мои непрочитанные сообщения и расскажи что там пишут", "Read my unread messages and summarize what's happening"));
+            onSendMessage();
+        });
+
+        addChip(context, chipsRow, "🎵 " + MiogramLocale.get("Зараз грає", "Сейчас играет", "Now playing"), () -> {
+            inputField.setText(MiogramLocale.get("Що зараз грає в плеєрі?", "Что сейчас играет в плеере?", "What's currently playing in the music player?"));
+            onSendMessage();
+        });
+
         addChip(context, chipsRow, "🔍 " + MiogramLocale.get("Знайти чат", "Найти чат", "Find chat"), () -> {
             inputField.setText(MiogramLocale.get("Знайди в лс з ", "Найди в лс с ", "Find chat with "));
             inputField.setSelection(inputField.getText().length());
@@ -1450,24 +1465,55 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
             if (context == null || consoleLog == null) return;
             LinearLayout row = new LinearLayout(context);
             row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(0, AndroidUtilities.dp(1), 0, AndroidUtilities.dp(1));
 
             TextView stamp = new TextView(context);
             stamp.setText(line.stamp() + " ");
             stamp.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
             stamp.setTypeface(android.graphics.Typeface.MONOSPACE);
-            stamp.setTextColor(0xFF8B949E);
+            stamp.setTextColor(0xFF6E7681);
             row.addView(stamp, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
+            TextView badge = new TextView(context);
+            badge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9.5f);
+            badge.setTypeface(android.graphics.Typeface.MONOSPACE);
+            badge.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(1), AndroidUtilities.dp(4), AndroidUtilities.dp(1));
+
+            GradientDrawable badgeBg = new GradientDrawable();
+            badgeBg.setCornerRadius(AndroidUtilities.dp(4));
+
+            String phaseTag = " " + line.phase.toUpperCase(Locale.US) + " ";
+            int color = 0xFF8B949E;
+            int bgCol = 0x208B949E;
+            if ("ok".equals(line.phase)) {
+                phaseTag = " OK ";
+                color = 0xFF3FB950;
+                bgCol = 0x2A3FB950;
+            } else if ("error".equals(line.phase)) {
+                phaseTag = " FAIL ";
+                color = 0xFFF85149;
+                bgCol = 0x2AF85149;
+            } else if ("denied".equals(line.phase) || "paused".equals(line.phase)) {
+                phaseTag = " WAIT ";
+                color = 0xFFD29922;
+                bgCol = 0x2AD29922;
+            } else if ("started".equals(line.phase)) {
+                phaseTag = " RUN ";
+                color = 0xFF58A6FF;
+                bgCol = 0x2A58A6FF;
+            }
+            badge.setText(phaseTag);
+            badge.setTextColor(color);
+            badgeBg.setColor(bgCol);
+            badge.setBackground(badgeBg);
+            row.addView(badge, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 0, 6, 0));
+
             TextView body = new TextView(context);
-            body.setText(line.tool + " [" + line.phase + "] " + line.preview);
+            body.setText(line.tool + (line.preview != null && !line.preview.isEmpty() ? " ➔ " + line.preview : ""));
             body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
             body.setTypeface(android.graphics.Typeface.MONOSPACE);
-            int color = 0xFF8B949E;
-            if ("ok".equals(line.phase)) color = 0xFF3FB950;
-            else if ("error".equals(line.phase)) color = 0xFFF85149;
-            else if ("denied".equals(line.phase) || "paused".equals(line.phase)) color = 0xFFD29922;
-            else if ("started".equals(line.phase)) color = 0xFF58A6FF;
-            body.setTextColor(color);
+            body.setTextColor(0xFFC9D1D9);
             row.addView(body, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
 
             consoleLog.addView(row, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 2));
