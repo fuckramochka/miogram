@@ -521,11 +521,12 @@ public class MiogramCompanionToolbox {
                     "spotify_status", "Spotify", "spotify_status() — check current Spotify playback status and track.", false,
                     (account, params, cb) -> {
                         MiogramSpotifyManager sm = MiogramSpotifyManager.getInstance();
-                        MiogramSpotifyManager.SpotifyTrack track = sm.getCurrentTrack();
-                        if (track == null) {
+                        String track = sm.getCurrentTrack();
+                        String artist = sm.getCurrentArtist();
+                        if (android.text.TextUtils.isEmpty(track)) {
                             cb.run("Spotify is currently idle or disconnected.");
                         } else {
-                            cb.run("Spotify: " + track.title + " — " + track.artist + " (" + (sm.isPlaying() ? "Playing" : "Paused") + ")");
+                            cb.run("Spotify: " + track + (!android.text.TextUtils.isEmpty(artist) ? " — " + artist : "") + " (" + (sm.isPlaying() ? "Playing" : "Paused") + ")");
                         }
                     }));
             app.miogram.bridge.ai.tools.MioTool.register(new app.miogram.bridge.ai.tools.MioTool.Def(

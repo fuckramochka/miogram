@@ -223,6 +223,23 @@ public class MiogramSpotifyManager {
         });
     }
 
+    public void openSpotifyApp(Context context) {
+        if (context == null) return;
+        try {
+            Intent intent = context.getPackageManager().getLaunchIntentForPackage(SPOTIFY_PACKAGE);
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+                return;
+            }
+        } catch (Throwable ignore) {}
+        try {
+            Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://open.spotify.com"));
+            webIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(webIntent);
+        } catch (Throwable ignore) {}
+    }
+
     public boolean isPlaying() {
         return isPlaying && !TextUtils.isEmpty(currentTrack);
     }

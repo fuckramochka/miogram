@@ -99,7 +99,7 @@ public class MiogramCompanionPrefs {
     public static class ChatMessage {
         public final boolean isUser;
         public String text;
-        public final String mood;
+        public String mood;
         public final long timestamp;
         public final String toolAction;
         public final String toolParams;
