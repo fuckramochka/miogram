@@ -1,4 +1,4 @@
-﻿package app.miogram.bridge.ai.companion;
+package app.miogram.bridge.ai.companion;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -25,8 +25,8 @@ import app.miogram.bridge.steam.MiogramSteamManager;
  */
 public class MiogramCompanionMemory {
 
-    private static final String PREFS_NAME = miogram_companion_memory;
-    private static final String KEY_FACTS_JSON = companion_facts_v1;
+    private static final String PREFS_NAME = "miogram_companion_memory";
+    private static final String KEY_FACTS_JSON = "companion_facts_v1";
 
     private static volatile MiogramCompanionMemory instance;
     private final Map<String, String> memoryMap = new HashMap<>();
@@ -122,15 +122,15 @@ public class MiogramCompanionMemory {
     public synchronized String getMemoryContextForPrompt(int account) {
         loadMemory();
         StringBuilder sb = new StringBuilder();
-        sb.append(### LONG-TERM MEMORY & P-CHAN CONTEXT (Learned Facts):\n);
+        sb.append("### LONG-TERM MEMORY & P-CHAN CONTEXT (Learned Facts):\n");
 
         // Dynamic auto-context from Telegram environment
         try {
             TLRPC.User me = UserConfig.getInstance(account).getCurrentUser();
             if (me != null) {
-                sb.append(- pchan_name: ).append(UserObject.getUserName(me)).append(\n);
+                sb.append("- pchan_name: ").append(UserObject.getUserName(me)).append("\n");
                 if (!TextUtils.isEmpty(me.username)) {
-                    sb.append(- pchan_telegram_username: @).append(me.username).append(\n);
+                    sb.append("- pchan_telegram_username: @").append(me.username).append("\n");
                 }
             }
         } catch (Throwable ignore) {}
@@ -138,25 +138,25 @@ public class MiogramCompanionMemory {
         try {
             String repo = MiogramGitHubManager.getInstance().getTrackedRepo();
             if (!TextUtils.isEmpty(repo)) {
-                sb.append(- tracked_github_repo: ).append(repo).append(\n);
+                sb.append("- tracked_github_repo: ").append(repo).append("\n");
             }
         } catch (Throwable ignore) {}
 
         try {
             String steamId = MiogramSteamManager.getInstance().getSelfSteamId();
             if (!TextUtils.isEmpty(steamId)) {
-                sb.append(- pchan_steam_id: ).append(steamId).append(\n);
+                sb.append("- pchan_steam_id: ").append(steamId).append("\n");
             }
         } catch (Throwable ignore) {}
 
         if (memoryMap.isEmpty()) {
-            sb.append(- (No custom facts learned yet. Autonomously use remember_fact to memorize new things about P-chan!)\n);
+            sb.append("- (No custom facts learned yet. Autonomously use remember_fact to memorize new things about P-chan!)\n");
         } else {
             for (Map.Entry<String, String> entry : memoryMap.entrySet()) {
-                sb.append(- ).append(entry.getKey()).append(: ).append(entry.getValue()).append(\n);
+                sb.append("- ").append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
             }
         }
-        sb.append(\n);
+        sb.append("\n");
         return sb.toString();
     }
 }
