@@ -7308,6 +7308,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             MessagesController.getInstance(currentAccount).checkPromoInfo(true);
         }
         AndroidUtilities.runOnUIThread(() -> app.miogram.bridge.badge.MiogramSyncDialog.checkAndShow(this), 1200);
+        AndroidUtilities.runOnUIThread(() -> app.miogram.bridge.spotify.MiogramSpotifyManager.getInstance().checkAutoTransfer(this, currentAccount), 1500);
         //if (refreshRateController != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
         //    refreshRateController.start();
         //}

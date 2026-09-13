@@ -317,4 +317,75 @@ public class MiogramSpotifyManager {
             FileLog.e(t);
         }
     }
+
+    public static final String PREF_AUTO_TRANSFER = "spotify_auto_transfer_v1";
+    private String lastAutoTransferredUri = "";
+    private long lastAutoTransferTime = 0;
+
+    public boolean isAutoTransferEnabled() {
+        Context ctx = ApplicationLoader.applicationContext;
+        if (ctx == null) return true;
+        return ctx.getSharedPreferences("miogram_spotify", Context.MODE_PRIVATE)
+                .getBoolean(PREF_AUTO_TRANSFER, true);
+    }
+
+    public void setAutoTransferEnabled(boolean enabled) {
+        Context ctx = ApplicationLoader.applicationContext;
+        if (ctx == null) return;
+        ctx.getSharedPreferences("miogram_spotify", Context.MODE_PRIVATE)
+                .edit().putBoolean(PREF_AUTO_TRANSFER, enabled).apply();
+    }
+
+    public void checkAutoTransfer(Context context, int currentAccount) {
+        if (!isAutoTransferEnabled()) return;
+        if (!isPlaying() || TextUtils.isEmpty(currentTrack)) return;
+
+        // Debounce: don't re-trigger if already transferred this track in the last 45 seconds
+        if (currentTrackUri.equals(lastAutoTransferredUri) && (SystemClock.elapsedRealtime() - lastAutoTransferTime < 45000)) {
+            return;
+        }
+
+        // If Telegram's native player is already playing something actively, don't interrupt
+        org.telegram.messenger.MessageObject playingMsg = org.telegram.messenger.MediaController.getInstance().getPlayingMessageObject();
+        if (playingMsg != null && !org.telegram.messenger.MediaController.getInstance().isMessagePaused()) {
+            return;
+        }
+
+        lastAutoTransferredUri = currentTrackUri;
+        lastAutoTransferTime = SystemClock.elapsedRealtime();
+
+        final String trackToPlay = currentTrack;
+        final String artistToPlay = currentArtist;
+        final String query = (artistToPlay != null && !artistToPlay.isEmpty() ? artistToPlay + " " : "") + trackToPlay;
+
+        // Asynchronously search Telegram cloud / music engines
+        app.miogram.bridge.music.MiogramMusicSearchEngine.searchAll(query, currentAccount, (tracks, isFinal) -> {
+            if (tracks != null && !tracks.isEmpty()) {
+                for (app.miogram.bridge.music.MiogramMusicTrack t : tracks) {
+                    if (t.originalMessage != null) {
+                        AndroidUtilities.runOnUIThread(() -> {
+                            org.telegram.messenger.MessageObject currentPlaying = org.telegram.messenger.MediaController.getInstance().getPlayingMessageObject();
+                            if (currentPlaying == null || org.telegram.messenger.MediaController.getInstance().isMessagePaused()) {
+                                org.telegram.messenger.MediaController.getInstance().playMessage(t.originalMessage);
+                                showAutoSyncBulletin(trackToPlay, artistToPlay);
+                            }
+                        });
+                        return;
+                    }
+                }
+            }
+        });
+    }
+
+    private void showAutoSyncBulletin(String track, String artist) {
+        AndroidUtilities.runOnUIThread(() -> {
+            try {
+                org.telegram.ui.Components.BulletinFactory.global().createSimpleBulletin(
+                        org.telegram.messenger.R.raw.saved_messages,
+                        app.miogram.bridge.MiogramLocale.get("Синхронізовано зі Spotify", "Синхронизировано со Spotify", "Synced from Spotify"),
+                        track + (TextUtils.isEmpty(artist) ? "" : " — " + artist)
+                ).show();
+            } catch (Throwable ignore) {}
+        });
+    }
 }

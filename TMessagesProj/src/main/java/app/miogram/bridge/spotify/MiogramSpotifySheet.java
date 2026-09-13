@@ -129,6 +129,52 @@ public class MiogramSpotifySheet extends BottomSheet {
                         "В меню трех точек любого аудиофайла в плеере Telegram есть опция «Найти в Spotify».",
                         "Any audio message in the player has a 'Find in Spotify' action in its options menu."));
 
+        // Sync settings section
+        addSectionHeader(root, MiogramLocale.get("НАЛАШТУВАННЯ СИНХРОНІЗАЦІЇ", "НАСТРОЙКИ СИНХРОНИЗАЦИИ", "SYNC SETTINGS"), textColor);
+
+        LinearLayout toggleRow = new LinearLayout(context);
+        toggleRow.setOrientation(LinearLayout.HORIZONTAL);
+        toggleRow.setGravity(Gravity.CENTER_VERTICAL);
+        toggleRow.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
+        GradientDrawable toggleBg = new GradientDrawable();
+        toggleBg.setColor(0x15FFFFFF);
+        toggleBg.setCornerRadius(AndroidUtilities.dp(14));
+        toggleRow.setBackground(toggleBg);
+
+        LinearLayout toggleTextCol = new LinearLayout(context);
+        toggleTextCol.setOrientation(LinearLayout.VERTICAL);
+
+        TextView toggleTitle = new TextView(context);
+        toggleTitle.setText(MiogramLocale.get("Вмикати трек у плеєрі TG при вході", "Включать трек в плеере TG при входе", "Play track in TG player on app open"));
+        toggleTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14.5f);
+        toggleTitle.setTypeface(AndroidUtilities.bold());
+        toggleTitle.setTextColor(textColor);
+        toggleTextCol.addView(toggleTitle, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 2));
+
+        TextView toggleSub = new TextView(context);
+        toggleSub.setText(MiogramLocale.get("Якщо грає Spotify, при відкритті Telegram трек автоматично продовжить грати у вбудованому плеєрі.",
+                "Если играет Spotify, при открытии Telegram трек автоматически продолжит играть во встроенном плеере.",
+                "If Spotify is playing, opening Telegram will automatically continue playback in the in-app player."));
+        toggleSub.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+        toggleSub.setTextColor(subTextColor);
+        toggleTextCol.addView(toggleSub, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        toggleRow.addView(toggleTextCol, new LinearLayout.LayoutParams(0, LayoutHelper.WRAP_CONTENT, 1f));
+
+        org.telegram.ui.Components.Switch switchView = new org.telegram.ui.Components.Switch(context);
+        switchView.setChecked(spotifyManager.isAutoTransferEnabled(), false);
+        switchView.setColors(Theme.key_switchTrack, Theme.key_switchTrackChecked, Theme.key_windowBackgroundWhite, Theme.key_windowBackgroundWhite);
+        toggleRow.addView(switchView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, 8, 0, 0, 0));
+
+        toggleRow.setOnClickListener(v -> {
+            MiogramHaptic.tap(v);
+            boolean next = !spotifyManager.isAutoTransferEnabled();
+            spotifyManager.setAutoTransferEnabled(next);
+            switchView.setChecked(next, true);
+        });
+
+        root.addView(toggleRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 14));
+
         // Setup instructions block
         addSectionHeader(root, MiogramLocale.get("ЯК УВІМКНУТИ СИНХРОНІЗАЦІЮ", "КАК ВКЛЮЧИТЬ СИНХРОНИЗАЦИЮ", "HOW TO ENABLE BROADCAST"), textColor);
 

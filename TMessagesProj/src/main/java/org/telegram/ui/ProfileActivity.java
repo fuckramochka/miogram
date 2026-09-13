@@ -273,6 +273,8 @@ import org.telegram.ui.Components.ProfileGalleryView;
 import org.telegram.ui.Components.ProfileGooeyView;
 import org.telegram.ui.Components.ProfileMusicView;
 import app.exteraless.components.ProfileMusicCard;
+import app.miogram.bridge.steam.MiogramSteamManager;
+import app.miogram.bridge.steam.MiogramSteamProfileCard;
 import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.RLottieImageView;
 import org.telegram.ui.Components.RadialProgressView;
@@ -702,6 +704,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private int emptyRow2;
     private int musicCardRow;
     private int musicCardSectionRow;
+    private int steamCardRow = -1;
     private int bottomPaddingRow;
     private int infoHeaderRow;
     private int infoHeaderRowEmpty;
@@ -775,6 +778,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private int membersSectionRow;
     private boolean hasMusic;
     private boolean hasMusicCard;
+    private boolean hasSteamCard;
+    private MiogramSteamManager.SteamProfile steamProfile;
 
     private int sharedMediaRow;
 
@@ -2218,6 +2223,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             userInfo = getMessagesController().getUserFull(userId);
             getMessagesController().loadFullUser(getMessagesController().getUser(userId), classGuid, true);
             participantsMap = null;
+            loadSteamProfile();
 
             if (UserObject.isUserSelf(user)) {
                 imageUpdater = new ImageUpdater(true, ImageUpdater.FOR_TYPE_USER, true);
@@ -10822,6 +10828,39 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         return chatId != 0;
     }
 
+    private void loadSteamProfile() {
+        if (userId == 0) return;
+        TLRPC.User user = getMessagesController().getUser(userId);
+        boolean isSelf = user != null && UserObject.isUserSelf(user);
+        if (isSelf) {
+            String linkedSteamId = MiogramSteamManager.getInstance().getLinkedSteamId();
+            if (!TextUtils.isEmpty(linkedSteamId) && MiogramSteamManager.getInstance().isBroadcastEnabled()) {
+                MiogramSteamManager.getInstance().resolvePublicSteam(linkedSteamId, profile -> {
+                    if (profile != null) {
+                        steamProfile = profile;
+                        hasSteamCard = true;
+                        MiogramSteamManager.getInstance().syncSelfToCloud(userId, profile, null);
+                        updateRowsIds();
+                        if (listAdapter != null) {
+                            listAdapter.notifyDataSetChanged();
+                        }
+                    }
+                });
+                return;
+            }
+        }
+        MiogramSteamManager.getInstance().getProfile(userId, profile -> {
+            if (profile != null && !TextUtils.isEmpty(profile.steamId)) {
+                steamProfile = profile;
+                hasSteamCard = true;
+                updateRowsIds();
+                if (listAdapter != null) {
+                    listAdapter.notifyDataSetChanged();
+                }
+            }
+        });
+    }
+
     private void updateRowsIds() {
         updateNotifications(false);
 
@@ -10896,6 +10935,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         emptyRow2 = -1;
         musicCardRow = -1;
         musicCardSectionRow = -1;
+        steamCardRow = -1;
         infoHeaderRow = -1;
         infoHeaderRowEmpty = -1;
         infoEndRowEmpty = -1;
@@ -11005,6 +11045,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (hasMusicCard) {
                 musicCardRow = rowCount++;
                 musicCardSectionRow = rowCount++;
+            }
+
+            if (hasSteamCard && steamProfile != null) {
+                steamCardRow = rowCount++;
             }
 
             if (UserObject.isUserSelf(user) && !myProfile) {
@@ -13843,7 +13887,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 VIEW_TYPE_TEXT_DETAIL_MULTILINE_2 = 30,
                 VIEW_TYPE_EMPTY2 = 31,
                 VIEW_TYPE_TEXT2 = 32,
-                VIEW_TYPE_LINKED_COMMUNITY = 33
+                VIEW_TYPE_LINKED_COMMUNITY = 33,
+                VIEW_TYPE_STEAM = 34
                         ;
 
         private Context mContext;
@@ -13949,6 +13994,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 case VIEW_TYPE_MUSIC: {
                     ProfileMusicCard card = new ProfileMusicCard(mContext, resourcesProvider);
                     card.setOnCardClickListener(ProfileActivity.this::openSavedMusic);
+                    view = card;
+                    view.setTag(RecyclerListView.TAG_NOT_SECTION);
+                    break;
+                }
+                case VIEW_TYPE_STEAM: {
+                    MiogramSteamProfileCard card = new MiogramSteamProfileCard(mContext, resourcesProvider);
                     view = card;
                     view.setTag(RecyclerListView.TAG_NOT_SECTION);
                     break;
@@ -14960,6 +15011,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         ((ProfileMusicCard) holder.itemView).set(userInfo.saved_music, emojiId, userId);
                     }
                     break;
+                case VIEW_TYPE_STEAM:
+                    if (holder.itemView instanceof MiogramSteamProfileCard && steamProfile != null) {
+                        ((MiogramSteamProfileCard) holder.itemView).setProfile(steamProfile);
+                    }
+                    break;
                 case VIEW_TYPE_VERSION:
                     ((TextInfoPrivacyCell) holder.itemView).setText(AndroidUtil.getVersionText());
                     break;
@@ -15093,7 +15149,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             int type = holder.getItemViewType();
             return type != VIEW_TYPE_HEADER && type != VIEW_TYPE_DIVIDER && type != VIEW_TYPE_SHADOW &&
                     type != VIEW_TYPE_EMPTY && type != VIEW_TYPE_EMPTY2 && type != VIEW_TYPE_HEADER_EMPTY && type != VIEW_TYPE_BOTTOM_PADDING && type != VIEW_TYPE_SHARED_MEDIA &&
-                    type != 9 && type != 10 && type != VIEW_TYPE_BOT_APP && type != VIEW_TYPE_TEXT2 && type != VIEW_TYPE_MUSIC; // These are legacy ones, left for compatibility
+                    type != 9 && type != 10 && type != VIEW_TYPE_BOT_APP && type != VIEW_TYPE_TEXT2 && type != VIEW_TYPE_MUSIC && type != VIEW_TYPE_STEAM; // These are legacy ones, left for compatibility
         }
 
         @Override
@@ -15145,6 +15201,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 return VIEW_TYPE_USER;
             } else if (position == musicCardRow) {
                 return VIEW_TYPE_MUSIC;
+            } else if (position == steamCardRow) {
+                return VIEW_TYPE_STEAM;
             } else if (position == emptyRow) {
                 return VIEW_TYPE_EMPTY;
             } else if (position == emptyRow2) {
@@ -16593,6 +16651,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             put(++pointer, versionRow, sparseIntArray);
             put(++pointer, musicCardRow, sparseIntArray);
             put(++pointer, musicCardSectionRow, sparseIntArray);
+            put(++pointer, steamCardRow, sparseIntArray);
             put(++pointer, emptyRow, sparseIntArray);
             put(++pointer, emptyRow2, sparseIntArray);
             put(++pointer, bottomPaddingRow, sparseIntArray);

@@ -199,3 +199,45 @@ grant execute on function public.miogram_founder_id() to anon, authenticated;
 -- 8. Grantor tracking (founder grants from the app client)
 alter table public.miogram_badges add column if not exists grantor_id bigint not null default 0;
 
+-- ==========================================================
+-- 9. Table: miogram_steam
+-- Purpose: Safe Steam Profile & Gaming Status Sync across Miogram users
+-- ==========================================================
+create table if not exists public.miogram_steam (
+    user_id bigint primary key,
+    steam_id text not null,
+    persona_name text default '',
+    avatar_url text default '',
+    profile_url text default '',
+    game_id text default '',
+    game_name text default '',
+    game_icon_url text default '',
+    game_hours_2weeks text default '',
+    is_in_game boolean default false,
+    state_message text default '',
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.miogram_steam enable row level security;
+
+drop policy if exists "Allow public read steam profiles" on public.miogram_steam;
+create policy "Allow public read steam profiles"
+    on public.miogram_steam
+    for select
+    using (true);
+
+drop policy if exists "Allow public insert steam profiles" on public.miogram_steam;
+create policy "Allow public insert steam profiles"
+    on public.miogram_steam
+    for insert
+    with check (true);
+
+drop policy if exists "Allow public update steam profiles" on public.miogram_steam;
+create policy "Allow public update steam profiles"
+    on public.miogram_steam
+    for update
+    using (true);
+
+create index if not exists idx_miogram_steam_lookup on public.miogram_steam (user_id);
+
+

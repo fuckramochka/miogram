@@ -42,6 +42,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
     private int subfoldersRow;
     private int badgeStudioRow;
     private int spotifyBridgeRow;
+    private int steamBridgeRow;
 
     // 2. Chats, Multichat & Private Vault 💬
     private int headerChatsPrivacyRow;
@@ -86,6 +87,7 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
         subfoldersRow = addRow();
         badgeStudioRow = addRow();
         spotifyBridgeRow = addRow();
+        steamBridgeRow = addRow();
 
         // 2. Chats, Multichat & Private Vault
         headerChatsPrivacyRow = addRow();
@@ -129,6 +131,8 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
             app.miogram.bridge.badge.MiogramBadgeBottomSheet.show(getParentActivity(), clientUserId);
         } else if (position == spotifyBridgeRow) {
             new app.miogram.bridge.spotify.MiogramSpotifySheet(getParentActivity(), null).show();
+        } else if (position == steamBridgeRow) {
+            new app.miogram.bridge.steam.MiogramSteamSheet(getParentActivity(), null).show();
         } else if (position == multichatRow) {
             presentFragment(new app.miogram.bridge.multichat.MiogramSplitChatActivity(0, 0));
         } else if (position == chatsRow) {
@@ -257,6 +261,18 @@ public class MiogramSettingsActivity extends BaseNekoSettingsActivity {
                                 MiogramLocale.get("Spotify Міст ໒꒱", "Spotify Мост ໒꒱", "Spotify Bridge ໒꒱"),
                                 val,
                                 R.drawable.msg_media,
+                                true
+                        );
+                    } else if (position == steamBridgeRow) {
+                        app.miogram.bridge.steam.MiogramSteamManager stm = app.miogram.bridge.steam.MiogramSteamManager.getInstance();
+                        String linked = stm.getLinkedSteamId();
+                        String val = !android.text.TextUtils.isEmpty(linked)
+                                ? linked
+                                : MiogramLocale.get("Прив'язка та статус гри", "Привязка и статус игры", "Link & game status");
+                        cell.setTextAndValueAndIcon(
+                                MiogramLocale.get("Steam Профіль 🎮", "Steam Профиль 🎮", "Steam Profile 🎮"),
+                                val,
+                                R.drawable.baseline_videogame_asset_16,
                                 false
                         );
                     }

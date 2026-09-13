@@ -1713,7 +1713,7 @@ public class MiogramCompanionToolbox {
                                     StringBuilder body = new StringBuilder();
                                     if (m.media != null) {
                                         if (mo.isVoice()) {
-                                            int dur = mo.getDuration();
+                                            int dur = (int) mo.getDuration();
                                             body.append("[Голосове").append(dur > 0 ? " " + dur + "с" : "").append("] ");
                                         } else if (mo.isRoundVideo()) {
                                             body.append("[Відеоповідомлення (кружечок)] ");
