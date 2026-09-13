@@ -223,4 +223,26 @@ public class MiogramDiscordManager {
             }
         } catch (Throwable ignore) {}
     }
+
+    public void showConfigDialog(Context context, PresenceCallback callback) {
+        if (context == null) return;
+        org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(context);
+        builder.setTitle(MiogramLocale.get("Підключення Discord", "Подключение Discord", "Link Discord"));
+        builder.setMessage(MiogramLocale.get(
+                "Введіть ваш числовий Discord User ID (потрібна присутність на сервері з ботом Lanyard):",
+                "Введите ваш числовой Discord User ID (требуется присутствие на сервере с ботом Lanyard):",
+                "Enter your numeric Discord User ID (requires presence on server with Lanyard bot):"
+        ));
+        final android.widget.EditText input = new android.widget.EditText(context);
+        input.setSingleLine(true);
+        input.setText(getLinkedUserId());
+        builder.setView(input);
+        builder.setPositiveButton(MiogramLocale.get("Зберегти", "Сохранить", "Save"), (dialog, which) -> {
+            String val = input.getText().toString().trim();
+            setLinkedUserId(val);
+            fetchPresence(val, true, callback);
+        });
+        builder.setNegativeButton(MiogramLocale.get("Скасувати", "Отмена", "Cancel"), null);
+        builder.show();
+    }
 }

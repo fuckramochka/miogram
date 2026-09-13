@@ -10833,6 +10833,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         TLRPC.User user = getMessagesController().getUser(userId);
         boolean isSelf = user != null && UserObject.isUserSelf(user);
         if (isSelf) {
+            hasSteamCard = true;
             String linkedSteamId = MiogramSteamManager.getInstance().getLinkedSteamId();
             if (!TextUtils.isEmpty(linkedSteamId) && MiogramSteamManager.getInstance().isBroadcastEnabled()) {
                 MiogramSteamManager.getInstance().resolvePublicSteam(linkedSteamId, profile -> {
@@ -10848,6 +10849,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 });
                 return;
             }
+            updateRowsIds();
+            if (listAdapter != null) {
+                listAdapter.notifyDataSetChanged();
+            }
+            return;
         }
         MiogramSteamManager.getInstance().getProfile(userId, profile -> {
             if (profile != null && !TextUtils.isEmpty(profile.steamId)) {
@@ -11047,7 +11053,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 musicCardSectionRow = rowCount++;
             }
 
-            if (hasSteamCard && steamProfile != null) {
+            if (hasSteamCard && (steamProfile != null || (user != null && UserObject.isUserSelf(user)))) {
                 steamCardRow = rowCount++;
             }
 

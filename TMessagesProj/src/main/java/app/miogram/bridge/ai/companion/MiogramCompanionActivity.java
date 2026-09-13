@@ -1271,8 +1271,9 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
                 MiogramCompanionPrefs.ChatMessage bubble = existingBubble;
                 String toolDesc = MiogramCompanionToolbox.describeTool(action.name, action.params);
                 String workingText = "⏳ " + toolDesc + "…";
+                String actionParamsStr = action.params != null ? action.params.toString() : null;
                 if (bubble == null) {
-                    bubble = new MiogramCompanionPrefs.ChatMessage(false, workingText, mood, System.currentTimeMillis(), action.name, action.params.toString());
+                    bubble = new MiogramCompanionPrefs.ChatMessage(false, workingText, mood, System.currentTimeMillis(), action.name, actionParamsStr);
                     history.add(bubble);
                     renderMessageBubble(bubble);
                 } else {

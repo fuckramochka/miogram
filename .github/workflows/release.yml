@@ -115,6 +115,7 @@ jobs:
             TMessagesProj/build/outputs/apk/release/*.apk
       - name: Create and Publish GitHub Release
         uses: softprops/action-gh-release@v2
+        continue-on-error: true
         if: startsWith(github.ref, 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         with:
           tag_name: v12.10.${{ github.run_number }}

@@ -203,4 +203,28 @@ public class MiogramGitHubManager {
             context.startActivity(intent);
         } catch (Throwable ignore) {}
     }
+
+    public void showSelectRepoDialog(Context context, WorkflowCallback callback) {
+        if (context == null) return;
+        org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(context);
+        builder.setTitle(MiogramLocale.get("Вибір репозиторію GitHub", "Выбор репозитория GitHub", "Select GitHub Repository"));
+        builder.setMessage(MiogramLocale.get(
+                "Введіть репозиторій у форматі owner/repo (наприклад, fuckramochka/miogram):",
+                "Введите репозиторий в формате owner/repo (например, fuckramochka/miogram):",
+                "Enter repository as owner/repo (e.g. fuckramochka/miogram):"
+        ));
+        final android.widget.EditText input = new android.widget.EditText(context);
+        input.setSingleLine(true);
+        input.setText(getTrackedRepo());
+        builder.setView(input);
+        builder.setPositiveButton(MiogramLocale.get("Зберегти", "Сохранить", "Save"), (dialog, which) -> {
+            String val = input.getText().toString().trim();
+            if (!TextUtils.isEmpty(val)) {
+                setTrackedRepo(val);
+                fetchLatestWorkflow(true, callback);
+            }
+        });
+        builder.setNegativeButton(MiogramLocale.get("Скасувати", "Отмена", "Cancel"), null);
+        builder.show();
+    }
 }

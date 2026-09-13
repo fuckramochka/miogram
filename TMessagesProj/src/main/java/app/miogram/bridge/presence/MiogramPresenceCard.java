@@ -94,6 +94,42 @@ public class MiogramPresenceCard extends FrameLayout {
 
         // 2. ViewPager for smooth swiping
         viewPager = new ViewPager(context) {
+            private float startX;
+            private float startY;
+
+            @Override
+            public boolean onInterceptTouchEvent(android.view.MotionEvent ev) {
+                switch (ev.getAction()) {
+                    case android.view.MotionEvent.ACTION_DOWN:
+                        startX = ev.getX();
+                        startY = ev.getY();
+                        if (getParent() != null) {
+                            getParent().requestDisallowInterceptTouchEvent(true);
+                        }
+                        break;
+                    case android.view.MotionEvent.ACTION_MOVE:
+                        float dx = Math.abs(ev.getX() - startX);
+                        float dy = Math.abs(ev.getY() - startY);
+                        if (dx > dy && dx > AndroidUtilities.dp(4)) {
+                            if (getParent() != null) {
+                                getParent().requestDisallowInterceptTouchEvent(true);
+                            }
+                        } else if (dy > dx && dy > AndroidUtilities.dp(4)) {
+                            if (getParent() != null) {
+                                getParent().requestDisallowInterceptTouchEvent(false);
+                            }
+                        }
+                        break;
+                    case android.view.MotionEvent.ACTION_UP:
+                    case android.view.MotionEvent.ACTION_CANCEL:
+                        if (getParent() != null) {
+                            getParent().requestDisallowInterceptTouchEvent(false);
+                        }
+                        break;
+                }
+                return super.onInterceptTouchEvent(ev);
+            }
+
             @Override
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                 int height = 0;
@@ -311,32 +347,39 @@ public class MiogramPresenceCard extends FrameLayout {
         actions.setOrientation(LinearLayout.HORIZONTAL);
         root.addView(actions, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        if (hasGame && !TextUtils.isEmpty(p.gameId)) {
-            TextView btnPlay = createButton(context, MiogramLocale.get("Зайти в гру", "Зайти в игру", "Launch Game"), 0xFF5C7E10, 0xFFFFFFFF);
-            btnPlay.setOnClickListener(v -> {
+        if (p != null) {
+            if (hasGame && !TextUtils.isEmpty(p.gameId)) {
+                TextView btnPlay = createButton(context, MiogramLocale.get("Зайти в гру", "Зайти в игру", "Launch Game"), 0xFF5C7E10, 0xFFFFFFFF);
+                btnPlay.setOnClickListener(v -> {
+                    MiogramHaptic.click(v);
+                    MiogramSteamManager.getInstance().openGame(context, p.gameId);
+                });
+                actions.addView(btnPlay, LayoutHelper.createLinear(0, 36, 1.2f, 0, 0, 6, 0));
+            }
+
+            TextView btnFriend = createButton(context, MiogramLocale.get("Додати в друзі", "Добавить в друзья", "Add Friend"), 0x3366C0F4, 0xFF66C0F4);
+            btnFriend.setOnClickListener(v -> {
                 MiogramHaptic.click(v);
-                MiogramSteamManager.getInstance().openGame(context, p.gameId);
+                if (!TextUtils.isEmpty(p.steamId)) {
+                    MiogramSteamManager.getInstance().addFriend(context, p.steamId);
+                }
             });
-            actions.addView(btnPlay, LayoutHelper.createLinear(0, 36, 1.2f, 0, 0, 6, 0));
-        }
+            actions.addView(btnFriend, LayoutHelper.createLinear(0, 36, 1f, 0, 0, 6, 0));
 
-        TextView btnFriend = createButton(context, MiogramLocale.get("Додати в друзі", "Добавить в друзья", "Add Friend"), 0x3366C0F4, 0xFF66C0F4);
-        btnFriend.setOnClickListener(v -> {
-            MiogramHaptic.click(v);
-            if (p != null && !TextUtils.isEmpty(p.steamId)) {
-                MiogramSteamManager.getInstance().addFriend(context, p.steamId);
-            }
-        });
-        actions.addView(btnFriend, LayoutHelper.createLinear(0, 36, 1f, 0, 0, 6, 0));
-
-        TextView btnProf = createButton(context, MiogramLocale.get("Профіль", "Профиль", "Profile"), 0x2AFFFFFF, 0xFFD2DBE3);
-        btnProf.setOnClickListener(v -> {
-            MiogramHaptic.click(v);
-            if (p != null) {
+            TextView btnProf = createButton(context, MiogramLocale.get("Профіль", "Профиль", "Profile"), 0x2AFFFFFF, 0xFFD2DBE3);
+            btnProf.setOnClickListener(v -> {
+                MiogramHaptic.click(v);
                 MiogramSteamManager.getInstance().openProfile(context, p.profileUrl, p.steamId);
-            }
-        });
-        actions.addView(btnProf, LayoutHelper.createLinear(0, 36, 1f, 0, 0, 0, 0));
+            });
+            actions.addView(btnProf, LayoutHelper.createLinear(0, 36, 1f, 0, 0, 0, 0));
+        } else {
+            TextView btnSetup = createButton(context, MiogramLocale.get("Підключити Steam", "Подключить Steam", "Link Steam"), 0x3366C0F4, 0xFF66C0F4);
+            btnSetup.setOnClickListener(v -> {
+                MiogramHaptic.click(v);
+                new app.miogram.bridge.steam.MiogramSteamSheet(context).show();
+            });
+            actions.addView(btnSetup, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 36));
+        }
 
         return root;
     }
@@ -411,12 +454,15 @@ public class MiogramPresenceCard extends FrameLayout {
         actions.setOrientation(LinearLayout.HORIZONTAL);
         root.addView(actions, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        TextView btnOpen = createButton(context, MiogramLocale.get("Відкрити репозиторій", "Открыть репозиторий", "Open Repository"), 0x2AFFFFFF, 0xFFFFFFFF);
-        btnOpen.setOnClickListener(v -> {
+        TextView btnSelect = createButton(context, MiogramLocale.get("Вибрати репо", "Выбрать репо", "Select Repo"), 0x2AFFFFFF, 0xFFFFFFFF);
+        btnSelect.setOnClickListener(v -> {
             MiogramHaptic.click(v);
-            MiogramGitHubManager.getInstance().openRepo(context);
+            MiogramGitHubManager.getInstance().showSelectRepoDialog(context, run -> {
+                this.githubRun = run;
+                pagerAdapter.notifyDataSetChanged();
+            });
         });
-        actions.addView(btnOpen, LayoutHelper.createLinear(0, 36, 1.2f, 0, 0, 6, 0));
+        actions.addView(btnSelect, LayoutHelper.createLinear(0, 36, 1.2f, 0, 0, 6, 0));
 
         TextView btnRefresh = createButton(context, MiogramLocale.get("Оновити", "Обновить", "Refresh"), 0x3366C0F4, 0xFF66C0F4);
         btnRefresh.setOnClickListener(v -> {
@@ -499,19 +545,31 @@ public class MiogramPresenceCard extends FrameLayout {
         actions.setOrientation(LinearLayout.HORIZONTAL);
         root.addView(actions, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        TextView btnProfile = createButton(context, MiogramLocale.get("Профіль", "Профиль", "Profile"), 0x335865F2, 0xFFFFFFFF);
-        btnProfile.setOnClickListener(v -> {
-            MiogramHaptic.click(v);
-            MiogramDiscordManager.getInstance().openProfile(context);
-        });
-        actions.addView(btnProfile, LayoutHelper.createLinear(0, 36, 1f, 0, 0, 6, 0));
+        if (d != null) {
+            TextView btnProfile = createButton(context, MiogramLocale.get("Профіль", "Профиль", "Profile"), 0x335865F2, 0xFFFFFFFF);
+            btnProfile.setOnClickListener(v -> {
+                MiogramHaptic.click(v);
+                MiogramDiscordManager.getInstance().openProfile(context);
+            });
+            actions.addView(btnProfile, LayoutHelper.createLinear(0, 36, 1f, 0, 0, 6, 0));
 
-        TextView btnCopy = createButton(context, MiogramLocale.get("Скопіювати ID", "Скопировать ID", "Copy ID"), 0x2AFFFFFF, 0xFFD2DBE3);
-        btnCopy.setOnClickListener(v -> {
-            MiogramHaptic.click(v);
-            MiogramDiscordManager.getInstance().copyId(context);
-        });
-        actions.addView(btnCopy, LayoutHelper.createLinear(0, 36, 1f, 0, 0, 0, 0));
+            TextView btnCopy = createButton(context, MiogramLocale.get("Скопіювати ID", "Скопировать ID", "Copy ID"), 0x2AFFFFFF, 0xFFD2DBE3);
+            btnCopy.setOnClickListener(v -> {
+                MiogramHaptic.click(v);
+                MiogramDiscordManager.getInstance().copyId(context);
+            });
+            actions.addView(btnCopy, LayoutHelper.createLinear(0, 36, 1f, 0, 0, 0, 0));
+        } else {
+            TextView btnSetup = createButton(context, MiogramLocale.get("Підключити Discord", "Подключить Discord", "Link Discord"), 0x335865F2, 0xFFFFFFFF);
+            btnSetup.setOnClickListener(v -> {
+                MiogramHaptic.click(v);
+                MiogramDiscordManager.getInstance().showConfigDialog(context, updatedPresence -> {
+                    this.discordPresence = updatedPresence;
+                    pagerAdapter.notifyDataSetChanged();
+                });
+            });
+            actions.addView(btnSetup, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 36));
+        }
 
         return root;
     }
