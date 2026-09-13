@@ -1350,7 +1350,6 @@ public class MiogramCompanionActivity extends BaseFragment implements Notificati
                 || rt.contains("failed") || rt.contains("error") || rt.contains("could not")
                 || rt.contains("denied");
     }
-    }
 
     private void toggleConsole() {
         consoleOpen = !consoleOpen;
