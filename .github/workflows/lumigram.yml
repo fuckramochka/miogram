@@ -53,10 +53,11 @@ jobs:
           mkdir -p "${ANDROID_HOME}/licenses"
           printf '\n8933bad161af4178b1185d1a37fbf41ea5269c' > "${ANDROID_HOME}/licenses/android-sdk-license"
           printf '\n84831b9409646a918e6ef73eb433ea425' > "${ANDROID_HOME}/licenses/android-sdk-preview-license"
-      - name: Set up Android SDK Tools
-        uses: android-actions/setup-android@v3
-        with:
-          packages: "build-tools;36.0.0 ndk;27.2.12479018 platforms;android-37"
+      - name: Install Android packages
+        run: |
+          SDKMANAGER="$(echo ${ANDROID_HOME}/cmdline-tools/*/bin/sdkmanager | tr ' ' '\n' | sort -V | tail -1)"
+          echo "using $SDKMANAGER"
+          yes | "$SDKMANAGER" "platform-tools" "build-tools;36.0.0" "ndk;27.2.12479018" "platforms;android-37"
       - name: Install Native Build Dependencies
         run: |
           sudo apt-get update
