@@ -288,7 +288,7 @@ public class ModulesActivity extends BaseNekoSettingsActivity {
                         ModuleManager mgr = ModuleManager.getInstance();
                         ModuleInfo info = installed.get(position - installedStartRow);
                         boolean enabled = mgr != null && mgr.isEnabled(info.id);
-                        cell.setTextAndCheck(info.title, info.version, enabled, true);
+                        cell.setTextAndValueAndCheck(info.title, info.version, enabled, true, true);
                     }
                     break;
                 }
