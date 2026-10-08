@@ -1,0 +1,84 @@
+name: LumiGram Build
+
+on:
+  push:
+    branches:
+      - lumigram
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Gradle Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
+      CCACHE_HARDLINK: "true"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_MAXSIZE: "5G"
+      NATIVE_TARGET: "arm64-v8a"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: recursive
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Set up Python for Chaquopy
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Point Chaquopy at that Python
+        run: echo "CHAQUOPY_BUILD_PYTHON=$(which python3.11 || which python)" >> $GITHUB_ENV
+      - name: Set up Ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: android-ndk
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+      - name: Set up Android SDK Tools
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "build-tools;36.0.0 ndk;27.2.12479018 platforms;android-37"
+      - name: Install Native Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes nasm
+      - name: Inject Telegram API credentials
+        run: |
+          printf 'TELEGRAM_APP_ID=%s\nTELEGRAM_APP_HASH=%s\n' \
+            "${{ secrets.TELEGRAM_APP_ID }}" "${{ secrets.TELEGRAM_APP_HASH }}" \
+            > local.properties
+          echo "sdk.dir=${ANDROID_HOME}" >> local.properties
+      - name: Align google-services.json with APP_PACKAGE
+        run: |
+          python3 -c "
+          import json
+          p = 'TMessagesProj/google-services.json'
+          d = json.load(open(p))
+          for c in d.get('client', []):
+              info = c.get('client_info', {}).get('android_client_info', {})
+              if 'package_name' in info:
+                  info['package_name'] = 'com.lumigram.app'
+          json.dump(d, open(p, 'w'), indent=2)
+          print('google-services.json aligned')
+          "
+      - name: Debug Build
+        run: ./gradlew :TMessagesProj:assembleDebug --console=plain -x lint
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumigram-debug
+          path: TMessagesProj/build/outputs/apk/debug/*.apk

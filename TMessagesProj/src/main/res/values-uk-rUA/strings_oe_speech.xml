@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="DownloadingModel">Завантаження моделі…</string>
+    <string name="DownloadingModelInfo">Не закривайте це вікно, доки мовна модель завантажується.</string>
+    <string name="ModelUnzipping">Розпакування…</string>
+    <string name="VoskTitle">Офлайн-розпізнавання</string>
+    <string name="VoskLanguages">Мовні моделі</string>
+    <string name="VoskLanguagesInfo">Натисніть на мову, щоб завантажити модель, ще раз — щоб зробити її активною. Довге натискання на завантажену модель видаляє її. Розпізнавання відбувається на пристрої, голосове нікуди не надсилається.</string>
+    <string name="VoskModelSelected">Активна</string>
+    <string name="VoskModelNotInstalled">Спочатку завантажте мовну модель</string>
+    <string name="VoskDownloadBusy">Уже завантажується інша модель</string>
+    <string name="VoskDownloadFailed">Не вдалося завантажити модель</string>
+    <string name="VoskDeleteModelConfirm">Видалити цю мовну модель?</string>
+    <string name="VoskModelsShort">Моделі офлайн-розпізнавання</string>
+    <string name="TranscribeProviderVosk">Vosk (офлайн)</string>
+    <string name="VoskNothingRecognized">Мову не розпізнано</string>
+    <string name="TranscribeSetupAction">Налаштувати</string>
+    <string name="TranscribeSetupCredentials">Розпізнавання мовлення не налаштовано</string>
+    <string name="TranscribeSetupVosk">Офлайн-модель не завантажено</string>
+</resources>

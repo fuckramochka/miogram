@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="OEAppearanceTitle">Зовнішній вигляд</string>
+
+    <string name="OEAppearanceAvatarCorners">Закруглення аватарів</string>
+    <string name="OEAppearanceAvatarCornersLeft">Квадрат</string>
+    <string name="OEAppearanceAvatarCornersRight">Круг</string>
+    <string name="OEAppearanceSingleCornerRadius">Єдине закруглення</string>
+    <string name="OEAppearanceSingleCornerRadiusInfo">Форуми матимуть ту саму форму аватарів, що й чати.</string>
+
+    <string name="OEAppearanceChatList">Список чатів</string>
+    <string name="OEAppearanceForceSnow">Завжди показувати сніжинки</string>
+    <string name="OEAppearanceCenterTitle">Заголовок по центру</string>
+    <string name="OEAppearanceStories">Історії</string>
+    <string name="OEAppearanceStoriesShow">Показувати</string>
+    <string name="OEAppearanceStoriesHideHeader">Приховати з шапки</string>
+    <string name="OEAppearanceStoriesDisable">Вимкнути</string>
+    <string name="OEAppearanceHideFloatingButton">Приховати плавучу кнопку</string>
+    <string name="OEAppearanceHideSearchBar">Приховати рядок пошуку</string>
+    <string name="OEAppearanceSenderMiniAvatars">Міні-аватарки відправників</string>
+    <string name="OEAppearanceChatListInfo">Якщо для папок обрано «Тільки іконки», у заголовку буде назва папки.</string>
+
+    <string name="OEAppearanceFolders">Папки</string>
+    <string name="OEAppearanceInterface">Інтерфейс</string>
+    <string name="OEAppearanceTabTitleStyle">Заголовок папки</string>
+    <string name="OEAppearanceTabTitleStyleTextOnly">Тільки назви</string>
+    <string name="OEAppearanceTabTitleStyleIconsOnly">Тільки іконки</string>
+    <string name="OEAppearanceTabTitleStyleTextWithIcons">Назви з іконками</string>
+    <string name="OEAppearanceTabCounter">Лічильник сповіщень</string>
+    <string name="OEAppearanceHideAllChats">Приховати вкладку «%1$s»</string>
+    <string name="OEAppearanceFoldersInfo">Іконки папок синхронізуються з вашим акаунтом.</string>
+
+    <string name="OEAppearanceNavigation">Навігація</string>
+
+    <string name="OEAppearanceGeneral">Загальний зовнішній вигляд</string>
+    <string name="OEAppearanceUseSystemFonts">Системні шрифти</string>
+    <string name="OEAppearanceUseSystemEmoji">Системні емодзі</string>
+    <string name="OEAppearanceSwitchStyle">Перемикачі</string>
+    <string name="OEAppearanceSliderStyle">Слайдери</string>
+
+    <string name="OEAppearanceBlur">Розмиття</string>
+    <string name="OEAppearanceForceBlur">Примусове розмиття</string>
+    <string name="OEAppearanceDisableAvatarBlur">Вимкнути розмиття аватарів</string>
+    <string name="OEAppearanceBlurInfo">Розмиття застосовуватиметься до всіх тем, незалежно від їхніх налаштувань.</string>
+
+    <string name="OEAppearanceRestartNow">Перезапустити</string>
+    <string name="OEAppearanceNeedRestart">Перезапустіть застосунок, щоб застосувати налаштування.</string>
+
+    <string name="OEAppearanceMaterialDesign3" translatable="false">Material Design 3</string>
+    <string name="OEAppearanceGooeyAvatar">«Желейна» анімація аватарів</string>
+    <string name="OEAppearanceCustomThemes">Індивідуальні теми в чатах</string>
+    <string name="OEAppearanceCustomThemesInfo">Кожен чат показуватиме обрану для нього тему.</string>
+    <string name="OEAppearanceSections">Секції</string>
+    <string name="OEAppearanceSectionRadius">Радіус секцій</string>
+    <string name="OEAppearanceSectionRadiusOff">Вимк.</string>
+    <string name="OEAppearanceSectionRadiusMax">Макс.</string>
+    <string name="OEAppearanceSeparateHeaders">Окремі заголовки</string>
+    <string name="OEAppearanceDividerStyle">Стиль роздільника</string>
+    <string name="OEAppearanceDividerHidden">Приховано</string>
+    <string name="OEAppearanceDividerLine">Лінія</string>
+    <string name="OEAppearanceDividerSegments">Сегменти</string>
+    <string name="OEAppearanceGlassOutline">Скляний контур</string>
+    <string name="OEAppearanceGlassOutlineGlare">Відблиск</string>
+    <string name="OEAppearanceGlassOutlineSolid">Суцільний</string>
+    <string name="OEAppearanceGlassOutlineHidden">Приховано</string>
+    <string name="OEAppearanceGlassMessageMenu">Скляне меню повідомлення</string>
+    <string name="OEAppearanceIconPacks">Набори іконок</string>
+    <string name="OEAppearanceIconPacksInfo">Замінити іконки застосунку на власний набір.</string>
+    <string name="OEAppearancePillStack">Плашки</string>
+    <string name="OEAppearancePillStackInfo">Налаштування інформаційних плашок у списку чатів.</string>
+    <string name="OEAppearanceNavigationSub">Меню у правому верхньому куті та бічне меню</string>
+    <string name="OEAppNavigation">Навігація у застосунку</string>
+    <string name="OEGeneral">Основні</string>
+    <string name="OETabletMode">Планшетний режим</string>
+    <string name="OETabletModeAuto">Автоматично</string>
+    <string name="OETabletModeOn">Увімкнено</string>
+    <string name="OETabletModeOff">Вимкнено</string>
+    <string name="OEBackAnimation">Анімація повернення</string>
+    <string name="OEBackAnimationClassic">Класична</string>
+    <string name="OEBackAnimationSpring">Пружинна</string>
+    <string name="OEBackAnimationPredictive">Предиктивна</string>
+    <string name="OEBackAnimationSlide">Ковзання</string>
+    <string name="OEPredictiveBackIntensity">Інтенсивність жесту</string>
+    <string name="OEPredictiveBackOff">Вимк</string>
+    <string name="OEPredictiveBackMax">Макс</string>
+    <string name="OEPredictiveBackInfo">Налаштовує, наскільки далеко зсувається екран при жесті назад.</string>
+    <string name="OENavigationDrawer">Бічне меню</string>
+    <string name="OENavigationDrawerImmersive">Імерсивна анімація</string>
+    <string name="OENavigationDrawerInfo">Замінює меню у правому верхньому куті на бічну панель, що відкривається свайпом.</string>
+    <string name="OEMainMenuItems">Елементи меню</string>
+    <string name="OEMainMenuItemsInfo">Натисніть, щоб приховати або показати пункти, утримуйте для зміни порядку. Зміни застосовуються до верхнього меню та бічної панелі.</string>
+    <string name="OEMainMenuHiddenItems">Приховані елементи</string>
+    <string name="OEMainMenuAddDivider">Додати роздільник</string>
+    <string name="OEMainMenuDivider">Роздільник</string>
+    <string name="OEMainMenuRemoveSettingsInfo">Налаштування не можна приховати, якщо вимкнено нижню панель навігації.</string>
+    <string name="OEAppearanceForceSnowInfo">Сніжинки падатимуть у шапці, бічному меню та на фоні чатів.</string>
+    <string name="OEAppearanceTitleText">Текст заголовка</string>
+    <string name="OEAppearanceTitleTextApp">@string/AppName</string>
+    <string name="OEAppearanceTitleTextUsername">Ім\'я користувача</string>
+    <string name="OEAppearanceTitleTextName">Ім\'я</string>
+    <string name="OEAppearanceTitleTextCustom">Власний текст</string>
+    <string name="OEAppearanceGlassMessageMenuInfo">Меню повідомлення та панель реакцій стають матовим склом.</string>
+    <string name="OEAppearanceGlassMessageMenuBlurOff">Скляному меню потрібне розмиття, а його зараз вимкнено.</string>
+    <string name="OEAppearancePowerSaverActive">При заряді нижче %1$d%% працює енергозбереження, і розмиття з анімаціями на паузі. Налаштування збережено та повернеться, коли зарядите телефон.</string>
+    <string name="OEAppearancePowerSaverSettings">Енергозбереження</string>
+    <string name="OEBottomNavigationBarMode">Нижня панель навігації</string>
+    <string name="OEBottomNavigationModeShow">Показувати</string>
+    <string name="OEBottomNavigationModeHide">Приховувати</string>
+    <string name="OEBackAnimationInfo">Плавніше перемикає екрани та відкриває бічне меню.</string>
+    <string name="OEAppearanceNewLoadingStyle">Індикатори завантаження</string>
+    <string name="OEAppearanceNewChatHeaderStyle">Шапка чату</string>
+    <string name="OEAppearanceNewNavigationBarStyle">Панель навігації</string>
+    <string name="OEAppearanceM3ListItems">Елементи списків</string>
+    <string name="OEAppearanceIosDesign" translatable="false">iOS Design</string>
+    <string name="OEAppearanceIosNavigationBarStyle">Панель навігації</string>
+    <string name="OEAppearanceIosChatHeader">Шапка чату в стилі iOS</string>
+    <string name="OEAppearanceHideActionBarStatus">Приховати статус</string>
+    <string name="OEAppearanceHideAi">Приховати AI</string>
+    <string name="OEAppearanceHideAiEditor">AI-редактор</string>
+    <string name="OEAppearanceHideAiSummary">Самарі повідомлення</string>
+    <string name="OEAppearanceHideAiIv">Самарі в Instant View</string>
+    <string name="OEAppearanceTabCounterAll">Усі чати</string>
+    <string name="OEAppearanceTabCounterUnmuted">Окрім беззвучних</string>
+    <string name="OEAppearanceTabCounterOff">Вимкнено</string>
+    <string name="MonetStyleHeader">Палітра Monet</string>
+    <string name="MonetStyleTelemone">Telemone</string>
+    <string name="MonetStyleClassic">Класична</string>
+    <string name="OEAppearanceEmojiSetsInfo">Замінити емодзі застосунку на інший набір.</string>
+    <string name="OEAppearanceHideSettingsSections">Приховати розділи налаштувань</string>
+    <string name="OEBottomNavigationBar">Нижня панель</string>
+    <string name="OEProfileMusicDesign">Музика в профілі</string>
+    <string name="OEProfileMusicUseOfficial">Як у Telegram</string>
+    <string name="OEProfileMusicUseOfficialInfo">Показувати трек під аватаркою, як в офіційному клієнті?</string>
+    <string name="OEProfileMusicUseCard">Карткою</string>
+    <string name="OEProfileMusicUseCardInfo">Показувати трек карткою під шапкою профілю?</string>
+    <string name="OEAppearanceHiding">Приховування елементів</string>
+    <string name="OEAppearanceHidingInfo">Історії, кнопки, вкладки та AI-функції</string>
+    <string name="OEAppearanceHidingInChats">У чатах</string>
+    <string name="OEAppearanceHidingAiPremium">AI та Premium</string>
+</resources>

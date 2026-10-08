@@ -1,0 +1,14 @@
+{
+  "modules": [
+    {
+      "id": "hello",
+      "version": "1.0.0",
+      "title": "Hello (example)",
+      "url": "https://github.com/lumigram/lumigram/releases/latest/download/hello-1.0.0.lumi",
+      "sha256": "REPLACE_WITH_REAL_SHA256",
+      "size": 0,
+      "minCore": 1,
+      "signature": ""
+    }
+  ]
+}

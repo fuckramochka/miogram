@@ -21,7 +21,7 @@ subprojects {
     afterEvaluate {
         if (plugins.hasPlugin("com.android.application")) {
             android {
-                compileSdk = 37
+                compileSdk = (System.getenv('LUMI_COMPILE_SDK') ?: '37').toInteger()
                 buildToolsVersion = "36.0.0"
                 ndkVersion = "27.2.12479018"
 

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="OEGlyphTitle">Nothing Glyph</string>
+    <string name="OEGlyphEnable">Glyph Interface</string>
+    <string name="OEGlyphNewMessage">Спалах при нових повідомленнях</string>
+    <string name="OEGlyphCalls">Світіння при вхідному дзвінку</string>
+    <string name="OEGlyphRecording">Світіння під час запису голосових</string>
+    <string name="OEGlyphScreenOff">Повідомлення лише при вимкненому екрані</string>
+    <string name="OEGlyphPreview">Попередній перегляд</string>
+    <string name="OEGlyphUnsupported">Glyph Interface доступний лише на Nothing Phone</string>
+    <string name="OEGlyphInfo">Підсвітка задньої панелі Nothing Phone: спалах на вхідні повідомлення, логотип LumiGram на Glyph Matrix Phone (3) і «дихання» під час запису голосових або вхідного дзвінка. Заглушені чати спалах не викликають.</string>
+</resources>

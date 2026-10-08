@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="OEGeneralTitle">Основні</string>
+    <string name="OEGeneralOtherTitle">Інше</string>
+
+    <!-- Translate Messages -->
+    <string name="OEGeneralTranslateHeader">Переклад повідомлень</string>
+    <string name="OEGeneralTranslateButton">Кнопка перекладу</string>
+    <string name="OEGeneralTranslateWholeChat">Переклад усього чату</string>
+    <string name="OEGeneralTranslationProvider">Сервіс перекладу</string>
+    <string name="OEGeneralTranslationTarget">Мова перекладу</string>
+    <string name="OEGeneralTranslationTargetDefault">Мова застосунку</string>
+    <string name="OEGeneralDoNotTranslate">Не перекладати</string>
+    <string name="OEGeneralTranslateInfo">Кнопка «Перекласти» з’явиться в контекстному меню повідомлення.</string>
+
+    <!-- General -->
+    <string name="OEGeneralSectionHeader">Основні</string>
+    <string name="OEGeneralDisableNumberRounding">Не округлювати числа</string>
+    <string name="OEGeneralDisableNumberRoundingValue">1,23 тис. → 1 234</string>
+    <string name="OEGeneralFormatTimeWithSeconds">Показувати секунди</string>
+    <string name="OEGeneralFormatTimeWithSecondsValue">12:34 → 12:34:56</string>
+    <string name="OEGeneralRelativeLastSeen">Відносний час у мережі</string>
+    <string name="OEGeneralInAppVibration">Вібрація в застосунку</string>
+    <string name="OEGeneralFilterZalgo">Фільтрувати «Zalgo»</string>
+    <string name="OEGeneralFilterZalgoInfo">Прибирає комбіновані символи, що ламають верстку тексту: Z̷͍͌ā̸̜l̸̞̂g̷͍̝o̶̩̓ перетворюється на Zalgo.</string>
+
+
+    <!-- Download Speed Boost -->
+    <string name="OEGeneralSpeedHeader">Прискорення завантаження</string>
+    <string name="OEGeneralNetworkSpeedHeader">Мережа та завантаження</string>
+    <string name="OEGeneralBackupHeader">Резервна копія</string>
+    <string name="OEGeneralSpeedOff">Вимк.</string>
+    <string name="OEGeneralSpeedFast">Швидко</string>
+    <string name="OEGeneralSpeedUltra">Ультра</string>
+    <string name="OEGeneralUploadBoost">Прискорення вивантаження</string>
+    <string name="OEGeneralSpeedBoostInfo">Режим «Ультра» може спричинити проблеми з мережею або акумулятором. Прискорення вивантаження надсилає файли більшими частинами та збільшує витрати трафіку.</string>
+
+    <!-- Storage -->
+    <string name="OEGeneralStorageHeader">Сховище</string>
+    <string name="OEGeneralSavePath">Папка збереження</string>
+    <string name="OEGeneralSavePathDefault">За замовчуванням</string>
+    <string name="OEGeneralSavePathHint">Назва папки</string>
+    <string name="OEGeneralSavePathInfo">Назва папки всередині Downloads, куди зберігаються файли. Допустимі літери, цифри, пробіл, крапка, дефіс і підкреслення.</string>
+
+    <!-- Profile -->
+    <string name="OEGeneralProfileHeader">Профіль</string>
+    <string name="OEGeneralHidePhone">Приховати номер телефону</string>
+    <string name="OEGeneralShowIdAndDc">Показувати ID і DC</string>
+    <string name="OEGeneralShowIdAndDcInfo">Показує ID користувача або чату й номер дата-центру в профілі.</string>
+
+    <!-- Archive -->
+    <string name="OEGeneralArchiveHeader">Список чатів і архів</string>
+    <string name="OEGeneralHideArchive">Приховати папку «Архів»</string>
+    <string name="OEGeneralArchiveOnPull">Відкривати архів потягуванням</string>
+    <string name="OEGeneralDisableUnarchiveSwipe">Вимкнути свайп «З архіву»</string>
+    <string name="OEGeneralDisableUnarchiveSwipeInfo">Свайп вліво не прибиратиме чат з архіву.</string>
+
+    <!-- Google -->
+
+    <!-- Settings Management -->
+    <string name="OEGeneralExportEtgSettings">Експорт налаштувань</string>
+    <string name="OEGeneralImportEtgSettings">Імпорт налаштувань</string>
+    <string name="OEGeneralExportFormatFull">Усі налаштування (.json)</string>
+    <string name="OEGeneralExportFormatExtera">Формат LumiGram (.extera)</string>
+    <string name="OEGeneralImportEtgConfirm">Налаштувань у файлі: %1$d. Поточні значення буде замінено.</string>
+    <string name="OEGeneralImportEtgEmpty">У файлі немає налаштувань LumiGram.</string>
+    <string name="OEGeneralImportEtgDone">Імпортовано налаштувань: %1$d</string>
+    <string name="OEGeneralResetSettings">Скидання налаштувань</string>
+    <string name="OEGeneralResetSettingsInfo">Усі налаштування повернуться до значень за замовчуванням, застосунок перезапуститься.</string>
+    <string name="OEGeneralResetSettingsDone">Налаштування LumiGram скинуто.</string>
+    <string name="OEGeneralDeleteAccount">Видалити акаунт</string>
+    <string name="DeepLFormalityDefault">Тон: як є</string>
+    <string name="DeepLFormalityInformal">Тон: неформальний</string>
+    <string name="DeepLFormalityFormal">Тон: формальний</string>
+    <string name="OEGeneralSavePathInfoFolder">Файли зберігаються в Downloads/%1$s. Тільки літери, цифри, пробіл, крапка, дефіс і підкреслення.</string>
+    <string name="OEGeneralNagramHeader">Додатково</string>
+    <string name="OEGeneralNagramSettings">Налаштування NagramX</string>
+    <string name="OEGeneralAyuMoments">AyuMoments</string>
+    <string name="OEGeneralAyuMomentsInfo">Збереження видалених і змінених повідомлень, режим привида та regex-фільтри. Функції працюють, доки ввімкнені, — навіть якщо не відкривати цей екран.</string>
+    <string name="OEGeneralAyuMomentsDisableAll">Вимкнути всі функції AyuMoments</string>
+    <string name="OELastActivityFormatted">остання активність %1$s</string>
+    <string name="OELastActivityDateFormatted">остання активність %1$s</string>
+    <string name="OEBottomNavigationModeFloating">Плаваюча</string>
+    <string name="OEGeneralLastFm">Last.fm</string>
+    <string name="OEGeneralLastFmHint">ім’я користувача</string>
+    <string name="OEGeneralLastFmNotSet">Не задано</string>
+    <string name="OEGeneralLastFmApplied">Музику профілю оновлено</string>
+    <string name="OEGeneralLastFmNoMusic">Спочатку виберіть музику профілю</string>
+    <string name="OEGeneralLastFmFailed">Не вдалося оновити музику профілю</string>
+    <string name="OEGeneralLastFmNoFile">Не вдалося завантажити трек</string>
+    <string name="OEGeneralLastFmNoUpload">Не дочекалися завантаження</string>
+    <string name="OEGeneralLastFmAbout">Ця функція працює на основі треків у профілі, додаючи в останній трек приховані байти з вашим ніком на Last.fm. Після додавання юзернейма останній трек у профілі буде перезалито з цією зміною.\n\nПісля вимкнення цієї функції трек буде повернуто до початкового стану.</string>
+    <string name="OEGeneralNotificationsHeader">Сповіщення</string>
+    <string name="OEGeneralPushStatus">Стан пушів</string>
+    <string name="OEGeneralPushStatusBlocked">заблоковано системою</string>
+    <string name="OEGeneralPushStatusNoToken">немає токена</string>
+    <string name="OEGeneralPushStatusNotRegistered">не зареєстровано</string>
+    <string name="OEGeneralPushStatusNothing">нічого не надходило</string>
+    <string name="OEGeneralBatteryOptimization">Оптимізація батареї</string>
+    <string name="OEGeneralBatteryOptimizationOn">Увімкнено — пуші можуть запізнюватися</string>
+    <string name="OEGeneralBatteryOptimizationOff">Вимкнено</string>
+    <string name="OEGeneralBatteryOptimizationUnavailable">Налаштування батареї недоступні на цьому пристрої</string>
+    <string name="OEGeneralNotificationsInfo">Натисніть на стан пушів, щоб скопіювати діагностику в буфер — додавайте її до повідомлення про проблему зі сповіщеннями. Якщо оптимізацію батареї ввімкнено, Android може затримувати або втрачати пуші, доки застосунок у фоні.</string>
+    <string name="OEGeneralGoogleHeader">Google</string>
+    <string name="OEGeneralCrashReports">Звіти про збої</string>
+    <string name="OEGeneralCrashReportsInfo">Надсилає стек падінь у Firebase Crashlytics, щоб їх виправляли без ручних баг-репортів. За замовчуванням вимкнено, і доки вимкнено, з пристрою нічого не надсилається.</string>
+    <string name="OEGeneralContentCapture">Доступ системи до тексту на екрані</string>
+    <string name="OEGeneralContentCaptureInfo">Потрібен для Live Translate на Pixel і системних підказок. Доки вимкнено, система не бачить текст чатів, а списки гортаються плавніше.</string>
+    <string name="OEGeneralMapsHeader">Карти</string>
+    <string name="OEGeneralUseOsmMapInfo">Вибір місця та трансляції геопозиції малюються тайлами OpenStreetMap замість Google Maps. Прев’ю локацій у повідомленнях, як і раніше, надходять із серверів Telegram.</string>
+    <string name="OEGeneralMapProvider">Провайдер карт</string>
+    <string name="OEGeneralMapPreview">Прев’ю локацій</string>
+    <string name="OEGeneralMapDriftingFix">Виправляти зміщення карти</string>
+    <string name="OECrashTitle">LumiGram аварійно завершився</string>
+    <string name="OEGeneralNetworkHeader">Мережа</string>
+    <string name="OEGeneralDnsOverHttps" translatable="false">DNS over HTTPS</string>
+    <string name="OEPrivacyFalseBottom">Подвійне дно</string>
+    <string name="OEPrivacyFalseBottomShowIn">Показувати в розділі «%1$s»</string>
+    <string name="AskBeforeOpeningStory">Питати перед відкриттям історії</string>
+    <string name="AskBeforeOpeningStoryInfo">Пропонує переглянути її в режимі привида, звичайно або не відкривати.</string>
+    <string name="AskBeforeOpeningStoryTitle">Відкрити історію?</string>
+    <string name="AskBeforeOpeningStoryGhost">Дивитися в режимі привида</string>
+    <string name="AskBeforeOpeningStoryNormal">Дивитися</string>
+    <string name="GhostScheduledSend">Надсилати відкладено</string>
+    <string name="GhostScheduledSendNotice">Доки онлайн приховано, повідомлення надсилаються як відкладені через 12 секунд, і ви не з’являєтеся в мережі.</string>
+    <string name="CloudConfigIncludeApiKeys">Зберігати AI-ключі</string>
+    <string name="CloudConfigIncludeApiKeysDesc">Ключі API сервісів ШІ та перекладу теж потраплять у хмару.</string>
+    <string name="OECloudTitle">Хмара</string>
+    <string name="OECloudHeroTitle">Налаштування у хмарі</string>
+    <string name="OECloudHeroText">Зберігайте налаштування LumiGram у Telegram і відновлюйте їх на будь-якому пристрої з цим акаунтом.</string>
+    <string name="OECloudStatus">Стан</string>
+    <string name="OECloudLocal">Цей пристрій</string>
+    <string name="OECloudRemote">Хмара</string>
+    <string name="OECloudChecking">перевірка…</string>
+    <string name="OECloudActions">Дії</string>
+    <string name="OECloudUpload">Зберегти у хмару</string>
+    <string name="OECloudUploading">Збереження…</string>
+    <string name="OECloudUploaded">Налаштування збережено у хмару</string>
+    <string name="OECloudRestore">Відновити з хмари</string>
+    <string name="OECloudRestoring">Відновлення…</string>
+    <string name="OECloudRestoreAction">Відновити</string>
+    <string name="OECloudRestoreConfirm">Поточні налаштування буде замінено копією з хмари, після чого застосунок перезапуститься.</string>
+    <string name="OECloudClear">Очистити хмару</string>
+    <string name="OECloudClearing">Очищення…</string>
+    <string name="OECloudClearAction">Очистити</string>
+    <string name="OECloudClearConfirm">Копію у хмарі буде видалено. Налаштування на цьому пристрої залишаться як є.</string>
+    <string name="OECloudOptions">Параметри</string>
+    <string name="OECloudAutoSync">Автосинхронізація</string>
+    <string name="OECloudAutoSyncInfo">Зберігати після кожної зміни налаштувань</string>
+    <string name="OEGeneralLastFmDebug">Налагодження Last.fm</string>
+    <string name="OEGeneralLastFmDebugTest">Перевірити</string>
+    <string name="OEGeneralLastFmDebugMode">Режим</string>
+    <string name="OEGeneralLastFmDebugPage">WebView</string>
+    <string name="OEGeneralLastFmDebugCookies">Скинути куки</string>
+    <string name="OEGeneralLastFmDebugClear">Очистити</string>
+    <string name="OEGeneralLastFmDebugCopy">Копіювати</string>
+    <string name="OEGeneralLastFmStageDownload">Завантажую трек…</string>
+    <string name="OEGeneralLastFmStagePrepare">Додаю мітку…</string>
+    <string name="OEGeneralLastFmStageUpload">Вивантажую трек…</string>
+    <string name="OEGeneralLastFmStageSave">Зберігаю в профіль…</string>
+    <string name="OEAyuSaveReadDate">Зберігати дату прочитання</string>
+    <string name="OEAyuGhostHeader">Привид</string>
+    <string name="OEAyuSavingHeader">Збереження</string>
+    <string name="OEAyuDeletedHeader">Видалені в чаті</string>
+    <string name="OEAyuOtherHeader">Інше</string>
+    <string name="OEAyuDangerHeader">Небезпечна зона</string>
+    <string name="OEAyuSaveReadDateInfo">Запам’ятовує, коли ваші повідомлення прочитали й прослухали. Час видно в меню повідомлення, якщо Telegram його не показує.</string>
+    <string name="OEAyuPlayedTodayAt">прослухано о %s</string>
+    <string name="OEAyuPlayedYesterdayAt">прослухано вчора о %s</string>
+    <string name="OEAyuPlayedDateTimeAt">прослухано %1$s о %2$s</string>
+    <string name="OEAyuForwardLoadingMedia">Завантаження медіа</string>
+    <string name="OEAyuForwardLoadingCount">Файлів: %1$d з %2$d</string>
+    <string name="OEAyuForwardLoadFailed">Не вдалося завантажити медіа для пересилання</string>
+    <string name="OEUpdateAvailable">Доступне оновлення: %1$s</string>
+    <string name="OEUpdateInstall">Оновити</string>
+    <string name="OEUpdateInstallSize">Оновити (%1$s)</string>
+    <string name="OEUpdateLater">Пізніше</string>
+    <string name="OEUpdateSkip">Пропустити версію</string>
+    <string name="OEUpdateDownloading">Завантаження оновлення</string>
+    <string name="OEUpdateDownloadFailed">Не вдалося завантажити оновлення</string>
+    <string name="OEUpdateCheckFailed">Не вдалося перевірити оновлення</string>
+    <string name="OEUserLookupTitle">Запуск @usinfobot</string>
+    <string name="OEUserLookupStart">Щоб знайти користувача за ID, потрібен бот **@usinfobot**. Він працює лише після запуску, тому ми надішлемо йому /start. У списку чатів з’явиться чат із ним.</string>
+    <string name="OEUserLookupStartButton">Запустити</string>
+    <string name="OEUserLookupNotFound">Користувача %1$d не знайдено</string>
+    <string name="OEUpdateTitle">Доступне оновлення</string>
+    <string name="OEUpdateDownloadProgress">%1$s з %2$s</string>
+    <string name="OEAyuSaveInArchived">Зберігати в архівних чатах</string>
+    <string name="OEAyuSaveInArchivedInfo">Видалені й змінені повідомлення з чатів в архіві теж зберігаються.</string>
+    <string name="OEAyuDatabaseExport">Експорт бази</string>
+    <string name="OEAyuDatabaseImport">Імпорт бази</string>
+    <string name="OEAyuDatabaseImportInfo">Видалені й змінені повідомлення з файлу додадуться до вже збережених. Підходять вивантаження LumiGram і AyuGram. Медіа з іншого застосунку можуть не відкритися.</string>
+    <string name="OEAyuDatabaseImportDone">Додано повідомлень: %1$d</string>
+    <string name="OEAyuDatabaseImportFailed">Не вдалося імпортувати файл</string>
+    <string name="OEAyuRegexReversed">Зворотний</string>
+    <string name="OEAyuRegexReversedInfo">Приховувати повідомлення, які не збігаються з виразом</string>
+    <string name="OEUpdaterChecking">Перевіряємо оновлення…</string>
+    <string name="OEUpdaterLatest">У вас остання версія</string>
+    <string name="OEUpdaterAvailable">Доступна версія %1$s</string>
+    <string name="OEUpdaterFailedInfo">Перевірте підключення та спробуйте ще раз</string>
+    <string name="OEUpdaterCheckedJustNow">Перевірено щойно</string>
+    <string name="OEUpdaterCheckedAt">Перевірено %1$s</string>
+    <string name="OEUpdaterCheckAgain">Перевірити знову</string>
+    <string name="OEUpdaterChannel">Автоперевірка</string>
+    <string name="OEUpdaterChannelOff">Вимк</string>
+    <string name="OEUpdaterChannelStable">Релізи</string>
+    <string name="OEUpdaterChannelBeta">Бета</string>
+    <string name="OEUpdaterChannelOffInfo">Оновлення перевіряються, лише коли ви натискаєте на логотип.</string>
+    <string name="OEUpdaterChannelStableInfo">Раз на 6 годин перевіряються нові релізи на GitHub.</string>
+    <string name="OEUpdaterChannelBetaInfo">А також пре-релізи з GitHub — раніше, ніж вони стануть релізами.</string>
+    <string name="OEUpdaterAllReleases">Усі релізи на GitHub</string>
+</resources>

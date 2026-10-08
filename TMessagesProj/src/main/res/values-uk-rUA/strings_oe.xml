@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="OpenExtera" translatable="false">LumiGram</string>
+    <string name="OpenExteraInfo">Налаштуйте клієнт під себе</string>
+
+    <string name="OpenExteraChats">Чати</string>
+    <string name="AddCommaAfterMention">Кома після згадки</string>
+
+    <string name="OpenExteraCategories">Категорії</string>
+    <string name="OpenExteraGeneral">Основне</string>
+    <string name="OpenExteraAppearance">Зовнішній вигляд</string>
+    <string name="OpenExteraOther">Ще</string>
+
+    <string name="OpenExteraLinks">Посилання</string>
+    <string name="OpenExteraSource">Вихідний код</string>
+    <string name="QrTitleLink">Посилання</string>
+    <string name="QrTitleWifi">Мережа Wi-Fi</string>
+    <string name="QrTitleLogin">Код входу в Telegram</string>
+    <string name="QrTitleText">Відсканований текст</string>
+    <string name="QrWifiOpenSettings">Відкрити налаштування Wi-Fi</string>
+    <string name="QrWifiCopyPassword">Скопіювати пароль</string>
+    <string name="QrWifiPasswordCopied">Пароль скопійовано</string>
+    <string name="QrWifiUnknownNetwork">У коді немає назви мережі</string>
+    <string name="QrLoginHint">Цей код входить в акаунт. Використовуйте Налаштування → Пристрої → Підключити пристрій: той екран перевіряє код і захищає акаунт.</string>
+    <string name="AppIconExteraless" translatable="false">LumiGram</string>
+    <string name="AppIconBlueprint" translatable="false">Blueprint</string>
+    <string name="AppIconRed" translatable="false">Red</string>
+    <string name="AppIconNya" translatable="false">Nya</string>
+    <string name="AppIconAyu" translatable="false">Ayu</string>
+    <string name="AppIconQuack" translatable="false">Quack</string>
+    <string name="AppIconGo" translatable="false">Go</string>
+    <string name="AppIconHand" translatable="false">Hand</string>
+    <string name="AppIconMono" translatable="false">Mono</string>
+    <string name="AppIconNothing" translatable="false">Nothing</string>
+    <string name="AppIconPlus" translatable="false">Plus</string>
+    <string name="AppIconsSelect">Вибрати</string>
+    <string name="AppIconsKeep">Залишити цю</string>
+    <string name="AppIconInfoExteraless"><!-- сюди підпис --></string>
+    <string name="AppIconInfoBlueprint"><!-- сюди підпис --></string>
+    <string name="AppIconInfoRed"><!-- сюди підпис --></string>
+    <string name="AppIconInfoNya"><!-- сюди підпис --></string>
+    <string name="AppIconInfoAyu"><!-- сюди підпис --></string>
+    <string name="AppIconInfoQuack"><!-- сюди підпис --></string>
+    <string name="AppIconInfoGo"><!-- сюди підпис --></string>
+    <string name="AppIconInfoHand"><!-- сюди підпис --></string>
+    <string name="AppIconInfoMono"><!-- сюди підпис --></string>
+    <string name="AppIconInfoNothing"><!-- сюди підпис --></string>
+    <string name="AppIconInfoPlus"><!-- сюди підпис --></string>
+    <string name="AppIconInfoTelegram"><!-- сюди підпис --></string>
+    <string name="AppIconInfoVintage"><!-- сюди підпис --></string>
+    <string name="AppIconInfoAqua"><!-- сюди підпис --></string>
+    <string name="AppIconInfoPremium"><!-- сюди підпис --></string>
+    <string name="AppIconInfoTurbo"><!-- сюди підпис --></string>
+    <string name="AppIconInfoNox"><!-- сюди підпис --></string>
+    <string name="OpenExteraPreferences">Налаштування LumiGram</string>
+    <string name="OpenExteraDesignSection">Дизайн</string>
+    <string name="OpenExteraDesigner">Іконки та дизайн</string>
+    <string name="OpenExteraDesignStudio">Студія дизайну</string>
+    <string name="OEDownloadEmojiPacks">Завантажувати набори емодзі</string>
+
+    <string name="OESubtitles">Субтитри</string>
+    <string name="OEChooseSubtitles">Вибрати субтитри</string>
+    <string name="OEDisableSubtitles">Вимкнути субтитри</string>
+    <string name="OESubtitlesAdded">Субтитри увімкнено.</string>
+    <string name="OESubtitlesRemoved">Субтитри вимкнено.</string>
+    <string name="OESubtitlesLoadError">Не вдалося завантажити субтитри.</string>
+    <string name="OESubtitlesUnsupportedFormat">Непідтримуваний формат субтитрів.</string>
+    <string name="ProxyDisableOn">Вимикати проксі</string>
+    <string name="ProxyDisableNever">Ніколи</string>
+    <string name="ProxyDisableAlways">Завжди</string>
+    <string name="ProxyDisableOnVpn" translatable="false">VPN</string>
+    <string name="ProxyDisableOnMobileData">Мобільний інтернет</string>
+    <string name="ProxyDisableOnWiFi" translatable="false">Wi-Fi</string>
+    <string name="OENowPlayingScrobbling">Зараз грає</string>
+    <string name="MainTabsHideCallsSettings">Приховати вкладку «Дзвінки»</string>
+    <string name="MainTabsHideProfile">Приховати вкладку профілю</string>
+    <string name="OEBotWebViewUpdate">Оновити WebView</string>
+    <string name="OEProfilerStart">Запустити профайлер</string>
+    <string name="OEProfilerStop">Зупинити профайлер і надіслати звіт</string>
+    <string name="OEProfilerStarted">Профайлер запущено. Користуйтеся застосунком як зазвичай, потім зупиніть його тут.</string>
+    <string name="OEProfilerShareLast">Надіслати останній звіт профайлера</string>
+    <string name="OEEnergyProfilerStart">Запустити профіль енергоспоживання</string>
+    <string name="OEEnergyProfilerStop">Зупинити профіль енергоспоживання і надіслати звіт</string>
+    <string name="OEEnergyProfilerStarted">Профіль енергоспоживання запущено, він працює і у фоні, і після перезапуску. Користуйтеся телефоном як зазвичай кілька годин, потім зупиніть його тут.</string>
+    <string name="OEEnergyProfilerShareCurrent">Надіслати поточний звіт про енергоспоживання</string>
+    <string name="OEEnergyProfilerShareLast">Надіслати останній звіт про енергоспоживання</string>
+    <string name="OEPluginToggleLogShare">Надіслати журнал увімкнення плагінів</string>
+    <string name="OEProfileIdDate">Дата реєстрації та вступу</string>
+    <string name="OEProfileAccountCreated">Акаунт **%1$s** створено %2$s</string>
+    <string name="OEProfileJoinedChat">Ви приєдналися до **%1$s** %2$s</string>
+    <string name="OEProfileJoinedChannel">Ви підписалися на **%1$s** %2$s</string>
+    <string name="OEProfileChatCreated">**%1$s** створено %2$s</string>
+    <string name="OEProfileJoinDateUnknown">Дата вступу недоступна</string>
+</resources>

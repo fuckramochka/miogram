@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="LumiModules">Модулі</string>
+    <string name="LumiModulesInstalledHeader">Встановлені</string>
+    <string name="LumiModulesScreens">Екрани модулів</string>
+    <string name="LumiModulesCatalog">Каталог у хмарі</string>
+    <string name="LumiModulesCheck">Перевірити модулі</string>
+    <string name="LumiModulesChecking">Перевірка…</string>
+    <string name="LumiModulesCheckFailed">Не вдалося завантажити каталог</string>
+    <string name="LumiModulesEmpty">У каталозі поки немає модулів</string>
+    <string name="LumiModulesRemove">Видалити модуль</string>
+    <string name="LumiModulesInstalled">Модуль встановлено</string>
+    <string name="LumiModulesInstallFailed">Не вдалося встановити модуль</string>
+    <string name="LumiModulesUpToDate">Встановлено</string>
+    <string name="LumiModulesNoneInfo">Модулів не встановлено. Ядро лишається чистим клієнтом, доки щось не скачаєш.</string>
+    <string name="LumiModulesScreensEmpty">Екрани модулів зʼявляться тут, коли модуль їх зареєструє.</string>
+    <string name="LumiModulesInfo">Модулі підписує лише автор LumiGram. Натисни на модуль, щоб скачати.</string>
+</resources>

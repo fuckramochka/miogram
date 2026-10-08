@@ -1,0 +1,8 @@
+{
+  "id": "hello",
+  "version": "1.0.0",
+  "minCore": 1,
+  "api": 1,
+  "entry": "com.lumigram.module.hello.HelloModule",
+  "title": "Hello (example)"
+}

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="Feed">Стрічка</string>
+    <string name="FeedAllChannelsExcluded">Усі канали виключено зі стрічки.</string>
+    <string name="FeedBottomTab">Показувати в нижніх вкладках</string>
+    <string name="FeedBottomTabInfo">Стрічка з’явиться на нижній панелі замість вкладки «Контакти».</string>
+    <string name="FeedChannelHidden">**%1$s** приховано зі стрічки</string>
+    <string name="FeedChannels">Канали</string>
+    <string name="FeedChannelsInfo">Зніміть галочку, щоб приховати пости каналу зі стрічки. Нові канали показуються автоматично.</string>
+    <string name="FeedHiddenChannels">Приховані</string>
+    <string name="FeedHideChannel">Приховати зі стрічки</string>
+    <string name="FeedUnreadCounter">Лічильник непрочитаних</string>
+    <string name="FeedIncludeArchived">Показувати чати з архіву</string>
+    <string name="FeedIncludeArchivedInfo">Також додавати до стрічки канали з архівованих чатів.</string>
+    <string name="FeedMarkAllRead">Позначити все прочитаним</string>
+    <string name="FeedMarkAllReadConfirm">Позначити всі пости в каналах стрічки прочитаними? Їх також буде позначено прочитаними у вихідних каналах.</string>
+    <string name="FeedMarkAllReadDone">Усі пости позначено прочитаними</string>
+    <string name="FeedNoPosts">У стрічці поки немає постів.</string>
+    <string name="FeedSettings">Налаштування стрічки</string>
+    <string name="FeedShownChannels">Показано у стрічці</string>
+    <string name="HideFeedTab">Приховати вкладку стрічки</string>
+    <string name="FeedAddNewChannels">Додавати нові канали</string>
+    <string name="FeedAddNewChannelsOnInfo">Нові канали, на які ви підписані, одразу з’являються у стрічці.</string>
+    <string name="FeedAddNewChannelsOffInfo">Нові канали приховано, доки ви не позначите їх нижче.</string>
+</resources>

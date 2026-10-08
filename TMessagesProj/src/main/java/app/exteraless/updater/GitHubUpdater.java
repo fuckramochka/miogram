@@ -44,13 +44,19 @@ import xyz.nextalone.nagram.NaConfig;
 
 public final class GitHubUpdater {
 
-    private static final String REPO = "exteraless/exteraless";
+    // LumiGram OTA: stable + beta channels from GitHub Releases.
+    // REPO must match the real GitHub repo, e.g. "yourname/lumigram".
+    private static final String REPO = "lumigram/lumigram";
     public static final String RELEASES_URL = "https://github.com/" + REPO + "/releases";
     private static final String API = "https://api.github.com/repos/" + REPO;
-    private static final long AUTO_INTERVAL = TimeUnit.HOURS.toMillis(6);
-    private static final String PREFS = "exteraless_updater";
+    private static final long AUTO_INTERVAL_STABLE = TimeUnit.HOURS.toMillis(6);
+    private static final long AUTO_INTERVAL_BETA = TimeUnit.HOURS.toMillis(2);
+    private static final String PREFS = "lumigram_updater";
     private static final String KEY_LAST_CHECK = "last_check";
     private static final String KEY_SKIPPED = "skipped_tag";
+    private static final String USER_AGENT = "lumigram";
+    private static final int MAX_RETRIES = 3;
+    private static final long RETRY_BASE_DELAY_MS = 1500;
     private static final Pattern VERSION = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)");
 
     private static volatile OkHttpClient client;
@@ -109,7 +115,8 @@ public final class GitHubUpdater {
             if (channel == UpdateHelper.UPDATE_OFF) {
                 return;
             }
-            if (Math.abs(System.currentTimeMillis() - lastCheck()) < AUTO_INTERVAL) {
+            long interval = channel == UpdateHelper.UPDATE_CHANNEL_BETA ? AUTO_INTERVAL_BETA : AUTO_INTERVAL_STABLE;
+            if (Math.abs(System.currentTimeMillis() - lastCheck()) < interval) {
                 return;
             }
         }
@@ -144,7 +151,7 @@ public final class GitHubUpdater {
                 prefs().edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply();
             } catch (Exception e) {
                 failed = true;
-                FileLog.e("GitHubUpdater: check failed", e);
+                FileLog.e("LumiUpdater: check failed", e);
             }
             final Release found = release;
             final Boolean isNewer = newer;
@@ -181,47 +188,91 @@ public final class GitHubUpdater {
     }
 
     private static JSONObject getJson(String url) throws Exception {
-        Request request = new Request.Builder().url(url)
-                .header("Accept", "application/vnd.github+json")
-                .header("User-Agent", "exteraless")
-                .build();
-        try (Response response = client().newCall(request).execute()) {
-            ResponseBody body = response.body();
-            if (response.code() == 404) {
-                return null;
+        Exception lastError = null;
+        for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            if (attempt > 0) {
+                try {
+                    Thread.sleep(RETRY_BASE_DELAY_MS * attempt);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
             }
-            if (!response.isSuccessful() || body == null) {
-                throw new IllegalStateException("HTTP " + response.code());
+            Request request = new Request.Builder().url(url)
+                    .header("Accept", "application/vnd.github+json")
+                    .header("User-Agent", USER_AGENT)
+                    .build();
+            try (Response response = client().newCall(request).execute()) {
+                ResponseBody body = response.body();
+                if (response.code() == 404) {
+                    return null;
+                }
+                if (response.code() == 403 || response.code() == 429) {
+                    // GitHub rate-limit: do not hammer, surface as failure.
+                    throw new IllegalStateException("HTTP " + response.code() + " rate-limited");
+                }
+                if (!response.isSuccessful() || body == null) {
+                    throw new IllegalStateException("HTTP " + response.code());
+                }
+                String text = body.string();
+                return text.trim().startsWith("[") ? new JSONObject().put("items", new JSONArray(text)) : new JSONObject(text);
+            } catch (Exception e) {
+                lastError = e;
+                FileLog.e("LumiUpdater: GET failed (attempt " + (attempt + 1) + "): " + url, e);
             }
-            String text = body.string();
-            return text.trim().startsWith("[") ? new JSONObject().put("items", new JSONArray(text)) : new JSONObject(text);
         }
+        if (lastError != null) {
+            throw lastError;
+        }
+        throw new IllegalStateException("unreachable");
     }
 
     private static Release latest(boolean prerelease) throws Exception {
-        JSONObject wrapper = getJson(API + "/releases?per_page=10");
-        JSONArray releases = wrapper == null ? null : wrapper.optJSONArray("items");
-        if (releases == null) {
-            return null;
+        JSONObject wrapper = null;
+        try {
+            wrapper = getJson(API + "/releases?per_page=10");
+        } catch (Exception e) {
+            FileLog.e("LumiUpdater: releases list failed, trying /latest", e);
         }
-        for (int i = 0; i < releases.length(); i++) {
-            JSONObject item = releases.optJSONObject(i);
-            if (item == null || item.optBoolean("draft") || item.optBoolean("prerelease") && !prerelease) {
-                continue;
+        JSONArray releases = wrapper == null ? null : wrapper.optJSONArray("items");
+        if (releases != null) {
+            for (int i = 0; i < releases.length(); i++) {
+                JSONObject item = releases.optJSONObject(i);
+                if (item == null || item.optBoolean("draft") || item.optBoolean("prerelease") && !prerelease) {
+                    continue;
+                }
+                JSONObject asset = pickAsset(item.optJSONArray("assets"));
+                if (asset == null) {
+                    continue;
+                }
+                Release release = new Release();
+                release.tag = item.optString("tag_name");
+                release.name = item.optString("name", release.tag);
+                release.body = item.optString("body", "");
+                release.apkUrl = asset.optString("browser_download_url");
+                release.apkName = asset.optString("name");
+                release.apkSize = asset.optLong("size");
+                release.published = parseDate(item.optString("published_at"));
+                return release;
             }
-            JSONObject asset = pickAsset(item.optJSONArray("assets"));
-            if (asset == null) {
-                continue;
+        }
+        // Fallback for stable channel: /releases/latest works even when list is rate-limited.
+        if (!prerelease) {
+            JSONObject item = getJson(API + "/releases/latest");
+            if (item != null && !item.optBoolean("draft")) {
+                JSONObject asset = pickAsset(item.optJSONArray("assets"));
+                if (asset != null) {
+                    Release release = new Release();
+                    release.tag = item.optString("tag_name");
+                    release.name = item.optString("name", release.tag);
+                    release.body = item.optString("body", "");
+                    release.apkUrl = asset.optString("browser_download_url");
+                    release.apkName = asset.optString("name");
+                    release.apkSize = asset.optLong("size");
+                    release.published = parseDate(item.optString("published_at"));
+                    return release;
+                }
             }
-            Release release = new Release();
-            release.tag = item.optString("tag_name");
-            release.name = item.optString("name", release.tag);
-            release.body = item.optString("body", "");
-            release.apkUrl = asset.optString("browser_download_url");
-            release.apkName = asset.optString("name");
-            release.apkSize = asset.optLong("size");
-            release.published = parseDate(item.optString("published_at"));
-            return release;
         }
         return null;
     }
@@ -378,8 +429,10 @@ public final class GitHubUpdater {
             }
         }
         File target = new File(dir, release.apkName.replaceAll("[^A-Za-z0-9._-]", "_"));
+        File part = new File(dir, target.getName() + ".part");
+        part.delete();
         Call call = client().newCall(new Request.Builder().url(release.apkUrl)
-                .header("User-Agent", "exteraless").build());
+                .header("User-Agent", USER_AGENT).build());
         download = call;
         new Thread(() -> {
             boolean ok = false;
@@ -389,12 +442,15 @@ public final class GitHubUpdater {
                     throw new IllegalStateException("HTTP " + response.code());
                 }
                 long total = body.contentLength() > 0 ? body.contentLength() : release.apkSize;
-                try (InputStream input = body.byteStream(); OutputStream output = new FileOutputStream(target)) {
+                try (InputStream input = body.byteStream(); OutputStream output = new FileOutputStream(part)) {
                     byte[] buffer = new byte[64 * 1024];
                     long done = 0;
                     int lastPercent = -1;
                     int read;
                     while ((read = input.read(buffer)) > 0) {
+                        if (call.isCanceled()) {
+                            break;
+                        }
                         output.write(buffer, 0, read);
                         done += read;
                         if (total > 0) {
@@ -406,11 +462,21 @@ public final class GitHubUpdater {
                             }
                         }
                     }
+                    output.flush();
+                    // Size guard: truncated APK must not be installed.
+                    if (!call.isCanceled() && (total <= 0 || part.length() >= total) && part.length() > 1024 * 1024) {
+                        if (!part.renameTo(target)) {
+                            throw new IllegalStateException("rename failed");
+                        }
+                        ok = true;
+                    } else if (!call.isCanceled()) {
+                        throw new IllegalStateException("incomplete download: " + part.length() + "/" + total);
+                    }
                 }
-                ok = true;
+                ok = ok && target.exists();
             } catch (Exception e) {
                 if (!call.isCanceled()) {
-                    FileLog.e("GitHubUpdater: download failed", e);
+                    FileLog.e("LumiUpdater: download failed", e);
                 }
             }
             final boolean success = ok;
@@ -421,6 +487,7 @@ public final class GitHubUpdater {
                     install(activity, target);
                 } else {
                     target.delete();
+                    part.delete();
                     listener.onFinished(false, call.isCanceled());
                     if (!call.isCanceled()) {
                         bulletin(LocaleController.getString(R.string.OEUpdateDownloadFailed), true);

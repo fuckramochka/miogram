@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LumiGram native modules. Core is clean TG without them. -->
+<resources>
+    <string name="LumiModules">Modules</string>
+    <string name="LumiModulesInstalledHeader">Installed</string>
+    <string name="LumiModulesScreens">Module screens</string>
+    <string name="LumiModulesCatalog">Cloud catalog</string>
+    <string name="LumiModulesCheck">Check for modules</string>
+    <string name="LumiModulesChecking">Checking…</string>
+    <string name="LumiModulesCheckFailed">Could not fetch the catalog</string>
+    <string name="LumiModulesEmpty">No modules in the catalog yet</string>
+    <string name="LumiModulesRemove">Remove module</string>
+    <string name="LumiModulesInstalled">Module installed</string>
+    <string name="LumiModulesInstallFailed">Could not install the module</string>
+    <string name="LumiModulesUpToDate">Installed</string>
+    <string name="LumiModulesNoneInfo">No modules installed. The core stays a clean client until you download one.</string>
+    <string name="LumiModulesScreensEmpty">Module screens appear here once a module registers them.</string>
+    <string name="LumiModulesInfo">Modules are signed by the LumiGram author only. Tap a module to download it.</string>
+</resources>

@@ -287,6 +287,11 @@ public class ApplicationLoader extends Application implements CameraXConfig.Prov
         NekoConfig.init();
         NaConfig.init();
         OpenExteraConfig.init();
+        try {
+            app.lumigram.modules.ModuleManager.init(applicationContext);
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e("LumiModules: init failed", e);
+        }
         app.exteraless.icons.IconPacksConfig.init();
         app.exteraless.pillstack.PillStackConfig.init();
         app.exteraless.appearance.AppearanceConfig.init();
