@@ -57,7 +57,7 @@ jobs:
         run: |
           SDKMANAGER="$(echo ${ANDROID_HOME}/cmdline-tools/*/bin/sdkmanager | tr ' ' '\n' | sort -V | tail -1)"
           echo "using $SDKMANAGER"
-          yes | "$SDKMANAGER" "platform-tools" "build-tools;36.0.0" "ndk;27.2.12479018" "platforms;android-37"
+          yes | "$SDKMANAGER" "platform-tools" "build-tools;36.0.0" "ndk;27.2.12479018" "platforms;android-37.0"
       - name: Install Native Build Dependencies
         run: |
           sudo apt-get update
